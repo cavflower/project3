@@ -1,0 +1,167 @@
+import React, { useState } from 'react';
+// 1. 將 react-router-dom 的 imports 合併
+import { Routes, Route, Navigate } from 'react-router-dom';
+
+// 佈局元件
+import Navbar from './components/layout/Navbar';
+import Footer from './components/layout/Footer';
+import Sidebar from './components/layout/Sidebar';
+
+// 頁面元件
+import HomePage from './features/home/HomePage';
+// import LoginPage from './features/authentication/LoginPage';
+// import RegisterPage from './features/authentication/RegisterPage';
+import CustomerLoginPage from './features/authentication/CustomerLoginPage';
+import MerchantLoginPage from './features/authentication/MerchantLoginPage';
+import CustomerRegisterPage from './features/authentication/CustomerRegisterPage';
+import MerchantRegisterPage from './features/authentication/MerchantRegisterPage';
+import CustomerHomePage from './features/home/CustomerHomePage';
+import MerchantDashboard from './features/merchant_dashboard/MerchantDashboard';
+import ProfilePage from './features/user_profile/ProfilePage'; // 1. 匯入新的個人資料頁面
+import ProductManagementPage from './features/merchant_dashboard/product_management/ProductManagementPage';
+import PlanSelectionPage from './features/plan_selection/PlanSelectionPage'; // 匯入方案選擇頁面
+import StoreSettingsPage from './features/merchant_dashboard/store_settings/StoreSettingsPage'; // 匯入餐廳設定頁面
+import StoreBrowse from './features/home/StoreBrowse';
+import StorePage from './features/home/StorePage';
+import OrderPage from './features/home/OrderPage';
+import CheckoutPage from './features/home/CheckoutPage';
+import ConfirmationPage from './features/home/ConfirmationPage';
+import ReviewPage from './features/home/ReviewPage';
+
+// Context
+import { useAuth } from './store/AuthContext'; 
+
+/**
+ * 受保護路由元件
+ * 檢查使用者是否登入，若未登入則導向到 /login
+ */
+function ProtectedRoute({ children }) {
+  const { isLoggedIn } = useAuth();
+  if (!isLoggedIn) {
+    // 使用者未登入，導向到登入頁面
+    return <Navigate to="/login/customer" replace />;
+  }
+  return children; // 使用者已登入，顯示子元件 (如 HomePage)
+}
+
+function App() {
+  // Sidebar 狀態
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!isSidebarOpen);
+  };
+
+  return (
+    // 2. 必須用 <BrowserRouter> 包裹整個應用程式
+    
+      <div className="App">
+        <Navbar toggleSidebar={toggleSidebar} />
+        <Sidebar isOpen={isSidebarOpen} />
+        <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+          <main>
+            {/* 3. 路由配置 */}
+            <Routes>
+              
+              {/* 首頁 (/)：公開 */}
+              <Route path="/" element={<HomePage />} />
+              
+              {/* 登入頁 */}
+              <Route path="/login/customer" element={<CustomerLoginPage />} />
+              <Route path="/login/merchant" element={<MerchantLoginPage />} />
+              {/* 為了向後相容，將 /login 導向顧客登入 */}
+              <Route path="/login" element={<Navigate to="/login/customer" />} />
+
+
+              {/* 註冊頁 */}
+              <Route path="/register/customer" element={<CustomerRegisterPage />} />
+              <Route path="/register/merchant" element={<MerchantRegisterPage />} />
+              <Route path="/register" element={<Navigate to="/register/customer" />} />
+
+
+              {/* 顧客首頁 (/customer-home)：受保護 */}
+              <Route 
+                path="/customer-home"
+                element={
+                    <CustomerHomePage />  
+                }
+              />
+
+              <Route
+                path="/store/:storeId/options"
+                element={<StoreBrowse />}
+              />
+          {/* 點入特定店家 頁面 */}
+              <Route path="/store/:storeId" element={<StorePage />} />
+          
+          {/* 點餐主頁面 */}
+              <Route path="/store/:storeId/order" element={<OrderPage />} />
+          
+          {/* 線上結帳 頁面 */}
+              <Route path="/checkout" element={<CheckoutPage />} />
+          
+          {/* 訂單確認 頁面 */}
+              <Route path="/confirmation/:orderId" element={<ConfirmationPage />} />
+          
+          {/* 評價頁面 */}
+              <Route path="/review/:orderId" element={<ReviewPage />} />
+              
+              {/* 店家儀表板 (/dashboard)：受保護 */}
+              <Route 
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <MerchantDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route 
+                path="/merchant/products"
+                element={
+                  <ProtectedRoute>
+                    <ProductManagementPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 餐廳設定頁面路由 */}
+              <Route
+                path="/merchant/settings"
+                element={
+                  <ProtectedRoute>
+                    <StoreSettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 新增方案選擇頁面路由 */}
+              <Route
+                path="/select-plan"
+                element={
+                  <ProtectedRoute>
+                    <PlanSelectionPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 個人資料頁 (/profile)：受保護 */}
+              <Route 
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </div>
+    
+  );
+}
+
+export default App;

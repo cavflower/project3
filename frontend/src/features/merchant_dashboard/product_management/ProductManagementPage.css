@@ -1,0 +1,116 @@
+.product-management-page {
+  padding: 20px;
+  max-width: 1000px;
+  margin: 20px auto;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.page-header h1 {
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.action-btn {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.add-btn {
+  background-color: #3498db;
+  color: white;
+}
+
+.add-btn:hover {
+  background-color: #2980b9;
+}
+
+.product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.product-card-manage {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.product-image-manage {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 5px;
+  margin-right: 20px;
+}
+
+.product-info-manage {
+  flex-grow: 1;
+}
+
+.product-info-manage h3 {
+  margin: 0 0 5px 0;
+  font-size: 1.1rem;
+}
+
+.product-info-manage .price {
+  font-weight: bold;
+  color: #27ae60;
+  margin-bottom: 5px;
+}
+
+.product-info-manage p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.product-actions-manage {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-btn {
+  background-color: #f39c12;
+  color: white;
+}
+.edit-btn:hover {
+  background-color: #e67e22;
+}
+
+.delete-btn {
+  background-color: #e74c3c;
+  color: white;
+}
+.delete-btn:hover {
+  background-color: #c0392b;
+}
+
+.error-message {
+  color: #e74c3c;
+  background-color: #fbeaea;
+  border: 1px solid #e74c3c;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  text-align: center;
+}
