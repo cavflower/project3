@@ -38,7 +38,7 @@ const ProductManagementPage = () => {
     if (window.confirm('您確定要刪除此商品嗎？')) {
       try {
         await deleteProduct(productId);
-        fetchProducts(); // 重新獲取列表
+        fetchProducts();
       } catch (err) {
         setError('刪除商品失敗。');
         console.error(err);
@@ -49,10 +49,9 @@ const ProductManagementPage = () => {
   const handleFormSuccess = () => {
     setIsFormVisible(false);
     setEditingProduct(null);
-    fetchProducts(); // 重新獲取列表
+    fetchProducts();
   };
 
-  // 處理圖片 URL，確保後端相對路徑能正確顯示
   const getImageUrl = (imagePath) => {
     if (!imagePath) {
       return 'https://via.placeholder.com/150/CCCCCC/FFFFFF?Text=No+Image';
@@ -61,6 +60,16 @@ const ProductManagementPage = () => {
       return imagePath;
     }
     return `http://127.0.0.1:8000${imagePath}`;
+  };
+
+  // 新增：將服務類型轉換為中文
+  const getServiceTypeLabel = (serviceType) => {
+    const types = {
+      'dine_in': '內用',
+      'takeaway': '外帶',
+      'both': '內用與外帶',
+    };
+    return types[serviceType] || '內用與外帶';
   };
 
   return (
@@ -91,6 +100,10 @@ const ProductManagementPage = () => {
                 <h3>{product.name}</h3>
                 <p className="price">NT$ {Number(product.price).toFixed(0)}</p>
                 <p>{product.description}</p>
+                {/* 新增：顯示服務類型 */}
+                <p className="service-type-badge">
+                  <span className="badge">{getServiceTypeLabel(product.service_type)}</span>
+                </p>
               </div>
               <div className="product-actions-manage">
                 <button className="action-btn edit-btn" onClick={() => handleEditClick(product)}>編輯</button>

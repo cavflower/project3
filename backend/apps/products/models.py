@@ -36,6 +36,15 @@ class Product(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    service_type = models.CharField(
+        max_length=10,
+        choices=[
+            ('dine_in', '內用'),
+            ('takeaway', '外帶'),
+            ('both', '內用與外帶'),
+        ],
+        default='both'
+    )
 
     class Meta:
         ordering = ['-created_at']

@@ -19,6 +19,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'image', 
             'is_available',
             'created_at',
-            'updated_at'
+            'updated_at',
+            'service_type'
         ]
         read_only_fields = ['merchant'] # Merchant is set automatically from the request user.

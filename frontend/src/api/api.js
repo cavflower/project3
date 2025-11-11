@@ -1,7 +1,8 @@
 import axios from 'axios';
+import firebase from '../lib/firebase'; // 若你使用 modular firebase，這個檔案應該有匯出或可取 getAuth()
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api', // 您的 Django 後端 URL
+  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000/api'
 });
 
 // 是否正在刷新 token 的標記
@@ -64,32 +65,42 @@ const getUserTypeFromUrl = (url, method = 'get') => {
 
 // 攔截器，在每個請求中附加 token
 api.interceptors.request.use(
-  (config) => {
-    // 根據請求 URL 和 HTTP 方法判斷使用哪個用戶類型的 token
-    const userType = getUserTypeFromUrl(config.url, config.method);
-    
-    // 如果 userType 是 null，表示這個 API 不需要 token（例如登入、註冊）
-    if (userType === null) {
-      return config;
+  async (config) => {
+    try {
+      // 優先從 localStorage 取得後端 access token（merchant/customer）
+      const tokenKeys = ['merchant_accessToken', 'customer_accessToken', 'accessToken'];
+      let token = tokenKeys.map(k => localStorage.getItem(k)).find(Boolean);
+
+      // 如果沒有後端 token，嘗試從 firebase currentUser 取得 idToken
+      if (!token) {
+        try {
+          const user =
+            (firebase && firebase.auth && firebase.auth().currentUser) ||
+            (firebase && firebase.getAuth && firebase.getAuth().currentUser);
+          if (user) {
+            // 支援不同 firebase api：currentUser.getIdToken()
+            token = await (user.getIdToken ? user.getIdToken() : user.getIdToken(true));
+          }
+        } catch (e) {
+          // 忽略，繼續沒有 token 的情況（會由後端回 401）
+          console.debug('[api] no firebase token', e?.message);
+        }
+      }
+
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+        // 開發時可開 debug log
+        // console.log('[api] attach Authorization to', config.url);
+      } else {
+        // console.log('[api] no token attached for', config.url);
+      }
+    } catch (err) {
+      console.warn('[api] interceptor error', err);
     }
-    
-    // 使用判斷出的用戶類型，如果沒有則預設為 customer
-    const finalUserType = userType || 'customer';
-    const tokenKey = `${finalUserType}_accessToken`;
-    const token = localStorage.getItem(tokenKey);
-    
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    } else if (userType !== null) {
-      // 如果需要 token 但沒有找到，記錄警告（但不阻止請求，讓後端返回 401）
-      console.warn(`No ${finalUserType} token found for request to ${config.url}`);
-    }
+
     return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  }, (error) => Promise.reject(error));
 
 // 響應攔截器，處理 token 過期
 api.interceptors.response.use(

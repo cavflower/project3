@@ -10,7 +10,9 @@ $backendCommand = "cd '$backendPath'; Write-Host '正在啟動 Django 後端伺�
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "($Host.UI.RawUI.WindowTitle = '$backendTitle'); $backendCommand"
 
 
-$frontendPath = Join-Path -Path $scriptPath -ChildPath "frontend"
+$frontendPath = Join-Path -Path $scriptPath -ChildPath "frontend"# 在專案根目錄（c:\Users\88693\Downloads\project3-Beta）執行：
+tree /F /A > filelist.txt
+notepad filelist.txt
 
 $frontendTitle = "前端伺服器 (React)"
 

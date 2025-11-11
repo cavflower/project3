@@ -36,12 +36,17 @@ import { useAuth } from './store/AuthContext';
  * 檢查使用者是否登入，若未登入則導向到 /login
  */
 function ProtectedRoute({ children }) {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, loading } = useAuth(); // 確保 AuthContext 有回傳 loading
+
+  if (loading) {
+    // 在驗證還在載入時不要重定向，改顯示空或 spinner
+    return null; 
+  }
+
   if (!isLoggedIn) {
-    // 使用者未登入，導向到登入頁面
     return <Navigate to="/login/customer" replace />;
   }
-  return children; // 使用者已登入，顯示子元件 (如 HomePage)
+  return children;
 }
 
 function App() {

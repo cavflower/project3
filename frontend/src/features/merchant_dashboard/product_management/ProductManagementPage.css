@@ -114,3 +114,18 @@
   margin-bottom: 15px;
   text-align: center;
 }
+
+.service-type-badge {
+  margin-top: 10px;
+}
+
+.badge {
+  display: inline-block;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #c8e6c9;
+}
