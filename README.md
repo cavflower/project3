@@ -4,13 +4,11 @@ cd frontend
 
 步驟 2：安裝所有必要的套件
 npm install
+npm install axios
+npm install react-icons
 
 步驟 3：設定環境變數
-在 frontend 資料夾中，手動建立一個名為 .env 的檔案（如果需要）。
-
-步驟 4：啟動開發伺服器
-npm start
-
+在 frontend 資料夾中，手動建立一個名為 .env 的檔案。
 
 # 後端
 
@@ -25,6 +23,9 @@ python -m venv .venv
 
 步驟 4：安裝所有必要的套件
 pip install -r requirements/development.txt
+python -m pip install Pillow
+pip.exe install firebase-admin
+pip.exe install djangorestframework-simplejwt
 
 步驟 5：設定環境變數
 在 backend 資料夾中，手動建立一個名為 .env 的檔案。
@@ -34,7 +35,7 @@ pip install -r requirements/development.txt
 python manage.py migrate
 
 步驟 7：啟動開發伺服器(要下載VS CODE的powershell)
-一切準備就緒！執行start_dev_servers.ps1
+執行start_dev_servers.ps1(左邊最底下的檔案 按RUN就好)
 
 # !!!額外套件!!!(必要，)
 
