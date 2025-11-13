@@ -1,0 +1,97 @@
+.home-page {
+  text-align: center;
+}
+
+.home-header {
+  padding: 6rem 2rem;
+  background: linear-gradient(135deg, var(--secondary-color), var(--bg-color));
+}
+
+.home-container {
+  max-width: 960px;
+  margin: auto;
+}
+
+.home-header h1 {
+  font-size: 3rem;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.home-header p {
+  font-size: 1.2rem;
+  color: var(--text-color);
+  margin-bottom: 2.5rem;
+}
+
+.button-container {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.home-button {
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  border: 2px solid var(--primary-color);
+  border-radius: 30px;
+  transition: all 0.3s ease;
+}
+
+.home-button.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.home-button.primary:hover {
+  background-color: var(--highlight-color);
+  border-color: var(--highlight-color);
+}
+
+.home-button.secondary {
+  background-color: transparent;
+  color: var(--primary-color);
+}
+
+.home-button.secondary:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.features-section {
+  padding: 4rem 2rem;
+}
+
+.features-section h2 {
+  font-size: 2.5rem;
+  color: var(--text-color);
+  margin-bottom: 3rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card h3 {
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
