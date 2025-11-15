@@ -178,10 +178,10 @@ const StoreSettingsPage = () => {
       await deleteStoreImage(storeId, imageId);
       setStoreImages(storeImages.filter(img => img.id !== imageId));
       setSuccess('圖片已刪除');
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(''), 1500);
     } catch (err) {
       setError('刪除圖片失敗');
-      setTimeout(() => setError(''), 3000);
+      setTimeout(() => setError(''), 1500);
     }
   };
 
@@ -212,10 +212,10 @@ const StoreSettingsPage = () => {
       await deleteMenuImage(storeId, imageId);
       setMenuImages(menuImages.filter(img => img.id !== imageId));
       setSuccess('菜單圖片已刪除');
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(''), 1500);
     } catch (err) {
       setError('刪除菜單圖片失敗');
-      setTimeout(() => setError(''), 3000);
+      setTimeout(() => setError(''), 1500);
     }
   };
 
@@ -276,6 +276,8 @@ const StoreSettingsPage = () => {
 
     try {
       let currentStoreId = storeId;
+      let needsReload = false;
+      
       if (storeId) {
         await updateStore(storeId, dataToSend);
         setSuccess('店家資訊已成功更新！');
@@ -284,6 +286,7 @@ const StoreSettingsPage = () => {
         currentStoreId = response.data.id;
         setStoreId(currentStoreId);
         setSuccess('店家資訊已成功建立！');
+        needsReload = true;
       }
 
       // 上傳新圖片
@@ -291,7 +294,7 @@ const StoreSettingsPage = () => {
         await uploadStoreImages(currentStoreId, newImages);
         setNewImages([]);
         setImagePreviews([]);
-        await loadStoreData(); // 重新載入以獲取新圖片
+        needsReload = true;
       }
 
       // 上傳新菜單圖片
@@ -299,18 +302,18 @@ const StoreSettingsPage = () => {
         await uploadMenuImages(currentStoreId, newMenuImages);
         setNewMenuImages([]);
         setMenuImagePreviews([]);
-        await loadStoreData(); // 重新載入以獲取新圖片
+        needsReload = true;
       }
 
-      // 重新載入資料以確保顯示最新資訊
-      await loadStoreData();
+      // 只在有新資料時才重新載入一次
+      if (needsReload) {
+        await loadStoreData();
+      }
 
+      // 1秒後清除成功訊息
       setTimeout(() => {
         setSuccess('');
-        // 儲存成功後，可以選擇返回儀表板或繼續編輯
-        // 如果需要自動返回，取消下面這行的註解：
-        // navigate('/dashboard');
-      }, 2000);
+      }, 1000);
     } catch (err) {
       console.error('Failed to save store:', err);
       console.error('Error response:', err.response?.data);
@@ -373,7 +376,7 @@ const StoreSettingsPage = () => {
       const response = await publishStore(storeId);
       setIsPublished(true);
       setSuccess('店家已成功上架！');
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(''), 1500);
     } catch (err) {
       console.error('Failed to publish store:', err);
       const errorMessage = err.response?.data?.error || err.response?.data?.detail || '上架失敗，請稍後再試。';
@@ -405,7 +408,7 @@ const StoreSettingsPage = () => {
       const response = await unpublishStore(storeId);
       setIsPublished(false);
       setSuccess('店家已成功下架！');
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(''), 1500);
     } catch (err) {
       console.error('Failed to unpublish store:', err);
       const errorMessage = err.response?.data?.error || err.response?.data?.detail || '下架失敗，請稍後再試。';

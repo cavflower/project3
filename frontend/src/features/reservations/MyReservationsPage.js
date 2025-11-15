@@ -96,7 +96,15 @@ const MyReservationsPage = () => {
     try {
       const phoneNumber = isGuest ? guestPhoneNumber : null;
       await cancelReservation(selectedReservationId, cancelReason, phoneNumber);
-      await fetchReservations();
+      
+      // 直接更新本地狀態，避免重新載入
+      setReservations(prevReservations => 
+        prevReservations.map(r => 
+          r.id === selectedReservationId 
+            ? { ...r, status: 'cancelled', cancel_reason: cancelReason } 
+            : r
+        )
+      );
       
       setShowCancelDialog(false);
       setCancelReason('');

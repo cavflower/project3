@@ -143,15 +143,6 @@ const GuestReservationLookup = () => {
             <li>訂位資訊保留 30 天，過期後將無法查詢</li>
           </ul>
         </div>
-
-        {/* 測試資料提示（開發環境） */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="dev-hint">
-            <strong>測試資料：</strong>
-            <p>手機號碼: 0912345678</p>
-            <p>驗證碼: ABC123</p>
-          </div>
-        )}
       </div>
     </div>
   );

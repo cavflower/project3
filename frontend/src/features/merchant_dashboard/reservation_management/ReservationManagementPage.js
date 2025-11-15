@@ -71,8 +71,6 @@ const ReservationManagementPage = () => {
   const handleAcceptReservation = async (reservationId) => {
     try {
       await updateReservationStatus(reservationId, 'confirmed');
-      
-      // 重新載入訂位列表
       await fetchReservations();
       alert('訂位已確認！');
     } catch (error) {
@@ -90,8 +88,6 @@ const ReservationManagementPage = () => {
   const handleCancelReservation = async () => {
     try {
       await merchantCancelReservation(selectedReservationId, cancelReason);
-      
-      // 重新載入訂位列表
       await fetchReservations();
       setShowCancelDialog(false);
       setCancelReason('');
@@ -109,8 +105,6 @@ const ReservationManagementPage = () => {
     
     try {
       await updateReservationStatus(reservationId, 'completed');
-      
-      // 重新載入訂位列表
       await fetchReservations();
       alert('訂位已完成！');
     } catch (error) {
@@ -125,8 +119,6 @@ const ReservationManagementPage = () => {
     
     try {
       await deleteReservation(reservationId);
-      
-      // 重新載入訂位列表
       await fetchReservations();
       alert('訂位記錄已刪除！');
     } catch (error) {
@@ -138,23 +130,22 @@ const ReservationManagementPage = () => {
 
   const handleSaveTimeSlot = async (timeSlotData) => {
     try {
-      // 處理空字串，轉為 null
       const processedData = {
         ...timeSlotData,
         end_time: timeSlotData.end_time || null
       };
       
       if (timeSlotData.id) {
-        // 編輯現有時段
-        await updateTimeSlot(timeSlotData.id, processedData);
+        const response = await updateTimeSlot(timeSlotData.id, processedData);
+        setTimeSlots(prevSlots => 
+          prevSlots.map(slot => slot.id === timeSlotData.id ? response.data : slot)
+        );
         alert('時段已更新！');
       } else {
-        // 新增時段
-        await createTimeSlot(processedData);
+        const response = await createTimeSlot(processedData);
+        setTimeSlots(prevSlots => [...prevSlots, response.data]);
         alert('時段已新增！');
       }
-      // 重新載入時段設定
-      await fetchTimeSlots();
     } catch (error) {
       console.error('Failed to save time slot:', error);
       const errorMsg = error.response?.data?.error || error.response?.data?.detail || '儲存時段失敗，請稍後再試。';
@@ -167,7 +158,7 @@ const ReservationManagementPage = () => {
     
     try {
       await deleteTimeSlot(slotId);
-      await fetchTimeSlots();
+      setTimeSlots(prevSlots => prevSlots.filter(slot => slot.id !== slotId));
       alert('時段已刪除！');
     } catch (error) {
       console.error('Failed to delete time slot:', error);

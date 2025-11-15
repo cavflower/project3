@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../store/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 function StoreBrowse() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { storeId } = useParams();
   const [selectedSeats, setSelectedSeats] = useState(1);
   
   // 可選擇的座位數量選項
@@ -46,7 +47,7 @@ function StoreBrowse() {
               <div className="d-grid gap-2">
                 <button 
                   className="btn btn-primary btn-lg mb-2"
-                  onClick={() => navigate('/reservation/new/12')}
+                  onClick={() => navigate(`/reservation/new/${storeId}`)}
                 >
                   <i className="bi bi-calendar-plus me-2"></i>
                   立即訂位

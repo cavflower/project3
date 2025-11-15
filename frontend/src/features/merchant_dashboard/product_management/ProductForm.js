@@ -60,12 +60,14 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
         data.append('image', formData.image);
       }
 
+      let response;
       if (product) {
-        await updateProduct(product.id, data);
+        response = await updateProduct(product.id, data);
+        onSuccess(response.data, true);
       } else {
-        await createProduct(data);
+        response = await createProduct(data);
+        onSuccess(response.data, false);
       }
-      onSuccess();
     } catch (err) {
       setError('提交失敗，請稍後再試。');
       console.error(err);

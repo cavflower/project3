@@ -115,7 +115,6 @@ export const AuthProvider = ({ children }) => {
   const updateUser = useCallback(async (formData) => {
     if (!user) throw new Error("使用者未登入");
 
-    setLoading(true);
     try {
       const updatedUserData = await updateUserApi(user.firebase_uid, formData);
       setUser(prevUser => ({ ...prevUser, ...updatedUserData })); // 更新本地使用者狀態
@@ -123,8 +122,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("在 AuthContext 中更新失敗:", error);
       throw error; // 將錯誤向上拋出，讓呼叫它的元件可以處理
-    } finally {
-      setLoading(false);
     }
   }, [user]);
 

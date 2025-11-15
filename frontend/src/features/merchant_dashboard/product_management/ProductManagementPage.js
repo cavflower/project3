@@ -43,7 +43,8 @@ const ProductManagementPage = () => {
     if (window.confirm('您確定要刪除此商品嗎？')) {
       try {
         await deleteProduct(productId);
-        fetchProducts();
+        setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
+        setError('');
       } catch (err) {
         setError('刪除商品失敗。');
         console.error(err);
@@ -51,10 +52,19 @@ const ProductManagementPage = () => {
     }
   };
 
-  const handleFormSuccess = () => {
+  const handleFormSuccess = (productData, isEdit = false) => {
+    if (isEdit) {
+      // 編輯：更新本地狀態中的商品
+      setProducts(prevProducts => 
+        prevProducts.map(p => p.id === productData.id ? productData : p)
+      );
+    } else {
+      // 新增：將新商品加入本地狀態
+      setProducts(prevProducts => [...prevProducts, productData]);
+    }
     setIsFormVisible(false);
     setEditingProduct(null);
-    fetchProducts();
+    setError('');
   };
 
   const getImageUrl = (imagePath) => {

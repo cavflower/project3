@@ -98,7 +98,9 @@ const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
                   <div key={slot.id} className={`slot-card ${!slot.is_active ? 'inactive' : ''}`}>
                     <div className="slot-header">
                       <div className="time-range">
-                        <strong>{slot.start_time} - {slot.end_time}</strong>
+                        <strong>
+                          {slot.end_time ? `${slot.start_time} - ${slot.end_time}` : slot.start_time}
+                        </strong>
                       </div>
                       <div className="slot-status">
                         {slot.is_active ? (
