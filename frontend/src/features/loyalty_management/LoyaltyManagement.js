@@ -50,12 +50,7 @@ const LoyaltyManagement = () => {
 
       <nav className="loyalty-nav">
        
-        <button
-          className={`nav-tab ${activeTab === 'point-rules' ? 'active' : ''}`}
-          onClick={() => setActiveTab('point-rules')}
-        >
-          <FaCoins /> 點數規則
-        </button>
+       
         <button
           className={`nav-tab ${activeTab === 'membership-levels' ? 'active' : ''}`}
           onClick={() => setActiveTab('membership-levels')}
@@ -157,7 +152,6 @@ const PointRulesSection = ({ pointRules, setPointRules }) => {
     <section className="loyalty-section">
       <div className="section-header">
         <div>
-          <h2>點數規則</h2>
           {pointRules.length > 0 && (
             <p className="section-subtitle">已設定 {pointRules.length} 個規則</p>
           )}
@@ -691,9 +685,6 @@ const RedemptionsSection = ({ redemptions, setRedemptions }) => {
           <FaGift className="empty-icon" />
           <h3>還沒有兌換商品</h3>
           <p>建立兌換商品，讓會員用積累的點數兌換您提供的禮品或優惠</p>
-          <button className="btn btn-secondary" onClick={() => setShowForm(true)}>
-            建立商品
-          </button>
         </div>
       ) : (
         <div className="redemptions-grid">
