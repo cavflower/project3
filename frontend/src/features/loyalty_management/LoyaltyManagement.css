@@ -158,6 +158,526 @@
   margin: 0;
 }
 
+.section-subtitle {
+  font-size: 13px;
+  color: #999;
+  margin-top: 5px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.toggle-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f9f9f9;
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.toggle-btn:hover {
+  border-color: #0066cc;
+  color: #0066cc;
+}
+
+.toggle-btn.active {
+  background: #0066cc;
+  color: white;
+  border-color: #0066cc;
+}
+
+/* Slider Container */
+.slider-container {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slider-header {
+  margin-bottom: 30px;
+}
+
+.slider-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.slider-header p {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+/* Points Axis */
+.points-axis {
+  margin-bottom: 40px;
+  padding: 30px 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.axis-track {
+  position: relative;
+  height: 40px;
+  background: linear-gradient(90deg, #e0e0e0 0%, #0066cc 100%);
+  border-radius: 20px;
+  margin-bottom: 15px;
+}
+
+.level-marker {
+  position: absolute;
+  top: -10px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.marker-dot {
+  width: 24px;
+  height: 24px;
+  background: white;
+  border: 3px solid #0066cc;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.level-marker:hover .marker-dot {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.marker-tooltip {
+  position: absolute;
+  top: -60px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.level-marker:hover .marker-tooltip {
+  opacity: 1;
+}
+
+.tooltip-content {
+  background: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.tooltip-points {
+  font-size: 11px;
+  color: #ccc;
+}
+
+.axis-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #666;
+  margin-top: 10px;
+}
+
+.axis-label {
+  font-weight: 500;
+}
+
+/* Empty Slider State */
+.empty-slider-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-slider-state .empty-icon {
+  font-size: 64px;
+  color: #ddd;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.empty-slider-state p {
+  font-size: 14px;
+  color: #999;
+}
+
+/* Levels Slider Display */
+.levels-slider-display {
+  margin-top: 40px;
+}
+
+.levels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.level-item-slider {
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border-left: 4px solid #0066cc;
+  transition: all 0.3s;
+}
+
+.level-item-slider:hover {
+  background: #f5f5f5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.level-info {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 12px;
+}
+
+.level-rank {
+  background: #0066cc;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  min-width: 50px;
+  text-align: center;
+}
+
+.level-details h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 4px 0;
+}
+
+.level-points {
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+}
+
+.level-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.slider-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.level-slider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(90deg, #e0e0e0 0%, #0066cc 100%);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.level-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border: 2px solid #0066cc;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.level-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 4px 10px rgba(0, 102, 204, 0.3);
+  transform: scale(1.1);
+}
+
+.level-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: white;
+  border: 2px solid #0066cc;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.slider-value {
+  min-width: 80px;
+  font-weight: 600;
+  color: #0066cc;
+  font-size: 13px;
+  text-align: right;
+}
+
+.delete-btn {
+  padding: 6px 10px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.delete-btn:hover {
+  background: #cc0000;
+  transform: translateY(-2px);
+}
+
+.level-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.benefit-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #e3f2fd;
+  color: #0066cc;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.benefit-badge.benefits-text {
+  background: #fff3cd;
+  color: #856404;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Form Container */
+.form-container {
+  animation: slideIn 0.3s ease-out;
+}
+
+.form-header {
+  margin-bottom: 20px;
+}
+
+.form-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.form-subtitle {
+  font-size: 13px;
+  color: #999;
+  margin-top: 5px;
+}
+
+/* Levels Table */
+.levels-table {
+  overflow-x: auto;
+}
+
+.levels-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.levels-table th {
+  background: #f9f9f9;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: #666;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.levels-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 13px;
+}
+
+.levels-table tr:hover {
+  background: #f9f9f9;
+}
+
+.benefits-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #666;
+}
+
+.delete-btn-small {
+  padding: 6px 10px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.delete-btn-small:hover {
+  background: #cc0000;
+}
+
+/* Form Modal */
+.form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.form-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.modal-footer .btn {
+  min-width: 100px;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
