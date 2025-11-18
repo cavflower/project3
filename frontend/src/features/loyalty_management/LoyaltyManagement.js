@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoyaltyManagement.css';
 import { FaArrowLeft, FaCoins, FaAward, FaGift, FaPlus, FaTrash } from 'react-icons/fa';
@@ -6,6 +6,37 @@ import { FaArrowLeft, FaCoins, FaAward, FaGift, FaPlus, FaTrash } from 'react-ic
 const LoyaltyManagement = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  
+  // 從 localStorage 恢復狀態
+  const [levels, setLevels] = useState(() => {
+    const saved = localStorage.getItem('membershipLevels');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [pointRules, setPointRules] = useState(() => {
+    const saved = localStorage.getItem('pointRules');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [redemptions, setRedemptions] = useState(() => {
+    const saved = localStorage.getItem('redemptionProducts');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // 當 levels 變化時保存到 localStorage
+  useEffect(() => {
+    localStorage.setItem('membershipLevels', JSON.stringify(levels));
+  }, [levels]);
+
+  // 當 pointRules 變化時保存到 localStorage
+  useEffect(() => {
+    localStorage.setItem('pointRules', JSON.stringify(pointRules));
+  }, [pointRules]);
+
+  // 當 redemptions 變化時保存到 localStorage
+  useEffect(() => {
+    localStorage.setItem('redemptionProducts', JSON.stringify(redemptions));
+  }, [redemptions]);
 
   return (
     <div className="loyalty-management">
@@ -64,38 +95,198 @@ const LoyaltyManagement = () => {
         )}
 
         {activeTab === 'point-rules' && (
-          <PointRulesSection />
+          <PointRulesSection 
+            pointRules={pointRules}
+            setPointRules={setPointRules}
+          />
         )}
 
         {activeTab === 'membership-levels' && (
-          <MembershipLevelsSection />
+          <MembershipLevelsSection 
+            levels={levels}
+            setLevels={setLevels}
+          />
         )}
 
         {activeTab === 'redemptions' && (
-          <RedemptionsSection />
+          <RedemptionsSection 
+            redemptions={redemptions}
+            setRedemptions={setRedemptions}
+          />
         )}
       </main>
     </div>
   );
 };
 
-const PointRulesSection = () => (
-  <section className="loyalty-section">
-    <div className="section-header">
-      <h2></h2>
-      <button className="btn btn-primary">+ 新增規則</button>
-    </div>
-    <div className="empty-state">
-      <FaCoins className="empty-icon" />
-      <h3>還沒有點數規則</h3>
-      <p>建立第一個點數規則，定義顧客消費多少金額可獲得多少點數</p>
-      <button className="btn btn-secondary">建立規則</button>
-    </div>
-  </section>
-);
+const PointRulesSection = ({ pointRules, setPointRules }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    points_per_currency: 0,
+    min_spend: 0,
+  });
 
-const MembershipLevelsSection = () => {
-  const [levels, setLevels] = useState([]);
+  const addRule = () => {
+    if (!formData.name || formData.points_per_currency <= 0) {
+      alert('請輸入有效的規則名稱和點數比例');
+      return;
+    }
+
+    const newRule = {
+      id: Date.now(),
+      ...formData,
+      points_per_currency: parseFloat(formData.points_per_currency),
+      min_spend: formData.min_spend ? parseFloat(formData.min_spend) : 0,
+    };
+
+    setPointRules([...pointRules, newRule]);
+    setFormData({
+      name: '',
+      points_per_currency: 0,
+      min_spend: 0,
+    });
+    setShowForm(false);
+  };
+
+  const removeRule = (id) => {
+    setPointRules(pointRules.filter((rule) => rule.id !== id));
+  };
+
+  return (
+    <section className="loyalty-section">
+      <div className="section-header">
+        <div>
+          <h2>點數規則</h2>
+          {pointRules.length > 0 && (
+            <p className="section-subtitle">已設定 {pointRules.length} 個規則</p>
+          )}
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+          + 新增規則
+        </button>
+      </div>
+
+      {pointRules.length === 0 ? (
+        <div className="empty-state">
+          <FaCoins className="empty-icon" />
+          <h3>還沒有點數規則</h3>
+          <p>建立第一個點數規則，定義顧客消費多少金額可獲得多少點數</p>
+          <button className="btn btn-secondary" onClick={() => setShowForm(true)}>
+            建立規則
+          </button>
+        </div>
+      ) : (
+        <div className="rules-table">
+          <table>
+            <thead>
+              <tr>
+                <th>規則名稱</th>
+                <th>每消費1元得點</th>
+                <th>最低消費金額</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pointRules.map((rule) => (
+                <tr key={rule.id}>
+                  <td>{rule.name}</td>
+                  <td>{rule.points_per_currency} 點</td>
+                  <td>{rule.min_spend > 0 ? `$${rule.min_spend}` : '無限制'}</td>
+                  <td>
+                    <button
+                      className="delete-btn-small"
+                      onClick={() => removeRule(rule.id)}
+                    >
+                      <FaTrash /> 刪除
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="form-overlay">
+          <div className="form-modal">
+            <div className="modal-header">
+              <h3>新增點數規則</h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowForm(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group">
+                <label>規則名稱 *</label>
+                <input
+                  type="text"
+                  placeholder="例如：標準規則、季節特惠"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>每消費1元可得點數 *</label>
+                <input
+                  type="number"
+                  placeholder="例如：1.5"
+                  min="0"
+                  step="0.1"
+                  value={formData.points_per_currency}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      points_per_currency: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>最低消費金額（可選）</label>
+                <input
+                  type="number"
+                  placeholder="例如：100 (不填表示無限制)"
+                  min="0"
+                  value={formData.min_spend}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      min_spend: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowForm(false)}
+              >
+                取消
+              </button>
+              <button className="btn btn-primary" onClick={addRule}>
+                確認新增
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
+const MembershipLevelsSection = ({ levels, setLevels }) => {
   const [useSlider, setUseSlider] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -434,19 +625,208 @@ const MembershipLevelsSection = () => {
   );
 };
 
-const RedemptionsSection = () => (
-  <section className="loyalty-section">
-    <div className="section-header">
-      <h2></h2>
-      <button className="btn btn-primary">+ 新增商品</button>
-    </div>
-    <div className="empty-state">
-      <FaGift className="empty-icon" />
-      <h3>還沒有兌換商品</h3>
-      <p>建立兌換商品，讓會員用積累的點數兌換您提供的禮品或優惠</p>
-      <button className="btn btn-secondary">建立商品</button>
-    </div>
-  </section>
-);
+const RedemptionsSection = ({ redemptions, setRedemptions }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    required_points: 0,
+    inventory: null,
+  });
+
+  const addRedemption = () => {
+    if (!formData.title || formData.required_points <= 0) {
+      alert('請輸入有效的商品標題和所需點數');
+      return;
+    }
+
+    const newRedemption = {
+      id: Date.now(),
+      ...formData,
+      required_points: parseInt(formData.required_points),
+      inventory: formData.inventory ? parseInt(formData.inventory) : null,
+      is_active: true,
+    };
+
+    setRedemptions([...redemptions, newRedemption]);
+    setFormData({
+      title: '',
+      description: '',
+      required_points: 0,
+      inventory: null,
+    });
+    setShowForm(false);
+  };
+
+  const removeRedemption = (id) => {
+    setRedemptions(redemptions.filter((item) => item.id !== id));
+  };
+
+  const toggleActive = (id) => {
+    setRedemptions(
+      redemptions.map((item) =>
+        item.id === id ? { ...item, is_active: !item.is_active } : item
+      )
+    );
+  };
+
+  return (
+    <section className="loyalty-section">
+      <div className="section-header">
+        <div>
+          <h2>兌換商品</h2>
+          {redemptions.length > 0 && (
+            <p className="section-subtitle">
+              已設定 {redemptions.filter((r) => r.is_active).length} 個活躍商品
+            </p>
+          )}
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+          + 新增商品
+        </button>
+      </div>
+
+      {redemptions.length === 0 ? (
+        <div className="empty-state">
+          <FaGift className="empty-icon" />
+          <h3>還沒有兌換商品</h3>
+          <p>建立兌換商品，讓會員用積累的點數兌換您提供的禮品或優惠</p>
+          <button className="btn btn-secondary" onClick={() => setShowForm(true)}>
+            建立商品
+          </button>
+        </div>
+      ) : (
+        <div className="redemptions-grid">
+          {redemptions.map((item) => (
+            <div
+              key={item.id}
+              className={`redemption-card ${item.is_active ? 'active' : 'inactive'}`}
+            >
+              <div className="card-header">
+                <h3>{item.title}</h3>
+                <button
+                  className={`status-badge ${item.is_active ? 'active' : ''}`}
+                  onClick={() => toggleActive(item.id)}
+                >
+                  {item.is_active ? '上架' : '下架'}
+                </button>
+              </div>
+
+              <p className="card-description">{item.description}</p>
+
+              <div className="card-footer">
+                <div className="card-stats">
+                  <div className="stat">
+                    <span className="label">所需點數</span>
+                    <span className="value">{item.required_points}</span>
+                  </div>
+                  <div className="stat">
+                    <span className="label">庫存</span>
+                    <span className="value">
+                      {item.inventory ? item.inventory : '不限量'}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  className="delete-btn-small"
+                  onClick={() => removeRedemption(item.id)}
+                >
+                  <FaTrash /> 刪除
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showForm && (
+        <div className="form-overlay">
+          <div className="form-modal">
+            <div className="modal-header">
+              <h3>新增兌換商品</h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowForm(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group">
+                <label>商品名稱 *</label>
+                <input
+                  type="text"
+                  placeholder="例如：免費飲料、優惠券"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>商品描述</label>
+                <textarea
+                  placeholder="例如：價值100元的任意飲料"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  rows="2"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>所需點數 *</label>
+                <input
+                  type="number"
+                  placeholder="例如：500"
+                  min="1"
+                  value={formData.required_points}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      required_points: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>庫存數量（可選）</label>
+                <input
+                  type="number"
+                  placeholder="不填表示不限量"
+                  min="0"
+                  value={formData.inventory || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      inventory: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowForm(false)}
+              >
+                取消
+              </button>
+              <button className="btn btn-primary" onClick={addRedemption}>
+                確認新增
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
 
 export default LoyaltyManagement;
