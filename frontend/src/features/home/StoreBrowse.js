@@ -79,7 +79,7 @@ function StoreBrowse() {
               <div className="d-grid gap-2">
                 <button 
                   className="btn btn-success btn-lg mb-2"
-                  onClick={() => navigate('/takeout-order')}
+                  onClick={() => navigate(`/store/${storeId}/takeout`)}
                 >
                   <i className="bi bi-arrow-right-circle me-2"></i>
                   立即點餐

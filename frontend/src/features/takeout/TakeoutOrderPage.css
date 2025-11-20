@@ -1,0 +1,16 @@
+
+.takeout-page .takeout-card {
+  border: none;
+  background: #fff;
+}
+
+.takeout-page .takeout-card-header {
+  background: linear-gradient(135deg, #ffb07a, #e86b2c); /* DineVerse 深橘系 */
+  color: #000;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+}
+
+.takeout-page .takeout-card .card-body {
+  color: #000;
+}
