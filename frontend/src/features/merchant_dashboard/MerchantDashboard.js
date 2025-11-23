@@ -14,12 +14,6 @@ import {
   FaBullhorn,
   FaGift,
   FaBoxes,
-  FaStore,
-  FaClipboardList,
-  FaUsers,
-  FaChartLine,
-  FaUtensils,
-  FaBullhorn,
   FaCalendarCheck,
 } from 'react-icons/fa';
 
