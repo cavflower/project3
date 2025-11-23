@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
-import { createTakeoutOrder } from '../../api/orderApi';
+import { createTakeoutOrder, getTakeoutProducts } from '../../api/orderApi';
 import { useAuth } from '../../store/AuthContext';
 import './TakeoutOrderPage.css';
 
@@ -11,6 +11,11 @@ const initialCart = {
   pickupAt: '',
   contact: { name: '', phone: '' },
 };
+
+const paymentOptions = ['cash', 'credit_card', 'line_pay']; 
+
+
+
 
 function cartReducer(state, action) {
   switch (action.type) {
@@ -56,40 +61,22 @@ const pickupSlots = () => {
   return slots;
 };
 
-const parseMenuText = (text) => {
-  if (!text) return [];
-  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
-  const items = [];
-  let current = null;
-
-  lines.forEach((line) => {
-    const priceMatch = line.match(/(NT\$|NT|TWD|\$|元)\s*([\d.,]+)/);
-    if (!current || /^[A-Za-z0-9\u4e00-\u9fa5]/.test(line)) {
-      if (current) items.push(current);
-      current = {
-        id: `${items.length}-${line}`,
-        title: line.replace(/[:：]/g, '').trim(),
-        description: '',
-        price: priceMatch ? Number(priceMatch[2].replace(/,/g, '')) : 0,
-      };
-    } else if (!current.description) {
-      current.description = line;
-    }
-    if (priceMatch && current) {
-      current.price = Number(priceMatch[2].replace(/,/g, ''));
-    }
-  });
-
-  if (current) items.push(current);
-  return items.filter((item) => item.price > 0);
-};
 
 function TakeoutOrderPage() {
   const { storeId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [store, setStore] = useState(null);
+  const paymentOptions = [
+  { value: 'cash', label: '現金' },
+  { value: 'credit_card', label: '信用卡' },
+  { value: 'line_pay', label: 'LINE Pay' },
+    ];
+const [paymentMethod, setPaymentMethod] = useState(paymentOptions[0].value);
+const [pickupNumber, setPickupNumber] = useState('');
+
   const [loading, setLoading] = useState(true);
+  const [menuItems, setMenuItems] = useState([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [cart, dispatch] = useReducer(cartReducer, {
@@ -103,19 +90,23 @@ function TakeoutOrderPage() {
 
   useEffect(() => {
     async function load() {
-      try {
+        try {
         setLoading(true);
         setError('');
         const response = await getStore(storeId);
         setStore(response.data);
-      } catch (err) {
-        setError('載入資料失敗，請稍後再試。');
-      } finally {
+
+        const productsRes = await getTakeoutProducts(storeId);
+        setMenuItems(productsRes.data);
+        } catch (err) {
+        setError('載入資料失敗，請稍後再試');
+        } finally {
         setLoading(false);
-      }
-    }
-    load();
-  }, [storeId]);
+        }
+        }
+        load();
+    }, [storeId]);
+
 
   useEffect(() => {
     dispatch({
@@ -124,7 +115,7 @@ function TakeoutOrderPage() {
     });
   }, [user]);
 
-  const menuItems = useMemo(() => parseMenuText(store?.menu_text || ''), [store]);
+
   const total = useMemo(
     () => cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [cart.items]
@@ -142,22 +133,33 @@ function TakeoutOrderPage() {
     }
     try {
       setSubmitting(true);
-      const payload = {
+        const payload = {
         store: storeId,
         pickup_at: cart.pickupAt,
         customer_name: cart.contact.name,
         customer_phone: cart.contact.phone,
         notes: cart.notes,
+        payment_method: paymentMethod,
         items: cart.items.map((item) => ({
-          name: item.title,
-          price: item.price,
-          quantity: item.quantity,
+            product: item.id,
+            quantity: item.quantity,
         })),
-      };
+        };
+
       const response = await createTakeoutOrder(payload);
+      const pickupNo = response.data?.pickup_number;
+      setPickupNumber(pickupNo || '');
       dispatch({ type: 'CLEAR_CART' });
+      const paymentLabel = paymentOptions.find((o) => o.value === paymentMethod)?.label;
+      alert(`付款方式：${paymentLabel}\n取餐號碼：${pickupNo || '待通知'}`);
+
       const orderId = response.data?.id || 'pending';
-      navigate(`/confirmation/${orderId}`);
+      navigate(`/confirmation/${orderId}`, {
+        state: {
+          pickupNumber: pickupNo || null,
+          paymentMethod: paymentLabel || paymentMethod,
+        },
+      });
     } catch (err) {
       alert('送出失敗，請稍後再試。');
     } finally {
@@ -223,7 +225,7 @@ function TakeoutOrderPage() {
                   className="d-flex justify-content-between align-items-center border-bottom py-3"
                 >
                   <div>
-                    <h5 className="mb-1">{item.title}</h5>
+                    <h5 className="mb-1">{item.name}</h5>
                     {item.description && (
                       <p className="text-muted mb-1">{item.description}</p>
                     )}
@@ -288,6 +290,21 @@ function TakeoutOrderPage() {
                   }
                 />
               </div>
+              <div className="mb-3">
+                <label className="form-label">付款方式</label>
+                <select
+                    className="form-select"
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                    {paymentOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                    ))}
+                </select>
+                </div>
+
 
               <div className="mb-3">
                 <label className="form-label">備註</label>
@@ -313,7 +330,7 @@ function TakeoutOrderPage() {
                   className="d-flex justify-content-between align-items-center mb-2"
                 >
                   <div>
-                    <strong>{item.title}</strong>
+                    <strong>{item.name}</strong>
                     <p className="mb-0 small text-muted">
                       NT$ {item.price} × {item.quantity}
                     </p>
