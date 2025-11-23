@@ -5,6 +5,7 @@ import './StoreSettingsPage.css';
 
 const StoreSettingsPage = () => {
   const navigate = useNavigate();
+  const creditCardOptions = ['Visa', 'MasterCard', 'American Express', 'JCB', 'UnionPay'];
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -49,6 +50,15 @@ const StoreSettingsPage = () => {
   const [storeId, setStoreId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPublished, setIsPublished] = useState(false);
+  const [selectedCreditCards, setSelectedCreditCards] = useState([]);
+
+  const parseCreditCards = (value) =>
+    value
+      ? value
+          .split(/[\/,]/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [];
 
   const dayNames = {
     monday: '星期一',
@@ -96,6 +106,7 @@ const StoreSettingsPage = () => {
         menu_type: store.menu_type || 'text',
         menu_text: store.menu_text || '',
       });
+      setSelectedCreditCards(parseCreditCards(store.credit_cards || ''));
       if (store.opening_hours) {
         setOpeningHours({ ...openingHours, ...store.opening_hours });
       }
@@ -217,6 +228,17 @@ const StoreSettingsPage = () => {
       setError('刪除菜單圖片失敗');
       setTimeout(() => setError(''), 1500);
     }
+  };
+
+  const handleCreditCardToggle = (card) => {
+    setSelectedCreditCards((prev) => {
+      const next = prev.includes(card) ? prev.filter((item) => item !== card) : [...prev, card];
+      setFormData((prevForm) => ({
+        ...prevForm,
+        credit_cards: next.join('/'),
+      }));
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -653,15 +675,22 @@ const StoreSettingsPage = () => {
           <div className="form-section">
             <h2>支付方式</h2>
             <div className="form-group">
-              <label htmlFor="credit_cards">接受的信用卡</label>
-              <input
-                type="text"
-                id="credit_cards"
-                name="credit_cards"
-                value={formData.credit_cards}
-                onChange={handleChange}
-                placeholder="例如：Visa/MasterCard/American Express/JCB（選填）"
-              />
+              <label>接受的信用卡</label>
+              <div className="credit-card-options">
+                {creditCardOptions.map((card) => (
+                  <label key={card} className="credit-card-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedCreditCards.includes(card)}
+                      onChange={() => handleCreditCardToggle(card)}
+                    />
+                    <span>{card}</span>
+                  </label>
+                ))}
+              </div>
+              {selectedCreditCards.length === 0 && (
+                <small className="text-muted">尚未選擇信用卡，若不接受信用卡可留白。</small>
+              )}
             </div>
           </div>
 
