@@ -112,7 +112,7 @@ function StorePage() {
   return (
     <div className="store-page-container" style={{ marginTop: '70px', paddingBottom: '50px' }}>
       <div className="container">
-        {/* 返回按鈕和登入餐廳會員 */}
+        {/* 返回按鈕和會員中心 */}
         <div className="d-flex justify-content-between align-items-center mb-4">
           <button 
             className="btn-back-store"
@@ -122,7 +122,7 @@ function StorePage() {
             返回店家列表
           </button>
           <Link 
-            to="/login/restaurant-member"
+            to="/customer/loyalty"
             className="btn btn-outline-primary"
             style={{
               textDecoration: 'none',
@@ -141,7 +141,7 @@ function StorePage() {
               e.target.style.color = 'var(--primary-color)';
             }}
           >
-            登入餐廳會員
+            會員中心
           </Link>
         </div>
 

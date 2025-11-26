@@ -61,6 +61,24 @@ function CustomerHomePage() {
 
   return (
     <div className="container" style={{ marginTop: '70px' }}>
+      {/* 會員快速入口 */}
+      <div className="row mb-3">
+        <div className="col-12">
+          <Link 
+            to="/customer/loyalty" 
+            className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center py-3"
+            style={{ 
+              borderRadius: '12px',
+              fontSize: '1.1rem',
+              fontWeight: '500'
+            }}
+          >
+            <i className="bi bi-award me-2"></i>
+            我的會員中心
+          </Link>
+        </div>
+      </div>
+
       {/* 搜尋區 */}
       <div className="row mb-4">
         <div className="col-12">
