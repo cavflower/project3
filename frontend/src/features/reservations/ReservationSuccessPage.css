@@ -1,0 +1,306 @@
+/* 訂位成功頁面 */
+.reservation-success-page {
+  min-height: 100vh;
+  background: var(--bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.success-container {
+  max-width: 600px;
+  width: 100%;
+  background: white;
+  border-radius: 16px;
+  padding: 60px 40px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.success-icon {
+  font-size: 80px;
+  color: #4caf50;
+  margin-bottom: 20px;
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.success-container h1 {
+  font-size: 32px;
+  color: var(--text-color);
+  margin-bottom: 15px;
+}
+
+.success-message {
+  font-size: 16px;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+/* 訪客驗證資訊區塊 */
+.guest-info-section {
+  margin-bottom: 30px;
+}
+
+.important-notice {
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  border-left: 4px solid #ffc107;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.important-notice h3 {
+  margin: 0 0 0.5rem 0;
+  color: #856404;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.important-notice p {
+  margin: 0;
+  color: #856404;
+  font-size: 0.9rem;
+}
+
+/* 手機號碼提醒卡片 */
+.phone-reminder-card {
+  background: white;
+  border: 2px solid var(--primary-color, #E87A5D);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: left;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #FDF8F5, #FFE8E0);
+}
+
+.phone-reminder-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--primary-color, #E87A5D);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.phone-reminder-card .card-icon {
+  font-size: 1.2rem;
+}
+
+.phone-display {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.phone-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color, #E87A5D);
+  letter-spacing: 0.05em;
+  font-family: 'Courier New', monospace;
+}
+
+.phone-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #856404;
+  text-align: center;
+  font-style: italic;
+}
+
+.verification-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.verification-card .card-header .card-icon {
+  font-size: 1.2rem;
+  color: var(--primary-color, #E87A5D);
+}
+
+.code-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px dashed #e0e0e0;
+}
+
+.code-text {
+  font-family: 'Courier New', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color, #E87A5D);
+  letter-spacing: 2px;
+}
+
+.code-text.large {
+  font-size: 2rem;
+}
+
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  background: var(--primary-color, #E87A5D);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  background: var(--highlight-color, #F5A993);
+  transform: translateY(-2px);
+}
+
+.code-hint {
+  margin: 0.75rem 0 0 0;
+  font-size: 0.85rem;
+  color: #666;
+  text-align: center;
+}
+
+.guest-notice {
+  background: #e3f2fd;
+  border-left: 4px solid #2196f3;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.guest-notice p {
+  margin: 0.5rem 0;
+  color: #1565c0;
+  font-size: 0.9rem;
+}
+
+.guest-notice strong {
+  color: #0d47a1;
+}
+
+.success-info {
+  margin-bottom: 40px;
+}
+
+.info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  background: var(--bg-color);
+  padding: 25px;
+  border-radius: 12px;
+  text-align: left;
+  border: 2px solid var(--secondary-color);
+}
+
+.card-icon {
+  font-size: 40px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.card-content h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: var(--text-color);
+}
+
+.card-content ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.card-content li {
+  margin-bottom: 8px;
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 15px 30px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--highlight-color));
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(232, 122, 93, 0.4);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+}
+
+.btn-secondary:hover {
+  background: var(--secondary-color);
+}
+
+@media (max-width: 768px) {
+  .success-container {
+    padding: 40px 20px;
+  }
+
+  .success-icon {
+    font-size: 60px;
+  }
+
+  .success-container h1 {
+    font-size: 24px;
+  }
+}

@@ -1,0 +1,132 @@
+/* --- Base Styles & Layout --- */
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem 2rem;
+  min-height: 80vh;
+  background-color: #f4f7f6;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 450px;
+  background-color: #fff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+/* --- Color Themes using CSS Variables --- */
+.auth-container.customer-theme {
+  --primary-color: #3498db; /* Professional Blue */
+  --highlight-color: #2980b9;
+  --bg-color: #eaf4fc;
+}
+
+.auth-container.merchant-theme {
+  --primary-color: #1abc9c; /* Growth Teal */
+  --highlight-color: #16a085;
+  --bg-color: #e8f8f5;
+}
+
+/* --- Form Header --- */
+.auth-form h2 {
+  text-align: center;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.auth-form .form-subtitle {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #777;
+}
+
+.auth-form .form-subtitle a {
+  color: var(--primary-color);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* --- Input Fields --- */
+.input-group {
+  margin-bottom: 1.5rem;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 0.6rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-sizing: border-box;
+  transition: all 0.3s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.2);
+}
+
+/* --- Footer & Links --- */
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.form-footer a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+/* --- Submit Button --- */
+.submit-btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #fff;
+  background: var(--primary-color);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  letter-spacing: 0.5px;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--highlight-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* --- Error Message --- */
+.error-message {
+  color: #c0392b;
+  background-color: #fbe9e7;
+  border: 1px solid #ffcdd2;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}

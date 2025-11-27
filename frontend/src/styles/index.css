@@ -1,0 +1,55 @@
+:root {
+  --bg-color: #FDF8F5;
+  --primary-color: #E87A5D;
+  --secondary-color: #F3DACE;
+  --text-color: #4A4A4A;
+  --highlight-color: #F5A993;
+  --navbar-height: 60px;
+  --sidebar-width: 240px;
+}
+
+html {
+  font-size: 16px; /* 確保基礎字體大小 */
+  zoom: 1; /* 重置縮放 */
+  -webkit-text-size-adjust: 100%; /* 防止 iOS Safari 自動調整文字大小 */
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  zoom: 1; /* 重置縮放 */
+  transform: scale(1); /* 重置變換 */
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  padding-top: var(--navbar-height);
+  transition: padding-left 0.3s ease-in-out;
+  width: 100%;
+}
+
+.main-content.sidebar-open {
+  padding-left: var(--sidebar-width);
+}
+
+main {
+  min-height: calc(100vh - var(--navbar-height) - 60px); /* 60px for footer */
+  padding: 2rem;
+}
