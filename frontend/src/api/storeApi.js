@@ -67,3 +67,11 @@ export const uploadMenuImages = (storeId, images) => {
 export const deleteMenuImage = (storeId, imageId) => {
   return api.delete(`/stores/${storeId}/menu_images/${imageId}/`);
 };
+
+export const getDineInLayout = (storeId) => {
+  return api.get(`/stores/${storeId}/dine_in_layout/`);
+};
+
+export const saveDineInLayout = (storeId, layout) => {
+  return api.post(`/stores/${storeId}/dine_in_layout/`, { layout });
+};

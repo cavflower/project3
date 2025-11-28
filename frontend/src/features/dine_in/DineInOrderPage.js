@@ -1,22 +1,10 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
-import { createTakeoutOrder, getTakeoutProducts } from '../../api/orderApi';
-import { useAuth } from '../../store/AuthContext';
-import './TakeoutOrderPage.css';
+import { createDineInOrder, getDineInProducts } from '../../api/orderApi';
+import '../takeout/TakeoutOrderPage.css';
 
-const initialCart = {
-  items: [],
-  notes: '',
-  pickupAt: '',
-  contact: { name: '', phone: '' },
-};
-
-const paymentOptions = ['cash', 'credit_card', 'line_pay'];
-
-const formatPrice = (value) => Math.round(Number(value) || 0);
-
-function cartReducer(state, action) {
+const cartReducer = (state, action) => {
   switch (action.type) {
     case 'ADD_ITEM': {
       const existing = state.items.find((item) => item.id === action.payload.id);
@@ -41,127 +29,113 @@ function cartReducer(state, action) {
       return { ...state, items: [] };
     case 'UPDATE_NOTE':
       return { ...state, notes: action.payload };
-    case 'UPDATE_PICKUP':
-      return { ...state, pickupAt: action.payload };
-    case 'UPDATE_CONTACT':
-      return { ...state, contact: { ...state.contact, ...action.payload } };
     default:
       return state;
   }
-}
-
-const pickupSlots = () => {
-  const slots = [];
-  const now = new Date();
-  for (let i = 20; i <= 60; i += 10) {
-    const slot = new Date(now.getTime() + i * 60000);
-    slots.push(slot.toISOString());
-  }
-  return slots;
 };
 
-
-function TakeoutOrderPage() {
-  const { storeId } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [store, setStore] = useState(null);
-  const paymentOptions = [
+const paymentOptions = [
   { value: 'cash', label: '現金' },
   { value: 'credit_card', label: '信用卡' },
   { value: 'line_pay', label: 'LINE Pay' },
-    ];
-const [paymentMethod, setPaymentMethod] = useState(paymentOptions[0].value);
-const [pickupNumber, setPickupNumber] = useState('');
-const [useUtensils, setUseUtensils] = useState('yes');
+];
 
+const formatPrice = (value) => Math.round(Number(value) || 0);
+
+function DineInOrderPage() {
+  const { storeId } = useParams();
+  const [searchParams] = useSearchParams();
+  const tableLabel = searchParams.get('table') || '';
+
+  const navigate = useNavigate();
+
+  const [store, setStore] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuItems, setMenuItems] = useState([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(paymentOptions[0].value);
+  const [useEcoTableware, setUseEcoTableware] = useState('no');
+  const [pickupNumber, setPickupNumber] = useState('');
+
   const [cart, dispatch] = useReducer(cartReducer, {
-    ...initialCart,
-    contact: {
-      name: user?.name || '',
-      phone: user?.phone || '',
-    },
-    pickupAt: pickupSlots()[0] || '',
+    items: [],
+    notes: '',
   });
 
   useEffect(() => {
     async function load() {
-        try {
+      try {
         setLoading(true);
         setError('');
         const response = await getStore(storeId);
         setStore(response.data);
 
-        const productsRes = await getTakeoutProducts(storeId);
-        setMenuItems(productsRes.data);
-        } catch (err) {
-        setError('載入資料失敗，請稍後再試');
-        } finally {
+        const productsRes = await getDineInProducts(storeId);
+        const dineInMenu = (productsRes.data || []).filter(
+          (item) => item.service_type === 'dine_in' || item.service_type === 'both'
+        );
+        setMenuItems(dineInMenu);
+      } catch (err) {
+        console.error(err);
+        setError('載入資料失敗，請稍後再試。');
+      } finally {
         setLoading(false);
-        }
-        }
-        load();
-    }, [storeId]);
-
-
-  useEffect(() => {
-    dispatch({
-      type: 'UPDATE_CONTACT',
-      payload: { name: user?.name || '', phone: user?.phone || '' },
-    });
-  }, [user]);
-
+      }
+    }
+    load();
+  }, [storeId]);
 
   const total = useMemo(
-    () => cart.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0),
+    () => cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [cart.items]
   );
-  const slots = useMemo(pickupSlots, []);
 
   const handleSubmit = async () => {
     if (!cart.items.length) {
       alert('請先選擇餐點。');
       return;
     }
-    if (!cart.contact.name || !cart.contact.phone) {
-      alert('請填寫聯絡人姓名與電話。');
-      return;
-    }
     try {
       setSubmitting(true);
-        const payload = {
+      const notesWithTable = tableLabel
+        ? `桌號：${tableLabel}${cart.notes ? ` / ${cart.notes}` : ''}`
+        : cart.notes;
+      const payload = {
         store: storeId,
-        pickup_at: cart.pickupAt,
-        customer_name: cart.contact.name,
-        customer_phone: cart.contact.phone,
-        notes: cart.notes,
+        customer_name: tableLabel ? `桌號 ${tableLabel}` : '內用顧客',
+        customer_phone: '0000000000',
+        pickup_at: new Date().toISOString(),
         payment_method: paymentMethod,
-        use_utensils: useUtensils === 'yes',
+        table_label: tableLabel,
+        service_channel: 'dine_in',
+        use_eco_tableware: useEcoTableware === 'yes',
+        notes: notesWithTable,
         items: cart.items.map((item) => ({
-            product: item.id,
-            quantity: item.quantity,
+          product: item.id,
+          quantity: item.quantity,
         })),
-        };
-
-      const response = await createTakeoutOrder(payload);
+      };
+      const response = await createDineInOrder(payload);
       const pickupNo = response.data?.pickup_number;
       setPickupNumber(pickupNo || '');
       dispatch({ type: 'CLEAR_CART' });
-      const paymentLabel = paymentOptions.find((o) => o.value === paymentMethod)?.label;
-      alert(`付款方式：${paymentLabel}\n取餐號碼：${pickupNo || '待通知'}`);
-
+      const paymentLabel =
+        paymentOptions.find((o) => o.value === paymentMethod)?.label || paymentMethod;
+      alert(
+        `桌號：${tableLabel || '未提供'}\n付款方式：${paymentLabel}\n取單號碼：${
+          pickupNo || '待通知'
+        }\n環保餐具：${useEcoTableware === 'yes' ? '需要' : '不需要'}\n請等待服務人員確認。`
+      );
       const orderId = response.data?.id || 'pending';
       navigate(`/confirmation/${orderId}`, {
         state: {
           pickupNumber: pickupNo || null,
-          paymentMethod: paymentLabel || paymentMethod,
+          paymentMethod: paymentLabel,
         },
       });
     } catch (err) {
+      console.error(err);
       alert('送出失敗，請稍後再試。');
     } finally {
       setSubmitting(false);
@@ -177,10 +151,10 @@ const [useUtensils, setUseUtensils] = useState('yes');
     );
   }
 
-  if (error) {
+  if (error || !store) {
     return (
       <div className="takeout-page container py-5">
-        <div className="alert alert-danger">{error}</div>
+        <div className="alert alert-danger">{error || '店家不可用。'}</div>
       </div>
     );
   }
@@ -198,10 +172,10 @@ const [useUtensils, setUseUtensils] = useState('yes');
                   <i className="bi bi-telephone me-1" />
                   {store?.phone}
                 </span>
-                {store?.opening_hours && (
+                {tableLabel && (
                   <span>
-                    <i className="bi bi-clock me-1" />
-                    取餐時間請選擇下方時段
+                    <i className="bi bi-geo-alt me-1" />
+                    桌號：{tableLabel}
                   </span>
                 )}
               </div>
@@ -218,7 +192,7 @@ const [useUtensils, setUseUtensils] = useState('yes');
             </div>
             <div className="card-body">
               {menuItems.length === 0 && (
-                <p className="text-muted">店家尚未提供文字菜單，請直接聯絡。</p>
+                <p className="text-muted">目前尚無餐點，請洽服務人員。</p>
               )}
               {menuItems.map((item) => (
                 <div
@@ -227,9 +201,7 @@ const [useUtensils, setUseUtensils] = useState('yes');
                 >
                   <div>
                     <h5 className="mb-1">{item.name}</h5>
-                    {item.description && (
-                      <p className="text-muted mb-1">{item.description}</p>
-                    )}
+                    <p className="text-muted mb-1">{item.description}</p>
                     <strong>NT$ {formatPrice(item.price)}</strong>
                   </div>
                   <button
@@ -245,77 +217,42 @@ const [useUtensils, setUseUtensils] = useState('yes');
         </div>
 
         <div className="col-lg-4">
-          <div className="card shadow-sm sticky-top takeout-card"  style={{ top: '90px' }}>
+          <div className="card shadow-sm takeout-card">
             <div className="card-header takeout-card-header" style={{ color: 'black' }}>
-              <strong>外帶資訊</strong>
+              <strong>內用資訊</strong>
             </div>
             <div className="card-body">
+              {tableLabel && (
+                <div className="mb-3">
+                  <label className="form-label">桌號</label>
+                  <input className="form-control" value={tableLabel} readOnly />
+                </div>
+              )}
+
               <div className="mb-3">
-                <label className="form-label">取餐時間</label>
+                <label className="form-label">付款方式</label>
                 <select
                   className="form-select"
-                  value={cart.pickupAt}
-                  onChange={(e) =>
-                    dispatch({ type: 'UPDATE_PICKUP', payload: e.target.value })
-                  }
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
                 >
-                  {slots.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {new Date(slot).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                  {paymentOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="mb-3">
-                <label className="form-label">取餐人姓名</label>
-                <input
-                  className="form-control"
-                  value={cart.contact.name}
-                  onChange={(e) =>
-                    dispatch({ type: 'UPDATE_CONTACT', payload: { name: e.target.value } })
-                  }
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">聯絡電話</label>
-                <input
-                  className="form-control"
-                  value={cart.contact.phone}
-                  onChange={(e) =>
-                    dispatch({ type: 'UPDATE_CONTACT', payload: { phone: e.target.value } })
-                  }
-                />
-              </div>
-            <div className="mb-3">
-                <label className="form-label">付款方式</label>
-                <select
-                    className="form-select"
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                >
-                    {paymentOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label}
-                    </option>
-                    ))}
-                </select>
-                </div>
-
-
-            <div className="mb-3">
-                <label className="form-label">是否需要餐具</label>
+                <label className="form-label">是否自備環保餐具</label>
                 <div className="switch-container">
-                  <span>{useUtensils === 'yes' ? '需要' : '不需要'}</span>
+                  <span>{useEcoTableware === 'yes' ? '有' : '沒有'}</span>
                   <label className="switch">
                     <input
                       type="checkbox"
-                      checked={useUtensils === 'yes'}
-                      onChange={(e) => setUseUtensils(e.target.checked ? 'yes' : 'no')}
+                      checked={useEcoTableware === 'yes'}
+                      onChange={(e) => setUseEcoTableware(e.target.checked ? 'yes' : 'no')}
                     />
                     <span className="slider round"></span>
                   </label>
@@ -331,6 +268,7 @@ const [useUtensils, setUseUtensils] = useState('yes');
                   onChange={(e) =>
                     dispatch({ type: 'UPDATE_NOTE', payload: e.target.value })
                   }
+                  placeholder="特殊需求或過敏資訊"
                 />
               </div>
 
@@ -388,4 +326,4 @@ const [useUtensils, setUseUtensils] = useState('yes');
   );
 }
 
-export default TakeoutOrderPage;
+export default DineInOrderPage;

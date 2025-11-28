@@ -15,6 +15,7 @@ import {
   FaGift,
   FaBoxes,
   FaCalendarCheck,
+  FaChair,
 } from 'react-icons/fa';
 
 const MerchantDashboard = () => {
@@ -93,6 +94,15 @@ const MerchantDashboard = () => {
       icon: FaCalendarCheck,
       path: '/merchant/schedule',
     },
+
+    {
+      id: 'dine-in-settings',
+      name: '內用設定',
+      description: '調整內用菜單與座位配置',
+      icon: FaChair,
+      path: '/merchant/dine-in',
+    },
+
 
   ];
 

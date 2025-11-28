@@ -159,6 +159,12 @@ class Store(models.Model):
         help_text="Menu items with prices in text format."
     )
     # 標籤（用於分類和搜尋）
+    dine_in_layout = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='內用座位配置',
+        help_text="Configuration data for dine-in tables (floor plan)."
+    )
     tags = models.JSONField(
         default=list,
         blank=True,

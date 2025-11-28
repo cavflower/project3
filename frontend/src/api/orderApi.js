@@ -5,5 +5,13 @@ export const getTakeoutProducts = (storeId) =>
     params: { store: storeId, service_type: 'takeaway' },
   });
 
+export const getDineInProducts = (storeId) =>
+  api.get('/products/public/products/', {
+    params: { store: storeId },
+  });
+
 export const createTakeoutOrder = (payload) =>
+  api.post('/orders/takeout/', payload);
+
+export const createDineInOrder = (payload) =>
   api.post('/orders/takeout/', payload);

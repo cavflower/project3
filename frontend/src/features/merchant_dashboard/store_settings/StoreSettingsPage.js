@@ -73,6 +73,14 @@ const StoreSettingsPage = () => {
   useEffect(() => {
     loadStoreData();
   }, []);
+  
+  useEffect(() => {
+  async function loadStore() {
+    const res = await getMyStore();
+    setStoreId(res.data?.id);
+  }
+  loadStore();
+}, []);
 
   const loadStoreData = async () => {
     try {

@@ -42,6 +42,8 @@ import RedemptionCatalog from './features/customer_loyalty/RedemptionCatalog';
 import MyRedemptions from './features/customer_loyalty/MyRedemptions';
 import PointsHistory from './features/customer_loyalty/PointsHistory';
 import TakeoutOrderPage from './features/takeout/TakeoutOrderPage';
+import DineInOrderPage from './features/dine_in/DineInOrderPage';
+import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSettingsPage';
 
 
 // Context
@@ -121,6 +123,8 @@ function App() {
           
           {/* 外帶點餐 頁面 */}
               <Route path="/store/:storeId/takeout" element={<TakeoutOrderPage />} />
+          {/* 內用菜單（QR code 導向） */}
+              <Route path="/store/:storeId/dine-in/menu" element={<DineInOrderPage />} />
 
           {/* 線上結帳 頁面 */}
               <Route path="/checkout" element={<CheckoutPage />} />
@@ -142,6 +146,11 @@ function App() {
               {/* 我的訂位頁面（訪客也可查看）*/}
               <Route path="/my-reservations" element={<MyReservationsPage />} />
               
+              {/* 內用設定 */}
+              <Route path="/merchant/dine-in" element={<ProtectedRoute><DineInSettingsPage /></ProtectedRoute>}
+/>
+
+
               {/* 店家儀表板 (/dashboard)：受保護 */}
               <Route 
                 path="/dashboard"

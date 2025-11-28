@@ -47,6 +47,7 @@ class StoreSerializer(serializers.ModelSerializer):
             'remarks',
             'menu_type',
             'menu_text',
+            'dine_in_layout',
             'tags',
             'images',
             'menu_images',

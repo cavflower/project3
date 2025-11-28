@@ -226,3 +226,30 @@ class StoreViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+    @action(detail=True, methods=['get', 'post'], url_path='dine_in_layout')
+    def dine_in_layout(self, request, pk=None):
+        """
+        取得或更新內用桌位配置
+        """
+        store = self.get_object()
+
+        if request.method.lower() == 'get':
+            return Response(store.dine_in_layout or [])
+
+        if not hasattr(request.user, 'merchant_profile') or store.merchant != request.user.merchant_profile:
+            return Response(
+                {"error": "You don't have permission to update this store layout."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        layout = request.data.get('layout', [])
+        if not isinstance(layout, list):
+            return Response(
+                {"error": "Layout must be a list."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        store.dine_in_layout = layout
+        store.save(update_fields=['dine_in_layout', 'updated_at'])
+        return Response(store.dine_in_layout, status=status.HTTP_200_OK)
+
