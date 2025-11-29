@@ -58,7 +58,7 @@ function IngredientForm({ ingredient, onClose }) {
         alert('新增成功');
       }
       
-      onClose();
+      onClose(true);
     } catch (error) {
       console.error('操作失敗:', error);
       alert(ingredient ? '更新失敗' : '新增失敗');
@@ -67,18 +67,12 @@ function IngredientForm({ ingredient, onClose }) {
     }
   };
 
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick}>
+    <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
           <h2>{ingredient ? '編輯原物料' : '新增原物料'}</h2>
-          <button type="button" className="close-button" onClick={onClose}>×</button>
+          <button type="button" className="close-button" onClick={() => onClose(false)}>×</button>
         </div>
         
         <form onSubmit={handleSubmit} className="ingredient-form">
@@ -192,7 +186,7 @@ function IngredientForm({ ingredient, onClose }) {
           </div>
 
           <div className="form-actions">
-            <button type="button" onClick={onClose} className="cancel-button">
+            <button type="button" onClick={() => onClose(false)} className="cancel-button">
               取消
             </button>
             <button type="submit" className="submit-button" disabled={loading}>

@@ -57,10 +57,12 @@ function InventoryManagementPage() {
     setShowForm(true);
   };
 
-  const handleFormClose = () => {
+  const handleFormClose = (shouldRefresh = false) => {
     setShowForm(false);
     setEditingIngredient(null);
-    fetchIngredients();
+    if (shouldRefresh) {
+      fetchIngredients();
+    }
   };
 
   const handleExport = async () => {
@@ -161,7 +163,7 @@ function InventoryManagementPage() {
               </tr>
             ) : (
               filteredIngredients.map(ingredient => (
-                <tr key={ingredient.id} className={ingredient.is_low_stock ? 'low-stock-row' : ''}>
+                <tr key={ingredient.id} className={ingredient.quantity <= ingredient.minimum_stock ? 'low-stock-row' : ''}>
                   <td>{ingredient.name}</td>
                   <td>{ingredient.category || '-'}</td>
                   <td>{ingredient.quantity}</td>
@@ -171,24 +173,26 @@ function InventoryManagementPage() {
                   <td>{ingredient.supplier || '-'}</td>
                   <td>{ingredient.minimum_stock}</td>
                   <td>
-                    {ingredient.is_low_stock ? (
-                      <span className="status-badge low-stock">庫存不足</span>
+                    {ingredient.quantity <= ingredient.minimum_stock ? (
+                      <span className="inventory-status-badge low-stock">庫存不足</span>
                     ) : (
-                      <span className="status-badge normal">正常</span>
+                      <span className="inventory-status-badge normal">正常</span>
                     )}
                   </td>
                   <td>
                     <button
                       onClick={() => handleEdit(ingredient)}
                       className="edit-button"
+                      title="編輯"
                     >
-                      編輯
+                      <i className="bi bi-pencil"></i>
                     </button>
                     <button
                       onClick={() => handleDelete(ingredient.id)}
                       className="delete-button"
+                      title="刪除"
                     >
-                      刪除
+                      <i className="bi bi-trash"></i>
                     </button>
                   </td>
                 </tr>
