@@ -8,6 +8,7 @@ const StoreSettingsPage = () => {
   const creditCardOptions = ['Visa', 'MasterCard', 'American Express', 'JCB', 'UnionPay'];
   const [formData, setFormData] = useState({
     name: '',
+    cuisine_type: 'other',
     description: '',
     address: '',
     phone: '',
@@ -28,6 +29,9 @@ const StoreSettingsPage = () => {
     remarks: '',
     menu_type: 'text',
     menu_text: '',
+    enable_reservation: true,
+    enable_loyalty: true,
+    enable_surplus_food: true,
   });
   const [openingHours, setOpeningHours] = useState({
     monday: { open: '09:00', close: '18:00', is_closed: false },
@@ -92,6 +96,7 @@ const StoreSettingsPage = () => {
       setStoreId(store.id);
       setFormData({
         name: store.name || '',
+        cuisine_type: store.cuisine_type || 'other',
         description: store.description || '',
         address: store.address || '',
         phone: store.phone || '',
@@ -113,6 +118,9 @@ const StoreSettingsPage = () => {
         remarks: store.remarks || '',
         menu_type: store.menu_type || 'text',
         menu_text: store.menu_text || '',
+        enable_reservation: store.enable_reservation !== undefined ? store.enable_reservation : true,
+        enable_loyalty: store.enable_loyalty !== undefined ? store.enable_loyalty : true,
+        enable_surplus_food: store.enable_surplus_food !== undefined ? store.enable_surplus_food : true,
       });
       setSelectedCreditCards(parseCreditCards(store.credit_cards || ''));
       if (store.opening_hours) {
@@ -197,7 +205,7 @@ const StoreSettingsPage = () => {
       await deleteStoreImage(storeId, imageId);
       setStoreImages(storeImages.filter(img => img.id !== imageId));
       setSuccess('圖片已刪除');
-      setTimeout(() => setSuccess(''), 1500);
+      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       setError('刪除圖片失敗');
       setTimeout(() => setError(''), 1500);
@@ -231,7 +239,7 @@ const StoreSettingsPage = () => {
       await deleteMenuImage(storeId, imageId);
       setMenuImages(menuImages.filter(img => img.id !== imageId));
       setSuccess('菜單圖片已刪除');
-      setTimeout(() => setSuccess(''), 1500);
+      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       setError('刪除菜單圖片失敗');
       setTimeout(() => setError(''), 1500);
@@ -257,6 +265,7 @@ const StoreSettingsPage = () => {
 
     const dataToSend = new FormData();
     dataToSend.append('name', formData.name || '');
+    dataToSend.append('cuisine_type', formData.cuisine_type || 'other');
     dataToSend.append('description', formData.description || '');
     dataToSend.append('address', formData.address || '');
     dataToSend.append('phone', formData.phone || '');
@@ -303,6 +312,9 @@ const StoreSettingsPage = () => {
     if (formData.menu_text) {
       dataToSend.append('menu_text', formData.menu_text);
     }
+    dataToSend.append('enable_reservation', formData.enable_reservation ? 'true' : 'false');
+    dataToSend.append('enable_loyalty', formData.enable_loyalty ? 'true' : 'false');
+    dataToSend.append('enable_surplus_food', formData.enable_surplus_food ? 'true' : 'false');
 
     try {
       let currentStoreId = storeId;
@@ -340,10 +352,13 @@ const StoreSettingsPage = () => {
         await loadStoreData();
       }
 
-      // 1秒後清除成功訊息
+      // 滾動到頁面最上方
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // 5秒後清除成功訊息
       setTimeout(() => {
         setSuccess('');
-      }, 1000);
+      }, 5000);
     } catch (err) {
       console.error('Failed to save store:', err);
       console.error('Error response:', err.response?.data);
@@ -406,7 +421,7 @@ const StoreSettingsPage = () => {
       const response = await publishStore(storeId);
       setIsPublished(true);
       setSuccess('店家已成功上架！');
-      setTimeout(() => setSuccess(''), 1500);
+      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       console.error('Failed to publish store:', err);
       const errorMessage = err.response?.data?.error || err.response?.data?.detail || '上架失敗，請稍後再試。';
@@ -438,7 +453,7 @@ const StoreSettingsPage = () => {
       const response = await unpublishStore(storeId);
       setIsPublished(false);
       setSuccess('店家已成功下架！');
-      setTimeout(() => setSuccess(''), 1500);
+      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       console.error('Failed to unpublish store:', err);
       const errorMessage = err.response?.data?.error || err.response?.data?.detail || '下架失敗，請稍後再試。';
@@ -504,6 +519,26 @@ const StoreSettingsPage = () => {
                   required
                   placeholder="請輸入餐廳名稱"
                 />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="cuisine_type">餐廳類別 *</label>
+                <select
+                  id="cuisine_type"
+                  name="cuisine_type"
+                  value={formData.cuisine_type}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="japanese">日式</option>
+                  <option value="korean">韓式</option>
+                  <option value="american">美式</option>
+                  <option value="taiwanese">台式</option>
+                  <option value="western">西式</option>
+                  <option value="beverages">飲料</option>
+                  <option value="desserts">甜點</option>
+                  <option value="other">其他</option>
+                </select>
               </div>
 
               <div className="form-group">
@@ -925,6 +960,65 @@ const StoreSettingsPage = () => {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* 功能開關 */}
+          <div className="form-section">
+            <h2>功能開關</h2>
+            <p className="section-description">控制哪些功能在您的餐廳中啟用</p>
+            
+            <div className="feature-toggles">
+              <div className="feature-toggle-item">
+                <div className="toggle-info">
+                  <label htmlFor="enable_reservation">訂位功能</label>
+                  <small>允許顧客線上預約訂位</small>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="enable_reservation"
+                    name="enable_reservation"
+                    checked={formData.enable_reservation}
+                    onChange={handleChange}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div className="feature-toggle-item">
+                <div className="toggle-info">
+                  <label htmlFor="enable_loyalty">會員功能</label>
+                  <small>啟用會員計劃與點數系統</small>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="enable_loyalty"
+                    name="enable_loyalty"
+                    checked={formData.enable_loyalty}
+                    onChange={handleChange}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div className="feature-toggle-item">
+                <div className="toggle-info">
+                  <label htmlFor="enable_surplus_food">惜福品功能</label>
+                  <small>提供惜福食品販売服務</small>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="enable_surplus_food"
+                    name="enable_surplus_food"
+                    checked={formData.enable_surplus_food}
+                    onChange={handleChange}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <div className="form-actions">

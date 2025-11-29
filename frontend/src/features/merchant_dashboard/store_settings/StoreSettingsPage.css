@@ -326,6 +326,109 @@
   background-color: rgba(192, 57, 43, 1);
 }
 
+/* 功能開關 */
+.feature-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.feature-toggle-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s;
+}
+
+.feature-toggle-item:hover {
+  background-color: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.toggle-info {
+  flex: 1;
+}
+
+.toggle-info label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+  font-size: 1rem;
+}
+
+.toggle-info small {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+  margin: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #ff6b6b;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.toggle-slider:hover {
+  background-color: #b3b3b3;
+}
+
+.toggle-switch input:checked + .toggle-slider:hover {
+  background-color: #ff5252;
+}
+
+.section-description {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-top: 5px;
+  margin-bottom: 20px;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;

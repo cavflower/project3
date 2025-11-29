@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import TimeSlotForm from './TimeSlotForm';
 
@@ -6,6 +6,21 @@ const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingSlot, setEditingSlot] = useState(null);
   const [selectedDay, setSelectedDay] = useState('all');
+
+  useEffect(() => {
+    if (showForm) {
+      // 當表單顯示時，滾動到頁面中間位置
+      const scrollToMiddle = () => {
+        const windowHeight = window.innerHeight;
+        const documentHeight = document.documentElement.scrollHeight;
+        const middlePosition = (documentHeight - windowHeight) / 2;
+        window.scrollTo({ top: Math.max(0, middlePosition), behavior: 'smooth' });
+      };
+      
+      // 使用 setTimeout 確保 DOM 已更新
+      setTimeout(scrollToMiddle, 100);
+    }
+  }, [showForm]);
 
   const daysOfWeek = {
     all: '全部',
