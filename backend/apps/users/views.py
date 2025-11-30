@@ -81,8 +81,22 @@ class UserRegisterView(APIView):
         """
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            try:
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                # 捕獲資料庫錯誤或其他異常
+                error_detail = str(e)
+                # 檢查是否是唯一性約束錯誤
+                if 'UNIQUE constraint' in error_detail or 'unique constraint' in error_detail.lower():
+                    if 'email' in error_detail.lower():
+                        return Response({'error': '此電子郵件已被註冊', 'detail': error_detail}, status=status.HTTP_400_BAD_REQUEST)
+                    elif 'firebase_uid' in error_detail.lower():
+                        return Response({'error': '此帳號已被註冊', 'detail': error_detail}, status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        return Response({'error': '資料已存在', 'detail': error_detail}, status=status.HTTP_400_BAD_REQUEST)
+                # 其他錯誤
+                return Response({'error': '註冊失敗', 'detail': error_detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserDetailView(APIView):

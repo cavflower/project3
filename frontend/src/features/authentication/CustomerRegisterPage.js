@@ -56,11 +56,25 @@ const CustomerRegisterPage = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`後台儲存失敗: ${JSON.stringify(errorData)}`);
+        // 檢查回應的 Content-Type，如果是 JSON 才解析
+        const contentType = response.headers.get('content-type');
+        let errorMessage = '後台儲存失敗';
+        
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            errorMessage = `後台儲存失敗: ${JSON.stringify(errorData)}`;
+          } catch (e) {
+            errorMessage = `後台儲存失敗: HTTP ${response.status} ${response.statusText}`;
+          }
+        } else {
+          errorMessage = `後台儲存失敗: HTTP ${response.status} ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      await response.json();
+      const result = await response.json();
       setLoading(false);
       navigate('/login/customer');
     } catch (err) {

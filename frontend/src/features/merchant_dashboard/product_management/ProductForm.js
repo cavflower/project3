@@ -51,9 +51,15 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
     setError('');
 
     try {
+      const priceNumber = parseFloat(formData.price);
+      if (Number.isNaN(priceNumber)) {
+        setError('請輸入有效的價格');
+        return;
+      }
+
       const data = new FormData();
       data.append('name', formData.name);
-      data.append('price', formData.price);
+      data.append('price', priceNumber.toFixed(2));
       data.append('description', formData.description);
       data.append('service_type', formData.service_type);
       if (formData.image) {
@@ -95,12 +101,15 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
       <div className="form-group">
         <label htmlFor="price">價格 (NT$) *</label>
         <input
-          type="number"
+          type="text"
+          inputMode="decimal"
+          pattern="^\d+(\.\d{0,2})?$"
           id="price"
           name="price"
           value={formData.price}
           onChange={handleInputChange}
-          step="0.01"
+          onWheel={(e) => e.currentTarget.blur()}
+          placeholder="例如：67 或 67.50"
           required
         />
       </div>

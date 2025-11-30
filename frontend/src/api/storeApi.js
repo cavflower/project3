@@ -48,8 +48,27 @@ export const unpublishStore = (storeId) => {
   return api.post(`/stores/${storeId}/unpublish/`);
 };
 
-export const getPublishedStores = () => {
-  return api.get('/stores/published/');
+export const getPublishedStores = (filters = {}) => {
+  const params = new URLSearchParams();
+  
+  if (filters.cuisine_type && filters.cuisine_type !== 'all') {
+    params.append('cuisine_type', filters.cuisine_type);
+  }
+  if (filters.has_reservation) {
+    params.append('has_reservation', 'true');
+  }
+  if (filters.has_loyalty) {
+    params.append('has_loyalty', 'true');
+  }
+  if (filters.has_surplus_food) {
+    params.append('has_surplus_food', 'true');
+  }
+  if (filters.search) {
+    params.append('search', filters.search);
+  }
+  
+  const queryString = params.toString();
+  return api.get(`/stores/published/${queryString ? `?${queryString}` : ''}`);
 };
 
 export const uploadMenuImages = (storeId, images) => {
@@ -66,4 +85,12 @@ export const uploadMenuImages = (storeId, images) => {
 
 export const deleteMenuImage = (storeId, imageId) => {
   return api.delete(`/stores/${storeId}/menu_images/${imageId}/`);
+};
+
+export const getDineInLayout = (storeId) => {
+  return api.get(`/stores/${storeId}/dine_in_layout/`);
+};
+
+export const saveDineInLayout = (storeId, layout) => {
+  return api.post(`/stores/${storeId}/dine_in_layout/`, { layout });
 };

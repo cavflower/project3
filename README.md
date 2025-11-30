@@ -6,6 +6,7 @@ cd frontend
 npm install
 npm install axios
 npm install react-icons
+npm install qrcode.react
 
 步驟 3：設定環境變數
 在 frontend 資料夾中，手動建立一個名為 .env 的檔案（如果需要）。

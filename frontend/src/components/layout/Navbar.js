@@ -33,6 +33,9 @@ const Navbar = ({ toggleSidebar }) => {
           {dropdownOpen && (
             <ul className="profile-dropdown">
               <li><Link to="/profile" onClick={() => setDropdownOpen(false)}>編輯資料</Link></li>
+              {user?.user_type === 'customer' && (
+                <li><Link to="/customer/loyalty" onClick={() => setDropdownOpen(false)}>會員中心</Link></li>
+              )}
               <li><button onClick={handleLogout}>登出</button></li>
             </ul>
           )}

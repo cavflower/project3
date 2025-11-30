@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import ProductForm from './ProductForm';
 import './ProductManagementPage.css';
 import { getProducts, deleteProduct } from '../../../api/productApi';
@@ -91,11 +92,6 @@ const ProductManagementPage = () => {
     <div className="product-management-page">
       <header className="page-header">
         <h1>商品管理</h1>
-        {!isFormVisible && (
-          <button className="action-btn add-btn" onClick={handleAddClick}>
-            + 新增商品
-          </button>
-        )}
       </header>
 
       {error && <p className="error-message">{error}</p>}
@@ -107,7 +103,13 @@ const ProductManagementPage = () => {
           onCancel={() => setIsFormVisible(false)}
         />
       ) : (
-        <div className="product-list">
+        <>
+          <div className="product-content-header">
+            <button className="product-btn-add" onClick={handleAddClick}>
+              <FaPlus /> 新增
+            </button>
+          </div>
+          <div className="product-list">
           {products.length > 0 ? products.map((product) => (
             <div key={product.id} className="product-card-manage">
               <img src={getImageUrl(product.image)} alt={product.name} className="product-image-manage" />
@@ -121,12 +123,17 @@ const ProductManagementPage = () => {
                 </p>
               </div>
               <div className="product-actions-manage">
-                <button className="action-btn edit-btn" onClick={() => handleEditClick(product)}>編輯</button>
-                <button className="action-btn delete-btn" onClick={() => handleDelete(product.id)}>刪除</button>
+                <button className="icon-btn edit-btn" onClick={() => handleEditClick(product)} title="編輯">
+                  <FaEdit />
+                </button>
+                <button className="icon-btn delete-btn" onClick={() => handleDelete(product.id)} title="刪除">
+                  <FaTrash />
+                </button>
               </div>
             </div>
           )) : <p>您尚未新增任何商品。</p>}
         </div>
+        </>
       )}
     </div>
   );

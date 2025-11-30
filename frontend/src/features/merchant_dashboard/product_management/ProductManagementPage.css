@@ -8,9 +8,6 @@
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 20px;
   padding-bottom: 10px;
   border-bottom: 1px solid #eee;
@@ -19,6 +16,31 @@
 .page-header h1 {
   font-size: 1.8rem;
   color: #333;
+}
+
+.product-content-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.product-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background 0.3s;
+}
+
+.product-btn-add:hover {
+  background: #ff5252;
 }
 
 .action-btn {
@@ -89,20 +111,38 @@
   gap: 10px;
 }
 
-.edit-btn {
-  background-color: #f39c12;
-  color: white;
-}
-.edit-btn:hover {
-  background-color: #e67e22;
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 1rem;
 }
 
-.delete-btn {
-  background-color: #e74c3c;
+.icon-btn.edit-btn {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.icon-btn.edit-btn:hover {
+  background-color: #ff6b6b;
   color: white;
 }
-.delete-btn:hover {
-  background-color: #c0392b;
+
+.icon-btn.delete-btn {
+  background-color: #f0f0f0;
+  color: #000;
+}
+
+.icon-btn.delete-btn:hover {
+  background-color: #dc3545;
+  color: white;
 }
 
 .error-message {

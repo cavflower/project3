@@ -17,6 +17,23 @@ class Store(models.Model):
         verbose_name='餐廳名稱',
         help_text="The name of the restaurant/store."
     )
+    CUISINE_TYPE_CHOICES = [
+        ('japanese', '日式'),
+        ('korean', '韓式'),
+        ('american', '美式'),
+        ('taiwanese', '台式'),
+        ('western', '西式'),
+        ('beverages', '飲料'),
+        ('desserts', '甜點'),
+        ('other', '其他'),
+    ]
+    cuisine_type = models.CharField(
+        max_length=20,
+        choices=CUISINE_TYPE_CHOICES,
+        default='other',
+        verbose_name='餐廳類別',
+        help_text="The cuisine type of the restaurant."
+    )
     description = models.TextField(
         blank=True,
         verbose_name='餐廳描述',
@@ -158,7 +175,29 @@ class Store(models.Model):
         verbose_name='菜單文字內容',
         help_text="Menu items with prices in text format."
     )
+    # 功能開關
+    enable_reservation = models.BooleanField(
+        default=True,
+        verbose_name='啟用訂位功能',
+        help_text="Enable or disable reservation feature."
+    )
+    enable_loyalty = models.BooleanField(
+        default=True,
+        verbose_name='啟用會員功能',
+        help_text="Enable or disable loyalty program feature."
+    )
+    enable_surplus_food = models.BooleanField(
+        default=True,
+        verbose_name='啟用惜福品功能',
+        help_text="Enable or disable surplus food feature."
+    )
     # 標籤（用於分類和搜尋）
+    dine_in_layout = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='內用座位配置',
+        help_text="Configuration data for dine-in tables (floor plan)."
+    )
     tags = models.JSONField(
         default=list,
         blank=True,

@@ -15,6 +15,7 @@ import CustomerLoginPage from './features/authentication/CustomerLoginPage';
 import MerchantLoginPage from './features/authentication/MerchantLoginPage';
 import CustomerRegisterPage from './features/authentication/CustomerRegisterPage';
 import MerchantRegisterPage from './features/authentication/MerchantRegisterPage';
+import RestaurantMemberLoginPage from './features/authentication/RestaurantMemberLoginPage';
 import CustomerHomePage from './features/home/CustomerHomePage';
 import MerchantDashboard from './features/merchant_dashboard/MerchantDashboard';
 import ProfilePage from './features/user_profile/ProfilePage'; // 1. 匯入新的個人資料頁面
@@ -28,12 +29,23 @@ import ReservationSuccessPage from './features/reservations/ReservationSuccessPa
 import MyReservationsPage from './features/reservations/MyReservationsPage'; // 導入我的訂位頁面
 import EditReservationPage from './features/reservations/EditReservationPage'; // 導入編輯訂位頁面
 import GuestReservationLookup from './features/reservations/GuestReservationLookup'; // 導入訪客查詢頁面
+import ScheduleManagementPage from './features/merchant_dashboard/schedule_management/ScheduleManagementPage';
 import StoreBrowse from './features/home/StoreBrowse';
 import StorePage from './features/home/StorePage';
 import OrderPage from './features/home/OrderPage';
 import CheckoutPage from './features/home/CheckoutPage';
 import ConfirmationPage from './features/home/ConfirmationPage';
 import ReviewPage from './features/home/ReviewPage';
+import LoyaltyManagement from './features/loyalty_management/LoyaltyManagement';
+import CustomerLoyalty from './features/customer_loyalty/CustomerLoyalty';
+import RedemptionCatalog from './features/customer_loyalty/RedemptionCatalog';
+import MyRedemptions from './features/customer_loyalty/MyRedemptions';
+import PointsHistory from './features/customer_loyalty/PointsHistory';
+import TakeoutOrderPage from './features/takeout/TakeoutOrderPage';
+import DineInOrderPage from './features/dine_in/DineInOrderPage';
+import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSettingsPage';
+import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
+
 
 // Context
 import { useAuth } from './store/AuthContext'; 
@@ -81,6 +93,7 @@ function App() {
               {/* 登入頁 */}
               <Route path="/login/customer" element={<CustomerLoginPage />} />
               <Route path="/login/merchant" element={<MerchantLoginPage />} />
+              <Route path="/login/restaurant-member" element={<RestaurantMemberLoginPage />} />
               {/* 為了向後相容，將 /login 導向顧客登入 */}
               <Route path="/login" element={<Navigate to="/login/customer" />} />
 
@@ -105,10 +118,15 @@ function App() {
               />
           {/* 點入特定店家 頁面 */}
               <Route path="/store/:storeId" element={<StorePage />} />
-          
+
           {/* 點餐主頁面 */}
               <Route path="/store/:storeId/order" element={<OrderPage />} />
           
+          {/* 外帶點餐 頁面 */}
+              <Route path="/store/:storeId/takeout" element={<TakeoutOrderPage />} />
+          {/* 內用菜單（QR code 導向） */}
+              <Route path="/store/:storeId/dine-in/menu" element={<DineInOrderPage />} />
+
           {/* 線上結帳 頁面 */}
               <Route path="/checkout" element={<CheckoutPage />} />
           
@@ -129,6 +147,11 @@ function App() {
               {/* 我的訂位頁面（訪客也可查看）*/}
               <Route path="/my-reservations" element={<MyReservationsPage />} />
               
+              {/* 內用設定 */}
+              <Route path="/merchant/dine-in" element={<ProtectedRoute><DineInSettingsPage /></ProtectedRoute>}
+/>
+
+
               {/* 店家儀表板 (/dashboard)：受保護 */}
               <Route 
                 path="/dashboard"
@@ -157,7 +180,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
+              
               {/* 原物料管理頁面路由 */}
               <Route
                 path="/merchant/inventory"
@@ -167,13 +190,21 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
               {/* 餐廳設定頁面路由 */}
               <Route
                 path="/merchant/settings"
                 element={
                   <ProtectedRoute>
                     <StoreSettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/merchant/schedule"
+                element={
+                  <ProtectedRoute>
+                    <ScheduleManagementPage />
                   </ProtectedRoute>
                 }
               />
@@ -194,6 +225,60 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 會員制度管理頁面路由（商家端） */}
+              <Route
+                path="/merchant/loyalty"
+                element={
+                  <ProtectedRoute>
+                    <LoyaltyManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 惜福食品管理頁面路由（商家端） */}
+              <Route
+                path="/merchant/surplus-food"
+                element={
+                  <ProtectedRoute>
+                    <SurplusFoodManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 顧客會員中心路由 */}
+              <Route
+                path="/customer/loyalty"
+                element={
+                  <ProtectedRoute>
+                    <CustomerLoyalty />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customer/loyalty/redemptions"
+                element={
+                  <ProtectedRoute>
+                    <RedemptionCatalog />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customer/loyalty/my-redemptions"
+                element={
+                  <ProtectedRoute>
+                    <MyRedemptions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customer/loyalty/history"
+                element={
+                  <ProtectedRoute>
+                    <PointsHistory />
                   </ProtectedRoute>
                 }
               />

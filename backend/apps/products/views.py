@@ -3,7 +3,22 @@
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.response import Response
 from .models import Product
-from .serializers import ProductSerializer
+from .serializers import ProductSerializer, PublicProductSerializer
+from rest_framework import generics, permissions
+from django.shortcuts import get_object_or_404
+from apps.orders.serializers import TakeoutOrderSerializer
+from apps.stores.models import Store
+
+class TakeoutOrderCreateView(generics.CreateAPIView):
+    serializer_class = TakeoutOrderSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        store = get_object_or_404(Store, pk=self.request.data.get('store'))
+        context['store'] = store
+        return context
+
 # 移除這行，因為 Merchant 模型不需要直接在這裡使用
 # from apps.users.models import Merchant # <--- 移除或註解掉
 
@@ -41,25 +56,40 @@ class ProductViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        """
-        This view should return a list of all the products
-        for the currently authenticated user's merchant.
-        """
-        user = self.request.user
-        # 修改這裡：檢查 merchant_profile
-        if hasattr(user, 'merchant_profile'):
-            # 修改這裡：用 user.merchant_profile 進行過濾
-            return Product.objects.filter(merchant=user.merchant_profile)
-        return Product.objects.none() # Return empty if not a merchant
+        merchant = getattr(self.request.user, 'merchant_profile', None)
+        if not merchant or not hasattr(merchant, 'store'):
+            return Product.objects.none()
+        return Product.objects.filter(store=merchant.store)
 
     def perform_create(self, serializer):
-        """
-        Associate the product with the logged-in merchant.
-        """
-        # 修改這裡：檢查 merchant_profile
-        if hasattr(self.request.user, 'merchant_profile'):
-            # 修改這裡：儲存時關聯 user.merchant_profile
-            serializer.save(merchant=self.request.user.merchant_profile)
-        else:
-            # This should ideally not happen due to permissions
-            raise serializers.ValidationError("User is not a merchant and cannot create products.")
+        merchant = getattr(self.request.user, 'merchant_profile', None)
+        if not merchant or not hasattr(merchant, 'store'):
+            raise serializers.ValidationError('User is not a merchant or has no store.')
+        serializer.save(merchant=merchant, store=merchant.store)
+
+
+class PublicProductViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Product.objects.filter(is_available=True)
+    serializer_class = PublicProductSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        store_id = self.request.query_params.get('store')
+        service_type = self.request.query_params.get('service_type')
+        if store_id:
+            qs = qs.filter(store_id=store_id)
+        if service_type in ('takeaway', 'dine_in'):
+            qs = qs.filter(service_type__in=[service_type, 'both'])
+        return qs
+    
+
+class TakeoutOrderCreateView(generics.CreateAPIView):
+    serializer_class = TakeoutOrderSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        store_id = self.request.data.get('store')
+        context['store'] = get_object_or_404(Store, pk=store_id)
+        return context

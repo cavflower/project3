@@ -15,7 +15,6 @@ function IngredientForm({ ingredient, onClose }) {
   });
 
   const [loading, setLoading] = useState(false);
-  const [mouseDownOnOverlay, setMouseDownOnOverlay] = useState(false);
 
   useEffect(() => {
     if (ingredient) {
@@ -40,21 +39,6 @@ function IngredientForm({ ingredient, onClose }) {
     }));
   };
 
-  const handleOverlayMouseDown = (e) => {
-    if (e.target === e.currentTarget) {
-      setMouseDownOnOverlay(true);
-    } else {
-      setMouseDownOnOverlay(false);
-    }
-  };
-
-  const handleOverlayMouseUp = (e) => {
-    if (mouseDownOnOverlay && e.target === e.currentTarget) {
-      onClose();
-    }
-    setMouseDownOnOverlay(false);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -74,7 +58,7 @@ function IngredientForm({ ingredient, onClose }) {
         alert('新增成功');
       }
       
-      onClose();
+      onClose(true);
     } catch (error) {
       console.error('操作失敗:', error);
       alert(ingredient ? '更新失敗' : '新增失敗');
@@ -84,15 +68,11 @@ function IngredientForm({ ingredient, onClose }) {
   };
 
   return (
-    <div 
-      className="modal-overlay" 
-      onMouseDown={handleOverlayMouseDown}
-      onMouseUp={handleOverlayMouseUp}
-    >
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-content">
         <div className="modal-header">
           <h2>{ingredient ? '編輯原物料' : '新增原物料'}</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button type="button" className="close-button" onClick={() => onClose(false)}>×</button>
         </div>
         
         <form onSubmit={handleSubmit} className="ingredient-form">
@@ -206,7 +186,7 @@ function IngredientForm({ ingredient, onClose }) {
           </div>
 
           <div className="form-actions">
-            <button type="button" onClick={onClose} className="cancel-button">
+            <button type="button" onClick={() => onClose(false)} className="cancel-button">
               取消
             </button>
             <button type="submit" className="submit-button" disabled={loading}>

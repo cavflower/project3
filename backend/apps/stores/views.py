@@ -169,8 +169,43 @@ class StoreViewSet(viewsets.ModelViewSet):
     def published(self, request):
         """
         獲取所有已上架的店家（公開 API，供顧客瀏覽）
+        支援篩選參數：
+        - cuisine_type: 餐廳類別
+        - has_reservation: 是否提供訂位功能
+        - has_loyalty: 是否提供會員功能
+        - has_surplus_food: 是否提供惜福品功能
+        - search: 搜尋關鍵字（店名、描述）
         """
         stores = Store.objects.filter(is_published=True)
+        
+        # 餐廳類別篩選
+        cuisine_type = request.query_params.get('cuisine_type')
+        if cuisine_type and cuisine_type != 'all':
+            stores = stores.filter(cuisine_type=cuisine_type)
+        
+        # 功能篩選
+        has_reservation = request.query_params.get('has_reservation')
+        if has_reservation == 'true':
+            stores = stores.filter(enable_reservation=True)
+        
+        has_loyalty = request.query_params.get('has_loyalty')
+        if has_loyalty == 'true':
+            stores = stores.filter(enable_loyalty=True)
+        
+        has_surplus_food = request.query_params.get('has_surplus_food')
+        if has_surplus_food == 'true':
+            stores = stores.filter(enable_surplus_food=True)
+        
+        # 搜尋關鍵字
+        search = request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            stores = stores.filter(
+                Q(name__icontains=search) | 
+                Q(description__icontains=search) |
+                Q(address__icontains=search)
+            )
+        
         serializer = self.get_serializer(stores, many=True)
         return Response(serializer.data)
 
@@ -225,4 +260,31 @@ class StoreViewSet(viewsets.ModelViewSet):
                 {"error": "Menu image not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+    @action(detail=True, methods=['get', 'post'], url_path='dine_in_layout')
+    def dine_in_layout(self, request, pk=None):
+        """
+        取得或更新內用桌位配置
+        """
+        store = self.get_object()
+
+        if request.method.lower() == 'get':
+            return Response(store.dine_in_layout or [])
+
+        if not hasattr(request.user, 'merchant_profile') or store.merchant != request.user.merchant_profile:
+            return Response(
+                {"error": "You don't have permission to update this store layout."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        layout = request.data.get('layout', [])
+        if not isinstance(layout, list):
+            return Response(
+                {"error": "Layout must be a list."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        store.dine_in_layout = layout
+        store.save(update_fields=['dine_in_layout', 'updated_at'])
+        return Response(store.dine_in_layout, status=status.HTTP_200_OK)
 

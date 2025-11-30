@@ -45,34 +45,37 @@ const getUserTypeFromUrl = (url, method = 'get') => {
     return 'customer';
   }
   
-  // 產品相關的 API，使用 merchant token
-  if (url.includes('/products/')) {
+
+  if (url.includes('/products/') && !url.includes('/public/products/')) {
+    return 'merchant';
+  }
+
+  // 原物料管理相關的 API，使用 merchant token
+  if (url.includes('/inventory/')) {
     return 'merchant';
   }
   
-  // 原物料管理相關的 API，使用 merchant token
-  if (url.includes('/inventory/')) {
+  // 排班管理相關的 API，使用 merchant token
+  if (url.includes('/schedules/')) {
     return 'merchant';
   }
   
   // 如果是店家相關的 API，使用 merchant token（除了 published 和 retrieve API）
   // retrieve API 是 GET /stores/{id}/，用於查看已上架店家的詳細資訊，不需要 token
   if (url.includes('/stores/') && !url.includes('/stores/published/')) {
-    // 檢查是否是 retrieve 操作（GET /stores/{id}/，且不是 my_store 或其他需要認證的操作）
-    // 排除 my_store, upload_images, delete_image, publish, unpublish 等需要認證的操作
-    // 只有 GET 方法且符合特定格式的才是公開的 retrieve 操作
-    const isRetrieve = /\/stores\/\d+\/?$/.test(url) && 
-                       method.toLowerCase() === 'get' &&
-                       !url.includes('/my_store/') &&
-                       !url.includes('/upload_images/') &&
-                       !url.includes('/images/') &&
-                       !url.includes('/publish/') &&
-                       !url.includes('/unpublish/');
+    const isRetrieve = /\/stores\/\d+\/?$/.test(url) &&
+      method.toLowerCase() === 'get' &&
+      !url.includes('/my_store/') &&
+      !url.includes('/upload_images/') &&
+      !url.includes('/images/') &&
+      !url.includes('/publish/') &&
+      !url.includes('/unpublish/');
     if (isRetrieve) {
-      return null; // retrieve 操作不需要 token
+      return null;
     }
     return 'merchant';
   }
+
   
   // 其他情況使用 customer token
   return 'customer';

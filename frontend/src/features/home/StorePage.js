@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
+import { useAuth } from '../../store/AuthContext';
+import { getTakeoutProducts } from '../../api/orderApi';
 import './StorePage.css';
 
 function StorePage() {
   const { storeId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [store, setStore] = useState(null);
+  const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('about');
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageType, setImageType] = useState(null); // 'store' or 'menu'
-  const [mouseDownOnOverlay, setMouseDownOnOverlay] = useState(false);
 
   useEffect(() => {
     loadStoreData();
@@ -24,6 +27,7 @@ function StorePage() {
       setError('');
       const response = await getStore(storeId);
       setStore(response.data);
+      await loadMenuItems(storeId);
     } catch (err) {
       console.error('Failed to load store:', err);
       setError('載入店家資訊失敗，請稍後再試。');
@@ -32,21 +36,15 @@ function StorePage() {
     }
   };
 
-  const handleOverlayMouseDown = (e) => {
-    if (e.target === e.currentTarget) {
-      setMouseDownOnOverlay(true);
-    } else {
-      setMouseDownOnOverlay(false);
+  const loadMenuItems = async (id) => {
+    try {
+      const productRes = await getTakeoutProducts(id);
+      setMenuItems(productRes.data);
+    } catch (err) {
+      console.error('Failed to load menu items:', err);
     }
   };
 
-  const handleOverlayMouseUp = (e) => {
-    if (mouseDownOnOverlay && e.target === e.currentTarget) {
-      setSelectedImage(null);
-      setImageType(null);
-    }
-    setMouseDownOnOverlay(false);
-  };
 
   const formatOpeningHours = (hours) => {
     if (!hours || typeof hours !== 'object') return null;
@@ -74,81 +72,6 @@ function StorePage() {
     }).filter(item => item !== null);
   };
 
-  const parseMenuText = (text) => {
-    if (!text) return [];
-    
-    const lines = text.split('\n').filter(line => line.trim());
-    const items = [];
-    let currentItem = null;
-    
-    lines.forEach((line, index) => {
-      const trimmedLine = line.trim();
-      
-      // 檢查是否是價格行（包含 NT$、JPY、$、NT、元 等價格標記，且主要包含數字和價格符號）
-      const priceMatch = trimmedLine.match(/(NT\$|JPY|\$|NT|元|TWD|USD)\s*([\d,]+)/i);
-      const isPriceLine = priceMatch && (trimmedLine.length < 30 || /^[^\u4e00-\u9fa5]*$/.test(trimmedLine));
-      
-      if (isPriceLine) {
-        if (currentItem) {
-          currentItem.price = trimmedLine;
-          items.push(currentItem);
-          currentItem = null;
-        }
-        return;
-      }
-      
-      // 檢查是否是標題（通常是不包含特殊符號的短行，且不是以 * 開頭）
-      // 標題通常是中文，且長度適中
-      const isTitle = !trimmedLine.startsWith('*') && 
-                      trimmedLine.length > 0 && 
-                      trimmedLine.length < 50 &&
-                      !currentItem &&
-                      !priceMatch;
-      
-      if (isTitle) {
-        // 如果上一行有項目，先保存
-        if (currentItem) {
-          items.push(currentItem);
-        }
-        currentItem = {
-          title: trimmedLine,
-          description: null,
-          details: [],
-          price: null
-        };
-      } else if (currentItem) {
-        // 如果是描述（不以 * 開頭，且不是價格）
-        if (!trimmedLine.startsWith('*') && !isPriceLine) {
-          if (!currentItem.description) {
-            currentItem.description = trimmedLine;
-          } else {
-            currentItem.details.push(trimmedLine);
-          }
-        } else if (trimmedLine.startsWith('*')) {
-          // 如果是詳細資訊（以 * 開頭）
-          currentItem.details.push(trimmedLine.replace(/^\*\s*/, ''));
-        }
-      }
-    });
-    
-    // 添加最後一個項目
-    if (currentItem) {
-      items.push(currentItem);
-    }
-    
-    // 如果解析失敗，返回原始文字格式
-    if (items.length === 0) {
-      return [{
-        title: '菜單',
-        description: null,
-        details: [],
-        price: null,
-        rawText: text
-      }];
-    }
-    
-    return items;
-  };
 
   if (loading) {
     return (
@@ -189,14 +112,38 @@ function StorePage() {
   return (
     <div className="store-page-container" style={{ marginTop: '70px', paddingBottom: '50px' }}>
       <div className="container">
-        {/* 返回按鈕 */}
-        <button 
-          className="btn-back-store mb-4"
-          onClick={() => navigate('/customer-home')}
-        >
-          <i className="bi bi-arrow-left me-2"></i>
-          返回店家列表
-        </button>
+        {/* 返回按鈕和會員中心 */}
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <button 
+            className="btn-back-store"
+            onClick={() => navigate('/customer-home')}
+          >
+            <i className="bi bi-arrow-left me-2"></i>
+            返回店家列表
+          </button>
+          <Link 
+            to="/customer/loyalty"
+            className="btn btn-outline-primary"
+            style={{
+              textDecoration: 'none',
+              padding: '0.5rem 1.5rem',
+              borderRadius: '20px',
+              border: '1px solid var(--primary-color)',
+              color: 'var(--primary-color)',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'var(--primary-color)';
+              e.target.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+              e.target.style.color = 'var(--primary-color)';
+            }}
+          >
+            會員中心
+          </Link>
+        </div>
 
         {/* 餐廳標題和基本資訊 */}
         <div className="store-header-section mb-4">
@@ -501,32 +448,24 @@ function StorePage() {
                         <span className="menu-tax-note">(含稅價格)</span>
                       </div>
                       <div className="menu-text-content">
-                        {parseMenuText(store.menu_text).map((item, index) => (
-                          item.rawText ? (
-                            <pre key={index} style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', lineHeight: '1.8', color: '#495057', margin: 0 }}>
-                              {item.rawText}
-                            </pre>
+                          {menuItems.length > 0 ? (
+                            menuItems
+                              .filter(item => item.service_type !== 'takeaway') // 內用顯示 dine_in 或 both
+                              .map(item => (
+                                <div key={item.id} className="menu-item-card">
+                                  <div className="menu-item-header">
+                                    <h4 className="menu-item-title">{item.name}</h4>
+                                    <span className="menu-item-price">NT$ {Number(item.price).toFixed(0)}</span>
+                                  </div>
+                                  {item.description && (
+                                    <p className="menu-item-description">{item.description}</p>
+                                  )}
+                                </div>
+                              ))
                           ) : (
-                            <div key={index} className="menu-item">
-                              <div className="menu-item-header">
-                                <h4 className="menu-item-title">{item.title}</h4>
-                                {item.price && (
-                                  <span className="menu-item-price">{item.price}</span>
-                                )}
-                              </div>
-                              {item.description && (
-                                <p className="menu-item-description">{item.description}</p>
-                              )}
-                              {item.details && item.details.length > 0 && (
-                                <ul className="menu-item-details">
-                                  {item.details.map((detail, idx) => (
-                                    <li key={idx}>{detail}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          )
-                        ))}
+                            <p className="text-muted">目前尚無菜單資料</p>
+                          )}
+
                       </div>
                     </div>
                   ) : store.menu_type === 'image' && store.menu_images && store.menu_images.length > 0 ? (
@@ -613,8 +552,10 @@ function StorePage() {
       {selectedImage && (
         <div 
           className="image-modal"
-          onMouseDown={handleOverlayMouseDown}
-          onMouseUp={handleOverlayMouseUp}
+          onClick={() => {
+            setSelectedImage(null);
+            setImageType(null);
+          }}
         >
           <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
             <button 
