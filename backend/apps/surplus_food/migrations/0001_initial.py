@@ -9,8 +9,8 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('products', '0004_takeoutorder_takeoutorderitem'),
-        ('stores', '0007_store_dine_in_layout'),
+        ('products', '0002_product_service_type'),
+        ('stores', '0011_alter_store_cuisine_type'),
     ]
 
     operations = [

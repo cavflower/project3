@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stores', '0010_store_enable_loyalty_store_enable_reservation_and_more'),
+        ('stores', '0006_alter_store_tags_allow_null'),
     ]
 
     operations = [
