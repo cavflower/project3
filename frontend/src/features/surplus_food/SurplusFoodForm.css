@@ -1,0 +1,229 @@
+/* 惜福品表單樣式 */
+
+.surplus-food-form-modal {
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+}
+
+.surplus-food-form-modal .modal-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+}
+
+.surplus-food-form-modal .close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.surplus-food-form-modal .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* 表單主體 */
+.surplus-food-form-modal .form-body {
+  padding: 2rem;
+  max-height: calc(90vh - 180px);
+  overflow-y: auto;
+}
+
+/* Textarea 樣式 */
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  background: white;
+  resize: vertical;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+}
+
+/* 折扣顯示 */
+.discount-display {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+  border: 1px solid #ffd4d4;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.discount-badge {
+  background: #ff6b6b;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.discount-text {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+/* 圖片上傳區域 */
+.image-upload-area {
+  margin-top: 0.5rem;
+}
+
+.upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #f9f9f9;
+}
+
+.upload-label:hover {
+  border-color: #ff6b6b;
+  background: #fff5f5;
+}
+
+.upload-label svg {
+  font-size: 2rem;
+  color: #999;
+}
+
+.upload-label span {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.image-preview {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #e0e0e0;
+}
+
+.image-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.remove-image-btn:hover {
+  background: rgba(255, 0, 0, 1);
+  transform: scale(1.1);
+}
+
+/* 標籤容器 */
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.tag-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.tag-btn:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.tag-btn.active {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+  border-color: #ff6b6b;
+  color: white;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .surplus-food-form-modal {
+    max-width: 95%;
+    margin: 1rem;
+  }
+
+  .surplus-food-form-modal .form-body {
+    padding: 1.5rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .discount-display {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .image-preview {
+    max-width: 100%;
+  }
+}
+
+/* 滾動條樣式 */
+.surplus-food-form-modal .form-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.surplus-food-form-modal .form-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.surplus-food-form-modal .form-body::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+
+.surplus-food-form-modal .form-body::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}

@@ -1,0 +1,75 @@
+
+.takeout-page .takeout-card {
+  border: none;
+  background: #fff;
+}
+
+.takeout-page .takeout-card-header {
+  background: linear-gradient(135deg, #ffb07a, #e86b2c); /* DineVerse 深橘系 */
+  color: #000;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+}
+
+.takeout-page .takeout-card .card-body {
+  color: #000;
+}
+.switch-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.2s;
+  border-radius: 28px;
+}
+
+.slider:before {
+  position: absolute;
+  content: '';
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #00c853;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+.slider.round {
+  border-radius: 28px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
