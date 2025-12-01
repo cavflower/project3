@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import FeatureCard from './components/FeatureCard';
 import { getMyStore } from '../../api/storeApi';
+import { getIngredients } from '../../api/inventoryApi';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './MerchantDashboard.css';
 
 
@@ -30,26 +32,43 @@ const MerchantDashboard = () => {
     enable_surplus_food: true,
   });
   const [loading, setLoading] = useState(true);
+  const [inventoryStats, setInventoryStats] = useState([]);
+  const [lowStockItems, setLowStockItems] = useState([]);
 
   useEffect(() => {
-    const loadStoreSettings = async () => {
+    const loadDashboardData = async () => {
       try {
-        const response = await getMyStore();
-        const store = response.data;
+        const [storeResponse, ingredientsData] = await Promise.all([
+            getMyStore(),
+            getIngredients()
+        ]);
+        
+        const store = storeResponse.data;
         setStoreSettings({
           enable_reservation: store.enable_reservation !== undefined ? store.enable_reservation : true,
           enable_loyalty: store.enable_loyalty !== undefined ? store.enable_loyalty : true,
           enable_surplus_food: store.enable_surplus_food !== undefined ? store.enable_surplus_food : true,
         });
+
+        // Process inventory data
+        const lowStock = ingredientsData.filter(i => i.is_low_stock);
+        const normalStock = ingredientsData.filter(i => !i.is_low_stock);
+        
+        setInventoryStats([
+            { name: '庫存充足', value: normalStock.length },
+            { name: '庫存不足', value: lowStock.length }
+        ]);
+        setLowStockItems(lowStock);
+
       } catch (error) {
-        console.error('載入店家設定失敗:', error);
+        console.error('載入儀表板資料失敗:', error);
         // 如果載入失敗，保持預設值（全部啟用）
       } finally {
         setLoading(false);
       }
     };
 
-    loadStoreSettings();
+    loadDashboardData();
   }, []);
 
   const handleCardClick = (path, isDisabled) => {
@@ -180,6 +199,55 @@ const MerchantDashboard = () => {
         <h1>歡迎，{user?.username || '店家老闆'}！</h1>
         <p>這裡是您的管理後台，請選擇一項功能開始。</p>
       </header>
+
+      <div className="dashboard-stats-container">
+        <div className="stats-card chart-card">
+            <h3>庫存狀態概覽</h3>
+            <div style={{ width: '100%', height: 300 }}>
+                <ResponsiveContainer>
+                    <PieChart>
+                        <Pie
+                            data={inventoryStats}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                        >
+                            <Cell fill="#4caf50" />
+                            <Cell fill="#f44336" />
+                        </Pie>
+                        <Tooltip />
+                        <Legend verticalAlign="bottom" height={36}/>
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+        
+        <div className="stats-card alert-card">
+            <h3>⚠️ 庫存不足提醒 ({lowStockItems.length})</h3>
+            {lowStockItems.length > 0 ? (
+                <div className="low-stock-list">
+                    {lowStockItems.slice(0, 5).map(item => (
+                        <div key={item.id} className="low-stock-item">
+                            <span className="item-name">{item.name}</span>
+                            <span className="item-qty">剩餘: {item.quantity} {item.unit_display}</span>
+                        </div>
+                    ))}
+                    {lowStockItems.length > 5 && <div className="more-items">還有 {lowStockItems.length - 5} 項...</div>}
+                    <button className="restock-btn" onClick={() => navigate('/merchant/inventory')}>
+                        前往補貨
+                    </button>
+                </div>
+            ) : (
+                <div className="all-good">
+                    <p>目前庫存狀況良好！</p>
+                </div>
+            )}
+        </div>
+      </div>
+
       <main className="features-grid">
         {features.map((feature) => {
           // 檢查此功能是否需要特定的功能開關
