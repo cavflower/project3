@@ -15,7 +15,6 @@ function IngredientForm({ ingredient, onClose }) {
   });
 
   const [loading, setLoading] = useState(false);
-  const [mouseDownOnOverlay, setMouseDownOnOverlay] = useState(false);
 
   useEffect(() => {
     if (ingredient) {
@@ -38,21 +37,6 @@ function IngredientForm({ ingredient, onClose }) {
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleOverlayMouseDown = (e) => {
-    if (e.target === e.currentTarget) {
-      setMouseDownOnOverlay(true);
-    } else {
-      setMouseDownOnOverlay(false);
-    }
-  };
-
-  const handleOverlayMouseUp = (e) => {
-    if (mouseDownOnOverlay && e.target === e.currentTarget) {
-      onClose();
-    }
-    setMouseDownOnOverlay(false);
   };
 
   const handleSubmit = async (e) => {
@@ -84,17 +68,8 @@ function IngredientForm({ ingredient, onClose }) {
   };
 
   return (
-<<<<<<< HEAD
     <div className="modal-overlay">
       <div className="modal-content">
-=======
-    <div 
-      className="modal-overlay" 
-      onMouseDown={handleOverlayMouseDown}
-      onMouseUp={handleOverlayMouseUp}
-    >
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
->>>>>>> origin/YO
         <div className="modal-header">
           <h2>{ingredient ? '編輯原物料' : '新增原物料'}</h2>
           <button type="button" className="close-button" onClick={() => onClose(false)}>×</button>

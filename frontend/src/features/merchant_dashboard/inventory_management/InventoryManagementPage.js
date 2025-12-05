@@ -5,6 +5,7 @@ import {
   deleteIngredient,
   exportTodayIngredients
 } from '../../../api/inventoryApi';
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import IngredientForm from './IngredientForm';
 import './InventoryManagementPage.css';
 
@@ -138,6 +139,34 @@ function InventoryManagementPage() {
         </div>
       </div>
 
+      <div className="chart-container">
+        <h3>庫存數量概覽</h3>
+        <div style={{ width: '100%', height: 300 }}>
+          <ResponsiveContainer>
+            <BarChart
+              data={filteredIngredients}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="quantity" name="庫存數量">
+                {filteredIngredients.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.is_low_stock ? '#f44336' : '#8884d8'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       <div className="ingredients-table-container">
         <table className="ingredients-table">
           <thead>
@@ -163,7 +192,7 @@ function InventoryManagementPage() {
               </tr>
             ) : (
               filteredIngredients.map(ingredient => (
-                <tr key={ingredient.id} className={ingredient.quantity <= ingredient.minimum_stock ? 'low-stock-row' : ''}>
+                <tr key={ingredient.id} className={ingredient.is_low_stock ? 'low-stock-row' : ''}>
                   <td>{ingredient.name}</td>
                   <td>{ingredient.category || '-'}</td>
                   <td>{ingredient.quantity}</td>
@@ -173,7 +202,7 @@ function InventoryManagementPage() {
                   <td>{ingredient.supplier || '-'}</td>
                   <td>{ingredient.minimum_stock}</td>
                   <td>
-                    {ingredient.quantity <= ingredient.minimum_stock ? (
+                    {ingredient.is_low_stock ? (
                       <span className="inventory-status-badge low-stock">庫存不足</span>
                     ) : (
                       <span className="inventory-status-badge normal">正常</span>

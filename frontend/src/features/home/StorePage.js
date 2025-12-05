@@ -16,7 +16,6 @@ function StorePage() {
   const [activeTab, setActiveTab] = useState('about');
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageType, setImageType] = useState(null); // 'store' or 'menu'
-  const [mouseDownOnOverlay, setMouseDownOnOverlay] = useState(false);
 
   useEffect(() => {
     loadStoreData();
@@ -36,6 +35,7 @@ function StorePage() {
       setLoading(false);
     }
   };
+
   const loadMenuItems = async (id) => {
     try {
       const productRes = await getTakeoutProducts(id);
@@ -43,22 +43,6 @@ function StorePage() {
     } catch (err) {
       console.error('Failed to load menu items:', err);
     }
-  };
-
-  const handleOverlayMouseDown = (e) => {
-    if (e.target === e.currentTarget) {
-      setMouseDownOnOverlay(true);
-    } else {
-      setMouseDownOnOverlay(false);
-    }
-  };
-
-  const handleOverlayMouseUp = (e) => {
-    if (mouseDownOnOverlay && e.target === e.currentTarget) {
-      setSelectedImage(null);
-      setImageType(null);
-    }
-    setMouseDownOnOverlay(false);
   };
 
 
@@ -568,8 +552,10 @@ function StorePage() {
       {selectedImage && (
         <div 
           className="image-modal"
-          onMouseDown={handleOverlayMouseDown}
-          onMouseUp={handleOverlayMouseUp}
+          onClick={() => {
+            setSelectedImage(null);
+            setImageType(null);
+          }}
         >
           <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
             <button 

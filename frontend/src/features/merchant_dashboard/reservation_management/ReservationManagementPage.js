@@ -28,7 +28,6 @@ const ReservationManagementPage = () => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedReservationId, setSelectedReservationId] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
-  const [mouseDownOnOverlay, setMouseDownOnOverlay] = useState(false);
 
   useEffect(() => {
     fetchReservations();
@@ -168,21 +167,6 @@ const ReservationManagementPage = () => {
     }
   };
 
-  const handleOverlayMouseDown = (e) => {
-    if (e.target === e.currentTarget) {
-      setMouseDownOnOverlay(true);
-    } else {
-      setMouseDownOnOverlay(false);
-    }
-  };
-
-  const handleOverlayMouseUp = (e) => {
-    if (mouseDownOnOverlay && e.target === e.currentTarget) {
-      setShowCancelDialog(false);
-    }
-    setMouseDownOnOverlay(false);
-  };
-
   return (
     <div className="reservation-management-page">
       <div className="page-header">
@@ -254,11 +238,7 @@ const ReservationManagementPage = () => {
 
       {/* 取消訂位對話框 */}
       {showCancelDialog && (
-        <div 
-          className="dialog-overlay" 
-          onMouseDown={handleOverlayMouseDown}
-          onMouseUp={handleOverlayMouseUp}
-        >
+        <div className="dialog-overlay" onClick={() => setShowCancelDialog(false)}>
           <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
             <h3>取消訂位</h3>
             <p>您確定要取消此訂位嗎？</p>
