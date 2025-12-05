@@ -19,6 +19,7 @@ const MyReservationsPage = () => {
   const [isGuest, setIsGuest] = useState(false);
   const [guestVerified, setGuestVerified] = useState(false);
   const [guestPhoneNumber, setGuestPhoneNumber] = useState('');
+  const [mouseDownOnOverlay, setMouseDownOnOverlay] = useState(false);
 
   // 檢查訪客是否已驗證
   const checkGuestAccess = () => {
@@ -119,6 +120,21 @@ const MyReservationsPage = () => {
 
   const handleEditReservation = (reservationId) => {
     navigate(`/reservation/edit/${reservationId}`);
+  };
+
+  const handleOverlayMouseDown = (e) => {
+    if (e.target === e.currentTarget) {
+      setMouseDownOnOverlay(true);
+    } else {
+      setMouseDownOnOverlay(false);
+    }
+  };
+
+  const handleOverlayMouseUp = (e) => {
+    if (mouseDownOnOverlay && e.target === e.currentTarget) {
+      setShowCancelDialog(false);
+    }
+    setMouseDownOnOverlay(false);
   };
 
   const getFilteredReservations = () => {
@@ -228,7 +244,11 @@ const MyReservationsPage = () => {
 
       {/* 取消訂位對話框 */}
       {showCancelDialog && (
-        <div className="modal-overlay" onClick={() => setShowCancelDialog(false)}>
+        <div 
+          className="modal-overlay" 
+          onMouseDown={handleOverlayMouseDown}
+          onMouseUp={handleOverlayMouseUp}
+        >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>取消訂位</h2>
             <p>請說明取消原因：</p>
