@@ -1,8 +1,54 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from apps.stores.models import Store
 from apps.products.models import Product
 from django.utils import timezone
+from datetime import time
+from decimal import Decimal
 import uuid
+
+
+class SurplusFoodCategory(models.Model):
+    """
+    惜福食品類別模型
+    商家可以建立類別來分類管理惜福食品
+    """
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='surplus_categories',
+        verbose_name='所屬店家'
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name='類別名稱',
+        help_text='例如：麵包類、熟食類、飲料類'
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name='類別描述'
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        verbose_name='顯示順序',
+        help_text='數字越小越前面'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='啟用狀態'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+    
+    class Meta:
+        db_table = 'surplus_food_categories'
+        verbose_name = '惜福食品類別'
+        verbose_name_plural = '惜福食品類別'
+        ordering = ['display_order', 'name']
+        unique_together = ['store', 'name']
+    
+    def __str__(self):
+        return f"{self.store.name} - {self.name}"
 
 
 class SurplusTimeSlot(models.Model):
@@ -54,6 +100,49 @@ class SurplusTimeSlot(models.Model):
     
     def __str__(self):
         return f"{self.store.name} - {self.get_day_of_week_display()} {self.name}"
+    
+    def clean(self):
+        """驗證時段設定"""
+        super().clean()
+        
+        # 驗證結束時間必須晚於開始時間（允許 00:00 表示跨日到午夜）
+        if self.start_time and self.end_time:
+            # 如果結束時間是 00:00，表示跨日營業到午夜，不需要驗證
+            is_midnight = self.end_time == time(0, 0)
+            if not is_midnight and self.start_time >= self.end_time:
+                raise ValidationError({
+                    'end_time': '結束時間必須晚於開始時間（或設為 00:00 表示營業至午夜）'
+                })
+        
+        # 驗證不能在尖峰時段（8:00-13:00, 17:00-19:00）
+        if self.start_time and self.end_time:
+            # 如果結束時間是 00:00，表示跨日到午夜，只檢查開始時間
+            is_midnight = self.end_time == time(0, 0)
+            
+            peak_hours = [
+                (time(8, 0), time(13, 0)),   # 早午餐尖峰
+                (time(17, 0), time(19, 0)),  # 晚餐尖峰
+            ]
+            
+            for peak_start, peak_end in peak_hours:
+                # 檢查時段是否與尖峰時段重疊
+                if is_midnight:
+                    # 跨日時段，只要開始時間不在尖峰時段內即可
+                    if peak_start <= self.start_time < peak_end:
+                        raise ValidationError({
+                            'start_time': f'惜福時段不能設在尖峰時段（08:00-13:00, 17:00-19:00）'
+                        })
+                else:
+                    # 一般時段，檢查是否重疊
+                    if not (self.end_time <= peak_start or self.start_time >= peak_end):
+                        raise ValidationError({
+                            'start_time': f'惜福時段不能設在尖峰時段（08:00-13:00, 17:00-19:00）'
+                        })
+    
+    def save(self, *args, **kwargs):
+        # 在儲存前執行驗證
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 class SurplusFood(models.Model):
@@ -67,11 +156,16 @@ class SurplusFood(models.Model):
         ('sold_out', '已售完'),
     ]
     
+    DINING_OPTION_CHOICES = [
+        ('dine_in', '內用'),
+        ('takeout', '外帶'),
+        ('both', '內用和外帶'),
+    ]
+    
     CONDITION_CHOICES = [
         ('near_expiry', '即期品'),
         ('surplus', '剩餘品'),
         ('damaged_package', '外包裝損傷'),
-        ('end_of_day', '當日剩餘'),
     ]
     
     store = models.ForeignKey(
@@ -79,6 +173,15 @@ class SurplusFood(models.Model):
         on_delete=models.CASCADE,
         related_name='surplus_foods',
         verbose_name='所屬店家'
+    )
+    category = models.ForeignKey(
+        SurplusFoodCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='foods',
+        verbose_name='惜福品類別',
+        help_text='選擇此惜福品所屬的類別'
     )
     product = models.ForeignKey(
         Product,
@@ -119,6 +222,12 @@ class SurplusFood(models.Model):
         choices=CONDITION_CHOICES,
         default='surplus',
         verbose_name='商品狀況'
+    )
+    dining_option = models.CharField(
+        max_length=20,
+        choices=DINING_OPTION_CHOICES,
+        default='both',
+        verbose_name='用餐選項'
     )
     expiry_date = models.DateField(
         null=True,
@@ -190,6 +299,24 @@ class SurplusFood(models.Model):
     def __str__(self):
         return f"{self.title} - {self.store.name}"
     
+    def clean(self):
+        """驗證惜福食品設定"""
+        super().clean()
+        
+        # 驗證惜福價必須至少打8折（不能超過原價的80%）
+        if self.original_price and self.surplus_price:
+            max_allowed_price = self.original_price * Decimal('0.8')  # 最多只能是原價的80%
+            
+            if self.surplus_price >= self.original_price:
+                raise ValidationError({
+                    'surplus_price': '惜福價必須低於原價'
+                })
+            
+            if self.surplus_price > max_allowed_price:
+                raise ValidationError({
+                    'surplus_price': '惜福價不能高於原價的80%'
+                })
+    
     def save(self, *args, **kwargs):
         # 自動生成惜福品編號
         if not self.code:
@@ -204,6 +331,9 @@ class SurplusFood(models.Model):
         if self.status == 'active':
             if self.remaining_quantity <= 0:
                 self.status = 'sold_out'
+        
+        # 在儲存前執行驗證
+        self.clean()
         
         super().save(*args, **kwargs)
     

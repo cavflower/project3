@@ -4,13 +4,37 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 from django.db.models import Q
-from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder
+from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory
 from .serializers import (
     SurplusTimeSlotSerializer,
     SurplusFoodSerializer,
     SurplusFoodListSerializer,
-    SurplusFoodOrderSerializer
+    SurplusFoodOrderSerializer,
+    SurplusFoodCategorySerializer
 )
+
+
+class SurplusFoodCategoryViewSet(viewsets.ModelViewSet):
+    """
+    惜福食品類別管理 ViewSet（商家端）
+    """
+    serializer_class = SurplusFoodCategorySerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """只返回當前商家的類別"""
+        user = self.request.user
+        if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
+            return SurplusFoodCategory.objects.filter(store=user.merchant_profile.store)
+        return SurplusFoodCategory.objects.none()
+    
+    def perform_create(self, serializer):
+        """創建時自動關聯到商家的店鋪"""
+        user = self.request.user
+        if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
+            serializer.save(store=user.merchant_profile.store)
+        else:
+            raise ValueError("使用者沒有關聯的店鋪")
 
 
 class SurplusTimeSlotViewSet(viewsets.ModelViewSet):
@@ -58,6 +82,11 @@ class SurplusFoodViewSet(viewsets.ModelViewSet):
             status_filter = self.request.query_params.get('status', None)
             if status_filter:
                 queryset = queryset.filter(status=status_filter)
+            
+            # 支援類別篩選
+            category_filter = self.request.query_params.get('category', None)
+            if category_filter:
+                queryset = queryset.filter(category_id=category_filter)
             
             return queryset
         return SurplusFood.objects.none()

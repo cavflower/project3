@@ -1,5 +1,30 @@
 from rest_framework import serializers
-from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder
+from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory
+from datetime import time
+from decimal import Decimal
+
+
+class SurplusFoodCategorySerializer(serializers.ModelSerializer):
+    """惜福食品類別序列化器"""
+    food_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SurplusFoodCategory
+        fields = [
+            'id', 'store', 'name', 'description', 'display_order',
+            'is_active', 'food_count', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'store', 'created_at', 'updated_at']
+    
+    def get_food_count(self, obj):
+        """取得此類別下的惜福品數量"""
+        return obj.foods.filter(status='active').count()
+    
+    def validate_name(self, value):
+        """驗證類別名稱不能為空"""
+        if not value or value.strip() == '':
+            raise serializers.ValidationError('類別名稱不能為空')
+        return value.strip()
 
 
 class SurplusTimeSlotSerializer(serializers.ModelSerializer):
@@ -17,11 +42,69 @@ class SurplusTimeSlotSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """驗證時段時間的合理性"""
-        if data.get('start_time') and data.get('end_time'):
-            if data['start_time'] >= data['end_time']:
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        day_of_week = data.get('day_of_week')
+        
+        # 驗證結束時間必須晚於開始時間（允許 00:00 表示跨日到午夜）
+        if start_time and end_time:
+            # 如果結束時間是 00:00，表示跨日營業到午夜，不需要驗證
+            is_midnight = end_time == time(0, 0)
+            if not is_midnight and start_time >= end_time:
                 raise serializers.ValidationError({
-                    'end_time': '結束時間必須晚於開始時間'
+                    'end_time': '結束時間必須晚於開始時間（或設為 00:00 表示營業至午夜）'
                 })
+        
+        # 驗證不能在尖峰時段（8:00-13:00, 17:00-19:00）
+        if start_time and end_time:
+            # 如果結束時間是 00:00，表示跨日到午夜，只檢查開始時間
+            is_midnight = end_time == time(0, 0)
+            
+            peak_hours = [
+                (time(8, 0), time(13, 0)),   # 早午餐尖峰
+                (time(17, 0), time(19, 0)),  # 晚餐尖峰
+            ]
+            
+            for peak_start, peak_end in peak_hours:
+                # 檢查時段是否與尖峰時段重疊
+                if is_midnight:
+                    # 跨日時段，只要開始時間不在尖峰時段內即可
+                    if peak_start <= start_time < peak_end:
+                        raise serializers.ValidationError({
+                            'start_time': '惜福時段不能設在尖峰時段（08:00-13:00, 17:00-19:00）'
+                        })
+                else:
+                    # 一般時段，檢查是否重疊
+                    if not (end_time <= peak_start or start_time >= peak_end):
+                        raise serializers.ValidationError({
+                            'start_time': '惜福時段不能設在尖峰時段（08:00-13:00, 17:00-19:00）'
+                        })
+        
+        # 驗證同一天不能有重複的時段（更新時排除自己）
+        if start_time and day_of_week:
+            # 取得 store （從 context 或 instance）
+            store = None
+            if self.instance:
+                store = self.instance.store
+            elif 'store' in self.context:
+                store = self.context['store']
+            
+            if store:
+                # 檢查是否已存在相同的時段
+                existing_slots = SurplusTimeSlot.objects.filter(
+                    store=store,
+                    day_of_week=day_of_week,
+                    start_time=start_time
+                )
+                
+                # 如果是更新，排除自己
+                if self.instance:
+                    existing_slots = existing_slots.exclude(pk=self.instance.pk)
+                
+                if existing_slots.exists():
+                    raise serializers.ValidationError({
+                        'start_time': f'該天已經有相同的時段設定'
+                    })
         
         return data
 
@@ -29,18 +112,21 @@ class SurplusTimeSlotSerializer(serializers.ModelSerializer):
 class SurplusFoodSerializer(serializers.ModelSerializer):
     """惜福食品序列化器"""
     condition_display = serializers.CharField(source='get_condition_display', read_only=True)
+    dining_option_display = serializers.CharField(source='get_dining_option_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     discount_percent = serializers.ReadOnlyField()
     is_available = serializers.ReadOnlyField()
     is_near_sold_out = serializers.ReadOnlyField()
     time_slot_detail = SurplusTimeSlotSerializer(source='time_slot', read_only=True)
+    category_detail = SurplusFoodCategorySerializer(source='category', read_only=True)
     
     class Meta:
         model = SurplusFood
         fields = [
-            'id', 'store', 'product', 'title', 'description',
+            'id', 'store', 'category', 'category_detail', 'product', 'title', 'description',
             'original_price', 'surplus_price', 'discount_percent',
             'quantity', 'remaining_quantity', 'condition', 'condition_display',
+            'dining_option', 'dining_option_display',
             'expiry_date', 'time_slot', 'time_slot_detail', 'image', 'status', 'status_display',
             'pickup_instructions', 'tags', 'code',
             'views_count', 'orders_count', 'is_available', 'is_near_sold_out',
@@ -53,11 +139,22 @@ class SurplusFoodSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """驗證惜福食品資料"""
+        original_price = data.get('original_price')
+        surplus_price = data.get('surplus_price')
+        
         # 驗證價格
-        if data.get('surplus_price') and data.get('original_price'):
-            if data['surplus_price'] >= data['original_price']:
+        if surplus_price and original_price:
+            # 惜福價必須低於原價
+            if surplus_price >= original_price:
                 raise serializers.ValidationError({
                     'surplus_price': '惜福價必須低於原價'
+                })
+            
+            # 惜福價必須至少打8折（不能超過原價的80%）
+            max_allowed_price = original_price * Decimal('0.8')  # 最多只能是原價的80%
+            if surplus_price > max_allowed_price:
+                raise serializers.ValidationError({
+                    'surplus_price': '惜福價不能高於原價的80%'
                 })
         
         # 驗證數量
@@ -84,17 +181,20 @@ class SurplusFoodSerializer(serializers.ModelSerializer):
 class SurplusFoodListSerializer(serializers.ModelSerializer):
     """惜福食品列表序列化器（簡化版）"""
     condition_display = serializers.CharField(source='get_condition_display', read_only=True)
+    dining_option_display = serializers.CharField(source='get_dining_option_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     discount_percent = serializers.ReadOnlyField()
     is_available = serializers.ReadOnlyField()
     store_name = serializers.CharField(source='store.name', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
     
     class Meta:
         model = SurplusFood
         fields = [
-            'id', 'code', 'title', 'store', 'store_name',
+            'id', 'code', 'title', 'description', 'store', 'store_name', 'category', 'category_name',
             'original_price', 'surplus_price', 'discount_percent',
             'quantity', 'remaining_quantity', 'condition', 'condition_display',
+            'dining_option', 'dining_option_display', 'expiry_date',
             'status', 'status_display', 'image', 'is_available',
             'time_slot', 'created_at'
         ]

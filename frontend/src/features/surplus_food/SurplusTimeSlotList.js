@@ -10,6 +10,18 @@ const SurplusTimeSlotList = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalType, setModalType] = useState('');
 
+  // 星期順序定義
+  const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const dayLabels = {
+    'monday': '星期一',
+    'tuesday': '星期二',
+    'wednesday': '星期三',
+    'thursday': '星期四',
+    'friday': '星期五',
+    'saturday': '星期六',
+    'sunday': '星期日'
+  };
+
   useEffect(() => {
     loadTimeSlots();
   }, []);
@@ -25,6 +37,25 @@ const SurplusTimeSlotList = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 按星期分組時段
+  const groupSlotsByDay = () => {
+    const grouped = {};
+    
+    // 初始化所有星期
+    dayOrder.forEach(day => {
+      grouped[day] = [];
+    });
+
+    // 將時段分組到對應的星期
+    timeSlots.forEach(slot => {
+      if (grouped[slot.day_of_week]) {
+        grouped[slot.day_of_week].push(slot);
+      }
+    });
+
+    return grouped;
   };
 
   const handleDelete = async (id) => {
@@ -91,35 +122,68 @@ const SurplusTimeSlotList = () => {
       {loading ? (
         <div className="loading">載入中...</div>
       ) : (
-        <div className="timeslots-list">
-          {timeSlots.map(slot => (
-            <div key={slot.id} className="timeslot-card">
-              <div className="timeslot-info">
-                <h3>{slot.name}</h3>
-                <div className="timeslot-details">
-                  <span>{slot.day_of_week_display}</span>
-                  <span>{slot.start_time} - {slot.end_time}</span>
-                  <span className={slot.is_active ? 'status-active' : 'status-inactive'}>
-                    {slot.is_active ? '啟用中' : '已停用'}
-                  </span>
+        <div className="timeslots-container">
+          {dayOrder.map(day => {
+            const daySlots = groupSlotsByDay()[day];
+            
+            // 只顯示有時段的星期
+            if (daySlots.length === 0) {
+              return null;
+            }
+
+            return (
+              <div key={day} className="day-section">
+                <h3 className="day-header">{dayLabels[day]}</h3>
+                <div className="timeslots-list">
+                  {daySlots.map(slot => (
+                    <div key={slot.id} className="timeslot-card">
+                      <div className="timeslot-info">
+                        <div className="timeslot-time">
+                          {slot.start_time} - {slot.end_time}
+                        </div>
+                        <div className="timeslot-details">
+                          <span className="timeslot-name">{slot.name}</span>
+                          <span className={slot.is_active ? 'status-active' : 'status-inactive'}>
+                            {slot.is_active ? '啟用中' : '已停用'}
+                          </span>
+                        </div>
+                        <div className="timeslot-meta">
+                        </div>
+                      </div>
+                      <div className="timeslot-actions">
+                        <button 
+                          className="btn-icon btn-edit"
+                          onClick={() => handleEdit(slot)}
+                          title="編輯"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button 
+                          className="btn-icon btn-delete"
+                          onClick={() => handleDelete(slot.id)}
+                          title="刪除"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="timeslot-actions">
-                <button 
-                  className="btn-icon"
-                  onClick={() => handleEdit(slot)}
-                >
-                  <FaEdit />
-                </button>
-                <button 
-                  className="btn-icon"
-                  onClick={() => handleDelete(slot.id)}
-                >
-                  <FaTrash />
-                </button>
-              </div>
+            );
+          })}
+
+          {timeSlots.length === 0 && (
+            <div className="empty-state">
+              <p>尚未設定任何時段</p>
+              <button 
+                className="surplus-btn-primary"
+                onClick={handleCreate}
+              >
+                <FaPlus /> 新增第一個時段
+              </button>
             </div>
-          ))}
+          )}
         </div>
       )}
 

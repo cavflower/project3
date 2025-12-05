@@ -4,6 +4,40 @@ import api from './api';
  * 惜福食品 API
  */
 export const surplusFoodApi = {
+  // ============ 惜福類別管理 ============
+  
+  /**
+   * 獲取所有惜福類別
+   */
+  getCategories: async () => {
+    const response = await api.get('/merchant/surplus/categories/');
+    return response.data;
+  },
+
+  /**
+   * 創建惜福類別
+   */
+  createCategory: async (data) => {
+    const response = await api.post('/merchant/surplus/categories/', data);
+    return response.data;
+  },
+
+  /**
+   * 更新惜福類別
+   */
+  updateCategory: async (id, data) => {
+    const response = await api.put(`/merchant/surplus/categories/${id}/`, data);
+    return response.data;
+  },
+
+  /**
+   * 刪除惜福類別
+   */
+  deleteCategory: async (id) => {
+    const response = await api.delete(`/merchant/surplus/categories/${id}/`);
+    return response.data;
+  },
+
   // ============ 惜福時段管理 ============
   
   /**

@@ -33,6 +33,9 @@ const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
     sunday: '星期日',
   };
 
+  // 星期順序定義（從一到日）
+  const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
   const handleAddNew = () => {
     setEditingSlot(null);
     setShowForm(true);
@@ -64,6 +67,14 @@ const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
     acc[day].push(slot);
     return acc;
   }, {});
+
+  // 按星期順序排序分組的時段
+  const sortedGroupedSlots = {};
+  dayOrder.forEach(day => {
+    if (groupedSlots[day]) {
+      sortedGroupedSlots[day] = groupedSlots[day];
+    }
+  });
 
   return (
     <div className="time-slot-settings-container">
@@ -97,15 +108,12 @@ const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
       )}
 
       <div className="slots-list">
-        {Object.keys(groupedSlots).length === 0 ? (
+        {Object.keys(sortedGroupedSlots).length === 0 ? (
           <div className="empty-state">
             <p>尚未設定任何訂位時段</p>
-            <button className="btn-primary" onClick={handleAddNew}>
-              立即新增
-            </button>
           </div>
         ) : (
-          Object.entries(groupedSlots).map(([day, slots]) => (
+          Object.entries(sortedGroupedSlots).map(([day, slots]) => (
             <div key={day} className="day-group">
               <h3 className="day-title">{daysOfWeek[day]}</h3>
               <div className="slots-grid">

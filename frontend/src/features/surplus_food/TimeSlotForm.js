@@ -13,6 +13,42 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [peakHourWarning, setPeakHourWarning] = useState('');
+
+  // 檢查是否在尖峰時段
+  const checkPeakHours = (startTime, endTime) => {
+    if (!startTime || !endTime) return '';
+
+    const start = startTime.split(':').map(Number);
+    const end = endTime.split(':').map(Number);
+    const startMinutes = start[0] * 60 + start[1];
+    const endMinutes = end[0] * 60 + end[1];
+
+    // 如果結束時間是 00:00，表示跨日到午夜
+    const isMidnight = endTime === '00:00';
+
+    // 尖峰時段定義
+    const peakHours = [
+      { start: 8 * 60, end: 13 * 60, name: '早午餐尖峰（08:00-13:00）' },
+      { start: 17 * 60, end: 19 * 60, name: '晚餐尖峰（17:00-19:00）' }
+    ];
+
+    for (const peak of peakHours) {
+      if (isMidnight) {
+        // 跨日時段，只要開始時間不在尖峰時段內即可
+        if (peak.start <= startMinutes && startMinutes < peak.end) {
+          return `⚠️ 此時段與${peak.name}重疊，無法設定惜福時段`;
+        }
+      } else {
+        // 一般時段，檢查時段是否與尖峰時段重疊
+        if (!(endMinutes <= peak.start || startMinutes >= peak.end)) {
+          return `⚠️ 此時段與${peak.name}重疊，無法設定惜福時段`;
+        }
+      }
+    }
+
+    return '';
+  };
 
   useEffect(() => {
     if (item && type === 'editTimeSlot') {
@@ -44,10 +80,22 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
+    const newFormData = {
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
-    });
+    };
+    
+    setFormData(newFormData);
+    
+    // 當時間改變時，檢查是否在尖峰時段
+    if (name === 'start_time' || name === 'end_time') {
+      const warning = checkPeakHours(
+        name === 'start_time' ? value : newFormData.start_time,
+        name === 'end_time' ? value : newFormData.end_time
+      );
+      setPeakHourWarning(warning);
+    }
+    
     // 清除該欄位的錯誤
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
@@ -62,9 +110,10 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
       newErrors.name = '請輸入時段名稱';
     }
 
-    // 驗證時間範圍
-    if (formData.start_time >= formData.end_time) {
-      newErrors.end_time = '結束時間必須晚於開始時間';
+    // 驗證時間範圍（允許結束時間為 00:00 表示跨日到午夜）
+    const isMidnight = formData.end_time === '00:00';
+    if (!isMidnight && formData.start_time >= formData.end_time) {
+      newErrors.end_time = '結束時間必須晚於開始時間（或設為 00:00 表示營業至午夜）';
     }
 
     setErrors(newErrors);
@@ -152,6 +201,24 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
                 {errors.submit}
               </div>
             )}
+
+            {/* 尖峰時段警告 */}
+            {peakHourWarning && (
+              <div className="warning-banner">
+                {peakHourWarning}
+              </div>
+            )}
+
+            {/* 時段設定提示 */}
+            <div className="info-banner">
+              <strong>📌 惜福時段設定說明：</strong>
+              <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                <li>惜福時段<strong>不能設在尖峰時段</strong>（08:00-13:00, 17:00-19:00）</li>
+                <li>建議設定時段：13:00-17:00（午後）或 19:00 之後（晚餐後）</li>
+                <li>同一天不能有重複的時段設定</li>
+                <li>結束時間可設為 <strong>00:00</strong> 表示營業至午夜（跨日）</li>
+              </ul>
+            </div>
 
             <div className="form-group">
               <label htmlFor="name">時段名稱 *</label>

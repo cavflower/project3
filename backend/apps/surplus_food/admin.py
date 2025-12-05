@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder
+from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory
+
+
+@admin.register(SurplusFoodCategory)
+class SurplusFoodCategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'store', 'display_order', 'is_active', 'created_at']
+    list_filter = ['is_active', 'store']
+    search_fields = ['name', 'store__name']
+    ordering = ['store', 'display_order', 'name']
 
 
 @admin.register(SurplusTimeSlot)

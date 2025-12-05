@@ -67,6 +67,47 @@
   font-size: 0.9rem;
 }
 
+/* 警告提示橫幅 */
+.warning-banner {
+  background: #fff4e5;
+  border: 1px solid #ffb74d;
+  color: #e65100;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 資訊提示橫幅 */
+.info-banner {
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  color: #1565c0;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.info-banner strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #0d47a1;
+}
+
+.info-banner ul {
+  margin: 0;
+}
+
+.info-banner li {
+  margin-bottom: 0.25rem;
+  color: #1976d2;
+}
+
 /* 表單群組 */
 .form-group {
   margin-bottom: 1.5rem;

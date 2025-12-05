@@ -4,7 +4,7 @@ import { getProducts } from '../../api/productApi';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
 import './SurplusFoodForm.css';
 
-const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
+const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     product: '',
     title: '',
@@ -13,10 +13,10 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
     surplus_price: '',
     quantity: 1,
     condition: 'surplus',
+    dining_option: 'both',
     expiry_date: '',
     time_slot: '',
     pickup_instructions: '',
-    tags: [],
     image: null,
   });
 
@@ -40,10 +40,10 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
         surplus_price: item.surplus_price || '',
         quantity: item.quantity || 1,
         condition: item.condition || 'surplus',
+        dining_option: item.dining_option || 'both',
         expiry_date: item.expiry_date || '',
         time_slot: item.time_slot || '',
         pickup_instructions: item.pickup_instructions || '',
-        tags: item.tags || [],
         image: null,
       });
       if (item.image) {
@@ -75,10 +75,13 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
     { value: 'near_expiry', label: '即期品' },
     { value: 'surplus', label: '剩餘品' },
     { value: 'damaged_package', label: '外包裝損傷' },
-    { value: 'end_of_day', label: '當日剩餘' },
   ];
 
-  const tagOptions = ['素食', '無麩質', '環保', '有機', '低碳', '本地'];
+  const diningOptions = [
+    { value: 'dine_in', label: '內用' },
+    { value: 'takeout', label: '外帶' },
+    { value: 'both', label: '內用和外帶' },
+  ];
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -114,13 +117,6 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
     }
   };
 
-  const handleTagToggle = (tag) => {
-    const newTags = formData.tags.includes(tag)
-      ? formData.tags.filter(t => t !== tag)
-      : [...formData.tags, tag];
-    setFormData({ ...formData, tags: newTags });
-  };
-
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -152,6 +148,12 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
       newErrors.surplus_price = '惜福價必須低於原價';
     }
 
+    // 檢查惜福價是否高於原價的80%
+    const maxAllowedPrice = parseFloat(formData.original_price) * 0.8;
+    if (parseFloat(formData.surplus_price) > maxAllowedPrice) {
+      newErrors.surplus_price = '惜福價不能高於原價的80%';
+    }
+
     if (!formData.quantity || formData.quantity < 1) {
       newErrors.quantity = '數量必須至少為 1';
     }
@@ -181,6 +183,7 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
       const submitFormData = new FormData();
       
       // 添加所有欄位
+      if (initialCategory?.id) submitFormData.append('category', initialCategory.id);
       if (formData.product) submitFormData.append('product', formData.product);
       submitFormData.append('title', formData.title);
       submitFormData.append('description', formData.description);
@@ -188,10 +191,10 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
       submitFormData.append('surplus_price', formData.surplus_price);
       submitFormData.append('quantity', formData.quantity);
       submitFormData.append('condition', formData.condition);
+      submitFormData.append('dining_option', formData.dining_option);
       if (formData.expiry_date) submitFormData.append('expiry_date', formData.expiry_date);
       submitFormData.append('time_slot', formData.time_slot);
       submitFormData.append('pickup_instructions', formData.pickup_instructions);
-      submitFormData.append('tags', JSON.stringify(formData.tags));
       
       if (formData.image && formData.image instanceof File) {
         submitFormData.append('image', formData.image);
@@ -199,14 +202,15 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
 
       if (type === 'editFood' && item?.id) {
         await surplusFoodApi.updateSurplusFood(item.id, submitFormData);
+        await onSuccess();
         alert('惜福品更新成功！');
+        onClose();
       } else {
         await surplusFoodApi.createSurplusFood(submitFormData);
+        await onSuccess();
         alert('惜福品新增成功！');
+        onClose();
       }
-
-      await onSuccess();
-      onClose();
     } catch (error) {
       console.error('提交失敗:', error);
       setErrors({
@@ -257,6 +261,17 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
                 {errors.submit}
               </div>
             )}
+
+            {/* 上架規則說明 */}
+            <div className="info-banner">
+              <strong>📋 惜福品上架規則：</strong>
+              <ul style={{ marginTop: '8px', paddingLeft: '20px', marginBottom: 0 }}>
+                <li>惜福價必須至少打8折（折扣20%以上）</li>
+                <li>不可在尖峰時段（08:00-13:00、17:00-19:00）設定惜福時段</li>
+                <li>同一店家不可在同一天有重複的時段設定</li>
+                <li>建議上傳清晰的商品照片以提高銷售率</li>
+              </ul>
+            </div>
 
             {/* 關聯商品（可選） */}
             <div className="form-group">
@@ -380,10 +395,16 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
                   onWheel={(e) => e.target.blur()}
                   min="1"
                   className={errors.quantity ? 'error' : ''}
+                  disabled={type === 'editFood'}
                   required
                 />
                 {errors.quantity && (
                   <span className="error-message">{errors.quantity}</span>
+                )}
+                {type === 'editFood' && (
+                  <small className="form-hint" style={{color: '#ff6b6b'}}>
+                    編輯時不可修改可售數量
+                  </small>
                 )}
               </div>
 
@@ -405,6 +426,27 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
               </div>
             </div>
 
+            {/* 用餐方式 */}
+            <div className="form-group">
+              <label htmlFor="dining_option">用餐方式 *</label>
+              <select
+                id="dining_option"
+                name="dining_option"
+                value={formData.dining_option}
+                onChange={handleChange}
+                required
+              >
+                {diningOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <small className="form-hint">
+                選擇此惜福品適用的用餐方式
+              </small>
+            </div>
+
             {/* 到期日（即期品必填） */}
             {formData.condition === 'near_expiry' && (
               <div className="form-group">
@@ -416,10 +458,16 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
                   value={formData.expiry_date}
                   onChange={handleChange}
                   className={errors.expiry_date ? 'error' : ''}
+                  disabled={type === 'editFood'}
                   required
                 />
                 {errors.expiry_date && (
                   <span className="error-message">{errors.expiry_date}</span>
+                )}
+                {type === 'editFood' && (
+                  <small className="form-hint" style={{color: '#ff6b6b'}}>
+                    即期品編輯時不可修改到期日
+                  </small>
                 )}
               </div>
             )}
@@ -480,23 +528,6 @@ const SurplusFoodForm = ({ type, item, onClose, onSuccess }) => {
                     />
                   </label>
                 )}
-              </div>
-            </div>
-
-            {/* 標籤 */}
-            <div className="form-group">
-              <label>標籤</label>
-              <div className="tags-container">
-                {tagOptions.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={`tag-btn ${formData.tags.includes(tag) ? 'active' : ''}`}
-                    onClick={() => handleTagToggle(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
               </div>
             </div>
 

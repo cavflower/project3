@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
+    SurplusFoodCategoryViewSet,
     SurplusTimeSlotViewSet,
     SurplusFoodViewSet,
     PublicSurplusFoodViewSet,
@@ -8,6 +9,7 @@ from .views import (
 )
 
 router = DefaultRouter()
+router.register(r'categories', SurplusFoodCategoryViewSet, basename='surplus-category')
 router.register(r'time-slots', SurplusTimeSlotViewSet, basename='surplus-timeslot')
 router.register(r'foods', SurplusFoodViewSet, basename='surplus-food')
 router.register(r'orders', SurplusFoodOrderViewSet, basename='surplus-order')

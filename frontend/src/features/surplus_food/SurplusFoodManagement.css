@@ -255,7 +255,29 @@
   background: #6c757d;
 }
 
-/* 時段列表 */
+/* 時段列表 - 按星期分組顯示 */
+.timeslots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.day-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.day-header {
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #ff6b6b;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
 .timeslots-list {
   display: grid;
   gap: 1rem;
@@ -265,27 +287,93 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  background: white;
+  padding: 1.25rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
 }
 
-.timeslot-info h3 {
-  margin: 0 0 0.5rem 0;
+.timeslot-card:hover {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateX(4px);
+}
+
+.timeslot-info {
+  flex: 1;
+}
+
+.timeslot-time {
+  font-size: 1.1rem;
+  font-weight: 600;
   color: #333;
+  margin-bottom: 0.5rem;
 }
 
 .timeslot-details {
   display: flex;
+  align-items: center;
   gap: 1rem;
   font-size: 0.9rem;
   color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.timeslot-name {
+  color: #666;
+}
+
+.timeslot-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #999;
 }
 
 .timeslot-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: black;
+}
+
+.btn-icon:hover {
+  transform: scale(1.1);
+}
+
+.btn-icon.btn-edit:hover {
+  background: #ff6b6b;
+  color: white;
+}
+
+.btn-icon.btn-delete:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+}
+
+.empty-state p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
 }
 
 /* 訂單列表 */
