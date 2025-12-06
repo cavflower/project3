@@ -45,6 +45,7 @@ import TakeoutOrderPage from './features/takeout/TakeoutOrderPage';
 import DineInOrderPage from './features/dine_in/DineInOrderPage';
 import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSettingsPage';
 import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
+import OrderManagementPage from './features/merchant_dashboard/order_management/OrderManagementPage';
 
 
 // Context
@@ -187,6 +188,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <InventoryManagementPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/merchant/orders"
+                element={
+                  <ProtectedRoute>
+                    <OrderManagementPage />
                   </ProtectedRoute>
                 }
               />
