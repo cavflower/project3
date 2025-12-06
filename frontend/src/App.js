@@ -42,6 +42,7 @@ import RedemptionCatalog from './features/customer_loyalty/RedemptionCatalog';
 import MyRedemptions from './features/customer_loyalty/MyRedemptions';
 import PointsHistory from './features/customer_loyalty/PointsHistory';
 import TakeoutOrderPage from './features/takeout/TakeoutOrderPage';
+import TakeoutCartPage from './features/takeout/TakeoutCartPage';
 import DineInOrderPage from './features/dine_in/DineInOrderPage';
 import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSettingsPage';
 import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
@@ -125,6 +126,8 @@ function App() {
           
           {/* 外帶點餐 頁面 */}
               <Route path="/store/:storeId/takeout" element={<TakeoutOrderPage />} />
+          {/* 外帶購物車結帳 頁面 */}
+              <Route path="/takeout/:storeId/cart" element={<TakeoutCartPage />} />
           {/* 內用菜單（QR code 導向） */}
               <Route path="/store/:storeId/dine-in/menu" element={<DineInOrderPage />} />
 

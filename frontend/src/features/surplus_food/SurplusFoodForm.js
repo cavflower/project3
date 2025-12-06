@@ -28,6 +28,11 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
 
   useEffect(() => {
     loadInitialData();
+    // 表單開啟時自動捲動到畫面正中間
+    const modalContent = document.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }, []);
 
   useEffect(() => {
@@ -230,7 +235,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
       <div className="modal-content surplus-food-form-modal">
         <div className="modal-header">
           <h2>
-            {type === 'createFood' && '新增惜福品'}
+            {type === 'createFood' && `新增惜福品 - ${initialCategory?.name || ''}`}
             {type === 'editFood' && '編輯惜福品'}
           </h2>
           <button className="close-btn" onClick={onClose}>

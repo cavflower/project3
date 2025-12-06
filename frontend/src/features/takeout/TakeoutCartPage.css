@@ -1,0 +1,112 @@
+.takeout-cart-page {
+  min-height: calc(100vh - 70px);
+}
+
+.takeout-cart-page .cart-header {
+  background: linear-gradient(135deg, #ffb07a, #e86b2c);
+  color: #fff;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  font-weight: 600;
+}
+
+.takeout-cart-page .card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.takeout-cart-page .cart-item {
+  transition: background-color 0.2s;
+}
+
+.takeout-cart-page .cart-item:hover {
+  background-color: #f8f9fa;
+}
+
+.takeout-cart-page .cart-item:last-child {
+  border-bottom: none !important;
+}
+
+/* 數量控制按鈕 - 沿用外帶菜單樣式 */
+.quantity-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #e8e8e8;
+  color: #333;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.quantity-btn:hover {
+  background: #d8d8d8;
+  color: #000;
+}
+
+.quantity-btn:active {
+  transform: scale(0.95);
+}
+
+.quantity-display {
+  font-weight: 600;
+  font-size: 16px;
+  min-width: 30px;
+  text-align: center;
+  color: #333;
+}
+
+.quantity-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.quantity-controls button:hover {
+  transform: scale(1.1);
+}
+
+.btn-link {
+  color: #e86b2c;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.btn-link:hover {
+  color: #d15a1f;
+  text-decoration: underline;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #ffb07a;
+  box-shadow: 0 0 0 0.2rem rgba(255, 176, 122, 0.25);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #ffb07a, #e86b2c);
+  border: none;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ff9f5e, #d15a1f);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(232, 107, 44, 0.3);
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  transform: none;
+  box-shadow: none;
+}

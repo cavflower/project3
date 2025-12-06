@@ -15,7 +15,8 @@
 
 .page-header h1 {
   font-size: 1.8rem;
-  color: #333;
+  color: #f0f0f0;
+  text-align: center;
 }
 
 .product-content-header {
@@ -89,8 +90,16 @@
   flex-grow: 1;
 }
 
+.product-name-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+
 .product-info-manage h3 {
-  margin: 0 0 5px 0;
+  margin: 0;
   font-size: 1.1rem;
 }
 
@@ -168,4 +177,125 @@
   font-size: 12px;
   font-weight: 600;
   border: 1px solid #c8e6c9;
+}
+
+/* 類別區塊樣式 */
+.categories-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.category-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 16px;
+}
+
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.category-icon {
+  color: #ff6b6b;
+  font-size: 1.5rem;
+}
+
+.category-title h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #333;
+}
+
+.category-description {
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-icon {
+  padding: 8px 12px;
+  min-width: auto;
+}
+
+.btn-compact {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+}
+
+.product-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.product-btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.product-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.product-btn-danger:hover {
+  background: #fecaca;
+}
+
+.empty-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+  font-size: 0.95rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  margin: 0;
 }

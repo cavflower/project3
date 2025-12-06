@@ -1,6 +1,6 @@
 /* 橘色主色調 - StoreBrowse */
 :root {
-  --orange-primary: #ff6b35;
+  --orange-primary: #ff6b6b;
   --orange-light: #ff8c61;
   --orange-dark: #e55a2b;
   --orange-bg: #fff5f2;
@@ -45,7 +45,7 @@
 }
 
 .btn-orange-gradient {
-  background: linear-gradient(135deg, var(--orange-primary), var(--orange-light));
+  background: var(--orange-primary);
   border: none;
   color: white;
   font-weight: 600;

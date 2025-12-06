@@ -1,5 +1,29 @@
 import api from './api';
 
+// ========== 產品類別 API ==========
+export const getProductCategories = () => {
+  return api.get('/products/categories/');
+};
+
+export const getPublicProductCategories = (storeId) => {
+  return api.get('/products/public/categories/', {
+    params: { store: storeId }
+  });
+};
+
+export const createProductCategory = (categoryData) => {
+  return api.post('/products/categories/', categoryData);
+};
+
+export const updateProductCategory = (id, categoryData) => {
+  return api.patch(`/products/categories/${id}/`, categoryData);
+};
+
+export const deleteProductCategory = (id) => {
+  return api.delete(`/products/categories/${id}/`);
+};
+
+// ========== 產品 API ==========
 export const getProducts = () => {
   return api.get('/products/products/');
 };

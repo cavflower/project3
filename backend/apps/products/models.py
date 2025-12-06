@@ -3,6 +3,49 @@ from apps.users.models import Merchant
 from apps.stores.models import Store
 
 
+class ProductCategory(models.Model):
+    """
+    產品類別模型
+    商家可以建立類別來分類管理產品
+    """
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='product_categories',
+        verbose_name='所屬店家'
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name='類別名稱',
+        help_text='例如：主餐、飲料、甜點'
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name='類別描述'
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        verbose_name='顯示順序',
+        help_text='數字越小越前面'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='啟用狀態'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+    
+    class Meta:
+        db_table = 'product_categories'
+        verbose_name = '產品類別'
+        verbose_name_plural = '產品類別'
+        ordering = ['display_order', 'name']
+        unique_together = ['store', 'name']
+    
+    def __str__(self):
+        return f"{self.store.name} - {self.name}"
+
+
 class Product(models.Model):
     """
     Represents a product offered by a merchant.
@@ -15,9 +58,18 @@ class Product(models.Model):
     )
 
     store = models.ForeignKey(
-    Store,
-    on_delete=models.CASCADE,
-    related_name='products'
+        Store,
+        on_delete=models.CASCADE,
+        related_name='products'
+    )
+
+    category = models.ForeignKey(
+        ProductCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='products',
+        verbose_name='產品類別'
     )
 
     name = models.CharField(

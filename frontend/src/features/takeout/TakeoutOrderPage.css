@@ -5,8 +5,8 @@
 }
 
 .takeout-page .takeout-card-header {
-  background: linear-gradient(135deg, #ffb07a, #e86b2c); /* DineVerse 深橘系 */
-  color: #000;
+  background: linear-gradient(135deg, #ff8c61); /* DineVerse 深橘系 */
+  color: #fff;
   border-bottom: none;
   border-radius: 8px 8px 0 0;
 }
@@ -14,6 +14,186 @@
 .takeout-page .takeout-card .card-body {
   color: #000;
 }
+
+/* 類別導航標籤 */
+.category-nav-tabs {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 70px;
+  z-index: 100;
+}
+
+.nav-tabs-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #e86b2c #f0f0f0;
+  padding: 8px 0;
+}
+
+.nav-tabs-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.nav-tabs-scroll::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.nav-tabs-scroll::-webkit-scrollbar-thumb {
+  background: #e86b2c;
+  border-radius: 3px;
+}
+
+.category-nav-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  color: #666;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.category-nav-btn:hover {
+  border-color: #ffb07a;
+  color: #e86b2c;
+  background: #fff5f0;
+}
+
+.category-nav-btn.active {
+  background: linear-gradient(135deg, #ffb07a, #e86b2c);
+  color: #fff;
+  border-color: #fff;
+}
+
+.category-count {
+  background: rgba(252, 194, 194, 0.3);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.category-nav-btn.active .category-count {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.category-section {
+  scroll-margin-top: 140px;
+}
+
+/* 購物車導航按鈕 */
+.cart-nav-btn {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  color: #666;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cart-nav-btn:hover {
+  border-color: #e86b2c;
+  background: #fff;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #dc3545;
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid #fff;
+}
+
+/* 加入購物車按鈕 */
+.add-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #e8e8e8;
+  color: #333;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.add-btn:hover {
+  background: #d8d8d8;
+  color: #000;
+}
+
+.add-btn:active {
+  transform: scale(0.95);
+}
+
+/* 數量控制按鈕 */
+.quantity-control {
+  min-width: 120px;
+}
+
+.quantity-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #e8e8e8;
+  color: #333;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.quantity-btn:hover {
+  background: #d8d8d8;
+  color: #000;
+}
+
+.quantity-btn:active {
+  transform: scale(0.95);
+}
+
+.quantity-display {
+  font-weight: 600;
+  font-size: 16px;
+  min-width: 30px;
+  text-align: center;
+  color: #333;
+}
+
 .switch-container {
   display: flex;
   align-items: center;

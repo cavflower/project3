@@ -47,48 +47,45 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('items')
         store = validated_data['store']
         pickup_number = self.generate_pickup_number(store)
-        doc_id = pickup_number
-
-        # 寫入 Firestore
-        # Firestore 不接受 Django Model 物件，改成原生欄位值
-        order_doc = {
-            'store_id': store.id,
-            'customer_name': validated_data.get('customer_name', ''),
-            'customer_phone': validated_data.get('customer_phone', ''),
-            'pickup_at': validated_data.get('pickup_at'),
-            'payment_method': validated_data.get('payment_method'),
-            'notes': validated_data.get('notes', ''),
-            'pickup_number': pickup_number,
-            'service_channel': validated_data.get('service_channel'),
-            'table_label': validated_data.get('table_label'),
-            'use_eco_tableware': validated_data.get('use_eco_tableware'),
-            'use_utensils': validated_data.get('use_utensils'),
-            'status': 'pending',
-            'items': [
-                {'product_id': item['product'].id, 'quantity': item['quantity']}
-                for item in items_data
-            ],
-            'created_at': firestore.SERVER_TIMESTAMP,
-        }
+        
+        # 1. 寫入 PostgreSQL (Supabase) - 完整訂單資料
+        order = TakeoutOrder.objects.create(
+            pickup_number=pickup_number,
+            **validated_data
+        )
+        
+        # 建立訂單項目
+        for item_data in items_data:
+            TakeoutOrderItem.objects.create(
+                order=order,
+                **item_data
+            )
+        
+        # 2. 寫入 Firestore - 店家 ID、取餐號碼及訂單管理所需資料
         try:
-            db.collection('orders').document(doc_id).set(order_doc)
+            db.collection('orders').document(pickup_number).set({
+                'store_id': store.id,
+                'pickup_number': pickup_number,
+                'customer_name': validated_data.get('customer_name', ''),
+                'customer_phone': validated_data.get('customer_phone', ''),
+                'payment_method': validated_data.get('payment_method', ''),
+                'notes': validated_data.get('notes', ''),
+                'channel': validated_data.get('service_channel', 'takeout'),
+                'use_eco_tableware': validated_data.get('use_eco_tableware'),
+                'use_utensils': validated_data.get('use_utensils'),
+                'table_label': validated_data.get('table_label'),
+                'items': [
+                    {'product_id': item['product'].id, 'quantity': item['quantity']}
+                    for item in items_data
+                ],
+                'status': 'pending',
+                'created_at': firestore.SERVER_TIMESTAMP,
+            })
         except Exception as exc:  # noqa: BLE001
             logger.exception("Failed to write order to Firestore")
-            raise serializers.ValidationError({"detail": str(exc)})
-
-        # 回傳一個可序列化的物件
-        class Obj: pass
-        obj = Obj()
-        obj.id = 0
-        obj.store = store
-        obj.customer_name = validated_data['customer_name']
-        obj.customer_phone = validated_data['customer_phone']
-        obj.pickup_at = validated_data['pickup_at']
-        obj.payment_method = validated_data['payment_method']
-        obj.notes = validated_data.get('notes', '')
-        obj.pickup_number = pickup_number
-        obj.items = []  # 如果需要可加詳細項目
-        return obj
+            # Firestore 失敗不影響主要流程，只記錄錯誤
+        
+        return order
 
     def generate_pickup_number(self, store):
         from uuid import uuid4

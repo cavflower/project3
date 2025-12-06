@@ -38,18 +38,15 @@ const SurplusFoodCard = ({ food, onEdit, onDelete, onPublish, onUnpublish }) => 
         <div className="surplus-food-header">
           <h4>{food.title}</h4>
           {getStatusBadge(food.status)}
+          {/* 用餐選項移到上架中旁邊 */}
+          {food.dining_option_display && (
+            <span className="surplus-dining-option-badge">{food.dining_option_display}</span>
+          )}
         </div>
         
         {/* 商品描述 */}
         {food.description && (
           <div className="surplus-food-description">{food.description}</div>
-        )}
-
-        {/* 用餐選項 */}
-        {food.dining_option_display && (
-          <div className="surplus-food-dining-option">
-            <span className="surplus-dining-option-badge">{food.dining_option_display}</span>
-          </div>
         )}
 
         {/* 即期品顯示到期日 */}

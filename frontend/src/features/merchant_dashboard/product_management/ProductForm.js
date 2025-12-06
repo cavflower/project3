@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { FaTimes } from 'react-icons/fa';
 import './ProductForm.css';
 import { createProduct, updateProduct } from '../../../api/productApi';
 
-const ProductForm = ({ product, onSuccess, onCancel }) => {
+const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
     description: '',
     image: null,
-    service_type: 'both', // 新增服務類型
+    service_type: 'both',
   });
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    // 滾動到表單位置
+    const modalContent = document.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
 
   useEffect(() => {
     if (product) {
@@ -39,16 +48,14 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
     }));
   };
 
-  const handleServiceTypeChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      service_type: e.target.value,
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!initialCategory) {
+      setError('無法確定商品類別');
+      return;
+    }
 
     try {
       const priceNumber = parseFloat(formData.price);
@@ -62,6 +69,14 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
       data.append('price', priceNumber.toFixed(2));
       data.append('description', formData.description);
       data.append('service_type', formData.service_type);
+      
+      // 編輯時使用產品原本的category，新增時使用initialCategory
+      if (product && product.category) {
+        data.append('category', product.category);
+      } else if (initialCategory) {
+        data.append('category', initialCategory.id);
+      }
+      
       if (formData.image) {
         data.append('image', formData.image);
       }
@@ -69,9 +84,11 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
       let response;
       if (product) {
         response = await updateProduct(product.id, data);
+        alert('商品更新成功！');
         onSuccess(response.data, true);
       } else {
         response = await createProduct(data);
+        alert('商品新增成功！');
         onSuccess(response.data, false);
       }
     } catch (err) {
@@ -81,107 +98,109 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
   };
 
   return (
-    <form className="product-form" onSubmit={handleSubmit}>
-      <h2>{product ? '編輯商品' : '新增商品'}</h2>
-
-      {error && <p className="error-message">{error}</p>}
-
-      <div className="form-group">
-        <label htmlFor="name">商品名稱 *</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="price">價格 (NT$) *</label>
-        <input
-          type="text"
-          inputMode="decimal"
-          pattern="^\d+(\.\d{0,2})?$"
-          id="price"
-          name="price"
-          value={formData.price}
-          onChange={handleInputChange}
-          onWheel={(e) => e.currentTarget.blur()}
-          placeholder="例如：67 或 67.50"
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="description">商品描述</label>
-        <textarea
-          id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleInputChange}
-          rows="4"
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="image">商品圖片</label>
-        <input
-          type="file"
-          id="image"
-          name="image"
-          accept="image/*"
-          onChange={handleImageChange}
-        />
-      </div>
-
-      {/* 新增：服務類型選擇 */}
-      <div className="form-group">
-        <label>服務類型 *</label>
-        <div className="service-type-container">
-          <label className="radio-item">
-            <input
-              type="radio"
-              name="service_type"
-              value="dine_in"
-              checked={formData.service_type === 'dine_in'}
-              onChange={handleServiceTypeChange}
-            />
-            <span>內用</span>
-          </label>
-          <label className="radio-item">
-            <input
-              type="radio"
-              name="service_type"
-              value="takeaway"
-              checked={formData.service_type === 'takeaway'}
-              onChange={handleServiceTypeChange}
-            />
-            <span>外帶</span>
-          </label>
-          <label className="radio-item">
-            <input
-              type="radio"
-              name="service_type"
-              value="both"
-              checked={formData.service_type === 'both'}
-              onChange={handleServiceTypeChange}
-            />
-            <span>內用與外帶</span>
-          </label>
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>
+            {product ? '編輯商品' : `新增商品 - ${initialCategory?.name || ''}`}
+          </h2>
+          <button className="modal-close-btn" onClick={onCancel}>
+            <FaTimes />
+          </button>
         </div>
-      </div>
 
-      <div className="form-actions">
-        <button type="submit" className="action-btn submit-btn">
-          {product ? '更新' : '新增'}
-        </button>
-        <button type="button" className="action-btn cancel-btn" onClick={onCancel}>
-          取消
-        </button>
+        <form className="product-form" onSubmit={handleSubmit}>
+          {error && <div className="error-message">{error}</div>}
+
+          <div className="form-group">
+            <label htmlFor="name">
+              商品名稱 <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="price">
+              價格 (NT$) <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              pattern="^\d+(\.\d{0,2})?$"
+              id="price"
+              name="price"
+              value={formData.price}
+              onChange={handleInputChange}
+              onWheel={(e) => e.currentTarget.blur()}
+              placeholder="例如：67 或 67.50"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">商品描述</label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              rows="4"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="image">商品圖片</label>
+            <input
+              type="file"
+              id="image"
+              name="image"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="service_type">
+              服務類型 <span className="required">*</span>
+            </label>
+            <select
+              id="service_type"
+              name="service_type"
+              value={formData.service_type}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="both">內用與外帶</option>
+              <option value="dine_in">內用</option>
+              <option value="takeaway">外帶</option>
+            </select>
+          </div>
+
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onCancel}
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              className="btn-primary"
+            >
+              {product ? '更新' : '新增'}
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   );
 };
 

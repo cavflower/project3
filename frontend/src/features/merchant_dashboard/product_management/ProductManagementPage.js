@@ -1,42 +1,93 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaFolder } from 'react-icons/fa';
 import ProductForm from './ProductForm';
+import ProductCategoryForm from './ProductCategoryForm';
 import './ProductManagementPage.css';
-import { getProducts, deleteProduct } from '../../../api/productApi';
+import { getProducts, deleteProduct, getProductCategories, deleteProductCategory } from '../../../api/productApi';
 
 const ProductManagementPage = () => {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isCategoryFormVisible, setIsCategoryFormVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    await Promise.all([fetchProducts(), fetchCategories()]);
+  };
 
   const fetchProducts = async () => {
     try {
       console.log('[ProductManagement] Fetching products...');
-      console.log('[ProductManagement] merchant_accessToken:', localStorage.getItem('merchant_accessToken')?.substring(0, 50));
       const response = await getProducts();
       console.log('[ProductManagement] Products loaded:', response.data);
       setProducts(response.data);
       setError('');
     } catch (err) {
       console.error('[ProductManagement] Error fetching products:', err);
-      console.error('[ProductManagement] Error response:', err.response);
       setError('無法獲取商品列表，請稍後再試。');
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      console.log('[ProductManagement] Fetching categories...');
+      const response = await getProductCategories();
+      console.log('[ProductManagement] Categories loaded:', response.data);
+      setCategories(response.data);
+    } catch (err) {
+      console.error('[ProductManagement] Error fetching categories:', err);
+    }
+  };
+
+  const handleAddCategoryClick = () => {
+    setEditingCategory(null);
+    setIsCategoryFormVisible(true);
+  };
+
+  const handleEditCategory = (category) => {
+    setEditingCategory(category);
+    setIsCategoryFormVisible(true);
+  };
+
+  const handleDeleteCategory = async (categoryId) => {
+    const categoryProducts = products.filter(p => p.category === categoryId);
+    
+    if (categoryProducts.length > 0) {
+      alert(`此類別下還有 ${categoryProducts.length} 個商品，無法刪除！\n請先刪除或移動該類別下的所有商品。`);
+      return;
+    }
+
+    if (!window.confirm('確定要刪除此類別嗎？')) return;
+
+    try {
+      await deleteProductCategory(categoryId);
+      alert('類別刪除成功！');
+      fetchData();
+    } catch (err) {
+      alert('刪除類別失敗。');
       console.error(err);
     }
   };
 
-  const handleAddClick = () => {
+  const handleAddClick = (category = null) => {
     setEditingProduct(null);
+    setSelectedCategory(category);
     setIsFormVisible(true);
   };
 
   const handleEditClick = (product) => {
     setEditingProduct(product);
+    // 找到商品所屬的類別
+    const productCategory = categories.find(cat => cat.id === product.category);
+    setSelectedCategory(productCategory);
     setIsFormVisible(true);
   };
 
@@ -54,18 +105,42 @@ const ProductManagementPage = () => {
   };
 
   const handleFormSuccess = (productData, isEdit = false) => {
-    if (isEdit) {
-      // 編輯：更新本地狀態中的商品
-      setProducts(prevProducts => 
-        prevProducts.map(p => p.id === productData.id ? productData : p)
-      );
-    } else {
-      // 新增：將新商品加入本地狀態
-      setProducts(prevProducts => [...prevProducts, productData]);
-    }
+    fetchData();
     setIsFormVisible(false);
     setEditingProduct(null);
+    setSelectedCategory(null);
     setError('');
+  };
+
+  const handleCategoryFormSuccess = () => {
+    fetchData();
+    setIsCategoryFormVisible(false);
+    setEditingCategory(null);
+  };
+
+  // 按類別分組產品
+  const groupProductsByCategory = () => {
+    const grouped = {};
+    
+    // 初始化所有啟用的類別
+    categories
+      .filter(cat => cat.is_active)
+      .sort((a, b) => a.display_order - b.display_order)
+      .forEach(category => {
+        grouped[category.id] = {
+          category,
+          products: []
+        };
+      });
+
+    // 將產品分組到對應的類別
+    products.forEach(product => {
+      if (product.category && grouped[product.category]) {
+        grouped[product.category].products.push(product);
+      }
+    });
+
+    return grouped;
   };
 
   const getImageUrl = (imagePath) => {
@@ -96,45 +171,107 @@ const ProductManagementPage = () => {
 
       {error && <p className="error-message">{error}</p>}
 
-      {isFormVisible ? (
+      {isCategoryFormVisible && (
+        <ProductCategoryForm
+          category={editingCategory}
+          onClose={() => {
+            setIsCategoryFormVisible(false);
+            setEditingCategory(null);
+          }}
+          onSuccess={handleCategoryFormSuccess}
+        />
+      )}
+
+      {isFormVisible && (
         <ProductForm
           product={editingProduct}
+          initialCategory={selectedCategory}
           onSuccess={handleFormSuccess}
-          onCancel={() => setIsFormVisible(false)}
+          onCancel={() => {
+            setIsFormVisible(false);
+            setEditingProduct(null);
+            setSelectedCategory(null);
+          }}
         />
-      ) : (
-        <>
-          <div className="product-content-header">
-            <button className="product-btn-add" onClick={handleAddClick}>
-              <FaPlus /> 新增
-            </button>
-          </div>
-          <div className="product-list">
-          {products.length > 0 ? products.map((product) => (
-            <div key={product.id} className="product-card-manage">
-              <img src={getImageUrl(product.image)} alt={product.name} className="product-image-manage" />
-              <div className="product-info-manage">
-                <h3>{product.name}</h3>
-                <p className="price">NT$ {Number(product.price).toFixed(0)}</p>
-                <p>{product.description}</p>
-                {/* 新增：顯示服務類型 */}
-                <p className="service-type-badge">
-                  <span className="badge">{getServiceTypeLabel(product.service_type)}</span>
-                </p>
+      )}
+
+      <div className="product-content-header">
+        <button className="product-btn-add" onClick={handleAddCategoryClick}>
+          <FaPlus /> 新增類別
+        </button>
+      </div>
+
+      <div className="categories-sections">
+        {Object.values(groupProductsByCategory()).map(({ category, products: categoryProducts }) => (
+          <div key={category.id} className="category-section">
+            <div className="category-header">
+              <div className="category-title">
+                <FaFolder className="category-icon" />
+                <h3>{category.name}</h3>
+                {category.description && (
+                  <span className="category-description">{category.description}</span>
+                )}
               </div>
-              <div className="product-actions-manage">
-                <button className="icon-btn edit-btn" onClick={() => handleEditClick(product)} title="編輯">
+              <div className="category-actions">
+                <button 
+                  className="product-btn-add btn-compact"
+                  onClick={() => handleAddClick(category)}
+                >
+                  <FaPlus /> 新增商品
+                </button>
+                <button 
+                  className="product-btn-secondary btn-icon"
+                  onClick={() => handleEditCategory(category)}
+                  title="編輯類別"
+                >
                   <FaEdit />
                 </button>
-                <button className="icon-btn delete-btn" onClick={() => handleDelete(product.id)} title="刪除">
+                <button 
+                  className="product-btn-danger btn-icon"
+                  onClick={() => handleDeleteCategory(category.id)}
+                  title="刪除類別"
+                >
                   <FaTrash />
                 </button>
               </div>
             </div>
-          )) : <p>您尚未新增任何商品。</p>}
-        </div>
-        </>
-      )}
+
+            <div className="product-list">
+              {categoryProducts.length === 0 ? (
+                <div className="empty-message">此類別尚無商品</div>
+              ) : (
+                categoryProducts.map((product) => (
+                  <div key={product.id} className="product-card-manage">
+                    <img src={getImageUrl(product.image)} alt={product.name} className="product-image-manage" />
+                    <div className="product-info-manage">
+                      <div className="product-name-header">
+                        <h3>{product.name}</h3>
+                        <span className="badge">{getServiceTypeLabel(product.service_type)}</span>
+                      </div>
+                      <p className="price">NT$ {Number(product.price).toFixed(0)}</p>
+                      <p>{product.description}</p>
+                    </div>
+                    <div className="product-actions-manage">
+                      <button className="icon-btn edit-btn" onClick={() => handleEditClick(product)} title="編輯">
+                        <FaEdit />
+                      </button>
+                      <button className="icon-btn delete-btn" onClick={() => handleDelete(product.id)} title="刪除">
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ))}
+
+        {categories.filter(cat => cat.is_active).length === 0 && (
+          <div className="empty-state">
+            <p>尚未建立任何類別，請先新增類別</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

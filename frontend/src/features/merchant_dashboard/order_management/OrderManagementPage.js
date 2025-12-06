@@ -8,6 +8,7 @@ import './OrderManagementPage.css';
 const statusLabels = {
   pending: '待處理',
   accepted: '已接受',
+  completed: '已完成',
   rejected: '已拒絕',
 };
 
@@ -85,9 +86,31 @@ function OrderManagementPage() {
             : o
         )
       );
+      if (selected && (selected.pickup_number === pickupNumber || selected.id === pickupNumber)) {
+        setSelected({ ...selected, status });
+      }
     } catch (err) {
       console.error('update status error', err);
       alert('更新狀態失敗');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDelete = async (pickupNumber) => {
+    if (!window.confirm('確定要刪除此訂單？')) return;
+    try {
+      setUpdating(true);
+      await api.delete(`/orders/status/${pickupNumber}/`);
+      setOrders((prev) =>
+        prev.filter((o) => o.pickup_number !== pickupNumber && o.id !== pickupNumber)
+      );
+      if (selected && (selected.pickup_number === pickupNumber || selected.id === pickupNumber)) {
+        setSelected(null);
+      }
+    } catch (err) {
+      console.error('delete order error', err);
+      alert('刪除訂單失敗');
     } finally {
       setUpdating(false);
     }
@@ -167,10 +190,11 @@ function OrderManagementPage() {
 
       <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
         {[
+          { key: 'all', label: '全部' },
           { key: 'pending', label: '待處理' },
           { key: 'accepted', label: '已接受' },
+          { key: 'completed', label: '已完成' },
           { key: 'rejected', label: '已拒絕' },
-          { key: 'all', label: '全部' },
         ].map((opt) => (
           <button
             key={opt.key}
@@ -197,6 +221,7 @@ function OrderManagementPage() {
                 <th>取餐號碼</th>
                 <th>客戶</th>
                 <th>聯絡電話</th>
+                <th>訂單類型</th>
                 <th>付款方式</th>
                 <th>狀態</th>
                 <th>建立時間</th>
@@ -209,6 +234,11 @@ function OrderManagementPage() {
                   <td><strong>{order.pickup_number || order.id}</strong></td>
                   <td>{order.customer_name}</td>
                   <td>{order.customer_phone}</td>
+                  <td>
+                    <span className={`badge ${order.channel === 'takeout' ? 'bg-warning' : 'bg-info'}`}>
+                      {order.channel === 'takeout' ? '外帶' : '內用'}
+                    </span>
+                  </td>
                   <td>{order.payment_method}</td>
                   {(() => {
                     const status = order.status || 'pending';
@@ -226,37 +256,86 @@ function OrderManagementPage() {
             : '-'}
           </td>
                   <td>
-                    {(order.status === 'pending' || !order.status) ? (
-                      <div className="d-flex gap-2">
-                        <button
-                          className="btn btn-sm btn-success"
-                          disabled={updating}
-                          onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'accepted')}
-                        >
-                          接受
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          disabled={updating}
-                          onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'rejected')}
-                        >
-                          拒絕
-                        </button>
+                    {(() => {
+                      const status = order.status || 'pending';
+                      if (status === 'pending') {
+                        return (
+                          <div className="d-flex gap-2">
+                            <button
+                              className="btn btn-sm btn-success"
+                              disabled={updating}
+                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'accepted')}
+                            >
+                              接受
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              disabled={updating}
+                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'rejected')}
+                            >
+                              拒絕
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() => setSelected(order)}
+                            >
+                              查看
+                            </button>
+                          </div>
+                        );
+                      } else if (status === 'accepted') {
+                        return (
+                          <div className="d-flex gap-2">
+                            <button
+                              className="btn btn-sm btn-success"
+                              disabled={updating}
+                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'completed')}
+                            >
+                              完成訂單
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              disabled={updating}
+                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'rejected')}
+                            >
+                              取消
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() => setSelected(order)}
+                            >
+                              查看
+                            </button>
+                          </div>
+                        );
+                      } else if (status === 'completed' || status === 'rejected') {
+                        return (
+                          <div className="d-flex gap-2">
+                            <button
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() => setSelected(order)}
+                            >
+                              查看
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              disabled={updating}
+                              onClick={() => handleDelete(order.pickup_number || order.id)}
+                            >
+                              刪除
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
                         <button
                           className="btn btn-sm btn-outline-secondary"
                           onClick={() => setSelected(order)}
                         >
                           查看
                         </button>
-                      </div>
-                    ) : (
-                      <button
-                        className="btn btn-sm btn-outline-secondary"
-                        onClick={() => setSelected(order)}
-                      >
-                        查看
-                      </button>
-                    )}
+                      );
+                    })()}
                   </td>
                 </tr>
               ))}
@@ -319,24 +398,59 @@ function OrderManagementPage() {
               )}
             </div>
             <div className="modal-footer d-flex justify-content-end gap-2">
-              {(selected.status === 'pending' || !selected.status) && (
-                <>
-                  <button
-                    className="btn btn-success"
-                    disabled={updating}
-                    onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'accepted')}
-                  >
-                    接受
-                  </button>
-                  <button
-                    className="btn btn-outline-danger"
-                    disabled={updating}
-                    onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'rejected')}
-                  >
-                    拒絕
-                  </button>
-                </>
-              )}
+              {(() => {
+                const status = selected.status || 'pending';
+                if (status === 'pending') {
+                  return (
+                    <>
+                      <button
+                        className="btn btn-success"
+                        disabled={updating}
+                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'accepted')}
+                      >
+                        接受
+                      </button>
+                      <button
+                        className="btn btn-outline-danger"
+                        disabled={updating}
+                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'rejected')}
+                      >
+                        拒絕
+                      </button>
+                    </>
+                  );
+                } else if (status === 'accepted') {
+                  return (
+                    <>
+                      <button
+                        className="btn btn-success"
+                        disabled={updating}
+                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'completed')}
+                      >
+                        完成訂單
+                      </button>
+                      <button
+                        className="btn btn-outline-danger"
+                        disabled={updating}
+                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'rejected')}
+                      >
+                        取消
+                      </button>
+                    </>
+                  );
+                } else if (status === 'completed' || status === 'rejected') {
+                  return (
+                    <button
+                      className="btn btn-outline-danger"
+                      disabled={updating}
+                      onClick={() => handleDelete(selected.pickup_number || selected.id)}
+                    >
+                      刪除
+                    </button>
+                  );
+                }
+                return null;
+              })()}
               <button className="btn btn-secondary" onClick={() => setSelected(null)}>關閉</button>
             </div>
           </div>

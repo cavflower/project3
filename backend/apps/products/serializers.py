@@ -1,7 +1,32 @@
 from rest_framework import serializers
-from .models import Product
+from .models import Product, ProductCategory
+
+
+class ProductCategorySerializer(serializers.ModelSerializer):
+    """產品類別序列化器"""
+    products_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ProductCategory
+        fields = ['id', 'name', 'description', 'display_order', 'is_active', 'created_at', 'updated_at', 'products_count']
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def get_products_count(self, obj):
+        """獲取該類別下的產品數量"""
+        return obj.products.count()
+    
+    def create(self, validated_data):
+        request = self.context['request']
+        merchant = getattr(request.user, 'merchant_profile', None)
+        if not merchant or not hasattr(merchant, 'store'):
+            raise serializers.ValidationError('Merchant store not found.')
+        validated_data['store'] = merchant.store
+        return super().create(validated_data)
+
 
 class ProductSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    
     class Meta:
         model = Product
         fields = '__all__'
@@ -23,7 +48,10 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class PublicProductSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
+    
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price', 'image', 'service_type', 'is_available', 'store']
+        fields = ['id', 'name', 'description', 'price', 'image', 'service_type', 'is_available', 'store', 'category', 'category_name']
+
 

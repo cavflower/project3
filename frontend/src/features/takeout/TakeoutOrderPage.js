@@ -1,10 +1,10 @@
-﻿import React, { useEffect, useMemo, useReducer, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+﻿import React, { useEffect, useMemo, useReducer, useState, useRef } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { FaPlus, FaMinus, FaShoppingCart } from "react-icons/fa";
 import { getStore } from "../../api/storeApi";
-import { createTakeoutOrder, getTakeoutProducts } from "../../api/orderApi";
+import { getTakeoutProducts } from "../../api/orderApi";
+import { getPublicProductCategories } from "../../api/productApi";
 import { useAuth } from "../../store/AuthContext";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { db } from "../../firebase";
 import "./TakeoutOrderPage.css";
 
 const initialCart = {
@@ -13,12 +13,6 @@ const initialCart = {
   pickupAt: "",
   contact: { name: "", phone: "" },
 };
-
-const paymentOptionsList = [
-  { value: "cash", label: "現金" },
-  { value: "credit_card", label: "信用卡" },
-  { value: "line_pay", label: "LINE Pay" },
-];
 
 const formatPrice = (value) => Math.round(Number(value) || 0);
 
@@ -58,49 +52,42 @@ function cartReducer(state, action) {
   }
 }
 
-const pickupSlots = () => {
-  const slots = [];
-  const now = new Date();
-  for (let i = 20; i <= 60; i += 10) {
-    const slot = new Date(now.getTime() + i * 60000);
-    slots.push(slot.toISOString());
-  }
-  return slots;
-};
-
 function TakeoutOrderPage() {
   const { storeId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [store, setStore] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState(paymentOptionsList[0].value);
-  const [pickupNumber, setPickupNumber] = useState("");
-  // 預設不需要餐具，避免未選阻擋送單
-  const [useUtensils, setUseUtensils] = useState("no");
-
   const [loading, setLoading] = useState(true);
   const [menuItems, setMenuItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [cart, dispatch] = useReducer(cartReducer, {
-    ...initialCart,
-    contact: {
-      name: user?.name || "",
-      phone: user?.phone || "",
-    },
-    pickupAt: pickupSlots()[0] || "",
-  });
+  const categoryRefs = useRef({});
+  
+  // 如果從購物車頁面返回，恢復購物車狀態
+  const initialCartState = location.state?.cart || initialCart;
+  const [cart, dispatch] = useReducer(cartReducer, initialCartState);
 
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
         setError("");
-        const response = await getStore(storeId);
-        setStore(response.data);
-
-        const productsRes = await getTakeoutProducts(storeId);
+        const [storeRes, productsRes, categoriesRes] = await Promise.all([
+          getStore(storeId),
+          getTakeoutProducts(storeId),
+          getPublicProductCategories(storeId)
+        ]);
+        
+        setStore(storeRes.data);
         setMenuItems(productsRes.data);
+        setCategories(categoriesRes.data || []);
+        
+        // 預設選中第一個類別
+        if (categoriesRes.data && categoriesRes.data.length > 0) {
+          setSelectedCategory(categoriesRes.data[0].id);
+        }
       } catch (err) {
         setError("載入資料失敗，請稍後再試");
       } finally {
@@ -110,79 +97,20 @@ function TakeoutOrderPage() {
     load();
   }, [storeId]);
 
-  useEffect(() => {
-    dispatch({
-      type: "UPDATE_CONTACT",
-      payload: { name: user?.name || "", phone: user?.phone || "" },
-    });
-  }, [user]);
-
   const total = useMemo(
     () => cart.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0),
     [cart.items]
   );
-  const slots = useMemo(pickupSlots, []);
 
-  const handleSubmit = async () => {
-    if (!cart.items.length) {
-      alert("請先選擇餐點。");
-      return;
-    }
-    if (!cart.contact.name || !cart.contact.phone) {
-      alert("請填寫聯絡人姓名與電話。");
-      return;
-    }
-    try {
-      setSubmitting(true);
-      const payload = {
-        store: storeId,
-        pickup_at: cart.pickupAt,
-        customer_name: cart.contact.name,
-        customer_phone: cart.contact.phone,
-        notes: cart.notes,
-        payment_method: paymentMethod,
-        use_utensils: useUtensils === "yes",
-        items: cart.items.map((item) => ({
-          product: item.id,
-          quantity: item.quantity,
-        })),
-      };
-
-      const response = await createTakeoutOrder(payload);
-      const orderId = String(response.data?.id || "pending");
-      const pickupNo = response.data?.pickup_number;
-      setPickupNumber(pickupNo || "");
-      dispatch({ type: "CLEAR_CART" });
-      const paymentLabel = paymentOptionsList.find((o) => o.value === paymentMethod)?.label;
-      try {
-        await setDoc(
-          doc(db, "orders", orderId),
-          {
-            orderId,
-            pickupNumber: pickupNo || null,
-            storeId,
-            paymentMethod,
-            channel: "takeout",
-            createdAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-      } catch (firestoreErr) {
-        console.error("Failed to store order in Firestore", firestoreErr);
+  const handleGoToCart = () => {
+    // 只傳遞可序列化的資料，不傳遞 dispatch 函數
+    navigate(`/takeout/${storeId}/cart`, {
+      state: { 
+        cart: cart,
+        store: store,
+        storeId: storeId 
       }
-      alert(`付款方式：${paymentLabel}\n取餐號碼：${pickupNo || "待通知"}`);
-
-      navigate(`/confirmation/${orderId}`, {
-        state: {
-          pickupNumber: pickupNo || null,
-          paymentMethod: paymentLabel || paymentMethod,
-        },
-      });
-    } catch (err) {
-      alert("送出失敗，請稍後再試。");
-    } finally {
-      setSubmitting(false);
-    }
+    });
   };
 
   if (loading) {
@@ -204,7 +132,182 @@ function TakeoutOrderPage() {
 
   return (
     <div className="takeout-page container" style={{ marginTop: "70px" }}>
-      {/* 其餘 UI 保持原有結構，含餐點列表、聯絡人、付款方式、餐具開關、備註、購物車與送出按鈕 */}
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="card shadow-sm">
+            <div className="card-body">
+              <h2 className="mb-1">{store?.name}</h2>
+              <p className="text-muted mb-2">{store?.address}</p>
+              <div className="d-flex flex-wrap gap-3">
+                <span>
+                  <i className="bi bi-telephone me-1" />
+                  {store?.phone}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-4">
+        <div className="col-12">
+          {/* 類別導航標籤 + 購物車按鈕 */}
+          {categories.length > 0 && (
+            <div className="category-nav-tabs mb-3">
+              <div className="nav-tabs-scroll">
+                {categories.map((category) => {
+                  const categoryProducts = menuItems.filter(item => item.category === category.id);
+                  return (
+                    <button
+                      key={category.id}
+                      className={`category-nav-btn ${selectedCategory === category.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedCategory(category.id);
+                        categoryRefs.current[category.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                    >
+                      {category.name}
+                      {categoryProducts.length > 0 && (
+                        <span className="category-count">{categoryProducts.length}</span>
+                      )}
+                    </button>
+                  );
+                })}
+                {/* 購物車按鈕 */}
+                <button
+                  className="cart-nav-btn"
+                  onClick={handleGoToCart}
+                >
+                  <FaShoppingCart size={18} />
+                  {cart.items.length > 0 && (
+                    <span className="cart-badge">{cart.items.length}</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 按類別分組顯示商品 */}
+          {categories.length === 0 ? (
+            <div className="card shadow-sm mb-4 takeout-card">
+              <div className="card-header takeout-card-header">
+                <strong>餐點列表</strong>
+              </div>
+              <div className="card-body">
+                {menuItems.length === 0 && (
+                  <p className="text-muted">目前尚無外帶餐點。</p>
+                )}
+                {menuItems.map((item) => {
+                  const cartItem = cart.items.find(ci => ci.id === item.id);
+                  const quantity = cartItem ? cartItem.quantity : 0;
+                  
+                  return (
+                    <div
+                      key={item.id}
+                      className="d-flex justify-content-between align-items-center border-bottom py-3"
+                    >
+                      <div className="flex-grow-1">
+                        <h5 className="mb-1">{item.name}</h5>
+                        <p className="text-muted mb-1">{item.description}</p>
+                        <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
+                      </div>
+                      {quantity === 0 ? (
+                        <button
+                          className="btn rounded-circle add-btn"
+                          onClick={() => dispatch({ type: "ADD_ITEM", payload: item })}
+                          title="加入購物車"
+                        >
+                          <FaPlus />
+                        </button>
+                      ) : (
+                        <div className="quantity-control d-flex align-items-center gap-2">
+                          <button
+                            className="btn rounded-circle quantity-btn"
+                            onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
+                          >
+                            <FaMinus />
+                          </button>
+                          <span className="quantity-display">{quantity}</span>
+                          <button
+                            className="btn rounded-circle quantity-btn"
+                            onClick={() => dispatch({ type: "ADD_ITEM", payload: item })}
+                          >
+                            <FaPlus />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            categories.map((category) => {
+              const categoryProducts = menuItems.filter(item => item.category === category.id);
+              if (categoryProducts.length === 0) return null;
+              
+              return (
+                <div
+                  key={category.id}
+                  ref={el => categoryRefs.current[category.id] = el}
+                  className="card shadow-sm mb-4 takeout-card category-section"
+                >
+                  <div className="card-header takeout-card-header">
+                    <strong>{category.name}</strong>
+                    {category.description && (
+                      <small className="d-block mt-1" style={{ opacity: 0.9 }}>{category.description}</small>
+                    )}
+                  </div>
+                  <div className="card-body">
+                    {categoryProducts.map((item) => {
+                      const cartItem = cart.items.find(ci => ci.id === item.id);
+                      const quantity = cartItem ? cartItem.quantity : 0;
+                      
+                      return (
+                        <div
+                          key={item.id}
+                          className="d-flex justify-content-between align-items-center border-bottom py-3"
+                        >
+                          <div className="flex-grow-1">
+                            <h5 className="mb-1">{item.name}</h5>
+                            <p className="text-muted mb-1">{item.description}</p>
+                            <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
+                          </div>
+                          {quantity === 0 ? (
+                            <button
+                              className="btn rounded-circle add-btn"
+                              onClick={() => dispatch({ type: "ADD_ITEM", payload: item })}
+                              title="加入購物車"
+                            >
+                              <FaPlus />
+                            </button>
+                          ) : (
+                            <div className="quantity-control d-flex align-items-center gap-2">
+                              <button
+                                className="btn rounded-circle quantity-btn"
+                                onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
+                              >
+                                <FaMinus />
+                              </button>
+                              <span className="quantity-display">{quantity}</span>
+                              <button
+                                className="btn rounded-circle quantity-btn"
+                                onClick={() => dispatch({ type: "ADD_ITEM", payload: item })}
+                              >
+                                <FaPlus />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 }

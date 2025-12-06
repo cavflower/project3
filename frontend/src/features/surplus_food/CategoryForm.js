@@ -15,6 +15,10 @@ const CategoryForm = ({ category, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const modalContent = document.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     if (category) {
       setFormData({
         name: category.name || '',

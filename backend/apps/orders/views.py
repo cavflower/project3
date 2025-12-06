@@ -21,7 +21,7 @@ class TakeoutOrderCreateView(generics.CreateAPIView):
 
 class OrderStatusUpdateView(APIView):
     permission_classes = [permissions.AllowAny]
-    VALID_STATUS = {'pending', 'accepted', 'rejected'}
+    VALID_STATUS = {'pending', 'accepted', 'in_progress', 'completed', 'rejected'}
 
     def patch(self, request, pickup_number):
         new_status = request.data.get('status')
@@ -36,4 +36,30 @@ class OrderStatusUpdateView(APIView):
             )
             return Response({'pickup_number': pickup_number, 'status': new_status})
         except Exception as exc:  # noqa: BLE001
+            return Response({'detail': str(exc)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def delete(self, request, pickup_number):
+        """刪除已完成或已拒絕的訂單"""
+        try:
+            # 從 Firestore 獲取訂單檢查狀態
+            doc_ref = firestore.client().collection('orders').document(pickup_number)
+            doc = doc_ref.get()
+            
+            if not doc.exists:
+                return Response({'detail': 'Order not found'}, status=http_status.HTTP_404_NOT_FOUND)
+            
+            order_data = doc.to_dict()
+            order_status = order_data.get('status')
+            
+            # 只允許刪除已完成或已拒絕的訂單
+            if order_status not in ['completed', 'rejected']:
+                return Response(
+                    {'detail': 'Only completed or rejected orders can be deleted'}, 
+                    status=http_status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 刪除訂單
+            doc_ref.delete()
+            return Response({'detail': 'Order deleted successfully'}, status=http_status.HTTP_204_NO_CONTENT)
+        except Exception as exc:
             return Response({'detail': str(exc)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
