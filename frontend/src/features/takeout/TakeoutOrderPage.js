@@ -173,6 +173,8 @@ function TakeoutOrderPage() {
                     </button>
                   );
                 })}
+
+
                 {/* 購物車按鈕 */}
                 <button
                   className="cart-nav-btn"
@@ -181,7 +183,17 @@ function TakeoutOrderPage() {
                   <FaShoppingCart size={18} />
                   {cart.items.length > 0 && (
                     <span className="cart-badge">{cart.items.length}</span>
-                  )}
+                  )}             
+                </button>
+                
+                {/* 惜福專區按鈕 */}
+                <button
+                  className="surplus-zone-nav-btn"
+                  onClick={() => navigate(`/store/${storeId}/surplus`, {
+                    state: { cart: cart }
+                  })}
+                >
+                  惜福專區
                 </button>
               </div>
             </div>
@@ -214,7 +226,7 @@ function TakeoutOrderPage() {
                       {quantity === 0 ? (
                         <button
                           className="btn rounded-circle add-btn"
-                          onClick={() => dispatch({ type: "ADD_ITEM", payload: item })}
+                          onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
                           title="加入購物車"
                         >
                           <FaPlus />
@@ -230,7 +242,7 @@ function TakeoutOrderPage() {
                           <span className="quantity-display">{quantity}</span>
                           <button
                             className="btn rounded-circle quantity-btn"
-                            onClick={() => dispatch({ type: "ADD_ITEM", payload: item })}
+                            onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
                           >
                             <FaPlus />
                           </button>
@@ -276,7 +288,7 @@ function TakeoutOrderPage() {
                           {quantity === 0 ? (
                             <button
                               className="btn rounded-circle add-btn"
-                              onClick={() => dispatch({ type: "ADD_ITEM", payload: item })}
+                              onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
                               title="加入購物車"
                             >
                               <FaPlus />
@@ -292,7 +304,7 @@ function TakeoutOrderPage() {
                               <span className="quantity-display">{quantity}</span>
                               <button
                                 className="btn rounded-circle quantity-btn"
-                                onClick={() => dispatch({ type: "ADD_ITEM", payload: item })}
+                                onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
                               >
                                 <FaPlus />
                               </button>

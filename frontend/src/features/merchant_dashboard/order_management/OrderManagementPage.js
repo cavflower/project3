@@ -19,7 +19,6 @@ function OrderManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState(false);
-  const [selected, setSelected] = useState(null);
   const [productMap, setProductMap] = useState({});
   const [statusFilter, setStatusFilter] = useState('pending');
   const [page, setPage] = useState(1);
@@ -87,9 +86,6 @@ function OrderManagementPage() {
             : o
         )
       );
-      if (selected && (selected.pickup_number === pickupNumber || selected.id === pickupNumber)) {
-        setSelected({ ...selected, status });
-      }
     } catch (err) {
       console.error('update status error', err);
       alert('更新狀態失敗');
@@ -106,9 +102,6 @@ function OrderManagementPage() {
       setOrders((prev) =>
         prev.filter((o) => o.pickup_number !== pickupNumber && o.id !== pickupNumber)
       );
-      if (selected && (selected.pickup_number === pickupNumber || selected.id === pickupNumber)) {
-        setSelected(null);
-      }
       alert('訂單已成功刪除');
     } catch (err) {
       console.error('delete order error', err);
@@ -218,278 +211,139 @@ function OrderManagementPage() {
       {sortedOrders.length === 0 ? (
         <div className="alert alert-secondary">目前沒有訂單</div>
       ) : (
-        <div className="table-responsive">
-          <table className="table table-hover align-middle">
-            <thead>
-              <tr>
-                <th>取餐號碼</th>
-                <th>客戶</th>
-                <th>聯絡電話</th>
-                <th>訂單類型</th>
-                <th>付款方式</th>
-                <th>狀態</th>
-                <th>建立時間</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedOrders.map((order) => (
-                <tr key={order.id}>
-                  <td><strong>{order.pickup_number || order.id}</strong></td>
-                  <td>{order.customer_name}</td>
-                  <td>{order.customer_phone}</td>
-                  <td>
-                    <span className={`badge ${order.channel === 'takeout' ? 'bg-warning' : 'bg-info'}`}>
-                      {order.channel === 'takeout' ? '外帶' : '內用'}
-                    </span>
-                  </td>
-                  <td>{order.payment_method}</td>
-                  {(() => {
-                    const status = order.status || 'pending';
-                    return (
-                    <td>
-                      <span className={`badge status-${status}`}>
-                        {statusLabels[status] || status}
-                      </span>
-                    </td>
-                    );
-                  })()}
-                  <td>
-                    {order.created_at
-            ? order.created_at.toLocaleString()
-            : '-'}
-          </td>
-                  <td>
-                    {(() => {
-                      const status = order.status || 'pending';
-                      if (status === 'pending') {
-                        return (
-                          <div className="d-flex gap-2">
-                            <button
-                              className="btn btn-sm btn-success"
-                              disabled={updating}
-                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'accepted')}
-                            >
-                              接受
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              disabled={updating}
-                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'rejected')}
-                            >
-                              拒絕
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => setSelected(order)}
-                            >
-                              查看
-                            </button>
-                          </div>
-                        );
-                      } else if (status === 'accepted') {
-                        return (
-                          <div className="d-flex gap-2">
-                            <button
-                              className="btn btn-sm btn-primary"
-                              disabled={updating}
-                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'ready_for_pickup')}
-                            >
-                              製作完成
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              disabled={updating}
-                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'rejected')}
-                            >
-                              取消
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => setSelected(order)}
-                            >
-                              查看
-                            </button>
-                          </div>
-                        );
-                      } else if (status === 'ready_for_pickup') {
-                        return (
-                          <div className="d-flex gap-2">
-                            <button
-                              className="btn btn-sm btn-success"
-                              disabled={updating}
-                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'completed')}
-                            >
-                              完成訂單
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => setSelected(order)}
-                            >
-                              查看
-                            </button>
-                          </div>
-                        );
-                      } else if (status === 'completed' || status === 'rejected') {
-                        return (
-                          <div className="d-flex gap-2">
-                            <button
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => setSelected(order)}
-                            >
-                              查看
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              disabled={updating}
-                              onClick={() => handleDelete(order.pickup_number || order.id)}
-                            >
-                              刪除
-                            </button>
-                          </div>
-                        );
-                      }
-                      return (
-                        <button
-                          className="btn btn-sm btn-outline-secondary"
-                          onClick={() => setSelected(order)}
-                        >
-                          查看
-                        </button>
-                      );
-                    })()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="d-flex justify-content-between align-items-center mt-3">
-            <div className="text-muted">
-              第 {currentPage} / {totalPages} 頁（共 {filteredOrders.length} 筆）
-            </div>
-            <div className="d-flex gap-2">
-              <button
-                className="btn btn-sm btn-outline-secondary"
-                disabled={currentPage === 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                上一頁
-              </button>
-              <button
-                className="btn btn-sm btn-outline-secondary"
-                disabled={currentPage === totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                下一頁
-              </button>
-            </div>
-          </div>
+        <div className="orders-list">
+          {pagedOrders.map((order) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              productMap={productMap}
+              formatUtensils={formatUtensils}
+              statusLabels={statusLabels}
+              updating={updating}
+              onUpdateStatus={handleUpdateStatus}
+              onDelete={handleDelete}
+            />
+          ))}
         </div>
       )}
-      {selected && (
-        <div className="modal-backdrop" onClick={() => setSelected(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">訂單詳情</h5>
-              <button className="btn-close" onClick={() => setSelected(null)} />
-            </div>
-            <div className="modal-body">
-              <p><strong>取餐號碼：</strong>{selected.pickup_number || selected.id}</p>
-              <p><strong>客戶：</strong>{selected.customer_name}</p>
-              <p><strong>電話：</strong>{selected.customer_phone}</p>
-              <p><strong>付款方式：</strong>{selected.payment_method}</p>
-              <p><strong>備註：</strong>{selected.notes || '—'}</p>
-              <p>
-                <strong>餐具需求：</strong>
-                {formatUtensils(selected)}
-              </p>
-              {selected.table_label && <p><strong>桌號：</strong>{selected.table_label}</p>}
-              {Array.isArray(selected.items) && selected.items.length > 0 && (
-                <div className="mt-2">
-                  <strong>品項：</strong>
-                  <ul className="mb-0">
-                    {selected.items.map((it, idx) => (
-                      <li key={idx}>
-                        {productMap[it.product_id || it.product] ||
-                          `商品ID: ${it.product_id || it.product}`}{' '}
-                        × {it.quantity}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer d-flex justify-content-end gap-2">
-              {(() => {
-                const status = selected.status || 'pending';
-                if (status === 'pending') {
-                  return (
-                    <>
-                      <button
-                        className="btn btn-success"
-                        disabled={updating}
-                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'accepted')}
-                      >
-                        接受
-                      </button>
-                      <button
-                        className="btn btn-outline-danger"
-                        disabled={updating}
-                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'rejected')}
-                      >
-                        拒絕
-                      </button>
-                    </>
-                  );
-                } else if (status === 'accepted') {
-                  return (
-                    <>
-                      <button
-                        className="btn btn-primary"
-                        disabled={updating}
-                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'ready_for_pickup')}
-                      >
-                        製作完成
-                      </button>
-                      <button
-                        className="btn btn-outline-danger"
-                        disabled={updating}
-                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'rejected')}
-                      >
-                        取消
-                      </button>
-                    </>
-                  );
-                } else if (status === 'ready_for_pickup') {
-                  return (
-                    <button
-                      className="btn btn-success"
-                      disabled={updating}
-                      onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'completed')}
-                    >
-                      完成訂單
-                    </button>
-                  );
-                } else if (status === 'completed' || status === 'rejected') {
-                  return (
-                    <button
-                      className="btn btn-outline-danger"
-                      disabled={updating}
-                      onClick={() => handleDelete(selected.pickup_number || selected.id)}
-                    >
-                      刪除
-                    </button>
-                  );
-                }
-                return null;
-              })()}
-              <button className="btn btn-secondary" onClick={() => setSelected(null)}>關閉</button>
-            </div>
-          </div>
+
+      {/* 分頁控制 */}
+      <div className="d-flex justify-content-between align-items-center mt-3">
+        <div className="text-muted">
+          第 {currentPage} / {totalPages} 頁（共 {filteredOrders.length} 筆）
         </div>
-      )}
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-sm btn-outline-secondary"
+            disabled={currentPage === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            上一頁
+          </button>
+          <button
+            className="btn btn-sm btn-outline-secondary"
+            disabled={currentPage === totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            下一頁
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
+
+const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, onUpdateStatus, onDelete }) => {
+  const status = order.status || 'pending';
+  const orderType = order.channel === 'takeout' ? '外帶' : '內用';
+
+  return (
+    <div className="order-card">
+      <div className="order-body">
+        <div className="order-info">
+          <p><strong>取餐號碼：</strong>{order.pickup_number || order.id}</p>
+          <p><strong>客戶：</strong>{order.customer_name}</p>
+          <p><strong>電話：</strong>{order.customer_phone}</p>
+          <p><strong>訂單類型：</strong>{orderType}</p>
+          <p><strong>訂單狀態：</strong>{statusLabels[status] || status}</p>
+          <p><strong>付款方式：</strong>{order.payment_method}</p>
+          <p><strong>備註：</strong>{order.notes || '—'}</p>
+          <p><strong>餐具需求：</strong>{formatUtensils(order)}</p>
+          {order.table_label && <p><strong>桌號：</strong>{order.table_label}</p>}
+          {Array.isArray(order.items) && order.items.length > 0 && (
+            <div className="mt-2">
+              <strong>品項：</strong>
+              <ul className="mb-0">
+                {order.items.map((it, idx) => (
+                  <li key={idx}>
+                    {productMap[it.product_id || it.product] ||
+                      `商品ID: ${it.product_id || it.product}`}{' '}
+                    × {it.quantity}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="order-actions">
+        {status === 'pending' && (
+          <>
+            <button
+              className="surplus-btn-sm btn-success"
+              disabled={updating}
+              onClick={() => onUpdateStatus(order.pickup_number || order.id, 'accepted')}
+            >
+              接受
+            </button>
+            <button
+              className="surplus-btn-sm btn-danger"
+              disabled={updating}
+              onClick={() => onUpdateStatus(order.pickup_number || order.id, 'rejected')}
+            >
+              拒絕
+            </button>
+          </>
+        )}
+        {status === 'accepted' && (
+          <>
+            <button
+              className="surplus-btn-sm surplus-btn-primary"
+              disabled={updating}
+              onClick={() => onUpdateStatus(order.pickup_number || order.id, 'ready_for_pickup')}
+            >
+              製作完成
+            </button>
+            <button
+              className="surplus-btn-sm btn-danger"
+              disabled={updating}
+              onClick={() => onUpdateStatus(order.pickup_number || order.id, 'rejected')}
+            >
+              取消
+            </button>
+          </>
+        )}
+        {status === 'ready_for_pickup' && (
+          <button
+            className="surplus-btn-sm btn-success"
+            disabled={updating}
+            onClick={() => onUpdateStatus(order.pickup_number || order.id, 'completed')}
+          >
+            完成訂單
+          </button>
+        )}
+        {(status === 'completed' || status === 'rejected') && (
+          <button
+            className="surplus-btn-sm btn-danger"
+            disabled={updating}
+            onClick={() => onDelete(order.pickup_number || order.id)}
+          >
+            刪除
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default OrderManagementPage;

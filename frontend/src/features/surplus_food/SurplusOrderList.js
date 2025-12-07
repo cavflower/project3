@@ -4,15 +4,17 @@ import { surplusFoodApi } from '../../api/surplusFoodApi';
 const SurplusOrderList = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     loadOrders();
-  }, []);
+  }, [statusFilter]);
 
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const data = await surplusFoodApi.getOrders();
+      const params = statusFilter !== 'all' ? { status: statusFilter } : {};
+      const data = await surplusFoodApi.getOrders(params);
       setOrders(data);
     } catch (error) {
       console.error('載入訂單失敗:', error);
@@ -23,6 +25,26 @@ const SurplusOrderList = () => {
   };
 
   const handleUpdateStatus = async (orderId, action) => {
+    // 定義狀態映射
+    const statusMap = {
+      'confirm': 'confirmed',
+      'ready': 'ready',
+      'complete': 'completed',
+      'cancel': 'cancelled',
+      'reject': 'cancelled'
+    };
+    
+    const newStatus = statusMap[action];
+    
+    // 樂觀更新：先更新 UI
+    setOrders(prevOrders => 
+      prevOrders.map(order => 
+        order.id === orderId 
+          ? { ...order, status: newStatus, status_display: getStatusLabel(newStatus) }
+          : order
+      )
+    );
+
     try {
       if (action === 'confirm') {
         await surplusFoodApi.confirmOrder(orderId);
@@ -32,12 +54,43 @@ const SurplusOrderList = () => {
         await surplusFoodApi.completeOrder(orderId);
       } else if (action === 'cancel') {
         await surplusFoodApi.cancelOrder(orderId);
+      } else if (action === 'reject') {
+        await surplusFoodApi.rejectOrder(orderId);
       }
-      alert('更新成功！');
-      loadOrders();
     } catch (error) {
       console.error('更新失敗:', error);
       alert('更新失敗');
+      // 如果失敗，重新載入正確的資料
+      loadOrders();
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      'pending': '待確認',
+      'confirmed': '已確認',
+      'ready': '可取餐',
+      'completed': '已完成',
+      'cancelled': '已取消'
+    };
+    return labels[status] || status;
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm('確定要刪除此訂單嗎？')) {
+      return;
+    }
+    
+    // 樂觀更新：先從 UI 移除
+    setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
+    
+    try {
+      await surplusFoodApi.deleteOrder(orderId);
+    } catch (error) {
+      console.error('刪除失敗:', error);
+      alert('刪除失敗');
+      // 如果失敗，重新載入正確的資料
+      loadOrders();
     }
   };
 
@@ -45,6 +98,46 @@ const SurplusOrderList = () => {
     <div className="tab-content">
       <div className="content-header">
         <h2>惜福食品訂單</h2>
+      </div>
+
+      {/* 狀態篩選器 */}
+      <div className="filter-section" style={{ marginBottom: '20px' }}>
+        <button
+          className={statusFilter === 'all' ? 'filter-btn active' : 'filter-btn'}
+          onClick={() => setStatusFilter('all')}
+        >
+          全部
+        </button>
+        <button
+          className={statusFilter === 'pending' ? 'filter-btn active' : 'filter-btn'}
+          onClick={() => setStatusFilter('pending')}
+        >
+          待處理
+        </button>
+        <button
+          className={statusFilter === 'confirmed' ? 'filter-btn active' : 'filter-btn'}
+          onClick={() => setStatusFilter('confirmed')}
+        >
+          已接受
+        </button>
+        <button
+          className={statusFilter === 'ready' ? 'filter-btn active' : 'filter-btn'}
+          onClick={() => setStatusFilter('ready')}
+        >
+          可取餐
+        </button>
+        <button
+          className={statusFilter === 'completed' ? 'filter-btn active' : 'filter-btn'}
+          onClick={() => setStatusFilter('completed')}
+        >
+          已完成
+        </button>
+        <button
+          className={statusFilter === 'cancelled' ? 'filter-btn active' : 'filter-btn'}
+          onClick={() => setStatusFilter('cancelled')}
+        >
+          已拒絕
+        </button>
       </div>
 
       {loading ? (
@@ -59,6 +152,7 @@ const SurplusOrderList = () => {
                 key={order.id} 
                 order={order} 
                 onUpdateStatus={handleUpdateStatus}
+                onDeleteOrder={handleDeleteOrder}
               />
             ))
           )}
@@ -68,40 +162,76 @@ const SurplusOrderList = () => {
   );
 };
 
-const OrderCard = ({ order, onUpdateStatus }) => {
+const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
+  const statusLabels = {
+    pending: '待處理',
+    confirmed: '已接受',
+    ready: '可取餐',
+    completed: '已完成',
+    cancelled: '已拒絕',
+  };
+
+  // 從 surplus_food_detail 取得用餐選項
+  const getDiningOption = () => {
+    const option = order.surplus_food_detail?.dining_option;
+    if (option === 'takeout') return '外帶';
+    if (option === 'dine_in') return '內用';
+    if (option === 'both') return '外帶與內用';
+    return order.surplus_food_detail?.dining_option_display || '外帶';
+  };
+
   return (
     <div className="order-card">
-      <div className="order-header">
-        <span className="order-number">{order.order_number}</span>
-        <span className={`status-badge status-${order.status}`}>
-          {order.status_display}
-        </span>
-      </div>
       <div className="order-body">
         <div className="order-info">
-          <p><strong>商品:</strong> {order.surplus_food_detail?.title}</p>
-          <p><strong>顧客:</strong> {order.customer_name} ({order.customer_phone})</p>
-          <p><strong>數量:</strong> {order.quantity}</p>
-          <p><strong>總價:</strong> NT$ {order.total_price}</p>
-          <p><strong>付款方式:</strong> {order.payment_method_display}</p>
+          <p><strong>取餐號碼：</strong>{order.pickup_number || '待生成'}</p>
+          <p><strong>客戶：</strong>{order.customer_name}</p>
+          <p><strong>電話：</strong>{order.customer_phone}</p>
+          <p><strong>訂單類型：</strong>{getDiningOption()}</p>
+          <p><strong>訂單狀態：</strong>{statusLabels[order.status] || order.status_display}</p>
+          <p><strong>付款方式：</strong>{order.payment_method_display}</p>
+          <p><strong>備註：</strong>{order.notes || '—'}</p>
+          <p><strong>餐具需求：</strong>{order.use_utensils ? '需要餐具' : '不需要餐具'}</p>
+          <div className="mt-2">
+            <strong>品項：</strong>
+            <ul className="mb-0">
+              <li>{order.surplus_food_detail?.title} × {order.quantity}</li>
+            </ul>
+          </div>
         </div>
       </div>
       <div className="order-actions">
         {order.status === 'pending' && (
-          <button 
-            className="surplus-btn-sm btn-success" 
-            onClick={() => onUpdateStatus(order.id, 'confirm')}
-          >
-            確認訂單
-          </button>
+          <>
+            <button 
+              className="surplus-btn-sm btn-success" 
+              onClick={() => onUpdateStatus(order.id, 'confirm')}
+            >
+              確認訂單
+            </button>
+            <button 
+              className="surplus-btn-sm btn-danger" 
+              onClick={() => onUpdateStatus(order.id, 'reject')}
+            >
+              拒絕
+            </button>
+          </>
         )}
         {order.status === 'confirmed' && (
-          <button 
-            className="surplus-btn-sm surplus-btn-primary" 
-            onClick={() => onUpdateStatus(order.id, 'ready')}
-          >
-            可取餐
-          </button>
+          <>
+            <button 
+              className="surplus-btn-sm surplus-btn-primary" 
+              onClick={() => onUpdateStatus(order.id, 'ready')}
+            >
+              可取餐
+            </button>
+            <button 
+              className="surplus-btn-sm btn-danger" 
+              onClick={() => onUpdateStatus(order.id, 'cancel')}
+            >
+              取消
+            </button>
+          </>
         )}
         {order.status === 'ready' && (
           <button 
@@ -111,12 +241,12 @@ const OrderCard = ({ order, onUpdateStatus }) => {
             完成
           </button>
         )}
-        {(order.status === 'pending' || order.status === 'confirmed') && (
+        {(order.status === 'completed' || order.status === 'cancelled') && (
           <button 
             className="surplus-btn-sm btn-danger" 
-            onClick={() => onUpdateStatus(order.id, 'cancel')}
+            onClick={() => onDeleteOrder(order.id)}
           >
-            取消
+            刪除
           </button>
         )}
       </div>

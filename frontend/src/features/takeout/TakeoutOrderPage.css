@@ -94,6 +94,37 @@
   scroll-margin-top: 140px;
 }
 
+/* 惜福專區導航按鈕 */
+.surplus-zone-nav-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  color: #666;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.surplus-zone-nav-btn:hover {
+  border-color: #ffb07a;
+  color: #e86b2c;
+  background: #fff5f0;
+}
+
+.surplus-zone-title {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* 購物車導航按鈕 */
 .cart-nav-btn {
   flex-shrink: 0;

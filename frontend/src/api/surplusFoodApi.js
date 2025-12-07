@@ -188,6 +188,22 @@ export const surplusFoodApi = {
     return response.data;
   },
 
+  /**
+   * 拒絕訂單
+   */
+  rejectOrder: async (id) => {
+    const response = await api.post(`/merchant/surplus/orders/${id}/reject/`);
+    return response.data;
+  },
+
+  /**
+   * 刪除訂單（已完成或已取消的訂單）
+   */
+  deleteOrder: async (id) => {
+    const response = await api.delete(`/merchant/surplus/orders/${id}/delete_order/`);
+    return response.data;
+  },
+
   // ============ 顧客端公開 API ============
 
   /**

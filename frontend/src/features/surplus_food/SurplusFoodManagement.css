@@ -378,11 +378,13 @@
 
 /* 訂單列表 */
 .orders-list {
-  display: grid;
+  display: flex;
   gap: 1rem;
 }
 
 .order-card {
+  height: 100%;
+  width: 30%;
   background: white;
   border-radius: 8px;
   padding: 1.5rem;
@@ -514,7 +516,7 @@
 }
 
 .surplus-btn-sm.btn-success {
-  background: #28a745;
+  background: #ef8e72;
   color: white;
 }
 
@@ -529,8 +531,9 @@
 }
 
 .surplus-btn-sm.btn-danger {
-  background: #dc3545;
-  color: white;
+  background: white;
+  color: #f19173;
+  border: 1px solid #f19173
 }
 
 /* 模態視窗 */
@@ -602,6 +605,37 @@
   font-size: 1.1rem;
 }
 
+/* 狀態篩選按鈕 */
+.filter-section {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #666;
+  transition: all 0.3s;
+}
+
+.filter-btn:hover {
+  background: #f5f5f5;
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.filter-btn.active {
+  background: #f19173;
+  color: white;
+  border-color: #f19173;
+  font-weight: 500;
+}
+
 /* 響應式設計 */
 @media (max-width: 768px) {
   .surplus-food-management {
@@ -640,5 +674,9 @@
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .filter-section {
+    width: 100%;
   }
 }

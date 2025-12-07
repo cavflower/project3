@@ -10,7 +10,7 @@ npm install qrcode.react
 npm install recharts
 
 步驟 3：設定環境變數
-在 frontend 資料夾中，手動建立一個名為 .env 的檔案（如果需要）。
+在 frontend 資料夾中，手動建立一個名為 .env 的檔案。
 
 
 # 後端
@@ -45,7 +45,7 @@ python manage.py migrate
 
 cd backend; .\.venv\Scripts\python.exe manage.py makemigrations users(有動過資料庫結構要打這串，沒有就不用)
 
-cd backend; .\.venv\Scripts\python.exe manage.py migrate(每次抓新檔案先執行一次)
+cd backend; .\.venv\Scripts\python.exe manage.py migrate(資料庫結構動完就打這個)
 
 
 # 前端卸載指令(非必要，除非你專案炸了要重拉)
