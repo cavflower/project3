@@ -171,13 +171,25 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
     cancelled: '已拒絕',
   };
 
-  // 從 surplus_food_detail 取得用餐選項
-  const getDiningOption = () => {
-    const option = order.surplus_food_detail?.dining_option;
-    if (option === 'takeout') return '外帶';
-    if (option === 'dine_in') return '內用';
-    if (option === 'both') return '外帶與內用';
-    return order.surplus_food_detail?.dining_option_display || '外帶';
+  // 從 order_type 取得訂單類型
+  const getOrderType = () => {
+    if (order.order_type === 'dine_in') return '內用';
+    if (order.order_type === 'takeout') return '外帶';
+    return order.order_type_display || '外帶';
+  };
+
+  // 格式化取餐時間
+  const formatPickupTime = (pickupTime) => {
+    if (!pickupTime) return null;
+    const date = new Date(pickupTime);
+    return date.toLocaleString('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
   };
 
   return (
@@ -187,7 +199,10 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
           <p><strong>取餐號碼：</strong>{order.pickup_number || '待生成'}</p>
           <p><strong>客戶：</strong>{order.customer_name}</p>
           <p><strong>電話：</strong>{order.customer_phone}</p>
-          <p><strong>訂單類型：</strong>{getDiningOption()}</p>
+          <p><strong>訂單類型：</strong>{getOrderType()}</p>
+          {order.pickup_time && (
+            <p><strong>取餐時間：</strong>{formatPickupTime(order.pickup_time)}</p>
+          )}
           <p><strong>訂單狀態：</strong>{statusLabels[order.status] || order.status_display}</p>
           <p><strong>付款方式：</strong>{order.payment_method_display}</p>
           <p><strong>備註：</strong>{order.notes || '—'}</p>
@@ -238,7 +253,7 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
             className="surplus-btn-sm btn-success" 
             onClick={() => onUpdateStatus(order.id, 'complete')}
           >
-            完成
+            完成訂單
           </button>
         )}
         {(order.status === 'completed' || order.status === 'cancelled') && (

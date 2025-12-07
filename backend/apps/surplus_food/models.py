@@ -383,6 +383,11 @@ class SurplusFoodOrder(models.Model):
         ('points', '點數兌換'),
     ]
     
+    ORDER_TYPE_CHOICES = [
+        ('dine_in', '內用'),
+        ('takeout', '外帶'),
+    ]
+    
     order_number = models.CharField(
         max_length=20,
         unique=True,
@@ -418,6 +423,13 @@ class SurplusFoodOrder(models.Model):
         max_length=20,
         choices=PAYMENT_CHOICES,
         verbose_name='付款方式'
+    )
+    order_type = models.CharField(
+        max_length=20,
+        choices=ORDER_TYPE_CHOICES,
+        default='takeout',
+        verbose_name='訂單類型',
+        help_text='內用或外帶'
     )
     status = models.CharField(
         max_length=20,

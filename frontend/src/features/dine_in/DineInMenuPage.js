@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
 import { getDineInProducts } from '../../api/orderApi';
 import { useAuth } from '../../store/AuthContext';
@@ -60,14 +60,17 @@ const DineInMenuPage = () => {
     );
   }
 
-  const handleLoginClick = () => {
-    const currentPath = `/store/${storeId}/dine-in/menu?table=${encodeURIComponent(tableLabel)}`;
-    navigate(`/login/customer?redirect=${encodeURIComponent(currentPath)}`);
-  };
-
   const handleOrderClick = () => {
     navigate(`/store/${storeId}/dine-in/order?table=${encodeURIComponent(tableLabel)}`);
   };
+
+  // 構建登入 URL 與 redirect 參數 - 使用完整的 URL 對象
+  const currentUrl = window.location.pathname + window.location.search;
+  const loginUrl = `/login/customer?redirect=${encodeURIComponent(currentUrl)}`;
+  
+  console.log('Current URL:', currentUrl);
+  console.log('Login URL will be:', loginUrl);
+  console.log('Encoded redirect:', encodeURIComponent(currentUrl));
 
   return (
     <div className="dinein-menu-page">
@@ -78,8 +81,8 @@ const DineInMenuPage = () => {
           <p className="menu-note">本頁面提供內用與共用餐點，點餐後請告知服務人員。</p>
           <div className="menu-actions" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
             {!user ? (
-              <button 
-                onClick={handleLoginClick}
+              <a 
+                href={loginUrl}
                 style={{
                   padding: '0.75rem 1.5rem',
                   backgroundColor: '#ff6b6b',
@@ -89,13 +92,13 @@ const DineInMenuPage = () => {
                   fontSize: '1rem',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'background-color 0.2s'
+                  transition: 'background-color 0.2s',
+                  textDecoration: 'none',
+                  display: 'inline-block'
                 }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#ff5252'}
-                onMouseOut={(e) => e.target.style.backgroundColor = '#ff6b6b'}
               >
                 登入會員
-              </button>
+              </a>
             ) : (
               <button 
                 onClick={handleOrderClick}

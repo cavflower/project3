@@ -350,6 +350,7 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
                 'quantity': order.quantity,
                 'total_price': float(order.total_price),
                 'status': order.status,
+                'order_type': order.order_type,  # 新增：訂單類型（內用/外帶）
                 'use_utensils': order.use_utensils,
                 'created_at': datetime.now(),
                 'pickup_time': order.pickup_time.isoformat() if order.pickup_time else None,

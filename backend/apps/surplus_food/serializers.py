@@ -204,6 +204,7 @@ class SurplusFoodOrderSerializer(serializers.ModelSerializer):
     """惜福食品訂單序列化器"""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
+    order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
     surplus_food_detail = SurplusFoodListSerializer(source='surplus_food', read_only=True)
     store_name = serializers.CharField(source='store.name', read_only=True)
     
@@ -215,6 +216,7 @@ class SurplusFoodOrderSerializer(serializers.ModelSerializer):
             'customer_name', 'customer_phone', 'customer_email',
             'quantity', 'unit_price', 'total_price',
             'payment_method', 'payment_method_display',
+            'order_type', 'order_type_display',
             'status', 'status_display', 'pickup_time', 'pickup_number',
             'use_utensils', 'notes',
             'created_at', 'confirmed_at', 'completed_at'

@@ -408,27 +408,7 @@ function DineInOrderPage() {
         </div>
       </div>
 
-      {/* 側邊購物車資訊 - 移至底部固定顯示 */}
-      {cart.items.length > 0 && (
-        <div className="position-fixed bottom-0 start-50 translate-middle-x w-100" style={{ maxWidth: '600px', zIndex: 1000, padding: '0 1rem 1rem' }}>
-          <div className="card shadow-lg">
-            <div className="card-body p-3">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <small className="text-muted">共 {cart.items.reduce((sum, item) => sum + item.quantity, 0)} 項</small>
-                  <div><strong>NT$ {formatPrice(total)}</strong></div>
-                </div>
-                <button
-                  className="btn btn-success"
-                  onClick={handleGoToCart}
-                >
-                  前往結帳
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 購物車已移至 Navbar，不需要底部結帳按鈕 */}
     </div>
   );
 }

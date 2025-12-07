@@ -34,9 +34,15 @@ const MerchantDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [inventoryStats, setInventoryStats] = useState([]);
   const [lowStockItems, setLowStockItems] = useState([]);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   useEffect(() => {
     const loadDashboardData = async () => {
+      if (hasLoadedOnce) {
+        setLoading(false);
+        return;
+      }
+      
       try {
         const [storeResponse, ingredientsData] = await Promise.all([
             getMyStore(),
@@ -59,6 +65,7 @@ const MerchantDashboard = () => {
             { name: '庫存不足', value: lowStock.length }
         ]);
         setLowStockItems(lowStock);
+        setHasLoadedOnce(true);
 
       } catch (error) {
         console.error('載入儀表板資料失敗:', error);
@@ -69,7 +76,8 @@ const MerchantDashboard = () => {
     };
 
     loadDashboardData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLoadedOnce]); // 只有在hasLoadedOnce改變時才重新執行
 
   const handleCardClick = (path, isDisabled) => {
     if (isDisabled) {
@@ -136,11 +144,11 @@ const MerchantDashboard = () => {
     },
 
     {
-      id: 'promotions',
-      name: '行銷活動',
+      id: 'reviews',
+      name: '顧客回饋',
       description: '建立與管理您的行銷活動',
       icon: FaBullhorn,
-      path: '/merchant/promotions',
+      path: '/merchant/reviews',
     },
 
 

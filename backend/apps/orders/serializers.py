@@ -148,9 +148,9 @@ class DineInOrderSerializer(serializers.ModelSerializer):
                 'customer_phone': validated_data.get('customer_phone', ''),
                 'table_label': validated_data.get('table_label', ''),
                 'payment_method': validated_data.get('payment_method', ''),
-                'notes': validated_data.get('notes', ''),
+                'notes': validated_data.get('notes', ''),  # 備註預設為空字串
                 'channel': 'dine_in',
-                'use_eco_tableware': validated_data.get('use_eco_tableware', False),
+                'use_eco_tableware': validated_data.get('use_eco_tableware', False),  # 正確的餐具欄位
                 'items': [
                     {'product_id': item['product'].id, 'quantity': item['quantity']}
                     for item in items_data

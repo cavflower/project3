@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import api from '../../../api/api';
 import { getMyStore } from '../../../api/storeApi';
-import { db } from '../../../lib/firebase';
 import './OrderManagementPage.css';
 
 const statusLabels = {
@@ -20,7 +18,7 @@ function OrderManagementPage() {
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState(false);
   const [productMap, setProductMap] = useState({});
-  const [statusFilter, setStatusFilter] = useState('pending');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const pageSize = 8;
 
@@ -29,44 +27,46 @@ function OrderManagementPage() {
       try {
         setLoading(true);
         setError('');
+        
+        // 先獲取店家 ID
         const storeRes = await getMyStore();
         const id = storeRes.data?.id;
         setStoreId(id);
+        
         if (!id) {
           setError('無法取得店家資料');
+          setLoading(false);
           return;
         }
-        // 避免觸發複合索引需求，僅 where 篩選，排序改在前端做
-        const q = query(collection(db, 'orders'), where('store_id', '==', id));
-        const snapshot = await getDocs(q);
-        const items = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            created_at: data.created_at?.toDate?.() || null,
-          };
-        });
+        
+        // 並行載入訂單和商品資料
+        const [ordersRes, productsRes] = await Promise.all([
+          api.get('/orders/list/', { params: { store_id: id } }),
+          api.get('/products/public/products/', { params: { store: id } })
+        ]);
+        
+        // 處理訂單資料
+        const items = (ordersRes.data || []).map((data) => ({
+          ...data,
+          created_at: data.created_at ? new Date(data.created_at) : null,
+          pickup_at: data.pickup_at ? new Date(data.pickup_at) : null,
+        }));
+        
         setOrders(items);
-        // 取得商品名稱對照
-        try {
-          const productsRes = await api.get('/products/public/products/', {
-            params: { store: id },
-          });
-          const map = {};
-          (productsRes.data || []).forEach((p) => {
-            map[p.id] = p.name || p.title || `商品${p.id}`;
-          });
-          setProductMap(map);
-        } catch (prodErr) {
-          console.error('load products error', prodErr);
-        }
+        
+        // 處理商品名稱對照
+        const map = {};
+        (productsRes.data || []).forEach((p) => {
+          map[p.id] = p.name || p.title || `商品${p.id}`;
+        });
+        setProductMap(map);
+        
       } catch (err) {
         console.error('load orders error', err);
         const detail =
           err?.response?.data?.detail ||
           err?.message ||
-          '載入訂單失敗，請確認 Firebase 設定與登入狀態';
+          '載入訂單失敗，請確認登入狀態';
         setError(detail);
       } finally {
         setLoading(false);
@@ -76,18 +76,26 @@ function OrderManagementPage() {
   }, []);
 
   const handleUpdateStatus = async (pickupNumber, status) => {
+    // 樂觀更新：先保存舊狀態
+    const oldOrders = [...orders];
+    
+    // 立即更新 UI
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.pickup_number === pickupNumber || o.id === pickupNumber
+          ? { ...o, status }
+          : o
+      )
+    );
+    
     try {
       setUpdating(true);
+      // 背景發送請求
       await api.patch(`/orders/status/${pickupNumber}/`, { status });
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.pickup_number === pickupNumber || o.id === pickupNumber
-            ? { ...o, status }
-            : o
-        )
-      );
     } catch (err) {
       console.error('update status error', err);
+      // 失敗時回滾到舊狀態
+      setOrders(oldOrders);
       alert('更新狀態失敗');
     } finally {
       setUpdating(false);
@@ -96,15 +104,24 @@ function OrderManagementPage() {
 
   const handleDelete = async (pickupNumber) => {
     if (!window.confirm('確定要永久刪除此訂單？此操作將從資料庫中完全移除訂單資料。')) return;
+    
+    // 樂觀更新：先保存舊訂單清單
+    const oldOrders = [...orders];
+    
+    // 立即從 UI 移除
+    setOrders((prev) =>
+      prev.filter((o) => o.pickup_number !== pickupNumber && o.id !== pickupNumber)
+    );
+    
     try {
       setUpdating(true);
+      // 背景發送刪除請求
       await api.delete(`/orders/status/${pickupNumber}/`);
-      setOrders((prev) =>
-        prev.filter((o) => o.pickup_number !== pickupNumber && o.id !== pickupNumber)
-      );
       alert('訂單已成功刪除');
     } catch (err) {
       console.error('delete order error', err);
+      // 失敗時回滾
+      setOrders(oldOrders);
       const errorMsg = err.response?.data?.detail || '刪除訂單失敗';
       alert(errorMsg);
     } finally {
@@ -143,12 +160,12 @@ function OrderManagementPage() {
     const utFalse = utensils === false || utensils === 'false' || utensils === 'no';
 
     if (order.service_channel === 'dine_in') {
-      // 若有環保餐具則不需要餐具，反之需要餐具
-      if (ecoTrue) return '不需要餐具';
-      if (ecoFalse) return '需要餐具';
+      // 內用訂單：use_eco_tableware 表示是否使用環保餐具
+      if (ecoTrue) return '使用環保餐具';
+      if (ecoFalse) return '不使用環保餐具';
       return '未填寫';
     }
-    // 外帶
+    // 外帶訂單：use_utensils 表示是否需要餐具
     if (utTrue) return '需要餐具';
     if (utFalse) return '不需要餐具';
     return '未填寫';
@@ -169,7 +186,7 @@ function OrderManagementPage() {
         <div className="alert alert-danger">
           {error}
           <div className="small text-muted mt-2">
-            請確認已登入店家帳號、Firebase 設定正確且 Firestore 有 orders 集合（字段包含 store_id）。
+            請確認已登入店家帳號並有權限存取訂單資料。
           </div>
         </div>
       </div>
@@ -258,6 +275,20 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
   const status = order.status || 'pending';
   const orderType = order.channel === 'takeout' ? '外帶訂單' : '內用訂單';
 
+  // 格式化取餐時間
+  const formatPickupTime = (pickupAt) => {
+    if (!pickupAt) return null;
+    const date = pickupAt instanceof Date ? pickupAt : new Date(pickupAt);
+    return date.toLocaleString('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
   return (
     <div className="order-card">
       <div className="order-body">
@@ -267,7 +298,7 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
           <p><strong>電話：</strong>{order.customer_phone}</p>
           <p><strong>類型：</strong>{orderType}</p>
           {order.channel === 'takeout' && order.pickup_at && (
-            <p><strong>取餐時間：</strong>{new Date(order.pickup_at).toLocaleString('zh-TW')}</p>
+            <p><strong>取餐時間：</strong>{formatPickupTime(order.pickup_at)}</p>
           )}
           <p><strong>訂單狀態：</strong>{statusLabels[status] || status}</p>
           <p><strong>付款方式：</strong>{order.payment_method}</p>
@@ -294,7 +325,7 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
         {status === 'pending' && (
           <>
             <button
-              className="surplus-btn-sm btn-success"
+              className="surplus-btn-sm btn-success btn-accept"
               disabled={updating}
               onClick={() => onUpdateStatus(order.pickup_number || order.id, 'accepted')}
             >
@@ -312,11 +343,14 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
         {status === 'accepted' && (
           <>
             <button
-              className="surplus-btn-sm surplus-btn-primary"
+              className="surplus-btn-sm surplus-btn-primary btn-accept"
               disabled={updating}
-              onClick={() => onUpdateStatus(order.pickup_number || order.id, 'ready_for_pickup')}
+              onClick={() => onUpdateStatus(
+                order.pickup_number || order.id, 
+                'ready_for_pickup'
+              )}
             >
-              製作完成
+              可取餐
             </button>
             <button
               className="surplus-btn-sm btn-danger"

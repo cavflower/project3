@@ -7,12 +7,22 @@ import './LoginPage.css';
 import { Link, useSearchParams } from 'react-router-dom';
 
 const CustomerLoginPage = () => {
+  // 使用多種方式獲取 redirect 參數
   const [searchParams] = useSearchParams();
-  const redirectUrl = searchParams.get('redirect');
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectUrl = searchParams.get('redirect') || urlParams.get('redirect');
+  
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+
+  // Debug: log redirect URL
+  console.log('Window location search:', window.location.search);
+  console.log('Redirect URL from searchParams:', searchParams.get('redirect'));
+  console.log('Redirect URL from URLSearchParams:', urlParams.get('redirect'));
+  console.log('Final redirectUrl:', redirectUrl);
+  console.log('All search params:', Object.fromEntries(searchParams));
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -67,6 +77,7 @@ const CustomerLoginPage = () => {
             setLoading(false);
             return;
         }
+        console.log('About to call login with redirectUrl:', redirectUrl);
         login(backendResponse.user, redirectUrl);
       } else {
         throw new Error("後端未返回使用者資料");

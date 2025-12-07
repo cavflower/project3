@@ -37,7 +37,7 @@ function TakeoutCartPage() {
   const [contactPhone, setContactPhone] = useState(initialCart?.contact?.phone || user?.phone_number || "");
   const [pickupAt, setPickupAt] = useState(initialCart?.pickupAt || pickupSlots()[0]);
   const [paymentMethod, setPaymentMethod] = useState(paymentOptionsList[0].value);
-  const [useUtensils, setUseUtensils] = useState("no");
+  const [useUtensils, setUseUtensils] = useState("yes");
   const [notes, setNotes] = useState(initialCart?.notes || "");
   const [submitting, setSubmitting] = useState(false);
 
@@ -158,6 +158,7 @@ function TakeoutCartPage() {
             customer_phone: finalPhone,
             pickup_at: pickupAt,
             payment_method: paymentMethod,
+            order_type: 'takeout',  // 新增：訂單類型為外帶
             use_utensils: useUtensils === "yes",
             notes: notes,
           };
@@ -487,8 +488,9 @@ function TakeoutCartPage() {
                 value={useUtensils}
                 onChange={(e) => setUseUtensils(e.target.value)}
               >
-                <option value="no">不需要</option>
-                <option value="yes">需要</option>
+              <option value="yes">需要</option>
+              <option value="no">不需要</option>
+                
               </select>
             </div>
           </div>

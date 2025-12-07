@@ -7,6 +7,89 @@ from firebase_admin import firestore
 from .serializers import TakeoutOrderSerializer, DineInOrderSerializer
 from .models import TakeoutOrder, DineInOrder
 from apps.stores.models import Store
+from django.db.models import Q
+
+
+class OrderListView(generics.ListAPIView):
+    """商家訂單列表 API - 從 PostgreSQL 讀取資料"""
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request, *args, **kwargs):
+        # 獲取商家店家 ID
+        store_id = request.query_params.get('store_id')
+        if not store_id:
+            return Response(
+                {'detail': 'store_id is required'}, 
+                status=http_status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            store = Store.objects.get(pk=store_id)
+        except Store.DoesNotExist:
+            return Response(
+                {'detail': 'Store not found'}, 
+                status=http_status.HTTP_404_NOT_FOUND
+            )
+        
+        # 查詢外帶訂單
+        takeout_orders = TakeoutOrder.objects.filter(store=store).select_related('store')
+        # 查詢內用訂單
+        dinein_orders = DineInOrder.objects.filter(store=store).select_related('store')
+        
+        # 合併訂單資料
+        orders = []
+        
+        # 處理外帶訂單
+        for order in takeout_orders:
+            orders.append({
+                'id': order.pickup_number,
+                'pickup_number': order.pickup_number,
+                'order_number': order.pickup_number,
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+                'payment_method': order.payment_method,
+                'notes': order.notes,
+                'status': order.status,
+                'use_utensils': order.use_utensils,
+                'use_eco_tableware': False,
+                'service_channel': 'takeout',
+                'channel': 'takeout',
+                'table_label': '',
+                'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+                'items': [
+                    {'product_id': item.product_id, 'quantity': item.quantity}
+                    for item in order.items.all()
+                ]
+            })
+        
+        # 處理內用訂單
+        for order in dinein_orders:
+            orders.append({
+                'id': order.order_number,
+                'pickup_number': order.order_number,
+                'order_number': order.order_number,
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+                'payment_method': order.payment_method,
+                'notes': order.notes,
+                'status': order.status,
+                'use_utensils': False,
+                'use_eco_tableware': order.use_eco_tableware,
+                'service_channel': 'dine_in',
+                'channel': 'dine_in',
+                'table_label': order.table_label,
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+                'items': [
+                    {'product_id': item.product_id, 'quantity': item.quantity}
+                    for item in order.items.all()
+                ]
+            })
+        
+        # 按建立時間排序（最新的在前）
+        orders.sort(key=lambda x: x['created_at'] or '', reverse=True)
+        
+        return Response(orders)
 
 
 class TakeoutOrderCreateView(generics.CreateAPIView):
@@ -39,7 +122,7 @@ class OrderStatusUpdateView(APIView):
     """訂單狀態更新 API - 支援外帶和內用訂單"""
     permission_classes = [permissions.AllowAny]
     VALID_TAKEOUT_STATUS = {'pending', 'accepted', 'ready_for_pickup', 'completed', 'rejected'}
-    VALID_DINEIN_STATUS = {'pending', 'accepted', 'preparing', 'ready', 'completed', 'rejected'}
+    VALID_DINEIN_STATUS = {'pending', 'accepted', 'ready_for_pickup', 'completed', 'rejected'}
 
     def patch(self, request, pickup_number):
         new_status = request.data.get('status')

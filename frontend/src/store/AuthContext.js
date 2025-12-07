@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }) => {
   // 登入功能
   const login = (userData, redirectPath = null) => {
     console.log("登入成功，使用者資料:", userData);
+    console.log("Redirect path received in login:", redirectPath);
     setUser(userData); // 設定全域使用者狀態
 
     // 檢查 user_type 是否存在
@@ -65,8 +66,8 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    // 如果有指定的 redirect 路徑，優先使用
-    if (redirectPath) {
+    // 如果有指定的 redirect 路徑，優先使用（檢查非空字串）
+    if (redirectPath && redirectPath.trim() !== '') {
       console.log("導向至指定路徑:", redirectPath);
       navigate(redirectPath);
       return;
@@ -104,7 +105,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // 登出功能
-  const logout = () => {
+  const logout = (redirectPath = null) => {
     console.log("登出");
     const currentUserType = user?.user_type || 'customer';
     setUser(null);
@@ -113,9 +114,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem(`${currentUserType}_accessToken`);
     localStorage.removeItem(`${currentUserType}_refreshToken`);
     
-    // 根據用戶類型導向對應的登入頁
-    const loginPath = currentUserType === 'merchant' ? '/login/merchant' : '/login/customer';
-    navigate(loginPath);
+    // 如果有指定的 redirect 路徑，導向該路徑
+    if (redirectPath) {
+      navigate(redirectPath);
+    } else {
+      // 根據用戶類型導向對應的登入頁
+      const loginPath = currentUserType === 'merchant' ? '/login/merchant' : '/login/customer';
+      navigate(loginPath);
+    }
   };
 
   // 更新使用者資料功能

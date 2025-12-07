@@ -102,10 +102,6 @@ function DineInCartPage() {
       setSubmitting(true);
       const orderResults = [];
       
-      const notesWithTable = tableLabel
-        ? `桌號：${tableLabel}${notes ? ` / ${notes}` : ''}`
-        : notes;
-      
       // 1. 如果有一般商品，創建一般內用訂單
       if (regularItems.length > 0) {
         const regularPayload = {
@@ -113,7 +109,7 @@ function DineInCartPage() {
           customer_name: finalName,
           customer_phone: finalPhone,
           table_label: tableLabel || '',
-          notes: notesWithTable,
+          notes: notes,  // 備註欄位預設為空，不包含桌號
           payment_method: paymentMethod,
           use_eco_tableware: useEcoTableware === "yes",
           items: regularItems.map((item) => ({
@@ -140,9 +136,9 @@ function DineInCartPage() {
             customer_phone: finalPhone,
             pickup_at: new Date().toISOString(),
             payment_method: paymentMethod,
-            use_eco_tableware: useEcoTableware === "yes",
-            notes: notesWithTable,
-            table_label: tableLabel || '',
+            order_type: 'dine_in',  // 新增：訂單類型為內用
+            use_utensils: useEcoTableware === "yes",
+            notes: notes,  // 備註不包含桌號
           };
           
           return api.post('/merchant/surplus/orders/', surplusPayload);
