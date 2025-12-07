@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useReducer, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useState, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { FaPlus, FaMinus, FaShoppingCart } from "react-icons/fa";
 import { getStore } from '../../api/storeApi';
 import { createDineInOrder, getDineInProducts } from '../../api/orderApi';
+import { getPublicProductCategories } from '../../api/productApi';
+import { useAuth } from "../../store/AuthContext";
 import '../takeout/TakeoutOrderPage.css';
 
 const cartReducer = (state, action) => {
@@ -48,15 +51,19 @@ function DineInOrderPage() {
   const tableLabel = searchParams.get('table') || '';
 
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [store, setStore] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuItems, setMenuItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(paymentOptions[0].value);
   const [useEcoTableware, setUseEcoTableware] = useState('no');
   const [pickupNumber, setPickupNumber] = useState('');
+  const categoryRefs = useRef({});
 
   const [cart, dispatch] = useReducer(cartReducer, {
     items: [],
@@ -68,14 +75,23 @@ function DineInOrderPage() {
       try {
         setLoading(true);
         setError('');
-        const response = await getStore(storeId);
-        setStore(response.data);
-
-        const productsRes = await getDineInProducts(storeId);
+        const [storeRes, productsRes, categoriesRes] = await Promise.all([
+          getStore(storeId),
+          getDineInProducts(storeId),
+          getPublicProductCategories(storeId)
+        ]);
+        
+        setStore(storeRes.data);
         const dineInMenu = (productsRes.data || []).filter(
           (item) => item.service_type === 'dine_in' || item.service_type === 'both'
         );
         setMenuItems(dineInMenu);
+        setCategories(categoriesRes.data || []);
+        
+        // 預設選中第一個類別
+        if (categoriesRes.data && categoriesRes.data.length > 0) {
+          setSelectedCategory(categoriesRes.data[0].id);
+        }
       } catch (err) {
         console.error(err);
         setError('載入資料失敗，請稍後再試。');
@@ -87,9 +103,21 @@ function DineInOrderPage() {
   }, [storeId]);
 
   const total = useMemo(
-    () => cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    () => cart.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0),
     [cart.items]
   );
+
+  const handleGoToCart = () => {
+    // 導向內用專用購物車頁面
+    navigate(`/dinein/${storeId}/cart`, {
+      state: { 
+        cart: cart,
+        store: store,
+        storeId: storeId,
+        tableLabel: tableLabel
+      }
+    });
+  };
 
   const handleSubmit = async () => {
     if (!cart.items.length) {
@@ -185,143 +213,222 @@ function DineInOrderPage() {
       </div>
 
       <div className="row g-4">
-        <div className="col-lg-8">
-          <div className="card shadow-sm mb-4 takeout-card">
-            <div className="card-header takeout-card-header">
-              <strong>餐點列表</strong>
-            </div>
-            <div className="card-body">
-              {menuItems.length === 0 && (
-                <p className="text-muted">目前尚無餐點，請洽服務人員。</p>
-              )}
-              {menuItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="d-flex justify-content-between align-items-center border-bottom py-3"
-                >
-                  <div>
-                    <h5 className="mb-1">{item.name}</h5>
-                    <p className="text-muted mb-1">{item.description}</p>
-                    <strong>NT$ {formatPrice(item.price)}</strong>
-                  </div>
-                  <button
-                    className="btn btn-outline-primary"
-                    onClick={() => dispatch({ type: 'ADD_ITEM', payload: item })}
-                  >
-                    加入
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="col-lg-4">
-          <div className="card shadow-sm takeout-card">
-            <div className="card-header takeout-card-header" style={{ color: 'black' }}>
-              <strong>內用資訊</strong>
-            </div>
-            <div className="card-body">
-              {tableLabel && (
-                <div className="mb-3">
-                  <label className="form-label">桌號</label>
-                  <input className="form-control" value={tableLabel} readOnly />
-                </div>
-              )}
-
-              <div className="mb-3">
-                <label className="form-label">付款方式</label>
-                <select
-                  className="form-select"
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                >
-                  {paymentOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">是否自備環保餐具</label>
-                <div className="switch-container">
-                  <span>{useEcoTableware === 'yes' ? '有' : '沒有'}</span>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={useEcoTableware === 'yes'}
-                      onChange={(e) => setUseEcoTableware(e.target.checked ? 'yes' : 'no')}
-                    />
-                    <span className="slider round"></span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">備註</label>
-                <textarea
-                  className="form-control"
-                  rows="2"
-                  value={cart.notes}
-                  onChange={(e) =>
-                    dispatch({ type: 'UPDATE_NOTE', payload: e.target.value })
-                  }
-                  placeholder="特殊需求或過敏資訊"
-                />
-              </div>
-
-              <hr />
-
-              <h5 className="mb-3">購物車</h5>
-              {cart.items.length === 0 && (
-                <p className="text-muted">尚未選擇餐點。</p>
-              )}
-              {cart.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="d-flex justify-content-between align-items-center mb-2"
-                >
-                  <div>
-                    <strong>{item.name}</strong>
-                    <p className="mb-0 small text-muted">
-                      NT$ {formatPrice(item.price)} × {item.quantity}
-                    </p>
-                  </div>
-                  <div className="btn-group">
+        <div className="col-12">
+          {/* 類別導航標籤 + 購物車按鈕 */}
+          {categories.length > 0 && (
+            <div className="category-nav-tabs mb-3">
+              <div className="nav-tabs-scroll">
+                {categories.map((category) => {
+                  const categoryProducts = menuItems.filter(item => item.category === category.id);
+                  return (
                     <button
-                      className="btn btn-outline-secondary btn-sm"
-                      onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: item.id })}
+                      key={category.id}
+                      className={`category-nav-btn ${selectedCategory === category.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedCategory(category.id);
+                        categoryRefs.current[category.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
                     >
-                      -
+                      {category.name}
+                      {categoryProducts.length > 0 && (
+                        <span className="category-count">{categoryProducts.length}</span>
+                      )}
                     </button>
-                    <button
-                      className="btn btn-outline-secondary btn-sm"
-                      onClick={() => dispatch({ type: 'ADD_ITEM', payload: item })}
+                  );
+                })}
+
+                {/* 購物車按鈕 */}
+                <button
+                  className="cart-nav-btn"
+                  onClick={handleGoToCart}
+                >
+                  <FaShoppingCart size={18} />
+                  {cart.items.length > 0 && (
+                    <span className="cart-badge">{cart.items.length}</span>
+                  )}             
+                </button>
+                
+                {/* 惜福專區按鈕 */}
+                <button
+                  className="surplus-zone-nav-btn"
+                  onClick={() => navigate(`/store/${storeId}/surplus`, {
+                    state: { 
+                      cart: cart,
+                      tableLabel: tableLabel
+                    }
+                  })}
+                >
+                  惜福專區
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 按類別分組顯示商品 */}
+          {categories.length === 0 ? (
+            <div className="card shadow-sm mb-4 takeout-card">
+              <div className="card-header takeout-card-header">
+                <strong>餐點列表</strong>
+              </div>
+              <div className="card-body">
+                {menuItems.length === 0 && (
+                  <p className="text-muted">目前尚無餐點，請洽服務人員。</p>
+                )}
+                {menuItems.map((item) => {
+                  const cartItem = cart.items.find(ci => ci.id === item.id);
+                  const quantity = cartItem ? cartItem.quantity : 0;
+                  const isLinkedToSurplus = item.is_linked_to_surplus || false;
+                  
+                  return (
+                    <div
+                      key={item.id}
+                      className="d-flex justify-content-between align-items-center border-bottom py-3"
+                      style={isLinkedToSurplus ? { opacity: 0.5, pointerEvents: 'none' } : {}}
                     >
-                      +
-                    </button>
+                      <div className="flex-grow-1">
+                        <h5 className="mb-1">
+                          {item.name}
+                          {isLinkedToSurplus && (
+                            <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
+                              (已轉為惜福品)
+                            </span>
+                          )}
+                        </h5>
+                        <p className="text-muted mb-1">{item.description}</p>
+                        <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
+                      </div>
+                      {!isLinkedToSurplus && (
+                        quantity === 0 ? (
+                          <button
+                            className="btn rounded-circle add-btn"
+                            onClick={() => dispatch({ type: 'ADD_ITEM', payload: { ...item, itemType: 'regular' } })}
+                            title="加入購物車"
+                          >
+                            <FaPlus />
+                          </button>
+                        ) : (
+                          <div className="quantity-control d-flex align-items-center gap-2">
+                            <button
+                              className="btn rounded-circle quantity-btn"
+                              onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: item.id })}
+                            >
+                              <FaMinus />
+                            </button>
+                            <span className="quantity-display">{quantity}</span>
+                            <button
+                              className="btn rounded-circle quantity-btn"
+                              onClick={() => dispatch({ type: 'ADD_ITEM', payload: { ...item, itemType: 'regular' } })}
+                            >
+                              <FaPlus />
+                            </button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            categories.map((category) => {
+              const categoryProducts = menuItems.filter(item => item.category === category.id);
+              if (categoryProducts.length === 0) return null;
+              
+              return (
+                <div
+                  key={category.id}
+                  ref={el => categoryRefs.current[category.id] = el}
+                  className="card shadow-sm mb-4 takeout-card category-section"
+                >
+                  <div className="card-header takeout-card-header">
+                    <strong>{category.name}</strong>
+                    {category.description && (
+                      <small className="d-block mt-1" style={{ opacity: 0.9 }}>{category.description}</small>
+                    )}
+                  </div>
+                  <div className="card-body">
+                    {categoryProducts.map((item) => {
+                      const cartItem = cart.items.find(ci => ci.id === item.id);
+                      const quantity = cartItem ? cartItem.quantity : 0;
+                      const isLinkedToSurplus = item.is_linked_to_surplus || false;
+                      
+                      return (
+                        <div
+                          key={item.id}
+                          className="d-flex justify-content-between align-items-center border-bottom py-3"
+                          style={isLinkedToSurplus ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+                        >
+                          <div className="flex-grow-1">
+                            <h5 className="mb-1">
+                              {item.name}
+                              {isLinkedToSurplus && (
+                                <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
+                                  (已轉為惜福品)
+                                </span>
+                              )}
+                            </h5>
+                            <p className="text-muted mb-1">{item.description}</p>
+                            <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
+                          </div>
+                          {!isLinkedToSurplus && (
+                            quantity === 0 ? (
+                              <button
+                                className="btn rounded-circle add-btn"
+                                onClick={() => dispatch({ type: 'ADD_ITEM', payload: { ...item, itemType: 'regular' } })}
+                                title="加入購物車"
+                              >
+                                <FaPlus />
+                              </button>
+                            ) : (
+                              <div className="quantity-control d-flex align-items-center gap-2">
+                                <button
+                                  className="btn rounded-circle quantity-btn"
+                                  onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: item.id })}
+                                >
+                                  <FaMinus />
+                                </button>
+                                <span className="quantity-display">{quantity}</span>
+                                <button
+                                  className="btn rounded-circle quantity-btn"
+                                  onClick={() => dispatch({ type: 'ADD_ITEM', payload: { ...item, itemType: 'regular' } })}
+                                >
+                                  <FaPlus />
+                                </button>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ))}
-
-              <div className="d-flex justify-content-between align-items-center mt-3">
-                <span>小計</span>
-                <strong>NT$ {formatPrice(total)}</strong>
-              </div>
-
-              <button
-                className="btn btn-success w-100 mt-4"
-                onClick={handleSubmit}
-                disabled={submitting || cart.items.length === 0}
-              >
-                {submitting ? '送出中...' : '送出訂單'}
-              </button>
-            </div>
-          </div>
+              );
+            })
+          )}
         </div>
       </div>
+
+      {/* 側邊購物車資訊 - 移至底部固定顯示 */}
+      {cart.items.length > 0 && (
+        <div className="position-fixed bottom-0 start-50 translate-middle-x w-100" style={{ maxWidth: '600px', zIndex: 1000, padding: '0 1rem 1rem' }}>
+          <div className="card shadow-lg">
+            <div className="card-body p-3">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <small className="text-muted">共 {cart.items.reduce((sum, item) => sum + item.quantity, 0)} 項</small>
+                  <div><strong>NT$ {formatPrice(total)}</strong></div>
+                </div>
+                <button
+                  className="btn btn-success"
+                  onClick={handleGoToCart}
+                >
+                  前往結帳
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

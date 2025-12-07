@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
   }, []); // 空依賴陣列表示只在掛載時執行一次
 
   // 登入功能
-  const login = (userData) => {
+  const login = (userData, redirectPath = null) => {
     console.log("登入成功，使用者資料:", userData);
     setUser(userData); // 設定全域使用者狀態
 
@@ -62,6 +62,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('merchant_accessToken');
       localStorage.removeItem('merchant_refreshToken');
       navigate('/login/customer');
+      return;
+    }
+
+    // 如果有指定的 redirect 路徑，優先使用
+    if (redirectPath) {
+      console.log("導向至指定路徑:", redirectPath);
+      navigate(redirectPath);
       return;
     }
 

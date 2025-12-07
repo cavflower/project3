@@ -212,41 +212,52 @@ function TakeoutOrderPage() {
                 {menuItems.map((item) => {
                   const cartItem = cart.items.find(ci => ci.id === item.id);
                   const quantity = cartItem ? cartItem.quantity : 0;
+                  const isLinkedToSurplus = item.is_linked_to_surplus || false; // 被關聯為惜福品
                   
                   return (
                     <div
                       key={item.id}
                       className="d-flex justify-content-between align-items-center border-bottom py-3"
+                      style={isLinkedToSurplus ? { opacity: 0.5, pointerEvents: 'none' } : {}}
                     >
                       <div className="flex-grow-1">
-                        <h5 className="mb-1">{item.name}</h5>
+                        <h5 className="mb-1">
+                          {item.name}
+                          {isLinkedToSurplus && (
+                            <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
+                              (已轉為惜福品)
+                            </span>
+                          )}
+                        </h5>
                         <p className="text-muted mb-1">{item.description}</p>
                         <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
                       </div>
-                      {quantity === 0 ? (
-                        <button
-                          className="btn rounded-circle add-btn"
-                          onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
-                          title="加入購物車"
-                        >
-                          <FaPlus />
-                        </button>
-                      ) : (
-                        <div className="quantity-control d-flex align-items-center gap-2">
+                      {!isLinkedToSurplus && (
+                        quantity === 0 ? (
                           <button
-                            className="btn rounded-circle quantity-btn"
-                            onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
-                          >
-                            <FaMinus />
-                          </button>
-                          <span className="quantity-display">{quantity}</span>
-                          <button
-                            className="btn rounded-circle quantity-btn"
+                            className="btn rounded-circle add-btn"
                             onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
+                            title="加入購物車"
                           >
                             <FaPlus />
                           </button>
-                        </div>
+                        ) : (
+                          <div className="quantity-control d-flex align-items-center gap-2">
+                            <button
+                              className="btn rounded-circle quantity-btn"
+                              onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
+                            >
+                              <FaMinus />
+                            </button>
+                            <span className="quantity-display">{quantity}</span>
+                            <button
+                              className="btn rounded-circle quantity-btn"
+                              onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
+                            >
+                              <FaPlus />
+                            </button>
+                          </div>
+                        )
                       )}
                     </div>
                   );
@@ -274,41 +285,52 @@ function TakeoutOrderPage() {
                     {categoryProducts.map((item) => {
                       const cartItem = cart.items.find(ci => ci.id === item.id);
                       const quantity = cartItem ? cartItem.quantity : 0;
+                      const isLinkedToSurplus = item.is_linked_to_surplus || false; // 被關聯為惜福品
                       
                       return (
                         <div
                           key={item.id}
                           className="d-flex justify-content-between align-items-center border-bottom py-3"
+                          style={isLinkedToSurplus ? { opacity: 0.5, pointerEvents: 'none' } : {}}
                         >
                           <div className="flex-grow-1">
-                            <h5 className="mb-1">{item.name}</h5>
+                            <h5 className="mb-1">
+                              {item.name}
+                              {isLinkedToSurplus && (
+                                <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
+                                  (已轉為惜福品)
+                                </span>
+                              )}
+                            </h5>
                             <p className="text-muted mb-1">{item.description}</p>
                             <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
                           </div>
-                          {quantity === 0 ? (
-                            <button
-                              className="btn rounded-circle add-btn"
-                              onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
-                              title="加入購物車"
-                            >
-                              <FaPlus />
-                            </button>
-                          ) : (
-                            <div className="quantity-control d-flex align-items-center gap-2">
+                          {!isLinkedToSurplus && (
+                            quantity === 0 ? (
                               <button
-                                className="btn rounded-circle quantity-btn"
-                                onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
-                              >
-                                <FaMinus />
-                              </button>
-                              <span className="quantity-display">{quantity}</span>
-                              <button
-                                className="btn rounded-circle quantity-btn"
+                                className="btn rounded-circle add-btn"
                                 onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
+                                title="加入購物車"
                               >
                                 <FaPlus />
                               </button>
-                            </div>
+                            ) : (
+                              <div className="quantity-control d-flex align-items-center gap-2">
+                                <button
+                                  className="btn rounded-circle quantity-btn"
+                                  onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
+                                >
+                                  <FaMinus />
+                                </button>
+                                <span className="quantity-display">{quantity}</span>
+                                <button
+                                  className="btn rounded-circle quantity-btn"
+                                  onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
+                                >
+                                  <FaPlus />
+                                </button>
+                              </div>
+                            )
                           )}
                         </div>
                       );

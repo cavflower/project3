@@ -57,8 +57,7 @@ const Sidebar = ({ isOpen }) => {
               📅 我的訂位
             </a>
           </li>
-          <li><a href="/orders">🛒 線上點餐</a></li>
-          <li><a href="/leaderboard">🏆 熱銷排行</a></li>
+          <li><a href="/orders">🛒 我的訂單</a></li>
           <hr />
           <p className="sidebar-section-title">會員中心</p>
           <li><a href="/profile">👤 個人資料</a></li>

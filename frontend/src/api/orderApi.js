@@ -14,4 +14,4 @@ export const createTakeoutOrder = (payload) =>
   api.post('/orders/takeout/', payload);
 
 export const createDineInOrder = (payload) =>
-  api.post('/orders/takeout/', payload);
+  api.post('/orders/dinein/', payload);

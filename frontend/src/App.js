@@ -45,6 +45,7 @@ import TakeoutOrderPage from './features/takeout/TakeoutOrderPage';
 import TakeoutCartPage from './features/takeout/TakeoutCartPage';
 import SurplusZonePage from './features/takeout/SurplusZonePage';
 import DineInOrderPage from './features/dine_in/DineInOrderPage';
+import DineInCartPage from './features/dine_in/DineInCartPage';
 import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSettingsPage';
 import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
 import OrderManagementPage from './features/merchant_dashboard/order_management/OrderManagementPage';
@@ -133,6 +134,8 @@ function App() {
               <Route path="/takeout/:storeId/cart" element={<TakeoutCartPage />} />
           {/* 內用菜單（QR code 導向） */}
               <Route path="/store/:storeId/dine-in/menu" element={<DineInOrderPage />} />
+          {/* 內用購物車結帳 頁面 */}
+              <Route path="/dinein/:storeId/cart" element={<DineInCartPage />} />
 
           {/* 線上結帳 頁面 */}
               <Route path="/checkout" element={<CheckoutPage />} />

@@ -139,6 +139,22 @@
   cursor: not-allowed;
 }
 
+.delete-table-btn {
+  margin-top: 12px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 12px;
+  background: #dc3545;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.delete-table-btn:hover {
+  background: #c82333;
+}
+
 .qr-panel {
   margin-top: 12px;
   padding: 14px;

@@ -104,12 +104,23 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
     const selectedProduct = products.find(p => p.id === parseInt(productId));
     
     if (selectedProduct) {
+      // 將商品的 service_type 映射到 dining_option
+      let diningOption = 'both';
+      if (selectedProduct.service_type === 'dine_in') {
+        diningOption = 'dine_in';
+      } else if (selectedProduct.service_type === 'takeaway') {
+        diningOption = 'takeout';
+      } else if (selectedProduct.service_type === 'both') {
+        diningOption = 'both';
+      }
+
       setFormData({
         ...formData,
         product: productId,
         title: selectedProduct.name,
         description: selectedProduct.description || '',
         original_price: selectedProduct.price || '',
+        dining_option: diningOption,
       });
     } else {
       setFormData({
@@ -279,25 +290,37 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
             </div>
 
             {/* 關聯商品（可選） */}
-            <div className="form-group">
-              <label htmlFor="product">關聯商品（可選）</label>
-              <select
-                id="product"
-                name="product"
-                value={formData.product}
-                onChange={handleProductChange}
-              >
-                <option value="">不關聯現有商品</option>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} - ${product.price}
-                  </option>
-                ))}
-              </select>
-              <small className="form-hint">
-                可從現有商品自動帶入資訊，或手動填寫
-              </small>
-            </div>
+            {type !== 'editFood' && (
+              <div className="form-group">
+                <label htmlFor="product">關聯商品（可選）</label>
+                <select
+                  id="product"
+                  name="product"
+                  value={formData.product}
+                  onChange={handleProductChange}
+                >
+                  <option value="">不關聯現有商品</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} - ${product.price}
+                    </option>
+                  ))}
+                </select>
+                <small className="form-hint">
+                  可從現有商品自動帶入資訊，或手動填寫
+                </small>
+              </div>
+            )}
+
+            {/* 編輯時顯示關聯商品資訊 */}
+            {type === 'editFood' && formData.product && (
+              <div className="info-banner">
+                <strong>🔗 此惜福品已關聯商品</strong>
+                <p style={{ marginTop: '8px', marginBottom: 0 }}>
+                  編輯時僅能修改：惜福時段、商品圖片、取餐說明
+                </p>
+              </div>
+            )}
 
             {/* 惜福品名稱 */}
             <div className="form-group">
@@ -310,10 +333,16 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                 onChange={handleChange}
                 placeholder="例如：即期麵包組合"
                 className={errors.title ? 'error' : ''}
+                disabled={!!formData.product || type === 'editFood'}
                 required
               />
               {errors.title && (
                 <span className="error-message">{errors.title}</span>
+              )}
+              {(formData.product || type === 'editFood') && (
+                <small className="form-hint" style={{color: '#ff6b6b'}}>
+                  {formData.product ? '已關聯商品，名稱自動帶入不可更改' : '編輯時不可修改惜福品名稱'}
+                </small>
               )}
             </div>
 
@@ -327,7 +356,13 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                 onChange={handleChange}
                 rows="3"
                 placeholder="描述商品內容、特色等..."
+                disabled={!!formData.product || type === 'editFood'}
               />
+              {(formData.product || type === 'editFood') && (
+                <small className="form-hint" style={{color: '#ff6b6b'}}>
+                  {formData.product ? '已關聯商品，描述自動帶入不可更改' : '編輯時不可修改商品描述'}
+                </small>
+              )}
             </div>
 
             {/* 價格設定 */}
@@ -344,15 +379,15 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   min="0"
                   step="1"
                   className={errors.original_price ? 'error' : ''}
-                  disabled={!!formData.product}
+                  disabled={!!formData.product || type === 'editFood'}
                   required
                 />
                 {errors.original_price && (
                   <span className="error-message">{errors.original_price}</span>
                 )}
-                {formData.product && (
+                {(formData.product || type === 'editFood') && (
                   <small className="form-hint" style={{color: '#ff6b6b'}}>
-                    已關聯商品，原價自動帶入不可更改
+                    {formData.product ? '已關聯商品，原價自動帶入不可更改' : '編輯時不可修改原價'}
                   </small>
                 )}
               </div>
@@ -369,10 +404,16 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   min="0"
                   step="1"
                   className={errors.surplus_price ? 'error' : ''}
+                  disabled={type === 'editFood'}
                   required
                 />
                 {errors.surplus_price && (
                   <span className="error-message">{errors.surplus_price}</span>
+                )}
+                {type === 'editFood' && (
+                  <small className="form-hint" style={{color: '#ff6b6b'}}>
+                    編輯時不可修改惜福價
+                  </small>
                 )}
               </div>
             </div>
@@ -420,6 +461,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   name="condition"
                   value={formData.condition}
                   onChange={handleChange}
+                  disabled={type === 'editFood'}
                   required
                 >
                   {conditionOptions.map((option) => (
@@ -428,6 +470,11 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                     </option>
                   ))}
                 </select>
+                {type === 'editFood' && (
+                  <small className="form-hint" style={{color: '#ff6b6b'}}>
+                    編輯時不可修改商品狀況
+                  </small>
+                )}
               </div>
             </div>
 
@@ -439,6 +486,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                 name="dining_option"
                 value={formData.dining_option}
                 onChange={handleChange}
+                disabled={!!formData.product || type === 'editFood'}
                 required
               >
                 {diningOptions.map((option) => (
@@ -448,7 +496,12 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                 ))}
               </select>
               <small className="form-hint">
-                選擇此惜福品適用的用餐方式
+                {formData.product 
+                  ? '已關聯商品，用餐方式自動帶入不可更改' 
+                  : type === 'editFood'
+                    ? '編輯時不可修改用餐方式'
+                    : '選擇此惜福品適用的用餐方式'
+                }
               </small>
             </div>
 
@@ -538,14 +591,14 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
 
             {/* 取餐說明 */}
             <div className="form-group">
-              <label htmlFor="pickup_instructions">取餐說明</label>
+              <label htmlFor="pickup_instructions">備註</label>
               <textarea
                 id="pickup_instructions"
                 name="pickup_instructions"
                 value={formData.pickup_instructions}
                 onChange={handleChange}
                 rows="2"
-                placeholder="例如：請於時段內到店取餐，出示訂單編號"
+                placeholder=""
               />
             </div>
           </div>

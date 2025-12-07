@@ -36,8 +36,6 @@ const DineInSettingsPage = () => {
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [newTableConfig, setNewTableConfig] = useState({
     shape: 'rectangle',
-    seats: 4,
-    label: '',
   });
   const [saveStatus, setSaveStatus] = useState('');
 
@@ -95,11 +93,11 @@ const DineInSettingsPage = () => {
 
   const handleAddTable = () => {
     if (!storeId) return;
-    const baseLabel = newTableConfig.label.trim() || `桌 ${tables.length + 1}`;
+    const baseLabel = `桌 ${tables.length + 1}`;
     const table = {
       id: uuid(),
       shape: newTableConfig.shape,
-      seats: newTableConfig.seats,
+      seats: 4,
       label: baseLabel,
       x: 60,
       y: 60,
@@ -107,7 +105,6 @@ const DineInSettingsPage = () => {
     };
     setTables((prev) => [...prev, table]);
     setSelectedTableId(table.id);
-    setNewTableConfig((prev) => ({ ...prev, label: '' }));
   };
 
   const updateSelectedTable = (changes) => {
@@ -193,35 +190,6 @@ const DineInSettingsPage = () => {
             ))}
           </div>
 
-          <label className="section-label">容納人數</label>
-          <div className="seat-counter">
-            <button
-              type="button"
-              onClick={() => adjustNewSeatCount(-1)}
-              disabled={newTableConfig.seats <= MIN_SEATS}
-            >
-              −
-            </button>
-            <span>{newTableConfig.seats} 人</span>
-            <button
-              type="button"
-              onClick={() => adjustNewSeatCount(1)}
-              disabled={newTableConfig.seats >= MAX_SEATS}
-            >
-              ＋
-            </button>
-          </div>
-
-          <label className="section-label">桌號名稱</label>
-          <input
-            type="text"
-            placeholder="例如：A1 或 包廂"
-            value={newTableConfig.label}
-            onChange={(e) =>
-              setNewTableConfig((prev) => ({ ...prev, label: e.target.value }))
-            }
-          />
-
           <button
             className="add-table-btn"
             type="button"
@@ -301,6 +269,19 @@ const DineInSettingsPage = () => {
                 </div>
               </div>
             )}
+            
+            <button
+              className="delete-table-btn"
+              type="button"
+              onClick={() => {
+                if (window.confirm(`確定要刪除 ${selectedTable.label} 嗎？`)) {
+                  setTables((prev) => prev.filter((t) => t.id !== selectedTableId));
+                  setSelectedTableId(null);
+                }
+              }}
+            >
+              刪除桌位
+            </button>
           </section>
         )}
       </div>

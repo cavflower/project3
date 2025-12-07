@@ -143,14 +143,15 @@ function OrderManagementPage() {
     const utFalse = utensils === false || utensils === 'false' || utensils === 'no';
 
     if (order.service_channel === 'dine_in') {
-      if (ecoTrue) return '內用：有環保餐具';
-      if (ecoFalse) return '內用：無環保餐具';
-      return '內用：未填';
+      // 若有環保餐具則不需要餐具，反之需要餐具
+      if (ecoTrue) return '不需要餐具';
+      if (ecoFalse) return '需要餐具';
+      return '未填寫';
     }
     // 外帶
-    if (utTrue) return '外帶：需要餐具';
-    if (utFalse) return '外帶：不需要餐具';
-    return '外帶：未填';
+    if (utTrue) return '需要餐具';
+    if (utFalse) return '不需要餐具';
+    return '未填寫';
   };
 
   if (loading) {
@@ -255,7 +256,7 @@ function OrderManagementPage() {
 
 const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, onUpdateStatus, onDelete }) => {
   const status = order.status || 'pending';
-  const orderType = order.channel === 'takeout' ? '外帶' : '內用';
+  const orderType = order.channel === 'takeout' ? '外帶訂單' : '內用訂單';
 
   return (
     <div className="order-card">
@@ -264,7 +265,10 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
           <p><strong>取餐號碼：</strong>{order.pickup_number || order.id}</p>
           <p><strong>客戶：</strong>{order.customer_name}</p>
           <p><strong>電話：</strong>{order.customer_phone}</p>
-          <p><strong>訂單類型：</strong>{orderType}</p>
+          <p><strong>類型：</strong>{orderType}</p>
+          {order.channel === 'takeout' && order.pickup_at && (
+            <p><strong>取餐時間：</strong>{new Date(order.pickup_at).toLocaleString('zh-TW')}</p>
+          )}
           <p><strong>訂單狀態：</strong>{statusLabels[status] || status}</p>
           <p><strong>付款方式：</strong>{order.payment_method}</p>
           <p><strong>備註：</strong>{order.notes || '—'}</p>

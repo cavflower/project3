@@ -66,6 +66,7 @@ function SurplusZonePage() {
   const categoryRefs = useRef({});
   
   const initialCartState = location.state?.cart || initialCart;
+  const tableLabel = location.state?.tableLabel; // 從內用菜單來的桌號
   const [cart, dispatch] = useReducer(cartReducer, initialCartState);
 
   useEffect(() => {
@@ -103,22 +104,47 @@ function SurplusZonePage() {
   );
 
   const handleGoToCart = () => {
-    navigate(`/takeout/${storeId}/cart`, {
-      state: { 
-        cart: cart,
-        store: store,
-        storeId: storeId 
-      }
-    });
+    // 判斷是從內用還是外帶進來
+    if (tableLabel) {
+      // 從內用進來，導向內用購物車
+      navigate(`/dinein/${storeId}/cart`, {
+        state: { 
+          cart: cart,
+          store: store,
+          storeId: storeId,
+          tableLabel: tableLabel
+        }
+      });
+    } else {
+      // 從外帶進來，導向外帶購物車
+      navigate(`/takeout/${storeId}/cart`, {
+        state: { 
+          cart: cart,
+          store: store,
+          storeId: storeId 
+        }
+      });
+    }
   };
 
   const handleBackToMenu = () => {
-    navigate(`/store/${storeId}/takeout`, {
-      state: { 
-        cart: cart,
-        returnFromSurplus: true // 標記從惜福專區返回
-      }
-    });
+    // 判斷是從內用還是外帶進來
+    if (tableLabel) {
+      // 返回內用菜單
+      navigate(`/store/${storeId}/dine-in/menu?table=${tableLabel}`, {
+        state: { 
+          cart: cart
+        }
+      });
+    } else {
+      // 返回外帶菜單
+      navigate(`/store/${storeId}/takeout`, {
+        state: { 
+          cart: cart,
+          returnFromSurplus: true
+        }
+      });
+    }
   };
 
   if (loading) {
@@ -194,12 +220,12 @@ function SurplusZonePage() {
                   <span className="cart-badge">{cart.items.length}</span>
                 )}
               </button>
-             {/* 返回外帶菜單按鈕 */}
+             {/* 返回菜單按鈕 */}
               <button
                 className="back-to-menu-btn"
                 onClick={handleBackToMenu}
               >
-                外帶菜單
+                {tableLabel ? '內用菜單' : '外帶菜單'}
               </button>
             </div>
           </div>
@@ -238,6 +264,11 @@ function SurplusZonePage() {
                           <span className="badge bg-info text-dark">剩餘 {item.remaining_quantity}</span>
                         </div>
                         <p className="text-muted mb-1 small">{item.description}</p>
+                        {item.condition === 'near_expiry' && item.expiry_date && (
+                          <p className="text-danger mb-1 small">
+                            <strong>到期日：{new Date(item.expiry_date).toLocaleDateString('zh-TW')}</strong>
+                          </p>
+                        )}
                         <div className="price-container">
                           {hasDiscount && (
                             <span className="original-price">
@@ -342,6 +373,11 @@ function SurplusZonePage() {
                               <span className="badge bg-info text-dark">剩餘 {item.remaining_quantity}</span>
                             </div>
                             <p className="text-muted mb-1 small">{item.description}</p>
+                            {item.condition === 'near_expiry' && item.expiry_date && (
+                              <p className="text-danger mb-1 small">
+                                <strong>到期日：{new Date(item.expiry_date).toLocaleDateString('zh-TW')}</strong>
+                              </p>
+                            )}
                             <div className="price-container">
                               {hasDiscount && (
                                 <span className="original-price">

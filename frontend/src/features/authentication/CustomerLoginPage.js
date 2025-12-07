@@ -4,9 +4,11 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { authApi } from '../../api/authApi';
 import './LoginPage.css';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 const CustomerLoginPage = () => {
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,7 @@ const CustomerLoginPage = () => {
             setLoading(false);
             return;
         }
-        login(backendResponse.user);
+        login(backendResponse.user, redirectUrl);
       } else {
         throw new Error("後端未返回使用者資料");
       }
@@ -106,7 +108,7 @@ const CustomerLoginPage = () => {
           </div>
           <div className="form-footer">
             <Link to="/forgot-password">忘記密碼？</Link>
-            <Link to="/login/merchant">切換至店家登入</Link>
+            {!redirectUrl && <Link to="/login/merchant">切換至店家登入</Link>}
           </div>
           <button type="submit" className="submit-btn" disabled={loading}>
             {loading ? '登入中...' : '登入'}

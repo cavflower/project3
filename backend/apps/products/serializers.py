@@ -49,9 +49,15 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class PublicProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
+    is_linked_to_surplus = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price', 'image', 'service_type', 'is_available', 'store', 'category', 'category_name']
+        fields = ['id', 'name', 'description', 'price', 'image', 'service_type', 'is_available', 'store', 'category', 'category_name', 'is_linked_to_surplus']
+    
+    def get_is_linked_to_surplus(self, obj):
+        """檢查此產品是否被關聯為惜福品"""
+        from apps.surplus_food.models import SurplusFood
+        return SurplusFood.objects.filter(product=obj, status='active').exists()
 
 
