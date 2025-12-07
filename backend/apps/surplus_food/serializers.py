@@ -215,11 +215,12 @@ class SurplusFoodOrderSerializer(serializers.ModelSerializer):
             'customer_name', 'customer_phone', 'customer_email',
             'quantity', 'unit_price', 'total_price',
             'payment_method', 'payment_method_display',
-            'status', 'status_display', 'pickup_time', 'notes',
+            'status', 'status_display', 'pickup_time', 'pickup_number',
+            'use_utensils', 'notes',
             'created_at', 'confirmed_at', 'completed_at'
         ]
         read_only_fields = [
-            'id', 'order_number', 'total_price',
+            'id', 'order_number', 'store', 'total_price', 'unit_price', 'pickup_number',
             'created_at', 'confirmed_at', 'completed_at'
         ]
     
@@ -228,16 +229,32 @@ class SurplusFoodOrderSerializer(serializers.ModelSerializer):
         surplus_food = data.get('surplus_food')
         quantity = data.get('quantity', 1)
         
+        if not surplus_food:
+            raise serializers.ValidationError({
+                'surplus_food': '必須選擇惜福品'
+            })
+        
+        # 檢查狀態
+        if surplus_food.status != 'active':
+            raise serializers.ValidationError({
+                'surplus_food': f'此惜福品目前無法訂購（狀態：{surplus_food.get_status_display()}）'
+            })
+        
         # 檢查庫存
-        if surplus_food and quantity > surplus_food.remaining_quantity:
+        if surplus_food.remaining_quantity <= 0:
+            raise serializers.ValidationError({
+                'surplus_food': '此惜福品已售完'
+            })
+        
+        if quantity > surplus_food.remaining_quantity:
             raise serializers.ValidationError({
                 'quantity': f'庫存不足，目前剩餘 {surplus_food.remaining_quantity} 份'
             })
         
-        # 檢查是否在可售時間內
-        if surplus_food and not surplus_food.is_available:
+        # 驗證數量必須大於 0
+        if quantity <= 0:
             raise serializers.ValidationError({
-                'surplus_food': '此惜福品目前無法訂購'
+                'quantity': '數量必須大於 0'
             })
         
         return data

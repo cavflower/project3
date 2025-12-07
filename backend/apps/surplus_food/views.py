@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 from django.db.models import Q
+from datetime import datetime
+import firebase_admin
+from firebase_admin import firestore
 from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory
 from .serializers import (
     SurplusTimeSlotSerializer,
@@ -12,6 +15,13 @@ from .serializers import (
     SurplusFoodOrderSerializer,
     SurplusFoodCategorySerializer
 )
+
+# Firestore 初始化
+try:
+    db = firestore.client()
+except ValueError:
+    # Firebase 已經初始化
+    db = firestore.client()
 
 
 class SurplusFoodCategoryViewSet(viewsets.ModelViewSet):
@@ -168,12 +178,9 @@ class PublicSurplusFoodViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         """只返回上架中且有庫存的惜福食品"""
-        now = timezone.now()
         queryset = SurplusFood.objects.filter(
             status='active',
-            remaining_quantity__gt=0,
-            available_from__lte=now,
-            available_until__gte=now
+            remaining_quantity__gt=0
         )
         
         # 支援店家篩選
@@ -196,6 +203,21 @@ class PublicSurplusFoodViewSet(viewsets.ReadOnlyModelViewSet):
         
         return queryset.order_by('-created_at')
     
+    @action(detail=False, methods=['get'], url_path='categories')
+    def get_categories(self, request):
+        """獲取指定店家的惜福品類別（公開）"""
+        store_id = request.query_params.get('store', None)
+        if not store_id:
+            return Response({'detail': 'store parameter is required'}, status=400)
+        
+        categories = SurplusFoodCategory.objects.filter(
+            store_id=store_id,
+            is_active=True
+        ).order_by('display_order', 'name')
+        
+        serializer = SurplusFoodCategorySerializer(categories, many=True)
+        return Response(serializer.data)
+    
     def retrieve(self, request, *args, **kwargs):
         """瀏覽詳情時增加瀏覽次數"""
         instance = self.get_object()
@@ -213,6 +235,12 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
     serializer_class = SurplusFoodOrderSerializer
     permission_classes = [IsAuthenticated]
     
+    def get_permissions(self):
+        """創建訂單時不需要認證（顧客下單），其他操作需要認證（商家管理）"""
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+    
     def get_queryset(self):
         """只返回當前商家的訂單"""
         user = self.request.user
@@ -227,41 +255,168 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             return queryset.order_by('-created_at')
         return SurplusFoodOrder.objects.none()
     
+    def generate_pickup_number(self, store_id):
+        """生成惜福品取餐號碼（S001, S002...）"""
+        today = timezone.now().date()
+        
+        # 獲取今天該店家的最後一個取餐號碼
+        last_order = SurplusFoodOrder.objects.filter(
+            store_id=store_id,
+            created_at__date=today,
+            pickup_number__isnull=False
+        ).order_by('-pickup_number').first()
+        
+        if last_order and last_order.pickup_number:
+            # 從 S001 提取數字部分
+            try:
+                last_number = int(last_order.pickup_number[1:])
+                new_number = last_number + 1
+            except (ValueError, IndexError):
+                new_number = 1
+        else:
+            new_number = 1
+        
+        # 格式化為 S001, S002...（S 代表 Surplus）
+        return f"S{new_number:03d}"
+    
+    def create(self, request, *args, **kwargs):
+        """創建訂單時生成取餐號碼並寫入 Firestore"""
+        # 列印請求資料用於除錯
+        print("收到惜福品訂單請求：", request.data)
+        
+        # 獲取店家資訊
+        user = request.user
+        if not (hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store')):
+            # 如果不是商家，從 surplus_food 取得 store
+            surplus_food_id = request.data.get('surplus_food')
+            if surplus_food_id:
+                try:
+                    surplus_food = SurplusFood.objects.get(id=surplus_food_id)
+                    store = surplus_food.store
+                    print(f"從惜福品 {surplus_food_id} 取得店家：{store.name}")
+                except SurplusFood.DoesNotExist:
+                    print(f"找不到惜福品 ID: {surplus_food_id}")
+                    return Response(
+                        {'error': '找不到指定的惜福品'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                print("請求中缺少 surplus_food")
+                return Response(
+                    {'error': '必須提供 surplus_food'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            store = user.merchant_profile.store
+            print(f"從商家用戶取得店家：{store.name}")
+        
+        # 創建訂單
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            print(f"序列化驗證失敗：{e}")
+            raise
+        
+        # 設置 store 和單價
+        surplus_food = serializer.validated_data.get('surplus_food')
+        
+        # 生成取餐號碼
+        pickup_number = self.generate_pickup_number(store.id)
+        print(f"生成取餐號碼：{pickup_number}")
+        
+        # 保存訂單
+        order = serializer.save(
+            store=store,
+            unit_price=surplus_food.surplus_price,
+            pickup_number=pickup_number
+        )
+        
+        # 減少庫存
+        surplus_food.remaining_quantity -= order.quantity
+        surplus_food.orders_count += 1
+        surplus_food.save()
+        
+        # 寫入 Firestore（惜福品專用 collection）
+        try:
+            surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
+            surplus_orders_ref.set({
+                'store_id': str(store.id),
+                'order_id': str(order.id),
+                'order_number': order.order_number,
+                'pickup_number': pickup_number,
+                'customer_name': order.customer_name,
+                'surplus_food_title': surplus_food.title,
+                'quantity': order.quantity,
+                'total_price': float(order.total_price),
+                'status': order.status,
+                'use_utensils': order.use_utensils,
+                'created_at': datetime.now(),
+                'pickup_time': order.pickup_time.isoformat() if order.pickup_time else None,
+            })
+        except Exception as e:
+            # Firestore 寫入失敗不影響主流程
+            print(f"寫入 Firestore 失敗: {e}")
+        
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
-        """確認訂單"""
+        """確認訂單並更新 Firestore"""
         order = self.get_object()
         order.status = 'confirmed'
         order.confirmed_at = timezone.now()
         order.save()
+        
+        # 更新 Firestore
+        try:
+            surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
+            surplus_orders_ref.update({'status': 'confirmed'})
+        except Exception as e:
+            print(f"更新 Firestore 失敗: {e}")
         
         serializer = self.get_serializer(order)
         return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def ready(self, request, pk=None):
-        """標記為可取餐"""
+        """標記為可取餐並更新 Firestore"""
         order = self.get_object()
         order.status = 'ready'
         order.save()
+        
+        # 更新 Firestore
+        try:
+            surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
+            surplus_orders_ref.update({'status': 'ready'})
+        except Exception as e:
+            print(f"更新 Firestore 失敗: {e}")
         
         serializer = self.get_serializer(order)
         return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
-        """完成訂單"""
+        """完成訂單並從 Firestore 刪除"""
         order = self.get_object()
         order.status = 'completed'
         order.completed_at = timezone.now()
         order.save()
+        
+        # 從 Firestore 刪除（已完成的訂單不需要實時通知）
+        try:
+            surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
+            surplus_orders_ref.delete()
+        except Exception as e:
+            print(f"刪除 Firestore 文件失敗: {e}")
         
         serializer = self.get_serializer(order)
         return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
-        """取消訂單並恢復庫存"""
+        """取消訂單並恢復庫存，從 Firestore 刪除"""
         order = self.get_object()
         
         # 恢復庫存
@@ -272,5 +427,63 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
         order.status = 'cancelled'
         order.save()
         
+        # 從 Firestore 刪除
+        try:
+            surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
+            surplus_orders_ref.delete()
+        except Exception as e:
+            print(f"刪除 Firestore 文件失敗: {e}")
+        
         serializer = self.get_serializer(order)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """拒絕訂單並恢復庫存，從 Firestore 刪除"""
+        order = self.get_object()
+        
+        # 恢復庫存
+        surplus_food = order.surplus_food
+        surplus_food.remaining_quantity += order.quantity
+        surplus_food.save()
+        
+        order.status = 'cancelled'  # 使用 cancelled 狀態表示拒絕
+        order.save()
+        
+        # 從 Firestore 刪除
+        try:
+            surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
+            surplus_orders_ref.delete()
+        except Exception as e:
+            print(f"刪除 Firestore 文件失敗: {e}")
+        
+        serializer = self.get_serializer(order)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['delete'])
+    def delete_order(self, request, pk=None):
+        """刪除已完成或已取消的訂單（只刪除 PostgreSQL）"""
+        order = self.get_object()
+        
+        # 檢查狀態，只允許刪除已完成或已取消的訂單
+        if order.status not in ['completed', 'cancelled']:
+            return Response(
+                {'error': '只能刪除已完成或已取消的訂單'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 刪除訂單
+        order.delete()
+        
+        # 嘗試刪除 Firestore 資料（如果還存在的話）
+        try:
+            surplus_orders_ref = db.collection('surplus_orders').document(str(pk))
+            surplus_orders_ref.delete()
+        except Exception as e:
+            # Firestore 刪除失敗不影響主要流程（可能已經被刪除）
+            print(f"刪除 Firestore 文件失敗: {e}")
+        
+        return Response(
+            {'message': '訂單已刪除'},
+            status=status.HTTP_204_NO_CONTENT
+        )

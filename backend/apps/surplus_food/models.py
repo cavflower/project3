@@ -430,6 +430,16 @@ class SurplusFoodOrder(models.Model):
         blank=True,
         verbose_name='預計取餐時間'
     )
+    pickup_number = models.CharField(
+        max_length=10,
+        blank=True,
+        verbose_name='取餐號碼',
+        help_text='例如：S001, S002'
+    )
+    use_utensils = models.BooleanField(
+        default=False,
+        verbose_name='是否需要餐具'
+    )
     notes = models.TextField(blank=True, verbose_name='備註')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='訂單時間')
     confirmed_at = models.DateTimeField(

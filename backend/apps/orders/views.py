@@ -39,12 +39,12 @@ class OrderStatusUpdateView(APIView):
                 }
             )
             
-            # 如果狀態變更為 completed，同時從 Firestore 刪除（保留 PostgreSQL 資料）
-            if new_status == 'completed':
+            # 如果狀態變更為 completed 或 rejected，從 Firestore 刪除（保留 PostgreSQL 資料）
+            if new_status in ['completed', 'rejected']:
                 try:
                     # 更新 PostgreSQL 狀態
                     order = TakeoutOrder.objects.get(pickup_number=pickup_number)
-                    order.status = 'completed'
+                    order.status = new_status
                     order.save()
                     
                     # 刪除 Firestore 中的即時通知資料
@@ -59,7 +59,7 @@ class OrderStatusUpdateView(APIView):
             return Response({'detail': str(exc)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def delete(self, request, pickup_number):
-        """刪除已完成或已拒絕的訂單（同時刪除 Firestore 和 PostgreSQL）"""
+        """刪除已完成或已拒絕的訂單（只刪除 PostgreSQL，Firestore 已在狀態變更時刪除）"""
         try:
             from .models import TakeoutOrder
             
@@ -79,14 +79,14 @@ class OrderStatusUpdateView(APIView):
             # 3. 刪除 PostgreSQL 資料
             order.delete()
             
-            # 4. 刪除 Firestore 資料
+            # 4. 嘗試刪除 Firestore 資料（如果還存在的話）
             try:
                 doc_ref = firestore.client().collection('orders').document(pickup_number)
                 doc_ref.delete()
             except Exception as firestore_err:
-                # Firestore 刪除失敗不影響主要流程
+                # Firestore 刪除失敗不影響主要流程（可能已經被刪除）
                 print(f"Failed to delete from Firestore: {firestore_err}")
             
-            return Response({'detail': 'Order deleted successfully from both databases'}, status=http_status.HTTP_204_NO_CONTENT)
+            return Response({'detail': 'Order deleted successfully'}, status=http_status.HTTP_204_NO_CONTENT)
         except Exception as exc:
             return Response({'detail': str(exc)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
