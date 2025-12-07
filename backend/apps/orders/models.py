@@ -11,7 +11,7 @@ class TakeoutOrder(models.Model):
     STATUS_CHOICES = (
         ('pending', '待處理'),
         ('accepted', '已接受'),
-        ('in_progress', '待完成'),
+        ('ready_for_pickup', '可取餐'),
         ('completed', '已完成'),
         ('rejected', '已拒絕'),
     )

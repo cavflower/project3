@@ -8,6 +8,7 @@ import './OrderManagementPage.css';
 const statusLabels = {
   pending: '待處理',
   accepted: '已接受',
+  ready_for_pickup: '可取餐',
   completed: '已完成',
   rejected: '已拒絕',
 };
@@ -98,7 +99,7 @@ function OrderManagementPage() {
   };
 
   const handleDelete = async (pickupNumber) => {
-    if (!window.confirm('確定要刪除此訂單？')) return;
+    if (!window.confirm('確定要永久刪除此訂單？此操作將從資料庫中完全移除訂單資料。')) return;
     try {
       setUpdating(true);
       await api.delete(`/orders/status/${pickupNumber}/`);
@@ -108,9 +109,11 @@ function OrderManagementPage() {
       if (selected && (selected.pickup_number === pickupNumber || selected.id === pickupNumber)) {
         setSelected(null);
       }
+      alert('訂單已成功刪除');
     } catch (err) {
       console.error('delete order error', err);
-      alert('刪除訂單失敗');
+      const errorMsg = err.response?.data?.detail || '刪除訂單失敗';
+      alert(errorMsg);
     } finally {
       setUpdating(false);
     }
@@ -193,6 +196,7 @@ function OrderManagementPage() {
           { key: 'all', label: '全部' },
           { key: 'pending', label: '待處理' },
           { key: 'accepted', label: '已接受' },
+          { key: 'ready_for_pickup', label: '可取餐' },
           { key: 'completed', label: '已完成' },
           { key: 'rejected', label: '已拒絕' },
         ].map((opt) => (
@@ -287,11 +291,11 @@ function OrderManagementPage() {
                         return (
                           <div className="d-flex gap-2">
                             <button
-                              className="btn btn-sm btn-success"
+                              className="btn btn-sm btn-primary"
                               disabled={updating}
-                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'completed')}
+                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'ready_for_pickup')}
                             >
-                              完成訂單
+                              製作完成
                             </button>
                             <button
                               className="btn btn-sm btn-outline-danger"
@@ -299,6 +303,24 @@ function OrderManagementPage() {
                               onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'rejected')}
                             >
                               取消
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() => setSelected(order)}
+                            >
+                              查看
+                            </button>
+                          </div>
+                        );
+                      } else if (status === 'ready_for_pickup') {
+                        return (
+                          <div className="d-flex gap-2">
+                            <button
+                              className="btn btn-sm btn-success"
+                              disabled={updating}
+                              onClick={() => handleUpdateStatus(order.pickup_number || order.id, 'completed')}
+                            >
+                              完成訂單
                             </button>
                             <button
                               className="btn btn-sm btn-outline-secondary"
@@ -423,11 +445,11 @@ function OrderManagementPage() {
                   return (
                     <>
                       <button
-                        className="btn btn-success"
+                        className="btn btn-primary"
                         disabled={updating}
-                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'completed')}
+                        onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'ready_for_pickup')}
                       >
-                        完成訂單
+                        製作完成
                       </button>
                       <button
                         className="btn btn-outline-danger"
@@ -437,6 +459,16 @@ function OrderManagementPage() {
                         取消
                       </button>
                     </>
+                  );
+                } else if (status === 'ready_for_pickup') {
+                  return (
+                    <button
+                      className="btn btn-success"
+                      disabled={updating}
+                      onClick={() => handleUpdateStatus(selected.pickup_number || selected.id, 'completed')}
+                    >
+                      完成訂單
+                    </button>
                   );
                 } else if (status === 'completed' || status === 'rejected') {
                   return (

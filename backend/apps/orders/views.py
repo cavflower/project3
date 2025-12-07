@@ -21,45 +21,72 @@ class TakeoutOrderCreateView(generics.CreateAPIView):
 
 class OrderStatusUpdateView(APIView):
     permission_classes = [permissions.AllowAny]
-    VALID_STATUS = {'pending', 'accepted', 'in_progress', 'completed', 'rejected'}
+    VALID_STATUS = {'pending', 'accepted', 'ready_for_pickup', 'completed', 'rejected'}
 
     def patch(self, request, pickup_number):
         new_status = request.data.get('status')
         if new_status not in self.VALID_STATUS:
             return Response({'detail': 'Invalid status'}, status=http_status.HTTP_400_BAD_REQUEST)
+        
         try:
+            from .models import TakeoutOrder
+            
+            # 更新 Firestore 狀態
             firestore.client().collection('orders').document(pickup_number).update(
                 {
                     'status': new_status,
                     'updated_at': firestore.SERVER_TIMESTAMP,
                 }
             )
+            
+            # 如果狀態變更為 completed，同時從 Firestore 刪除（保留 PostgreSQL 資料）
+            if new_status == 'completed':
+                try:
+                    # 更新 PostgreSQL 狀態
+                    order = TakeoutOrder.objects.get(pickup_number=pickup_number)
+                    order.status = 'completed'
+                    order.save()
+                    
+                    # 刪除 Firestore 中的即時通知資料
+                    firestore.client().collection('orders').document(pickup_number).delete()
+                except TakeoutOrder.DoesNotExist:
+                    pass  # PostgreSQL 中沒有記錄，繼續
+                except Exception as db_err:
+                    print(f"Failed to update PostgreSQL: {db_err}")
+            
             return Response({'pickup_number': pickup_number, 'status': new_status})
         except Exception as exc:  # noqa: BLE001
             return Response({'detail': str(exc)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def delete(self, request, pickup_number):
-        """刪除已完成或已拒絕的訂單"""
+        """刪除已完成或已拒絕的訂單（同時刪除 Firestore 和 PostgreSQL）"""
         try:
-            # 從 Firestore 獲取訂單檢查狀態
-            doc_ref = firestore.client().collection('orders').document(pickup_number)
-            doc = doc_ref.get()
+            from .models import TakeoutOrder
             
-            if not doc.exists:
-                return Response({'detail': 'Order not found'}, status=http_status.HTTP_404_NOT_FOUND)
+            # 1. 從 PostgreSQL 獲取訂單
+            try:
+                order = TakeoutOrder.objects.get(pickup_number=pickup_number)
+            except TakeoutOrder.DoesNotExist:
+                return Response({'detail': 'Order not found in database'}, status=http_status.HTTP_404_NOT_FOUND)
             
-            order_data = doc.to_dict()
-            order_status = order_data.get('status')
-            
-            # 只允許刪除已完成或已拒絕的訂單
-            if order_status not in ['completed', 'rejected']:
+            # 2. 檢查狀態，只允許刪除已完成或已拒絕的訂單
+            if order.status not in ['completed', 'rejected']:
                 return Response(
                     {'detail': 'Only completed or rejected orders can be deleted'}, 
                     status=http_status.HTTP_400_BAD_REQUEST
                 )
             
-            # 刪除訂單
-            doc_ref.delete()
-            return Response({'detail': 'Order deleted successfully'}, status=http_status.HTTP_204_NO_CONTENT)
+            # 3. 刪除 PostgreSQL 資料
+            order.delete()
+            
+            # 4. 刪除 Firestore 資料
+            try:
+                doc_ref = firestore.client().collection('orders').document(pickup_number)
+                doc_ref.delete()
+            except Exception as firestore_err:
+                # Firestore 刪除失敗不影響主要流程
+                print(f"Failed to delete from Firestore: {firestore_err}")
+            
+            return Response({'detail': 'Order deleted successfully from both databases'}, status=http_status.HTTP_204_NO_CONTENT)
         except Exception as exc:
             return Response({'detail': str(exc)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
