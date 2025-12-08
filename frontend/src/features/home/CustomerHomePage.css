@@ -259,6 +259,50 @@
   border-right-color: transparent;
 }
 
+/* 骨架屏載入動畫 */
+.skeleton-loading {
+  pointer-events: none;
+}
+
+.skeleton-image,
+.skeleton-title,
+.skeleton-text {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.skeleton-image {
+  height: 200px;
+  border-radius: 16px 16px 0 0;
+}
+
+.skeleton-title {
+  height: 24px;
+  width: 70%;
+  margin-bottom: 12px;
+}
+
+.skeleton-text {
+  height: 16px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.skeleton-text.short {
+  width: 60%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* 響應式設計 */
 @media (max-width: 768px) {
   .category-btn {

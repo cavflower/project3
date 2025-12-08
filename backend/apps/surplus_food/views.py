@@ -252,6 +252,11 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             if status_filter:
                 queryset = queryset.filter(status=status_filter)
             
+            # 支援訂單類型篩選（內用/外帶）
+            order_type_filter = self.request.query_params.get('order_type', None)
+            if order_type_filter:
+                queryset = queryset.filter(order_type=order_type_filter)
+            
             return queryset.order_by('-created_at')
         return SurplusFoodOrder.objects.none()
     

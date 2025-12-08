@@ -176,7 +176,22 @@ class StoreViewSet(viewsets.ModelViewSet):
         - has_surplus_food: 是否提供惜福品功能
         - search: 搜尋關鍵字（店名、描述）
         """
-        stores = Store.objects.filter(is_published=True)
+        from django.db.models import Count, Q, Prefetch
+        
+        # 優化查詢：使用 select_related 和 prefetch_related
+        # 為了避免切片問題，我們 prefetch 所有圖片但在 serializer 中只取第一張
+        stores = Store.objects.filter(
+            is_published=True
+        ).select_related(
+            'merchant', 'merchant__user'
+        ).prefetch_related(
+            Prefetch('images', queryset=StoreImage.objects.order_by('order'))
+        ).annotate(
+            surplus_order_count=Count(
+                'surplus_orders',
+                filter=Q(surplus_orders__status='completed')
+            )
+        )
         
         # 餐廳類別篩選
         cuisine_type = request.query_params.get('cuisine_type')
@@ -199,14 +214,15 @@ class StoreViewSet(viewsets.ModelViewSet):
         # 搜尋關鍵字
         search = request.query_params.get('search')
         if search:
-            from django.db.models import Q
             stores = stores.filter(
                 Q(name__icontains=search) | 
                 Q(description__icontains=search) |
                 Q(address__icontains=search)
             )
         
-        serializer = self.get_serializer(stores, many=True)
+        # 使用輕量級序列化器提升效能
+        from .serializers import PublishedStoreSerializer
+        serializer = PublishedStoreSerializer(stores, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])

@@ -2,6 +2,45 @@ from rest_framework import serializers
 from .models import Store, StoreImage, MenuImage
 
 
+class PublishedStoreSerializer(serializers.ModelSerializer):
+    """輕量級序列化器，專門用於顧客瀏覽店家列表（只返回必要欄位）"""
+    first_image = serializers.SerializerMethodField()
+    surplus_order_count = serializers.IntegerField(read_only=True)  # 使用 annotate 的值
+    plan = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Store
+        fields = [
+            'id',
+            'name',
+            'description',
+            'address',
+            'phone',
+            'cuisine_type',
+            'is_open',
+            'enable_reservation',
+            'enable_loyalty',
+            'enable_surplus_food',
+            'first_image',
+            'surplus_order_count',
+            'plan',
+            'budget_lunch',
+            'budget_dinner',
+        ]
+    
+    def get_first_image(self, obj):
+        """只返回第一張圖片的 URL（從已 prefetch 的資料中取得）"""
+        # 由於已經 prefetch，這裡不會產生額外查詢
+        images = obj.images.all()
+        if images:
+            return images[0].image.url
+        return None
+    
+    def get_plan(self, obj):
+        """獲取商家的付費方案"""
+        return obj.merchant.plan if hasattr(obj, 'merchant') and obj.merchant.plan else None
+
+
 class StoreImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = StoreImage
@@ -19,7 +58,7 @@ class MenuImageSerializer(serializers.ModelSerializer):
 class StoreSerializer(serializers.ModelSerializer):
     images = StoreImageSerializer(many=True, read_only=True)
     menu_images = MenuImageSerializer(many=True, read_only=True)
-    surplus_order_count = serializers.SerializerMethodField()
+    surplus_order_count = serializers.IntegerField(read_only=True, required=False)  # 允許從 annotate 讀取
     plan = serializers.SerializerMethodField()
     
     class Meta:
@@ -70,6 +109,10 @@ class StoreSerializer(serializers.ModelSerializer):
 
     def get_surplus_order_count(self, obj):
         """獲取該店家已完成的惜福品訂單數量"""
+        # 如果已經通過 annotate 計算，直接返回
+        if hasattr(obj, 'surplus_order_count'):
+            return obj.surplus_order_count
+        # 否則才執行查詢（向後相容）
         from apps.surplus_food.models import SurplusFoodOrder
         return SurplusFoodOrder.objects.filter(
             store=obj,

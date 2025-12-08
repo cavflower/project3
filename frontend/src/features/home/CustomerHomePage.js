@@ -48,10 +48,10 @@ function CustomerHomePage() {
         phone: store.phone || '',
         cuisine_type: store.cuisine_type,
         rating: 4.5, // 暫時使用預設值，之後可以從評論系統獲取
-        imageUrl: store.images && store.images.length > 0 
-          ? (store.images[0].image.startsWith('http') 
-              ? store.images[0].image 
-              : `http://127.0.0.1:8000${store.images[0].image}`)
+        imageUrl: store.first_image 
+          ? (store.first_image.startsWith('http') 
+              ? store.first_image 
+              : `http://127.0.0.1:8000${store.first_image}`)
           : '/images/default-store.jpg',
         tags: [],
         is_open: store.is_open,
@@ -218,13 +218,21 @@ function CustomerHomePage() {
           </div>
         )}
 
-        {/* 載入中 */}
+        {/* 載入中 - 骨架屏 */}
         {loading && (
-          <div className="text-center py-5">
-            <div className="spinner-border text-orange" role="status">
-              <span className="visually-hidden">載入中...</span>
-            </div>
-            <p className="mt-3 text-muted">載入店家資訊中...</p>
+          <div className="row g-4">
+            {[1, 2, 3, 4, 5, 6].map(index => (
+              <div key={index} className="col-md-6 col-lg-4">
+                <div className="store-card skeleton-loading">
+                  <div className="skeleton-image"></div>
+                  <div className="store-card-body">
+                    <div className="skeleton-title"></div>
+                    <div className="skeleton-text"></div>
+                    <div className="skeleton-text short"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

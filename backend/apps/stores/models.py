@@ -211,6 +211,14 @@ class Store(models.Model):
     class Meta:
         verbose_name = '店家資訊'
         verbose_name_plural = '店家資訊'
+        indexes = [
+            models.Index(fields=['is_published', 'cuisine_type']),  # 加速公開店家分類查詢
+            models.Index(fields=['is_published', 'enable_reservation']),  # 加速訂位功能篩選
+            models.Index(fields=['is_published', 'enable_loyalty']),  # 加速會員功能篩選
+            models.Index(fields=['is_published', 'enable_surplus_food']),  # 加速惜福功能篩選
+            models.Index(fields=['name']),  # 加速店名搜尋
+            models.Index(fields=['created_at']),  # 加速時間排序
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.merchant.user.username})"
