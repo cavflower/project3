@@ -12,9 +12,9 @@ const PlanSelectionPage = () => {
   const navigate = useNavigate();
 
   const plans = [
-    { id: 'basic', name: '基本方案', price: 'NT$ 999/月', features: ['商品上架無限制', '基本訂單管理', '數據分析報表'] },
-    { id: 'premium', name: '進階方案', price: 'NT$ 1,999/月', features: ['包含基本方案所有功能', '顧客忠誠度系統 (點數/優惠券)', '進階行銷工具'] },
-    { id: 'enterprise', name: '企業方案', price: '聯繫我們', features: ['包含進階方案所有功能', '客製化功能開發', '專屬客戶經理'] },
+    { id: 'basic', name: '基本方案', price: 'NT$ 499/月', features: ['平台基礎功能(販賣、排班...)', '基本訂單管理+惜福品', '營運報表'] },
+    { id: 'premium', name: '進階方案', price: 'NT$ 999/月', features: ['包含基本方案所有功能', '開放特殊功能(訂位、會員)', '中優先級別'] },
+    { id: 'enterprise', name: '企業方案', price: 'NT$ 2,499/月', features: ['包含進階方案所有功能', 'LINE BOT個人化推播','高優先級別'] },
   ];
 
   const handleSubmit = async (e) => {
@@ -75,7 +75,7 @@ const PlanSelectionPage = () => {
           </div>
           
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? '儲存中...' : '確認方案並開始'}
+            {loading ? '儲存中...' : '確認方案'}
           </button>
         </form>
       </div>

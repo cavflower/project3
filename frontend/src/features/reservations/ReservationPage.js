@@ -34,12 +34,10 @@ const ReservationPage = () => {
       email: '',
     },
     specialRequests: '',
-    preOrder: false,
-    preOrderItems: [],
   });
 
-  // 步驟定義：1.選擇訂位資訊 2.填寫資料(僅訪客) 3.預先點餐 4.確認訂位
-  const totalSteps = user ? 3 : 4; // 會員3步驟，訪客4步驟
+  // 步驟定義：1.選擇訂位資訊 2.特殊需求(會員)/填寫資料+特殊需求(訪客) 3.確認訂位
+  const totalSteps = 3; // 會員和訪客都是3步驟
 
   // 可用時段
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
@@ -199,6 +197,24 @@ const ReservationPage = () => {
       }
     }
     
+    // 驗證步驟2：訪客填寫聯絡資料
+    if (currentStep === 2 && !user) {
+      if (!reservationData.guestInfo.name || reservationData.guestInfo.name.trim() === '') {
+        alert('請填寫訂位人姓名');
+        return;
+      }
+      if (!reservationData.guestInfo.phone || reservationData.guestInfo.phone.trim() === '') {
+        alert('請填寫聯絡電話');
+        return;
+      }
+      // 簡單驗證電話格式（至少要有數字）
+      const phoneRegex = /\d/;
+      if (!phoneRegex.test(reservationData.guestInfo.phone)) {
+        alert('請輸入有效的電話號碼');
+        return;
+      }
+    }
+    
     setCurrentStep(currentStep + 1);
   };
 
@@ -265,7 +281,7 @@ const ReservationPage = () => {
     if (user) {
       const titles = {
         1: '選擇訂位資訊',
-        2: '預先點餐（可選）',
+        2: '特殊需求（可選）',
         3: '確認訂位',
       };
       return titles[currentStep];
@@ -273,8 +289,7 @@ const ReservationPage = () => {
       const titles = {
         1: '選擇訂位資訊',
         2: '填寫訂位資料',
-        3: '預先點餐（可選）',
-        4: '確認訂位',
+        3: '確認訂位',
       };
       return titles[currentStep];
     }
@@ -359,7 +374,7 @@ const ReservationPage = () => {
                   </div>
                 </div>
                 <small className="form-hint">
-                  可接受 1-7 位訂位（含大人與小孩）
+                  大人+小孩不能超過單筆人數上限
                 </small>
               </div>
 
@@ -480,48 +495,10 @@ const ReservationPage = () => {
                   placeholder="example@email.com"
                 />
               </div>
-            </div>
-          )}
-
-          {/* 預先點餐步驟 */}
-          {((user && currentStep === 2) || (!user && currentStep === 3)) && (
-            <div className="pre-order-section">
-              <div className="pre-order-notice">
-                <FaUtensils />
-                <div>
-                  <h3>預先點餐（可選）</h3>
-                  <p>提前點餐，節省現場等候時間</p>
-                </div>
-              </div>
-              <div className="pre-order-options">
-                <button
-                  className={`option-card ${reservationData.preOrder ? '' : 'selected'}`}
-                  onClick={() => setReservationData({ ...reservationData, preOrder: false })}
-                >
-                  <div className="option-content">
-                    <h4>現場點餐</h4>
-                    <p>到店後再決定用餐內容</p>
-                  </div>
-                </button>
-                <button
-                  className={`option-card ${reservationData.preOrder ? 'selected' : ''}`}
-                  onClick={() => setReservationData({ ...reservationData, preOrder: true })}
-                >
-                  <div className="option-content">
-                    <h4>預先點餐</h4>
-                    <p>立即選擇餐點，到店即可享用</p>
-                  </div>
-                </button>
-              </div>
-              {reservationData.preOrder && (
-                <div className="menu-preview">
-                  <p className="text-center text-muted">菜單功能開發中...</p>
-                </div>
-              )}
-
+              
               {/* 特殊需求 */}
-              <div className="special-requests-section">
-                <h4 className="section-subtitle">特殊需求</h4>
+              <div className="form-group">
+                <label>特殊需求</label>
                 <textarea
                   className="special-requests-textarea"
                   value={reservationData.specialRequests}
@@ -536,8 +513,31 @@ const ReservationPage = () => {
             </div>
           )}
 
+          {/* 步驟 2: 會員用戶填寫特殊需求 */}
+          {currentStep === 2 && user && (
+            <div className="special-requests-section">
+              <div className="form-notice">
+                <p>如有特殊需求（如兒童座椅、過敏資訊等），請在此填寫</p>
+              </div>
+              
+              <div className="form-group">
+                <label>特殊需求</label>
+                <textarea
+                  className="special-requests-textarea"
+                  value={reservationData.specialRequests}
+                  onChange={(e) => setReservationData({
+                    ...reservationData,
+                    specialRequests: e.target.value
+                  })}
+                  placeholder="如：兒童座椅、過敏資訊等"
+                  rows="6"
+                />
+              </div>
+            </div>
+          )}
+
           {/* 確認訂位步驟（會員和訪客都顯示） */}
-          {((user && currentStep === 3) || (!user && currentStep === 4)) && (
+          {currentStep === 3 && (
             <div className="confirmation-section">
               <div className="confirmation-card">
                 <h3><FaCheckCircle /> 請確認您的訂位資訊</h3>
@@ -592,12 +592,6 @@ const ReservationPage = () => {
                     <div className="info-row">
                       <span className="label">特殊需求：</span>
                       <span className="value">{reservationData.specialRequests}</span>
-                    </div>
-                  )}
-                  {reservationData.preOrder && (
-                    <div className="info-row">
-                      <span className="label">預先點餐：</span>
-                      <span className="value">是</span>
                     </div>
                   )}
                 </div>

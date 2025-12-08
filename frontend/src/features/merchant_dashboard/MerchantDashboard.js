@@ -146,7 +146,7 @@ const MerchantDashboard = () => {
     {
       id: 'reviews',
       name: '顧客回饋',
-      description: '建立與管理您的行銷活動',
+      description: '查看餐廳和食物評論並回覆顧客',
       icon: FaBullhorn,
       path: '/merchant/reviews',
     },

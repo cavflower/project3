@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
+import { updateMerchantPlan } from '../../api/authApi';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
-  const { user, updateUser, loading } = useAuth();
+  const { user, updateUser, login, loading } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     phone_number: '',
     gender: 'female',
   });
+  const [selectedPlan, setSelectedPlan] = useState('');
+  const [currentPlan, setCurrentPlan] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
   const fileInputRef = useRef(null);
@@ -24,6 +29,13 @@ const ProfilePage = () => {
       });
       // 如果使用者有頭像 URL，則使用它，否則使用預設圖片
       setAvatarPreview(user.avatar_url || 'https://via.placeholder.com/150');
+      
+      // 如果是商家，設定方案
+      if (user.user_type === 'merchant' && user.merchant_profile) {
+        const plan = user.merchant_profile.plan || '';
+        setCurrentPlan(plan);
+        setSelectedPlan(plan);
+      }
     }
   }, [user]);
 
@@ -54,7 +66,6 @@ const ProfilePage = () => {
     const submissionData = {};
 
     // 1. 處理頭像檔案 (Base64)
-    // 如果 avatarPreview 是一個 data URL (表示有新圖片或現有圖片)，並且與使用者的原始 URL 不同
     if (avatarPreview && avatarPreview !== (user.avatar_url || 'https://via.placeholder.com/150')) {
       submissionData.avatar_url = avatarPreview;
     }
@@ -62,7 +73,6 @@ const ProfilePage = () => {
     // 2. 處理其他文字欄位
     Object.keys(formData).forEach((key) => {
       const initialValue = user[key] || '';
-      // 只有在欄位有變更時才加入
       if (formData[key] !== initialValue) {
         submissionData[key] = formData[key];
       }
@@ -71,7 +81,7 @@ const ProfilePage = () => {
     // 檢查是否有任何資料需要更新
     if (Object.keys(submissionData).length > 0) {
       try {
-        await updateUser(submissionData); // 直接傳遞 JS 物件
+        await updateUser(submissionData);
         alert('個人資料更新成功！');
       } catch (error) {
         console.error('更新失敗:', error);
@@ -82,109 +92,173 @@ const ProfilePage = () => {
     }
   };
 
+  const getPlanName = (plan) => {
+    const planNames = {
+      'basic': '基本方案',
+      'premium': '進階方案',
+      'enterprise': '企業方案'
+    };
+    return planNames[plan] || '未設定';
+  };
+
+  const handleChangePlan = () => {
+    navigate('/select-plan');
+  };
+
   if (loading || !user) {
     return <div>正在載入使用者資料...</div>;
   }
 
   return (
     <div className="profile-page">
-      <div className="profile-container">
-        <form onSubmit={handleSubmit} className="profile-form">
-          <div className="profile-sidebar">
-            <h1>編輯個人資料</h1>
-            <div className="avatar-upload-container" onClick={() => fileInputRef.current.click()}>
-              <img
-                src={avatarPreview}
-                alt="Avatar"
-                className="avatar-preview"
-              />
-              <div className="avatar-edit-overlay">
-                <span>更換頭像</span>
+      <div className="profile-wrapper">
+        <div className="profile-container">
+          <form onSubmit={handleSubmit} className="profile-form">
+            <div className="profile-sidebar">
+              <h1>編輯個人資料</h1>
+              <div className="avatar-upload-container" onClick={() => fileInputRef.current.click()}>
+                <img
+                  src={avatarPreview}
+                  alt="Avatar"
+                  className="avatar-preview"
+                />
+                <div className="avatar-edit-overlay">
+                  <span>更換頭像</span>
+                </div>
               </div>
-            </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleAvatarChange}
-              style={{ display: 'none' }}
-              accept="image/*"
-            />
-          </div>
-
-          <div className="profile-main">
-            <div className="form-group">
-              <label htmlFor="username">名稱</label>
               <input
-                type="text"
-                id="username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="email">電子郵件 (無法修改)</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                readOnly
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="phone_number">電話號碼</label>
-              <input
-                type="tel"
-                id="phone_number"
-                name="phone_number"
-                value={formData.phone_number}
-                onChange={handleChange}
+                type="file"
+                ref={fileInputRef}
+                onChange={handleAvatarChange}
+                style={{ display: 'none' }}
+                accept="image/*"
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="gender">性別</label>
-              <div className="gender-radio-group">
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="female"
-                    checked={formData.gender === 'female'}
-                    onChange={handleChange}
-                  />
-                  <span>小姐</span>
-                </label>
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="male"
-                    checked={formData.gender === 'male'}
-                    onChange={handleChange}
-                  />
-                  <span>先生</span>
-                </label>
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="other"
-                    checked={formData.gender === 'other'}
-                    onChange={handleChange}
-                  />
-                  <span>其他</span>
-                </label>
+            <div className="profile-main">
+              <div className="form-group">
+                <label htmlFor="username">名稱</label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                />
               </div>
-            </div>
+              <div className="form-group">
+                <label htmlFor="email">電子郵件 (無法修改)</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  readOnly
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="phone_number">電話號碼</label>
+                <input
+                  type="tel"
+                  id="phone_number"
+                  name="phone_number"
+                  value={formData.phone_number}
+                  onChange={handleChange}
+                />
+              </div>
 
-            <button type="submit" className="submit-btn">
-              儲存變更
+              <div className="form-group">
+                <label htmlFor="gender">性別</label>
+                <div className="gender-radio-group">
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="female"
+                      checked={formData.gender === 'female'}
+                      onChange={handleChange}
+                    />
+                    <span>小姐</span>
+                  </label>
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="male"
+                      checked={formData.gender === 'male'}
+                      onChange={handleChange}
+                    />
+                    <span>先生</span>
+                  </label>
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="other"
+                      checked={formData.gender === 'other'}
+                      onChange={handleChange}
+                    />
+                    <span>其他</span>
+                  </label>
+                </div>
+              </div>
+
+              <button type="submit" className="submit-btn">
+                儲存變更
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {user.user_type === 'merchant' && (
+          <div className="plan-sidebar">
+            <h2>現在選擇的方案</h2>
+            <div className="current-plan-display">
+              <div className="plan-badge">
+                {getPlanName(currentPlan)}
+              </div>
+              {currentPlan === 'basic' && (
+                <div className="plan-details">
+                  <p className="plan-price">NT$ 499/月</p>
+                  <ul className="plan-features">
+                    <li>平台基礎功能(販賣、排班...)</li>
+                    <li>基本訂單管理+惜福品</li>
+                    <li>營運報表</li>
+                  </ul>
+                </div>
+              )}
+              {currentPlan === 'premium' && (
+                <div className="plan-details">
+                  <p className="plan-price">NT$ 999/月</p>
+                  <ul className="plan-features">
+                    <li>包含基本方案所有功能</li>
+                    <li>開放特殊功能(訂位、會員)</li>
+                    <li>中優先級別</li>
+                  </ul>
+                </div>
+              )}
+              {currentPlan === 'enterprise' && (
+                <div className="plan-details">
+                  <p className="plan-price">NT$ 2,499/月</p>
+                  <ul className="plan-features">
+                    <li>包含進階方案所有功能</li>
+                    <li>LINE BOT個人化推播</li>
+                    <li>高優先級別</li>
+                  </ul>
+                </div>
+              )}
+              {!currentPlan && (
+                <div className="plan-details">
+                  <p className="no-plan-text">您尚未選擇方案</p>
+                </div>
+              )}
+            </div>
+            <button className="change-plan-btn" onClick={handleChangePlan}>
+              更改方案
             </button>
           </div>
-        </form>
+        )}
       </div>
     </div>
   );

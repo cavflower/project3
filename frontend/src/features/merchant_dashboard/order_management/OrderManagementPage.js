@@ -19,6 +19,7 @@ function OrderManagementPage() {
   const [updating, setUpdating] = useState(false);
   const [productMap, setProductMap] = useState({});
   const [statusFilter, setStatusFilter] = useState('all');
+  const [channelFilter, setChannelFilter] = useState('all'); // 'all', 'dine_in', 'takeout'
   const [page, setPage] = useState(1);
   const pageSize = 8;
 
@@ -140,9 +141,20 @@ function OrderManagementPage() {
   );
 
   const filteredOrders = useMemo(() => {
-    if (statusFilter === 'all') return sortedOrders;
-    return sortedOrders.filter((o) => (o.status || 'pending') === statusFilter);
-  }, [sortedOrders, statusFilter]);
+    let filtered = sortedOrders;
+    
+    // 狀態篩選
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((o) => (o.status || 'pending') === statusFilter);
+    }
+    
+    // 內用/外帶篩選
+    if (channelFilter !== 'all') {
+      filtered = filtered.filter((o) => o.channel === channelFilter);
+    }
+    
+    return filtered;
+  }, [sortedOrders, statusFilter, channelFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -218,6 +230,27 @@ function OrderManagementPage() {
             }`}
             onClick={() => {
               setStatusFilter(opt.key);
+              setPage(1);
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+        {[
+          { key: 'all', label: '全部' },
+          { key: 'dine_in', label: '內用' },
+          { key: 'takeout', label: '外帶' },
+        ].map((opt) => (
+          <button
+            key={opt.key}
+            className={`btn btn-sm filter-btn ${
+              channelFilter === opt.key ? 'filter-btn-active' : ''
+            }`}
+            onClick={() => {
+              setChannelFilter(opt.key);
               setPage(1);
             }}
           >

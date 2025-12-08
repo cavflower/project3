@@ -33,8 +33,8 @@ class StoreViewSet(viewsets.ModelViewSet):
         """
         根據操作類型返回適當的權限類
         """
-        # published 和 retrieve（查看已上架店家）是公開 API，不需要認證
-        if self.action in ['published', 'retrieve']:
+        # published、retrieve 和 all（管理員查看）是公開 API，不需要認證
+        if self.action in ['published', 'retrieve', 'all']:
             return [permissions.AllowAny()]
         if self.action in ['update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsStoreOwner()]
@@ -206,6 +206,16 @@ class StoreViewSet(viewsets.ModelViewSet):
                 Q(address__icontains=search)
             )
         
+        serializer = self.get_serializer(stores, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def all(self, request):
+        """
+        獲取所有店家資料（供管理員查看）
+        不需要認證，簡化管理員系統
+        """
+        stores = Store.objects.all().select_related('merchant').order_by('-created_at')
         serializer = self.get_serializer(stores, many=True)
         return Response(serializer.data)
 

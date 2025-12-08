@@ -19,6 +19,8 @@ class MenuImageSerializer(serializers.ModelSerializer):
 class StoreSerializer(serializers.ModelSerializer):
     images = StoreImageSerializer(many=True, read_only=True)
     menu_images = MenuImageSerializer(many=True, read_only=True)
+    surplus_order_count = serializers.SerializerMethodField()
+    plan = serializers.SerializerMethodField()
     
     class Meta:
         model = Store
@@ -55,10 +57,24 @@ class StoreSerializer(serializers.ModelSerializer):
             'enable_surplus_food',
             'images',
             'menu_images',
+            'surplus_order_count',
+            'plan',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'images', 'menu_images']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'images', 'menu_images', 'surplus_order_count', 'plan']
+
+    def get_plan(self, obj):
+        """獲取商家的付費方案"""
+        return obj.merchant.plan if hasattr(obj, 'merchant') and obj.merchant.plan else None
+
+    def get_surplus_order_count(self, obj):
+        """獲取該店家已完成的惜福品訂單數量"""
+        from apps.surplus_food.models import SurplusFoodOrder
+        return SurplusFoodOrder.objects.filter(
+            store=obj,
+            status='completed'
+        ).count()
 
     def create(self, validated_data):
         # merchant 會在 perform_create 中通過 serializer.save(merchant=...) 設定

@@ -16,6 +16,8 @@ import MerchantLoginPage from './features/authentication/MerchantLoginPage';
 import CustomerRegisterPage from './features/authentication/CustomerRegisterPage';
 import MerchantRegisterPage from './features/authentication/MerchantRegisterPage';
 import RestaurantMemberLoginPage from './features/authentication/RestaurantMemberLoginPage';
+import AdminLoginPage from './features/admin/AdminLoginPage';
+import AdminDashboard from './features/admin/AdminDashboard';
 import CustomerHomePage from './features/home/CustomerHomePage';
 import MerchantDashboard from './features/merchant_dashboard/MerchantDashboard';
 import ProfilePage from './features/user_profile/ProfilePage'; // 1. 匯入新的個人資料頁面
@@ -98,6 +100,7 @@ function App() {
               <Route path="/login/customer" element={<CustomerLoginPage />} />
               <Route path="/login/merchant" element={<MerchantLoginPage />} />
               <Route path="/login/restaurant-member" element={<RestaurantMemberLoginPage />} />
+              <Route path="/login/admin" element={<AdminLoginPage />} />
               {/* 為了向後相容，將 /login 導向顧客登入 */}
               <Route path="/login" element={<Navigate to="/login/customer" />} />
 
@@ -107,6 +110,8 @@ function App() {
               <Route path="/register/merchant" element={<MerchantRegisterPage />} />
               <Route path="/register" element={<Navigate to="/register/customer" />} />
 
+              {/* 管理員儀表板 */}
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
               {/* 顧客首頁 (/customer-home)：受保護 */}
               <Route 

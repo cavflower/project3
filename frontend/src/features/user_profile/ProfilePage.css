@@ -9,12 +9,18 @@
   min-height: calc(100vh - 60px);
 }
 
+.profile-wrapper {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
 .profile-container {
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  width: 100%;
-  max-width: 800px;
+  flex: 1;
   overflow: hidden;
 }
 
@@ -200,4 +206,134 @@
 .submit-btn:active {
   transform: translateY(-1px);
   box-shadow: 0 2px 10px rgba(54, 79, 199, 0.2);
+}
+
+/* --- 右側方案區塊 --- */
+.plan-sidebar {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-sidebar h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #343a40;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.current-plan-display {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex: 1;
+}
+
+.plan-badge {
+  background: #f8f9fa;
+  color: black;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.plan-details {
+  margin-top: 1rem;
+}
+
+.plan-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: black;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.plan-features li {
+  padding: 0.6rem 0;
+  color: #495057;
+  font-size: 0.95rem;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.plan-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #4dabf7;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.no-plan-text {
+  text-align: center;
+  color: #6c757d;
+  font-size: 1rem;
+  padding: 2rem 0;
+}
+
+.change-plan-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(90deg, #4dabf7, #364fc7);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(54, 79, 199, 0.2);
+}
+
+.change-plan-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(54, 79, 199, 0.3);
+}
+
+.change-plan-btn:active {
+  transform: translateY(-1px);
+}
+
+/* 響應式設計 */
+@media (max-width: 968px) {
+  .profile-wrapper {
+    flex-direction: column;
+  }
+
+  .plan-sidebar {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-form {
+    flex-direction: column;
+  }
+
+  .profile-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .profile-main {
+    width: 100%;
+  }
 }

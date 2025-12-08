@@ -5,15 +5,18 @@ const SurplusOrderList = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [channelFilter, setChannelFilter] = useState('all'); // 'all', 'dine_in', 'takeout'
 
   useEffect(() => {
     loadOrders();
-  }, [statusFilter]);
+  }, [statusFilter, channelFilter]);
 
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const params = statusFilter !== 'all' ? { status: statusFilter } : {};
+      const params = {};
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (channelFilter !== 'all') params.order_type = channelFilter;
       const data = await surplusFoodApi.getOrders(params);
       setOrders(data);
     } catch (error) {
@@ -137,6 +140,28 @@ const SurplusOrderList = () => {
           onClick={() => setStatusFilter('cancelled')}
         >
           已拒絕
+        </button>
+      </div>
+
+      {/* 內用/外帶篩選器 */}
+      <div className="filter-section" style={{ marginBottom: '20px' }}>
+        <button
+          className={channelFilter === 'all' ? 'filter-btn active' : 'filter-btn'}
+          onClick={() => setChannelFilter('all')}
+        >
+          全部
+        </button>
+        <button
+          className={channelFilter === 'dine_in' ? 'filter-btn active' : 'filter-btn'}
+          onClick={() => setChannelFilter('dine_in')}
+        >
+          內用
+        </button>
+        <button
+          className={channelFilter === 'takeout' ? 'filter-btn active' : 'filter-btn'}
+          onClick={() => setChannelFilter('takeout')}
+        >
+          外帶
         </button>
       </div>
 
