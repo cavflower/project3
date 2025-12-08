@@ -4,7 +4,7 @@ from .models import User, Merchant
 class MerchantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Merchant
-        fields = ['company_account', 'plan'] # 新增 'plan'
+        fields = ['company_account', 'plan', 'platform_fee_discount', 'discount_reason']
 
 class UserSerializer(serializers.ModelSerializer):
     # 讓 merchant_profile 在讀取時可見，但在寫入(註冊)時是可選的

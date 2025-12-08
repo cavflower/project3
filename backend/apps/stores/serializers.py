@@ -60,6 +60,8 @@ class StoreSerializer(serializers.ModelSerializer):
     menu_images = MenuImageSerializer(many=True, read_only=True)
     surplus_order_count = serializers.IntegerField(read_only=True, required=False)  # 允許從 annotate 讀取
     plan = serializers.SerializerMethodField()
+    platform_fee_discount = serializers.SerializerMethodField()
+    discount_reason = serializers.SerializerMethodField()
     
     class Meta:
         model = Store
@@ -98,14 +100,24 @@ class StoreSerializer(serializers.ModelSerializer):
             'menu_images',
             'surplus_order_count',
             'plan',
+            'platform_fee_discount',
+            'discount_reason',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'images', 'menu_images', 'surplus_order_count', 'plan']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'images', 'menu_images', 'surplus_order_count', 'plan', 'platform_fee_discount', 'discount_reason']
 
     def get_plan(self, obj):
         """獲取商家的付費方案"""
         return obj.merchant.plan if hasattr(obj, 'merchant') and obj.merchant.plan else None
+
+    def get_platform_fee_discount(self, obj):
+        """獲取商家的平台費折扣"""
+        return float(obj.merchant.platform_fee_discount) if hasattr(obj, 'merchant') else 0.00
+
+    def get_discount_reason(self, obj):
+        """獲取折扣原因"""
+        return obj.merchant.discount_reason if hasattr(obj, 'merchant') else ''
 
     def get_surplus_order_count(self, obj):
         """獲取該店家已完成的惜福品訂單數量"""

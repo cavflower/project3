@@ -8,6 +8,9 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc' 或 'desc'
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [selectedStore, setSelectedStore] = useState(null);
+  const [discountForm, setDiscountForm] = useState({ discount: '', reason: '' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,6 +23,11 @@ const AdminDashboard = () => {
 
     // 載入商家資料
     loadStores();
+
+    // 清理函數：確保離開頁面時恢復滾動
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
   }, [navigate]);
 
   const loadStores = async () => {
@@ -72,6 +80,63 @@ const AdminDashboard = () => {
   const sortedStores = [...stores].sort((a, b) => {
     return sortOrder === 'asc' ? a.id - b.id : b.id - a.id;
   });
+
+  const handleOpenDiscountModal = (store) => {
+    setSelectedStore(store);
+    setDiscountForm({
+      discount: store.platform_fee_discount || '',
+      reason: store.discount_reason || ''
+    });
+    
+    // 先滾動到畫面中間
+    const scrollToMiddle = () => {
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const middle = (documentHeight - windowHeight) / 2;
+      window.scrollTo({ top: middle, behavior: 'smooth' });
+    };
+    
+    scrollToMiddle();
+    
+    // 稍微延遲後顯示 Modal，確保滾動已完成
+    setTimeout(() => {
+      setShowDiscountModal(true);
+    }, 50);
+  };
+
+  const handleCloseDiscountModal = () => {
+    setShowDiscountModal(false);
+    setSelectedStore(null);
+    setDiscountForm({ discount: '', reason: '' });
+  };
+
+  const handleSubmitDiscount = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedStore) return;
+    
+    try {
+      const baseURL = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000/api';
+      await axios.post(`${baseURL}/stores/${selectedStore.id}/set_discount/`, {
+        discount: parseFloat(discountForm.discount) || 0,
+        reason: discountForm.reason
+      });
+      
+      alert('折扣設定成功！');
+      handleCloseDiscountModal();
+      loadStores(); // 重新載入資料
+    } catch (err) {
+      console.error('設定折扣失敗:', err);
+      alert('設定折扣失敗，請稍後再試');
+    }
+  };
+
+  const getDiscountBadgeClass = (discount) => {
+    if (discount >= 50) return 'discount-high';
+    if (discount >= 20) return 'discount-medium';
+    if (discount > 0) return 'discount-low';
+    return 'discount-none';
+  };
 
   if (loading) {
     return (
@@ -150,12 +215,14 @@ const AdminDashboard = () => {
                   <th>營業狀態</th>
                   <th>功能啟用</th>
                   <th>惜福品訂單</th>
+                  <th>平台費折扣</th>
+                  <th>操作</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedStores.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="text-center py-5">
+                    <td colSpan="11" className="text-center py-5">
                       目前沒有商家資料
                     </td>
                   </tr>
@@ -189,6 +256,25 @@ const AdminDashboard = () => {
                           {store.surplus_order_count || 0} 筆
                         </span>
                       </td>
+                      <td>
+                        <span className={`discount-badge ${getDiscountBadgeClass(store.platform_fee_discount)}`}>
+                          {store.platform_fee_discount > 0 ? `${store.platform_fee_discount}%` : '無折扣'}
+                        </span>
+                        {store.discount_reason && (
+                          <small className="d-block text-muted mt-1" title={store.discount_reason}>
+                            {store.discount_reason.substring(0, 20)}{store.discount_reason.length > 20 ? '...' : ''}
+                          </small>
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          className="btn-action"
+                          onClick={() => handleOpenDiscountModal(store)}
+                          title="設定平台費折扣"
+                        >
+                          設定折扣
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -197,6 +283,65 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* 折扣設定 Modal */}
+      {showDiscountModal && selectedStore && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>設定方案費用折扣</h3>
+              <button className="modal-close" onClick={handleCloseDiscountModal}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="store-info-box">
+                <h4>{selectedStore.name}</h4>
+                <p className="text-muted">
+                  惜福品已完成訂單：<strong>{selectedStore.surplus_order_count || 0}</strong> 筆
+                </p>
+              </div>
+              <form onSubmit={handleSubmitDiscount}>
+                <div className="form-group">
+                  <label htmlFor="discount">折扣百分比 (0-100%)</label>
+                  <input
+                    type="number"
+                    id="discount"
+                    className="form-control"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={discountForm.discount}
+                    onChange={(e) => setDiscountForm({ ...discountForm, discount: e.target.value })}
+                    placeholder="例如：10 代表 10% 折扣"
+                    required
+                  />
+                  <small className="form-text text-muted">
+                    輸入 0 表示無折扣，100 表示完全免費
+                  </small>
+                </div>
+                <div className="form-group mt-3">
+                  <label htmlFor="reason">折扣原因</label>
+                  <textarea
+                    id="reason"
+                    className="form-control"
+                    rows="3"
+                    value={discountForm.reason}
+                    onChange={(e) => setDiscountForm({ ...discountForm, reason: e.target.value })}
+                    placeholder="例如：感謝貢獻 50 筆惜福品訂單，減少食物浪費"
+                  />
+                </div>
+                <div className="modal-footer mt-4">
+                  <button type="button" className="btn-secondary" onClick={handleCloseDiscountModal}>
+                    取消
+                  </button>
+                  <button type="submit" className="btn-primary">
+                    確認設定
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

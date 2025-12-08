@@ -66,6 +66,19 @@ class Merchant(models.Model):
         null=True,   # 允許資料庫中為 NULL
         verbose_name='付費方案'
     )
+    platform_fee_discount = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        verbose_name='平台費折扣(%)',
+        help_text='管理員設定的平台費折扣百分比，0-100之間'
+    )
+    discount_reason = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='折扣原因',
+        help_text='管理員記錄給予折扣的原因'
+    )
     # 您未來可以為商家新增更多欄位
     # business_license_image = models.ImageField(upload_to='licenses/', blank=True, null=True)
     # contact_person = models.CharField(max_length=100, blank=True)

@@ -21,6 +21,9 @@ class StoreViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        # 如果是 set_discount（管理員設定折扣），返回所有店家
+        if self.action == 'set_discount':
+            return Store.objects.all()
         # 如果是 retrieve（查看單個店家），允許查看已上架的店家
         if self.action == 'retrieve':
             return Store.objects.filter(is_published=True)
@@ -33,8 +36,8 @@ class StoreViewSet(viewsets.ModelViewSet):
         """
         根據操作類型返回適當的權限類
         """
-        # published、retrieve 和 all（管理員查看）是公開 API，不需要認證
-        if self.action in ['published', 'retrieve', 'all']:
+        # published、retrieve、all 和 set_discount（管理員功能）是公開 API，不需要認證
+        if self.action in ['published', 'retrieve', 'all', 'set_discount']:
             return [permissions.AllowAny()]
         if self.action in ['update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsStoreOwner()]
@@ -231,9 +234,45 @@ class StoreViewSet(viewsets.ModelViewSet):
         獲取所有店家資料（供管理員查看）
         不需要認證，簡化管理員系統
         """
-        stores = Store.objects.all().select_related('merchant').order_by('-created_at')
+        stores = Store.objects.all().select_related('merchant', 'merchant__user').order_by('-created_at')
         serializer = self.get_serializer(stores, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
+    def set_discount(self, request, pk=None):
+        """
+        管理員設定店家的平台費折扣
+        """
+        store = self.get_object()
+        discount = request.data.get('discount', 0)
+        reason = request.data.get('reason', '')
+        
+        try:
+            discount = float(discount)
+            if discount < 0 or discount > 100:
+                return Response(
+                    {"error": "折扣必須在 0-100 之間"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "無效的折扣數值"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 更新商家的折扣資訊
+        merchant = store.merchant
+        merchant.platform_fee_discount = discount
+        merchant.discount_reason = reason
+        merchant.save()
+        
+        return Response({
+            "message": "折扣設定成功",
+            "store_id": store.id,
+            "store_name": store.name,
+            "discount": discount,
+            "reason": reason
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def upload_menu_images(self, request, pk=None):

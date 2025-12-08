@@ -17,6 +17,8 @@
 }
 
 .profile-container {
+  height: 100%;
+  width: 100%;
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
@@ -158,8 +160,9 @@
 
 .radio-option input[type="radio"] {
   cursor: pointer;
-  width: 18px;
-  height: 18px;
+  width: 12px;
+  height: 12px;
+  margin: 2px;
   accent-color: #4dabf7;
 }
 
@@ -309,6 +312,88 @@
 
 .change-plan-btn:active {
   transform: translateY(-1px);
+}
+
+/* 平台費折扣資訊區塊 */
+.discount-info-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e9ecef;
+}
+
+.discount-info-section h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #343a40;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.discount-info-display {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.discount-badge-large {
+  background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+  color: white;
+  padding: 1.2rem 2rem;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(55, 178, 77, 0.3);
+  text-transform: uppercase;
+}
+
+.discount-details {
+  background: white;
+  border-radius: 10px;
+  padding: 1.2rem;
+  margin-top: 1rem;
+}
+
+.discount-label {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin: 0.5rem 0 0.3rem 0;
+  font-weight: 500;
+}
+
+.discount-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #37b24d;
+  margin: 0 0 1rem 0;
+}
+
+.discount-reason {
+  font-size: 0.95rem;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 0.8rem;
+  border-radius: 8px;
+  margin: 0.5rem 0 0 0;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.no-discount-text {
+  padding: 1.5rem;
+}
+
+.no-discount-text p {
+  color: #6c757d;
+  font-size: 1rem;
+  margin: 0.5rem 0;
+}
+
+.platform-fee-note {
+  font-size: 0.9rem;
+  color: #868e96;
+  font-weight: 500;
 }
 
 /* 響應式設計 */

@@ -63,6 +63,10 @@ const getUserTypeFromUrl = (url, method = 'get') => {
   // 如果是店家相關的 API，使用 merchant token（除了 published 和 retrieve API）
   // retrieve API 是 GET /stores/{id}/，用於查看已上架店家的詳細資訊，不需要 token
   if (url.includes('/stores/') && !url.includes('/stores/published/')) {
+    // 管理員相關的 API 不需要 token
+    if (url.includes('/stores/all') || url.includes('/set_discount/')) {
+      return null;
+    }
     const isRetrieve = /\/stores\/\d+\/?$/.test(url) &&
       method.toLowerCase() === 'get' &&
       !url.includes('/my_store/') &&

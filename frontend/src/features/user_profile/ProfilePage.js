@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { updateMerchantPlan } from '../../api/authApi';
+import { getMyStore } from '../../api/storeApi';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -17,6 +18,8 @@ const ProfilePage = () => {
   const [currentPlan, setCurrentPlan] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [platformFeeDiscount, setPlatformFeeDiscount] = useState(0);
+  const [discountReason, setDiscountReason] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -30,11 +33,14 @@ const ProfilePage = () => {
       // 如果使用者有頭像 URL，則使用它，否則使用預設圖片
       setAvatarPreview(user.avatar_url || 'https://via.placeholder.com/150');
       
-      // 如果是商家，設定方案
+      // 如果是商家，設定方案並載入折扣資訊
       if (user.user_type === 'merchant' && user.merchant_profile) {
         const plan = user.merchant_profile.plan || '';
         setCurrentPlan(plan);
         setSelectedPlan(plan);
+        // 直接從 merchant_profile 讀取折扣資訊
+        setPlatformFeeDiscount(user.merchant_profile.platform_fee_discount || 0);
+        setDiscountReason(user.merchant_profile.discount_reason || '');
       }
     }
   }, [user]);
@@ -257,6 +263,43 @@ const ProfilePage = () => {
             <button className="change-plan-btn" onClick={handleChangePlan}>
               更改方案
             </button>
+
+            {/* 方案費用折扣資訊 */}
+            <div className="discount-info-section">
+              <h2>方案費用折扣</h2>
+              <div className="discount-info-display">
+                {platformFeeDiscount > 0 ? (
+                  <>
+                    <div className="discount-badge-large">
+                      折抵{platformFeeDiscount}%費用 
+                    </div>
+                    <div className="discount-details">
+                      <p className="discount-label">目前折扣：</p>
+                      <p className="discount-value">{platformFeeDiscount}%</p>
+                      
+                      <p className="discount-label">折扣後方案費用：</p>
+                      <p className="discount-value">
+                        {currentPlan === 'basic' && `NT$ ${(499 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
+                        {currentPlan === 'premium' && `NT$ ${(999 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
+                        {currentPlan === 'enterprise' && `NT$ ${(2499 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
+                        {!currentPlan && 'N/A'}
+                      </p>
+                      
+                      {discountReason && (
+                        <>
+                          <p className="discount-label">折扣原因：</p>
+                          <p className="discount-reason">{discountReason}</p>
+                        </>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="no-discount-text">
+                    <p>目前沒有方案費用折扣</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
