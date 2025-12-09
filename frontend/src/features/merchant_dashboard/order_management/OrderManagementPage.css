@@ -13,6 +13,30 @@
   color: #721c24;
 }
 
+.order-page .status-completed {
+  background-color: #eaf3ff;
+  color: #2b6cb0;
+}
+
+.btn-complete {
+  background-color: #2b6cb0;
+  border-color: #2b6cb0;
+  color: #fff;
+}
+
+.btn-complete:hover,
+.btn-complete:focus {
+  background-color: #255a96;
+  border-color: #255a96;
+  color: #fff;
+}
+
+.btn-complete:disabled {
+  background-color: #a9c5e6;
+  border-color: #a9c5e6;
+  color: #fff;
+}
+
 .filter-btn {
   border-radius: 999px;
   border: 1px solid #f19173;

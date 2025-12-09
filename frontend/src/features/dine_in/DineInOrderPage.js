@@ -41,6 +41,11 @@ const paymentOptions = [
 ];
 
 const formatPrice = (value) => Math.round(Number(value) || 0);
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http')) return imagePath;
+  return `http://127.0.0.1:8000${imagePath}`;
+};
 
 function DineInOrderPage() {
   const { storeId } = useParams();
@@ -199,10 +204,25 @@ function DineInOrderPage() {
                   key={item.id}
                   className="d-flex justify-content-between align-items-center border-bottom py-3"
                 >
-                  <div>
-                    <h5 className="mb-1">{item.name}</h5>
-                    <p className="text-muted mb-1">{item.description}</p>
-                    <strong>NT$ {formatPrice(item.price)}</strong>
+                  <div className="d-flex align-items-center gap-3">
+                    {item.image && (
+                      <img
+                        src={getImageUrl(item.image)}
+                        alt={item.name}
+                        style={{
+                          width: 80,
+                          height: 80,
+                          objectFit: 'cover',
+                          borderRadius: 8,
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
+                    <div>
+                      <h5 className="mb-1">{item.name}</h5>
+                      <p className="text-muted mb-1">{item.description}</p>
+                      <strong>NT$ {formatPrice(item.price)}</strong>
+                    </div>
                   </div>
                   <button
                     className="btn btn-outline-primary"

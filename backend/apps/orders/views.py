@@ -21,7 +21,7 @@ class TakeoutOrderCreateView(generics.CreateAPIView):
 
 class OrderStatusUpdateView(APIView):
     permission_classes = [permissions.AllowAny]
-    VALID_STATUS = {'pending', 'accepted', 'rejected'}
+    VALID_STATUS = {'pending', 'accepted', 'rejected', 'completed'}
 
     def patch(self, request, pickup_number):
         new_status = request.data.get('status')
