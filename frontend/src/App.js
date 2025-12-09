@@ -51,6 +51,7 @@ import DineInCartPage from './features/dine_in/DineInCartPage';
 import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSettingsPage';
 import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
 import OrderManagementPage from './features/merchant_dashboard/order_management/OrderManagementPage';
+import FinancialReportPage from './features/merchant_dashboard/FinancialReportPage';
 
 
 // Context
@@ -205,6 +206,17 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              
+              {/* 財務報表頁面路由 */}
+              <Route
+                path="/merchant/reports"
+                element={
+                  <ProtectedRoute>
+                    <FinancialReportPage />
+                  </ProtectedRoute>
+                }
+              />
+              
               <Route
                 path="/merchant/orders"
                 element={
