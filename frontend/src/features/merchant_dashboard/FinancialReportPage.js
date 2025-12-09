@@ -26,6 +26,12 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import api from '../../api/api';
+import { getMyStore } from '../../api/storeApi';
+import { getProducts } from '../../api/productApi';
 import './FinancialReportPage.css';
 
 const FinancialReportPage = () => {
@@ -57,39 +63,179 @@ const FinancialReportPage = () => {
 
   const loadReportData = async () => {
     setLoading(true);
-    
-    // 模擬 API 請求
-    setTimeout(() => {
-      // 模擬每日營收資料
-      const dailyRevenue = generateDailyRevenue();
-      
-      // 模擬商品銷售資料
-      const productSales = [
-        { name: '招牌雞腿飯', quantity: 156, revenue: 31200, percentage: 28 },
-        { name: '滷肉飯', quantity: 234, revenue: 28080, percentage: 25 },
-        { name: '排骨便當', quantity: 98, revenue: 19600, percentage: 18 },
-        { name: '素食套餐', quantity: 67, revenue: 13400, percentage: 12 },
-        { name: '炒飯', quantity: 89, revenue: 13350, percentage: 12 },
-        { name: '其他', quantity: 45, revenue: 5850, percentage: 5 },
-      ];
 
-      // 模擬通路營收資料
-      const channelRevenue = [
-        { name: '內用', value: 45200, percentage: 40, orders: 189 },
-        { name: '外帶', value: 39250, percentage: 35, orders: 312 },
-        { name: '外送', value: 22600, percentage: 20, orders: 156 },
-        { name: '預訂', value: 5650, percentage: 5, orders: 34 },
-      ];
+    try {
+      // 1. 獲取店家 ID
+      let storeId = null;
+      try {
+        const storeRes = await getMyStore();
+        storeId = storeRes.data?.id;
+      } catch (err) {
+        console.error('無法獲取店家資料', err);
+      }
 
-      const totalRevenue = dailyRevenue.reduce((sum, day) => sum + day.revenue, 0);
-      const totalOrders = channelRevenue.reduce((sum, ch) => sum + ch.orders, 0);
+      // 2. 獲取真實商品列表
+      let products = [];
+      let productPriceMap = {}; // 商品 ID -> 價格對照表
+      try {
+        const res = await getProducts();
+        products = res && res.data ? res.data : (Array.isArray(res) ? res : []);
+        // 建立價格對照表
+        products.forEach(p => {
+          const price = p && (p.price || p.original_price || p.unit_price) ? Number(p.price || p.original_price || p.unit_price) : NaN;
+          productPriceMap[p.id] = Number.isFinite(price) ? price : 120; // 預設價格 120
+        });
+      } catch (err) {
+        console.error('無法獲取商品資料', err);
+        products = [];
+      }
+
+      // 3. 獲取真實訂單資料
+      let orders = [];
+      if (storeId) {
+        try {
+          const ordersRes = await api.get('/orders/list/', { params: { store_id: storeId } });
+          orders = ordersRes.data || [];
+          
+          // 過濾日期範圍內的訂單
+          const startDate = new Date(dateRange.startDate);
+          const endDate = new Date(dateRange.endDate);
+          endDate.setHours(23, 59, 59, 999); // 包含結束日期全天
+          
+          orders = orders.filter(order => {
+            const createdAt = new Date(order.created_at);
+            return createdAt >= startDate && createdAt <= endDate;
+          });
+        } catch (err) {
+          console.error('無法獲取訂單資料', err);
+          orders = [];
+        }
+      }
+
+      // 4. 處理資料
+      let dailyRevenue = [];
+      let productSales = [];
+      let channelRevenue = [];
+      let totalRevenue = 0;
+      let totalOrders = orders.length;
+
+      // 如果有真實訂單，從訂單計算數據
+      if (orders.length > 0) {
+        // 計算每日營收
+        const dailyStats = {};
+        const start = new Date(dateRange.startDate);
+        const end = new Date(dateRange.endDate);
+        
+        // 初始化所有日期
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const month = d.getMonth() + 1;
+          const day = d.getDate();
+          const weekday = d.toLocaleDateString('zh-TW', { weekday: 'short' });
+          const dayName = `${month}/${day} ${weekday}`;
+          const dateKey = d.toISOString().split('T')[0];
+          
+          dailyStats[dateKey] = {
+            date: dayName,
+            revenue: 0,
+            orders: 0,
+          };
+        }
+        
+        // 計算商品銷售統計
+        const productStats = {};
+        const channelStats = {
+          'dine_in': { name: '內用', value: 0, orders: 0 },
+          'takeout': { name: '外帶', value: 0, orders: 0 },
+          'delivery': { name: '外送', value: 0, orders: 0 },
+          'reservation': { name: '預訂', value: 0, orders: 0 },
+        };
+
+        orders.forEach(order => {
+          let orderTotal = 0;
+          
+          // 計算每個訂單的商品統計
+          if (order.items && Array.isArray(order.items)) {
+            order.items.forEach(item => {
+              const productId = item.product_id || item.product;
+              const quantity = item.quantity || 0;
+              const price = productPriceMap[productId] || 120;
+              const itemRevenue = price * quantity;
+              
+              if (!productStats[productId]) {
+                const product = products.find(p => p.id === productId);
+                productStats[productId] = {
+                  name: product?.name || product?.title || `商品 ${productId}`,
+                  quantity: 0,
+                  revenue: 0,
+                };
+              }
+              
+              productStats[productId].quantity += quantity;
+              productStats[productId].revenue += itemRevenue;
+              orderTotal += itemRevenue;
+            });
+          }
+          
+          // 累計通路統計
+          const channel = order.service_channel || order.channel || 'takeout';
+          if (channelStats[channel]) {
+            channelStats[channel].value += orderTotal;
+            channelStats[channel].orders += 1;
+          } else {
+            // 未知通路歸類到外帶
+            channelStats['takeout'].value += orderTotal;
+            channelStats['takeout'].orders += 1;
+          }
+          
+          // 累計每日營收
+          const orderDate = new Date(order.created_at);
+          const dateKey = orderDate.toISOString().split('T')[0];
+          if (dailyStats[dateKey]) {
+            dailyStats[dateKey].revenue += orderTotal;
+            dailyStats[dateKey].orders += 1;
+          }
+          
+          totalRevenue += orderTotal;
+        });
+
+        // 轉換商品統計為陣列並計算百分比
+        productSales = Object.values(productStats);
+        const productTotalRevenue = productSales.reduce((sum, p) => sum + p.revenue, 0) || 1;
+        productSales.forEach(p => {
+          p.percentage = Math.round((p.revenue / productTotalRevenue) * 100);
+        });
+        productSales.sort((a, b) => b.revenue - a.revenue);
+
+        // 轉換通路統計為陣列並計算百分比
+        channelRevenue = Object.values(channelStats).filter(c => c.orders > 0);
+        const channelTotalRevenue = channelRevenue.reduce((sum, c) => sum + c.value, 0) || 1;
+        channelRevenue.forEach(c => {
+          c.percentage = Math.round((c.value / channelTotalRevenue) * 100);
+        });
+        
+        // 轉換每日營收為陣列
+        dailyRevenue = Object.values(dailyStats).sort((a, b) => {
+          // 依日期排序
+          const [aMonth, aDay] = a.date.split('/').map(Number);
+          const [bMonth, bDay] = b.date.split('/').map(Number);
+          return aMonth === bMonth ? aDay - bDay : aMonth - bMonth;
+        });
+      } else {
+        // 沒有訂單資料時顯示空狀態
+        productSales = [];
+        channelRevenue = [];
+        totalRevenue = 0;
+        totalOrders = 0;
+      }
+
+      const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
 
       setReportData({
         summary: {
           totalRevenue: totalRevenue,
           totalOrders: totalOrders,
-          avgOrderValue: Math.round(totalRevenue / totalOrders),
-          revenueGrowth: 12.5,
+          avgOrderValue: avgOrderValue,
+          revenueGrowth: 12.5, // 這個需要比較上期資料，目前先用模擬值
         },
         dailyRevenue,
         productSales,
@@ -97,28 +243,10 @@ const FinancialReportPage = () => {
       });
       
       setLoading(false);
-    }, 800);
-  };
-
-  // 生成每日營收資料
-  const generateDailyRevenue = () => {
-    const days = [];
-    const start = new Date(dateRange.startDate);
-    const end = new Date(dateRange.endDate);
-    const dayCount = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-
-    for (let i = 0; i < Math.min(dayCount, 30); i++) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
-      const dayName = date.toLocaleDateString('zh-TW', { month: 'M/d', weekday: 'short' });
-      
-      days.push({
-        date: dayName,
-        revenue: Math.round(2000 + Math.random() * 3000),
-        orders: Math.round(15 + Math.random() * 30),
-      });
+    } catch (error) {
+      console.error('載入報表資料失敗', error);
+      setLoading(false);
     }
-    return days;
   };
 
   // 處理日期變更
@@ -128,15 +256,161 @@ const FinancialReportPage = () => {
 
   // 匯出報表
   const handleExportReport = (format) => {
-    alert(`匯出 ${format.toUpperCase()} 報表功能開發中...`);
+    if (format === 'excel') {
+      exportToExcel();
+    } else if (format === 'pdf') {
+      exportToPDF();
+    }
+  };
+
+  // 匯出 Excel
+  const exportToExcel = () => {
+    // 創建工作簿
+    const wb = XLSX.utils.book_new();
+
+    // 1. 營收摘要工作表
+    const summaryData = [
+      ['財務報表摘要', ''],
+      ['報表期間', `${dateRange.startDate} 至 ${dateRange.endDate}`],
+      [''],
+      ['指標', '數值'],
+      ['總營收', formatCurrency(reportData.summary.totalRevenue)],
+      ['總訂單數', reportData.summary.totalOrders],
+      ['平均客單價', formatCurrency(reportData.summary.avgOrderValue)],
+      ['營收成長率', `${reportData.summary.revenueGrowth}%`],
+    ];
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, ws1, '營收摘要');
+
+    // 2. 每日營收工作表
+    const dailyRevenueData = [
+      ['日期', '營收 (NT$)', '訂單數'],
+      ...reportData.dailyRevenue.map(day => [
+        day.date,
+        day.revenue,
+        day.orders
+      ])
+    ];
+    const ws2 = XLSX.utils.aoa_to_sheet(dailyRevenueData);
+    XLSX.utils.book_append_sheet(wb, ws2, '每日營收');
+
+    // 3. 商品銷售工作表
+    const productSalesData = [
+      ['商品名稱', '銷售數量', '營收 (NT$)', '佔比 (%)'],
+      ...reportData.productSales.map(product => [
+        product.name,
+        product.quantity,
+        product.revenue,
+        product.percentage
+      ])
+    ];
+    const ws3 = XLSX.utils.aoa_to_sheet(productSalesData);
+    XLSX.utils.book_append_sheet(wb, ws3, '商品銷售');
+
+    // 4. 通路營收工作表
+    const channelRevenueData = [
+      ['通路名稱', '營收 (NT$)', '訂單數', '佔比 (%)'],
+      ...reportData.channelRevenue.map(channel => [
+        channel.name,
+        channel.value,
+        channel.orders,
+        channel.percentage
+      ])
+    ];
+    const ws4 = XLSX.utils.aoa_to_sheet(channelRevenueData);
+    XLSX.utils.book_append_sheet(wb, ws4, '通路營收');
+
+    // 匯出檔案
+    const fileName = `財務報表_${dateRange.startDate}_${dateRange.endDate}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
+  // 匯出 PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF();
     
-    // 實際實作時可以使用 xlsx 或 jsPDF 套件
-    // 例如：
-    // if (format === 'excel') {
-    //   exportToExcel(reportData);
-    // } else if (format === 'pdf') {
-    //   exportToPDF(reportData);
-    // }
+    // 設定中文字型（使用內建字型）
+    doc.setFont('helvetica');
+    
+    // 標題
+    doc.setFontSize(20);
+    doc.text('Financial Report', 105, 15, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Period: ${dateRange.startDate} - ${dateRange.endDate}`, 105, 25, { align: 'center' });
+    
+    let yPos = 35;
+
+    // 1. 營收摘要
+    doc.setFontSize(14);
+    doc.text('Revenue Summary', 14, yPos);
+    yPos += 10;
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Metric', 'Value']],
+      body: [
+        ['Total Revenue', formatCurrency(reportData.summary.totalRevenue)],
+        ['Total Orders', reportData.summary.totalOrders.toString()],
+        ['Avg Order Value', formatCurrency(reportData.summary.avgOrderValue)],
+        ['Revenue Growth', `${reportData.summary.revenueGrowth}%`],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [232, 107, 44] },
+      margin: { left: 14 },
+    });
+    
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // 2. 商品銷售分析
+    doc.setFontSize(14);
+    doc.text('Product Sales Analysis', 14, yPos);
+    yPos += 10;
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Product', 'Quantity', 'Revenue (NT$)', 'Share (%)']],
+      body: reportData.productSales.map(p => [
+        p.name,
+        p.quantity.toString(),
+        p.revenue.toLocaleString(),
+        `${p.percentage}%`
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [232, 107, 44] },
+      margin: { left: 14 },
+    });
+    
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // 如果需要換頁
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // 3. 通路營收分析
+    doc.setFontSize(14);
+    doc.text('Channel Revenue Analysis', 14, yPos);
+    yPos += 10;
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Channel', 'Revenue (NT$)', 'Orders', 'Share (%)']],
+      body: reportData.channelRevenue.map(c => [
+        c.name,
+        c.value.toLocaleString(),
+        c.orders.toString(),
+        `${c.percentage}%`
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [232, 107, 44] },
+      margin: { left: 14 },
+    });
+
+    // 儲存 PDF
+    const fileName = `Financial_Report_${dateRange.startDate}_${dateRange.endDate}.pdf`;
+    doc.save(fileName);
   };
 
   // 圖表顏色
@@ -265,15 +539,16 @@ const FinancialReportPage = () => {
               <p>檢視期間內的每日營收變化</p>
             </div>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={reportData.dailyRevenue}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="#6c757d"
-                    style={{ fontSize: '0.85rem' }}
-                  />
-                  <YAxis 
+              {reportData.dailyRevenue.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={reportData.dailyRevenue}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="#6c757d"
+                      style={{ fontSize: '0.85rem' }}
+                    />
+                    <YAxis 
                     stroke="#6c757d"
                     style={{ fontSize: '0.85rem' }}
                     tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
@@ -299,6 +574,13 @@ const FinancialReportPage = () => {
                   />
                 </LineChart>
               </ResponsiveContainer>
+              ) : (
+                <div className="empty-state">
+                  <FaChartLine style={{ fontSize: '3rem', color: '#ccc', marginBottom: '1rem' }} />
+                  <p>目前尚無訂單資料</p>
+                  <p style={{ fontSize: '0.9rem', color: '#888' }}>開始接受訂單後，這裡將顯示營收趨勢</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -308,10 +590,11 @@ const FinancialReportPage = () => {
               <h2>商品銷售分析</h2>
               <p>各商品的銷售數量與營收貢獻</p>
             </div>
-            <div className="product-sales-grid">
-              <div className="chart-container">
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={reportData.productSales}>
+            {reportData.productSales.length > 0 ? (
+              <div className="product-sales-grid">
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={reportData.productSales}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis 
                       dataKey="name" 
@@ -376,6 +659,13 @@ const FinancialReportPage = () => {
                 </table>
               </div>
             </div>
+            ) : (
+              <div className="empty-state">
+                <FaShoppingCart style={{ fontSize: '3rem', color: '#ccc', marginBottom: '1rem' }} />
+                <p>目前尚無商品銷售資料</p>
+                <p style={{ fontSize: '0.9rem', color: '#888' }}>開始接受訂單後，這裡將顯示商品銷售分析</p>
+              </div>
+            )}
           </div>
 
           {/* 各通路營收分析 */}
@@ -384,56 +674,64 @@ const FinancialReportPage = () => {
               <h2>各通路營收分析</h2>
               <p>不同銷售通路的營收佔比與訂單數</p>
             </div>
-            <div className="channel-revenue-grid">
-              <div className="chart-container">
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <Pie
-                      data={reportData.channelRevenue}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={120}
-                      label={({ name, percentage }) => `${name} ${percentage}%`}
-                      labelLine={{ stroke: '#6c757d' }}
-                    >
-                      {reportData.channelRevenue.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'white',
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                      }}
-                      formatter={(value) => formatCurrency(value)}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            {reportData.channelRevenue.length > 0 ? (
+              <div className="channel-revenue-grid">
+                <div className="chart-container">
+                  <ResponsiveContainer width="100%" height={350}>
+                    <PieChart>
+                      <Pie
+                        data={reportData.channelRevenue}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={120}
+                        label={({ name, percentage }) => `${name} ${percentage}%`}
+                        labelLine={{ stroke: '#6c757d' }}
+                      >
+                        {reportData.channelRevenue.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'white',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                        formatter={(value) => formatCurrency(value)}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
 
-              <div className="channel-cards">
-                {reportData.channelRevenue.map((channel, index) => (
-                  <div key={index} className="channel-card">
-                    <div 
-                      className="channel-indicator" 
-                      style={{ background: COLORS[index % COLORS.length] }}
-                    ></div>
-                    <div className="channel-info">
-                      <h4>{channel.name}</h4>
-                      <p className="channel-revenue">{formatCurrency(channel.value)}</p>
-                      <div className="channel-stats">
-                        <span className="channel-orders">{channel.orders} 筆訂單</span>
-                        <span className="channel-percentage">{channel.percentage}%</span>
+                <div className="channel-cards">
+                  {reportData.channelRevenue.map((channel, index) => (
+                    <div key={index} className="channel-card">
+                      <div 
+                        className="channel-indicator" 
+                        style={{ background: COLORS[index % COLORS.length] }}
+                      ></div>
+                      <div className="channel-info">
+                        <h4>{channel.name}</h4>
+                        <p className="channel-revenue">{formatCurrency(channel.value)}</p>
+                        <div className="channel-stats">
+                          <span className="channel-orders">{channel.orders} 筆訂單</span>
+                          <span className="channel-percentage">{channel.percentage}%</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="empty-state">
+                <FaStore style={{ fontSize: '3rem', color: '#ccc', marginBottom: '1rem' }} />
+                <p>目前尚無通路營收資料</p>
+                <p style={{ fontSize: '0.9rem', color: '#888' }}>開始接受訂單後，這裡將顯示各通路營收分析</p>
+              </div>
+            )}
           </div>
         </>
       )}
