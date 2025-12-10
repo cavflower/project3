@@ -96,14 +96,22 @@ class PublicProductViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        # 優化查詢：預載入類別和店家資料
+        qs = super().get_queryset().select_related('category', 'store')
+        
         store_id = self.request.query_params.get('store')
         service_type = self.request.query_params.get('service_type')
+        category_id = self.request.query_params.get('category')
+        
         if store_id:
             qs = qs.filter(store_id=store_id)
         if service_type in ('takeaway', 'dine_in'):
             qs = qs.filter(service_type__in=[service_type, 'both'])
-        return qs
+        if category_id:
+            qs = qs.filter(category_id=category_id)
+        
+        # 按類別排序
+        return qs.order_by('category__display_order', 'category__name', 'name')
 
 
 class PublicProductCategoryViewSet(viewsets.ReadOnlyModelViewSet):

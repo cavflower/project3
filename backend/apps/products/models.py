@@ -108,7 +108,16 @@ class Product(models.Model):
     )
 
     class Meta:
+        db_table = 'products'
+        verbose_name = '產品'
+        verbose_name_plural = '產品'
         ordering = ['-created_at']
+        # 添加索引以優化查詢效能
+        indexes = [
+            models.Index(fields=['store', 'is_available']),
+            models.Index(fields=['store', 'service_type', 'is_available']),
+            models.Index(fields=['category', 'is_available']),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.store and self.merchant and hasattr(self.merchant, 'store'):

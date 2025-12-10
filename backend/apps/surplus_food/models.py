@@ -423,6 +423,12 @@ class SurplusFoodOrder(models.Model):
         verbose_name='訂單類型',
         help_text='內用或外帶'
     )
+    table_label = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name='桌號',
+        help_text='內用訂單的桌號'
+    )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,

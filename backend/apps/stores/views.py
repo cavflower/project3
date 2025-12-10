@@ -21,15 +21,25 @@ class StoreViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        from django.db.models import Prefetch
+        
+        # 優化查詢：預載入相關資料
+        base_queryset = Store.objects.select_related(
+            'merchant', 'merchant__user'
+        ).prefetch_related(
+            Prefetch('images', queryset=StoreImage.objects.order_by('order')),
+            Prefetch('menu_images', queryset=MenuImage.objects.order_by('order'))
+        )
+        
         # 如果是 set_discount（管理員設定折扣），返回所有店家
         if self.action == 'set_discount':
-            return Store.objects.all()
+            return base_queryset.all()
         # 如果是 retrieve（查看單個店家），允許查看已上架的店家
         if self.action == 'retrieve':
-            return Store.objects.filter(is_published=True)
+            return base_queryset.filter(is_published=True)
         # 只返回當前登入商家的店家資訊
         if hasattr(self.request.user, 'merchant_profile'):
-            return Store.objects.filter(merchant=self.request.user.merchant_profile)
+            return base_queryset.filter(merchant=self.request.user.merchant_profile)
         return Store.objects.none()
 
     def get_permissions(self):

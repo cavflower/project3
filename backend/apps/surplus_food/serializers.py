@@ -340,7 +340,7 @@ class SurplusFoodOrderSerializer(serializers.ModelSerializer):
             'customer_name', 'customer_phone', 'customer_email',
             'total_price',
             'payment_method', 'payment_method_display',
-            'order_type', 'order_type_display',
+            'order_type', 'order_type_display', 'table_label',
             'status', 'status_display', 'pickup_time', 'pickup_at', 'pickup_number',
             'use_utensils', 'notes',
             'created_at', 'confirmed_at', 'completed_at'
