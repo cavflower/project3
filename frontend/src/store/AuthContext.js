@@ -78,12 +78,12 @@ export const AuthProvider = ({ children }) => {
         navigate('/dashboard');
       }
     } else if (userData.user_type === 'customer') {
-      // 如果是顧客，導向到顧客首頁
-      console.log("顧客登入，導向至顧客首頁。");
+      // 如果是顧客，一律導向到搜尋店家頁面（無論是否有員工資料）
+      console.log("顧客登入，導向至搜尋店家頁面。");
       navigate('/customer-home');
     } else {
       // 未知的使用者類型
-      console.error("未知的使用者類型:", userData.user_type);
+      console.error("未知的使用者類型:", userData.user_type || userData.userType);
       setUser(null);
       // 清除所有可能的 token
       localStorage.removeItem('accessToken');

@@ -103,3 +103,75 @@ export const exportScheduleCSV = () => {
   });
 };
 
+/**
+ * 排班申請相關 API
+ */
+
+/**
+ * 員工查看可申請的排班時段
+ * @returns {Promise}
+ */
+export const getAvailableShifts = () => {
+  return api.get('/schedules/applications/available_shifts/');
+};
+
+/**
+ * 員工查看該店的所有排班時段
+ * @returns {Promise}
+ */
+export const getAllShiftsForEmployee = () => {
+  return api.get('/schedules/applications/all_shifts/');
+};
+
+/**
+ * 員工申請排班
+ * @param {Object} applicationData - 申請資料 { shift: shiftId, message: string }
+ * @returns {Promise}
+ */
+export const applyForShift = (applicationData) => {
+  return api.post('/schedules/applications/', applicationData);
+};
+
+/**
+ * 員工新增排班提案
+ * @param {Object} shiftData - 排班資料
+ * @returns {Promise}
+ */
+export const proposeShiftByEmployee = (shiftData) => {
+  return api.post('/schedules/applications/propose_shift/', shiftData);
+};
+
+/**
+ * 員工查看自己的申請列表
+ * @returns {Promise}
+ */
+export const getMyApplications = () => {
+  return api.get('/schedules/applications/my_applications/');
+};
+
+/**
+ * 店長確認申請
+ * @param {number} applicationId - 申請 ID
+ * @returns {Promise}
+ */
+export const approveApplication = (applicationId) => {
+  return api.post(`/schedules/applications/${applicationId}/approve/`);
+};
+
+/**
+ * 店長拒絕申請
+ * @param {number} applicationId - 申請 ID
+ * @returns {Promise}
+ */
+export const rejectApplication = (applicationId) => {
+  return api.post(`/schedules/applications/${applicationId}/reject/`);
+};
+
+/**
+ * 店長獲取所有申請（包含待確認、已確認、已拒絕）
+ * @returns {Promise}
+ */
+export const getAllApplications = () => {
+  return api.get('/schedules/applications/');
+};
+

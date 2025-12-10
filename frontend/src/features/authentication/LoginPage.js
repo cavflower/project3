@@ -9,7 +9,7 @@ import './LoginPage.css';
 import { useAuth } from '../../store/AuthContext';
 
 const LoginPage = () => {
-  const [userType, setUserType] = useState('customer'); // 'customer' or 'merchant'
+  const [userType, setUserType] = useState('customer'); // 'customer', 'merchant', or 'employee'
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,10 +80,20 @@ const LoginPage = () => {
           >
             店家登入
           </button>
+          <button
+            className={`toggle-btn ${userType === 'employee' ? 'active' : ''}`}
+            onClick={() => setUserType('employee')}
+          >
+            員工登入
+          </button>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <h2>{userType === 'customer' ? '歡迎回來！' : '店家管理後台'}</h2>
+          <h2>
+            {userType === 'customer' ? '歡迎回來！' : 
+             userType === 'merchant' ? '店家管理後台' : 
+             '員工排班系統'}
+          </h2>
           {error && <p className="error-message">{error}</p>}
           <div className="input-group">
             <label htmlFor="email">電子郵件</label>

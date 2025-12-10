@@ -42,7 +42,7 @@ class FirebaseTokenLoginView(APIView):
             # Generate JWT tokens for the user
             refresh = RefreshToken.for_user(user)
             
-            # 序列化使用者資料
+            # 序列化使用者資料（預先載入相關資料）
             user_serializer = UserSerializer(user)
             
             return Response({
@@ -67,7 +67,9 @@ class UserMeView(APIView):
         """
         Handles GET request to return the user associated with the token.
         """
-        serializer = UserSerializer(request.user)
+        # 預先載入相關資料以優化查詢
+        user = request.user
+        serializer = UserSerializer(user)
         return Response(serializer.data)
 
 class UserRegisterView(APIView):

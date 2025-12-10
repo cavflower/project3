@@ -55,8 +55,23 @@ const getUserTypeFromUrl = (url, method = 'get') => {
     return 'merchant';
   }
   
-  // 排班管理相關的 API，使用 merchant token
+  // 排班管理相關的 API
   if (url.includes('/schedules/')) {
+    // 員工申請相關的 API 使用 customer token
+    if (url.includes('/schedules/applications/')) {
+      // 檢查當前路徑，如果在員工頁面，使用 customer token
+      const path = window.location.pathname;
+      if (path.includes('/employee/')) {
+        return 'customer';
+      }
+      // 否則根據路徑判斷（店長在 dashboard 使用 merchant token）
+      if (path.includes('/merchant/') || path.includes('/dashboard')) {
+        return 'merchant';
+      }
+      // 預設使用 customer token（因為員工也是 customer 類型）
+      return 'customer';
+    }
+    // 其他排班管理 API（如 staff, shifts）使用 merchant token
     return 'merchant';
   }
   

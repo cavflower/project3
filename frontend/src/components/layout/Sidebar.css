@@ -35,7 +35,8 @@
   margin-bottom: 1rem;
 }
 
-.sidebar-links a {
+.sidebar-links a,
+.sidebar-links Link {
   text-decoration: none;
   color: #4A4A4A;
   font-size: 1rem;
@@ -45,7 +46,8 @@
   transition: background-color 0.2s, color 0.2s;
 }
 
-.sidebar-links a:hover {
+.sidebar-links a:hover,
+.sidebar-links Link:hover {
   background-color: #E87A5D;
   color: #fff;
 }

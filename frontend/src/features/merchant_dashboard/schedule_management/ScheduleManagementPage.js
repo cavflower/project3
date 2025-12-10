@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../../store/AuthContext';
-import { getScheduleData, saveScheduleData, exportScheduleCSV } from '../../../api/scheduleApi';
+import { getScheduleData, saveScheduleData, exportScheduleCSV, approveApplication, rejectApplication, getAllApplications } from '../../../api/scheduleApi';
 import './ScheduleManagementPage.css';
 
 const shiftPresets = {
@@ -115,6 +115,7 @@ const ScheduleManagementPage = () => {
   const [editingShiftId, setEditingShiftId] = useState(null);
   const [editingStaffId, setEditingStaffId] = useState(null);
   const [saveStatus, setSaveStatus] = useState('');
+  const [pendingApplications, setPendingApplications] = useState([]);
 
   // 當用戶改變時，從 API 載入該店家的資料
   useEffect(() => {
@@ -163,6 +164,17 @@ const ScheduleManagementPage = () => {
           setStaff(data.staff);
         } else {
           setStaff([]);
+        }
+        
+        // 載入申請資料
+        try {
+          const applicationsRes = await getAllApplications();
+          const allApplications = applicationsRes.data || [];
+          // 只顯示待確認的申請
+          setPendingApplications(allApplications.filter(app => app.status === 'pending'));
+        } catch (appError) {
+          console.error('載入申請資料失敗:', appError);
+          setPendingApplications([]);
         }
       } catch (error) {
         console.error('載入排班資料失敗:', error);
@@ -680,6 +692,89 @@ const ScheduleManagementPage = () => {
           </h2>
         </div>
       </section>
+
+      {/* 待確認申請區塊 */}
+      {pendingApplications.length > 0 && (
+        <section className="applications-section">
+          <div className="card-header">
+            <h3>待確認的排班申請 ({pendingApplications.length})</h3>
+          </div>
+          <div className="applications-list">
+            {pendingApplications.map((app) => (
+              <div key={app.id} className="application-item">
+                <div className="application-info">
+                  <p><strong>{app.staff_name}</strong> ({app.staff_role})</p>
+                  <p>申請排班：{new Date(app.shift_info?.date).toLocaleDateString('zh-TW')} {app.shift_info?.shift_name}</p>
+                  <p>職務：{app.shift_info?.role}</p>
+                  {app.message && <p className="application-message">備註：{app.message}</p>}
+                  <p className="application-time">申請時間：{new Date(app.created_at).toLocaleString('zh-TW')}</p>
+                </div>
+                <div className="application-actions">
+                  <button
+                    className="btn-approve"
+                    onClick={async () => {
+                      try {
+                        await approveApplication(app.id);
+                        alert('申請已確認');
+                        // 重新載入資料
+                        const response = await getScheduleData();
+                        const data = response.data;
+                        if (data.shifts) {
+                          const formattedShifts = data.shifts.map(shift => {
+                            let assignedStaffIds = [];
+                            if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
+                              assignedStaffIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s)).filter(id => id != null && id !== undefined);
+                            }
+                            return {
+                              ...shift,
+                              assignedStaffIds: assignedStaffIds,
+                              staffNeeded: shift.staff_needed,
+                              startHour: shift.start_hour,
+                              startMinute: shift.start_minute,
+                              endHour: shift.end_hour,
+                              endMinute: shift.end_minute,
+                              shiftType: shift.shift_type,
+                            };
+                          });
+                          setShifts(formattedShifts);
+                        }
+                        // 重新載入申請
+                        const applicationsRes = await getAllApplications();
+                        const allApplications = applicationsRes.data || [];
+                        setPendingApplications(allApplications.filter(a => a.status === 'pending'));
+                      } catch (error) {
+                        console.error('確認申請失敗:', error);
+                        alert(error.response?.data?.error || '確認申請失敗，請稍後再試');
+                      }
+                    }}
+                  >
+                    確認
+                  </button>
+                  <button
+                    className="btn-reject"
+                    onClick={async () => {
+                      if (!window.confirm('確定要拒絕這個申請嗎？')) return;
+                      try {
+                        await rejectApplication(app.id);
+                        alert('申請已拒絕');
+                        // 重新載入申請
+                        const applicationsRes = await getAllApplications();
+                        const allApplications = applicationsRes.data || [];
+                        setPendingApplications(allApplications.filter(a => a.status === 'pending'));
+                      } catch (error) {
+                        console.error('拒絕申請失敗:', error);
+                        alert(error.response?.data?.error || '拒絕申請失敗，請稍後再試');
+                      }
+                    }}
+                  >
+                    拒絕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="manage-grid">
         <div className="schedule-card">

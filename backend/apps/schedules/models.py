@@ -1,5 +1,6 @@
 from django.db import models
 from apps.stores.models import Store
+from apps.users.models import User
 
 
 class Staff(models.Model):
@@ -10,6 +11,15 @@ class Staff(models.Model):
         on_delete=models.CASCADE,
         related_name='staff_members',
         verbose_name='所屬店家'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='staff_profile',
+        verbose_name='關聯使用者帳號',
+        help_text='如果員工需要登入系統，請關聯使用者帳號'
     )
     name = models.CharField(max_length=100, verbose_name='姓名')
     role = models.CharField(max_length=100, verbose_name='職務')
@@ -45,6 +55,7 @@ class Shift(models.Model):
         ('ready', '準備就緒'),
         ('ongoing', '進行中'),
         ('pending', '待排班'),
+        ('applied', '已申請'),
     ]
     
     store = models.ForeignKey(
@@ -96,4 +107,52 @@ class Shift(models.Model):
         start_time = f"{self.start_hour:02d}:{self.start_minute:02d}"
         end_time = f"{self.end_hour:02d}:{self.end_minute:02d}"
         return f"{self.get_shift_type_display()} ({start_time} - {end_time})"
+
+
+class ShiftApplication(models.Model):
+    """員工排班申請模型"""
+    
+    STATUS_CHOICES = [
+        ('pending', '待確認'),
+        ('approved', '已確認'),
+        ('rejected', '已拒絕'),
+    ]
+    
+    shift = models.ForeignKey(
+        Shift,
+        on_delete=models.CASCADE,
+        related_name='applications',
+        verbose_name='排班時段'
+    )
+    staff = models.ForeignKey(
+        Staff,
+        on_delete=models.CASCADE,
+        related_name='shift_applications',
+        verbose_name='申請員工'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        verbose_name='申請狀態'
+    )
+    message = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='申請備註',
+        help_text='員工可以在此填寫申請理由或備註'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='申請時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name='審核時間')
+    
+    class Meta:
+        db_table = 'shift_applications'
+        verbose_name = '排班申請'
+        verbose_name_plural = '排班申請'
+        ordering = ['-created_at']
+        unique_together = [['shift', 'staff']]  # 同一個員工對同一個時段只能申請一次
+    
+    def __str__(self):
+        return f"{self.staff.name} 申請 {self.shift.shift_name} - {self.get_status_display()}"
 

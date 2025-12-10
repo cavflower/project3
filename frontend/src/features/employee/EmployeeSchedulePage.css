@@ -1,0 +1,261 @@
+/* 使用與店長排班管理頁面相同的樣式 */
+.employee-schedule-page.schedule-management-style {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.page-subtitle {
+  color: #ff8c82;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.page-description {
+  color: #6f6f6f;
+  margin-top: 0.25rem;
+}
+
+.schedule-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.schedule-card.full-width {
+  width: 100%;
+}
+
+.card-header h3 {
+  margin: 0;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.85rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+th {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.table-shift-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.table-shift-time {
+  margin: 0.15rem 0 0;
+  color: #9aa5b1;
+  font-size: 0.85rem;
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.text-btn {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.text-btn:hover {
+  background: #f3f4f6;
+}
+
+.text-btn.primary {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.text-muted {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.text-success {
+  color: #10b981;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 2rem;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.status-badge.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.status-approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.status-assigned {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-badge.status-available {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.status-full {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.modal-shift-info {
+  background: #f5f5f5;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.modal-shift-info p {
+  margin: 0.5rem 0;
+  color: #666;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.btn-cancel,
+.btn-submit {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.btn-cancel:hover {
+  background: #e0e0e0;
+}
+
+.btn-submit {
+  background: #007bff;
+  color: white;
+}
+
+.btn-submit:hover {
+  background: #0056b3;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: #666;
+}

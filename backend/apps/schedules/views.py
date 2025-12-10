@@ -2,12 +2,15 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
+from django.db import transaction
+from django.utils.dateparse import parse_date
 import csv
-from .models import Staff, Shift
-from .serializers import StaffSerializer, ShiftSerializer, ScheduleDataSerializer
+from .models import Staff, Shift, ShiftApplication
+from .serializers import StaffSerializer, ShiftSerializer, ScheduleDataSerializer, ShiftApplicationSerializer
 
 
 class StaffViewSet(viewsets.ModelViewSet):
@@ -355,4 +358,358 @@ class ShiftViewSet(viewsets.ModelViewSet):
             ])
         
         return response
+
+
+class ShiftApplicationViewSet(viewsets.ModelViewSet):
+    """排班申請 ViewSet"""
+    
+    serializer_class = ShiftApplicationSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """根據用戶角色返回不同的申請列表"""
+        user = self.request.user
+        
+        # 檢查是否是員工（有 staff_profile，且取第一筆）
+        staff = None
+        if hasattr(user, 'staff_profile'):
+            staff = user.staff_profile.first()
+        if staff:
+            # 員工只能看到自己的申請
+            return ShiftApplication.objects.filter(staff=staff)
+        
+        # 檢查是否是店長（有 merchant_profile）
+        elif hasattr(user, 'merchant_profile'):
+            merchant = user.merchant_profile
+            if hasattr(merchant, 'store') and merchant.store:
+                # 店長可以看到該店所有排班的申請
+                return ShiftApplication.objects.filter(shift__store=merchant.store)
+        
+        # 其他情況返回空
+        return ShiftApplication.objects.none()
+    
+    def perform_create(self, serializer):
+        """員工申請排班"""
+        user = self.request.user
+        
+        # 檢查用戶是否是員工
+        staff = user.staff_profile.first() if hasattr(user, 'staff_profile') else None
+        if not staff:
+            raise PermissionDenied("只有員工可以申請排班")
+        shift_id = self.request.data.get('shift')
+        
+        if not shift_id:
+            raise ValidationError("請選擇要申請的排班時段")
+        
+        try:
+            shift = Shift.objects.get(id=shift_id)
+        except Shift.DoesNotExist:
+            raise ValidationError("排班時段不存在")
+        
+        # 檢查員工是否屬於該店
+        if staff.store != shift.store:
+            raise PermissionDenied("您只能申請所屬店家的排班")
+        
+        # 檢查是否已經申請過
+        if ShiftApplication.objects.filter(shift=shift, staff=staff).exists():
+            raise ValidationError("您已經申請過這個排班時段")
+        
+        # 檢查排班是否已經被確認（assigned_staff 中已包含該員工）
+        if shift.assigned_staff.filter(id=staff.id).exists():
+            raise ValidationError("您已經被指派到這個排班時段")
+        
+        # 保存申請
+        serializer.save(staff=staff, shift=shift)
+        
+        # 更新排班狀態為「已申請」（如果還是「待排班」）
+        if shift.status == 'pending':
+            shift.status = 'applied'
+            shift.save()
+    
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """店長確認申請"""
+        user = request.user
+        
+        # 檢查是否是店長
+        if not hasattr(user, 'merchant_profile'):
+            raise PermissionDenied("只有店長可以確認申請")
+        
+        merchant = user.merchant_profile
+        if not hasattr(merchant, 'store') or not merchant.store:
+            raise PermissionDenied("您必須先建立店家才能確認申請")
+        
+        try:
+            application = self.get_object()
+        except ShiftApplication.DoesNotExist:
+            return Response(
+                {'error': '申請不存在'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # 檢查申請是否屬於該店
+        if application.shift.store != merchant.store:
+            raise PermissionDenied("您只能確認所屬店家的申請")
+        
+        # 檢查申請狀態
+        if application.status != 'pending':
+            return Response(
+                {'error': f'申請狀態為「{application.get_status_display()}」，無法確認'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 檢查排班是否還有空缺
+        shift = application.shift
+        current_assigned_count = shift.assigned_staff.count()
+        if current_assigned_count >= shift.staff_needed:
+            return Response(
+                {'error': '該排班時段已滿員'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 確認申請
+        with transaction.atomic():
+            application.status = 'approved'
+            application.reviewed_at = timezone.now()
+            application.save()
+            
+            # 將員工加入排班
+            shift.assigned_staff.add(application.staff)
+            
+            # 如果排班已滿員，更新狀態為「準備就緒」
+            if shift.assigned_staff.count() >= shift.staff_needed:
+                shift.status = 'ready'
+            else:
+                # 如果還有其他待確認的申請，保持「已申請」狀態
+                if shift.applications.filter(status='pending').exists():
+                    shift.status = 'applied'
+                else:
+                    shift.status = 'pending'
+            shift.save()
+        
+        serializer = self.get_serializer(application)
+        return Response({
+            'message': '申請已確認',
+            'application': serializer.data
+        })
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """店長拒絕申請"""
+        user = request.user
+        
+        # 檢查是否是店長
+        if not hasattr(user, 'merchant_profile'):
+            raise PermissionDenied("只有店長可以拒絕申請")
+        
+        merchant = user.merchant_profile
+        if not hasattr(merchant, 'store') or not merchant.store:
+            raise PermissionDenied("您必須先建立店家才能拒絕申請")
+        
+        try:
+            application = self.get_object()
+        except ShiftApplication.DoesNotExist:
+            return Response(
+                {'error': '申請不存在'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # 檢查申請是否屬於該店
+        if application.shift.store != merchant.store:
+            raise PermissionDenied("您只能拒絕所屬店家的申請")
+        
+        # 檢查申請狀態
+        if application.status != 'pending':
+            return Response(
+                {'error': f'申請狀態為「{application.get_status_display()}」，無法拒絕'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 拒絕申請
+        application.status = 'rejected'
+        application.reviewed_at = timezone.now()
+        application.save()
+        
+        # 更新排班狀態（如果沒有其他待確認的申請，改回「待排班」）
+        shift = application.shift
+        if not shift.applications.filter(status='pending').exists():
+            if shift.assigned_staff.count() > 0:
+                shift.status = 'ready'
+            else:
+                shift.status = 'pending'
+            shift.save()
+        
+        serializer = self.get_serializer(application)
+        return Response({
+            'message': '申請已拒絕',
+            'application': serializer.data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def my_applications(self, request):
+        """員工查看自己的申請列表"""
+        user = request.user
+        
+        staff = user.staff_profile.first() if hasattr(user, 'staff_profile') else None
+        if not staff:
+            return Response(
+                {'error': '只有員工可以查看申請列表'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        applications = ShiftApplication.objects.filter(staff=staff).order_by('-created_at')
+        serializer = self.get_serializer(applications, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def available_shifts(self, request):
+        """員工查看可申請的排班時段"""
+        user = request.user
+        
+        staff = user.staff_profile.first() if hasattr(user, 'staff_profile') else None
+        if not staff:
+            return Response(
+                {'error': '只有員工可以查看可申請的排班'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        store = staff.store
+        
+        # 獲取該店所有未滿員且未過期的排班
+        today = timezone.now().date()
+        shifts = Shift.objects.filter(
+            store=store,
+            date__gte=today
+        ).prefetch_related('assigned_staff', 'applications')
+        
+        # 過濾出可申請的排班（未滿員且員工未申請過）
+        available_shifts = []
+        for shift in shifts:
+            # 檢查是否已滿員
+            if shift.assigned_staff.count() >= shift.staff_needed:
+                continue
+            
+            # 檢查員工是否已經申請過
+            if ShiftApplication.objects.filter(shift=shift, staff=staff).exists():
+                continue
+            
+            # 檢查員工是否已經被指派
+            if shift.assigned_staff.filter(id=staff.id).exists():
+                continue
+            
+            available_shifts.append(shift)
+        
+        serializer = ShiftSerializer(available_shifts, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def propose_shift(self, request):
+        """
+        員工自行填寫排班時段，讓店長在店家帳號查看/管理
+        """
+        user = request.user
+
+        staff = user.staff_profile.first() if hasattr(user, 'staff_profile') else None
+        if not staff:
+            return Response(
+                {'error': '只有員工可以新增排班提案'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        store = staff.store
+
+        data = request.data
+
+        # 允許前端只提交日期與時間，其他欄位給預設值
+        date_str = data.get('date')
+        parsed_date = parse_date(date_str) if date_str else None
+        if not parsed_date:
+            return Response({'error': '缺少必填欄位: date，或日期格式錯誤（需 YYYY-MM-DD）'}, status=status.HTTP_400_BAD_REQUEST)
+
+        def parse_time(prefix):
+            """接收 start_time / end_time (HH:MM) 或 start_hour/start_minute 等組合"""
+            time_str = data.get(f'{prefix}_time')
+            hour = data.get(f'{prefix}_hour')
+            minute = data.get(f'{prefix}_minute')
+            if time_str:
+                try:
+                    parts = str(time_str).split(':')
+                    h = int(parts[0])
+                    m = int(parts[1]) if len(parts) > 1 else 0
+                    return h, m
+                except Exception:
+                    return None, None
+            try:
+                h = int(hour) if hour is not None else None
+                m = int(minute) if minute is not None else None
+                return h, m
+            except Exception:
+                return None, None
+
+        start_hour, start_minute = parse_time('start')
+        end_hour, end_minute = parse_time('end')
+
+        if start_hour is None or end_hour is None:
+            return Response({'error': '請提供開始與結束時間 (格式 HH:MM 或欄位 start_hour/start_minute)'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 預設值
+        shift_type = data.get('shift_type') or 'morning'
+        role = data.get('role') or '通用班別'
+        staff_needed = int(data.get('staff_needed') or 1)
+
+        try:
+            with transaction.atomic():
+                shift = Shift.objects.create(
+                    store=store,
+                    date=parsed_date,
+                    shift_type=shift_type,
+                    role=role,
+                    staff_needed=staff_needed,
+                    start_hour=start_hour,
+                    start_minute=start_minute or 0,
+                    end_hour=end_hour,
+                    end_minute=end_minute or 0,
+                    status='pending',  # 待店長確認
+                )
+                # 預設將提交者加入已指派名單，方便店長確認
+                shift.assigned_staff.add(staff)
+
+                # 同步建立一筆申請紀錄，狀態設為 pending，讓店長可在申請列表看到
+                ShiftApplication.objects.create(
+                    shift=shift,
+                    staff=staff,
+                    status='pending',
+                    message=data.get('message', '')
+                )
+
+                serializer = ShiftSerializer(shift)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {'error': f'新增排班提案失敗: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def all_shifts(self, request):
+        """員工查看該店的所有排班時段"""
+        user = request.user
+        
+        if not hasattr(user, 'staff_profile'):
+            return Response(
+                {'error': '只有員工可以查看排班'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        staff = user.staff_profile
+        store = staff.store
+        
+        # 獲取該店所有未過期的排班
+        today = timezone.now().date()
+        shifts = Shift.objects.filter(
+            store=store,
+            date__gte=today
+        ).prefetch_related('assigned_staff', 'applications').order_by('date', 'start_hour', 'start_minute')
+        
+        serializer = ShiftSerializer(shifts, many=True)
+        return Response(serializer.data)
 

@@ -10,6 +10,7 @@ const CustomerRegisterPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    companyAccount: '', // 統一編號（選填）
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,7 @@ const CustomerRegisterPage = () => {
         email: user.email,
         username: username,
         user_type: 'customer',
+        company_account: formData.companyAccount.trim() || null, // 統一編號（選填）
       };
 
       const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
@@ -107,6 +109,22 @@ const CustomerRegisterPage = () => {
           <div className="input-group">
             <label htmlFor="confirmPassword">確認密碼</label>
             <input type="password" id="confirmPassword" placeholder="再次輸入密碼" value={formData.confirmPassword} onChange={handleChange} required />
+          </div>
+          <div className="input-group">
+            <label htmlFor="companyAccount">
+              統一編號（選填）
+              <span style={{ fontSize: '0.875rem', color: '#666', fontWeight: 'normal', marginLeft: '0.5rem' }}>
+                如果您是員工，請輸入店家的統一編號
+              </span>
+            </label>
+            <input 
+              type="text" 
+              id="companyAccount" 
+              placeholder="請輸入店家統一編號（8碼）" 
+              value={formData.companyAccount} 
+              onChange={handleChange}
+              maxLength={8}
+            />
           </div>
           <div className="form-footer">
             <Link to="/register/merchant">切換至店家註冊</Link>
