@@ -17,8 +17,12 @@ const formatPrice = (value) => Math.round(Number(value) || 0);
 const pickupSlots = () => {
   const slots = [];
   const now = new Date();
-  for (let i = 20; i <= 60; i += 10) {
-    const slot = new Date(now.getTime() + i * 60000);
+  // 從現在開始加 20 分鐘為最快取餐時間
+  const startTime = new Date(now.getTime() + 20 * 60000);
+  
+  // 每 5 分鐘一個選項，最多 10 項
+  for (let i = 0; i < 10; i++) {
+    const slot = new Date(startTime.getTime() + i * 5 * 60000);
     slots.push(slot.toISOString());
   }
   return slots;
@@ -148,32 +152,28 @@ function TakeoutCartPage() {
         });
       }
       
-      // 2. 如果有惜福品，分別創建惜福品訂單
+      // 2. 如果有惜福品，合併成一張訂單
       if (surplusItems.length > 0) {
-        const surplusPromises = surplusItems.map(item => {
-          const surplusPayload = {
+        const surplusPayload = {
+          items: surplusItems.map(item => ({
             surplus_food: item.id,
-            quantity: item.quantity,
-            customer_name: finalName,
-            customer_phone: finalPhone,
-            pickup_at: pickupAt,
-            payment_method: paymentMethod,
-            order_type: 'takeout',  // 新增：訂單類型為外帶
-            use_utensils: useUtensils === "yes",
-            notes: notes,
-          };
-          
-          return api.post('/merchant/surplus/orders/', surplusPayload);
-        });
-
-        const surplusResponses = await Promise.all(surplusPromises);
-        surplusResponses.forEach(response => {
-          orderResults.push({
-            type: 'surplus',
-            code: response.data?.order_number,
-            pickupNumber: response.data?.pickup_number,
-            orderId: response.data?.id
-          });
+            quantity: item.quantity
+          })),
+          customer_name: finalName,
+          customer_phone: finalPhone,
+          pickup_at: pickupAt,
+          payment_method: paymentMethod,
+          order_type: 'takeout',
+          use_utensils: useUtensils === "yes",
+          notes: notes,
+        };
+        
+        const surplusResponse = await api.post('/merchant/surplus/orders/', surplusPayload);
+        orderResults.push({
+          type: 'surplus',
+          code: surplusResponse.data?.order_number,
+          pickupNumber: surplusResponse.data?.pickup_number,
+          orderId: surplusResponse.data?.id
         });
       }
       
@@ -190,19 +190,9 @@ function TakeoutCartPage() {
         alertMessage += `\n【一般外帶訂單】\n取餐號碼：${regularOrder.pickupNumber || "待通知"}`;
       }
       
-      const surplusOrders = orderResults.filter(r => r.type === 'surplus');
-      if (surplusOrders.length > 0) {
-        const pickupNumbers = surplusOrders
-          .map(o => o.pickupNumber)
-          .filter(Boolean)
-          .join(', ');
-        const codes = surplusOrders.map(o => o.code).filter(Boolean).join(', ');
-        
-        alertMessage += `\n\n【惜福品訂單】`;
-        if (pickupNumbers) {
-          alertMessage += `\n取餐號碼：${pickupNumbers}`;
-        }
-        alertMessage += `\n訂單編號：${codes || "待處理"}\n請至店家惜福品訂單頁面查看詳情`;
+      const surplusOrder = orderResults.find(r => r.type === 'surplus');
+      if (surplusOrder) {
+        alertMessage += `\n\n【惜福品訂單】\n取餐號碼：${surplusOrder.pickupNumber || "待通知"}`;
       }
       
       alert(alertMessage);
@@ -213,7 +203,7 @@ function TakeoutCartPage() {
           state: {
             pickupNumber: regularOrder.pickupNumber || null,
             paymentMethod: paymentLabel || paymentMethod,
-            hasSurplusOrders: surplusOrders.length > 0
+            hasSurplusOrders: surplusOrder ? true : false
           },
         });
       } else {
@@ -445,14 +435,22 @@ function TakeoutCartPage() {
                 value={pickupAt}
                 onChange={(e) => setPickupAt(e.target.value)}
               >
-                {slots.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {new Date(slot).toLocaleTimeString("zh-TW", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </option>
-                ))}
+                {slots.map((slot) => {
+                  const date = new Date(slot);
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const hours = date.getHours();
+                  const minutes = String(date.getMinutes()).padStart(2, '0');
+                  const period = hours >= 12 ? '下午' : '上午';
+                  const displayHours = hours % 12 || 12;
+                  
+                  return (
+                    <option key={slot} value={slot}>
+                      {`${year}/${month}/${day} ${period}${displayHours}:${minutes}`}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

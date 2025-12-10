@@ -126,32 +126,28 @@ function DineInCartPage() {
         });
       }
       
-      // 2. 如果有惜福品，分別創建惜福品訂單
+      // 2. 如果有惜福品，合併成一張訂單
       if (surplusItems.length > 0) {
-        const surplusPromises = surplusItems.map(item => {
-          const surplusPayload = {
+        const surplusPayload = {
+          items: surplusItems.map(item => ({
             surplus_food: item.id,
-            quantity: item.quantity,
-            customer_name: finalName,
-            customer_phone: finalPhone,
-            pickup_at: new Date().toISOString(),
-            payment_method: paymentMethod,
-            order_type: 'dine_in',  // 新增：訂單類型為內用
-            use_utensils: useEcoTableware === "yes",
-            notes: notes,  // 備註不包含桌號
-          };
-          
-          return api.post('/merchant/surplus/orders/', surplusPayload);
-        });
-
-        const surplusResponses = await Promise.all(surplusPromises);
-        surplusResponses.forEach(response => {
-          orderResults.push({
-            type: 'surplus',
-            code: response.data?.order_number,
-            pickupNumber: response.data?.pickup_number,
-            orderId: response.data?.id
-          });
+            quantity: item.quantity
+          })),
+          customer_name: finalName,
+          customer_phone: finalPhone,
+          pickup_at: new Date().toISOString(),
+          payment_method: paymentMethod,
+          order_type: 'dine_in',  // 訂單類型為內用
+          use_utensils: useEcoTableware === "yes",
+          notes: notes,  // 備註不包含桌號
+        };
+        
+        const surplusResponse = await api.post('/merchant/surplus/orders/', surplusPayload);
+        orderResults.push({
+          type: 'surplus',
+          code: surplusResponse.data?.order_number,
+          pickupNumber: surplusResponse.data?.pickup_number,
+          orderId: surplusResponse.data?.id
         });
       }
       

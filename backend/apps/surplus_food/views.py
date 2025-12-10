@@ -292,9 +292,26 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
         # 獲取店家資訊
         user = request.user
         if not (hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store')):
-            # 如果不是商家，從 surplus_food 取得 store
+            # 如果不是商家，從 items 或 surplus_food 取得 store
+            items = request.data.get('items')
             surplus_food_id = request.data.get('surplus_food')
-            if surplus_food_id:
+            
+            store = None
+            if items and len(items) > 0:
+                # 新格式：從第一個 item 取得店家
+                first_item_id = items[0].get('surplus_food')
+                try:
+                    surplus_food = SurplusFood.objects.get(id=first_item_id)
+                    store = surplus_food.store
+                    print(f"從惜福品品項 {first_item_id} 取得店家：{store.name}")
+                except SurplusFood.DoesNotExist:
+                    print(f"找不到惜福品 ID: {first_item_id}")
+                    return Response(
+                        {'error': '找不到指定的惜福品'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            elif surplus_food_id:
+                # 舊格式：直接從 surplus_food 取得
                 try:
                     surplus_food = SurplusFood.objects.get(id=surplus_food_id)
                     store = surplus_food.store
@@ -306,9 +323,9 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
             else:
-                print("請求中缺少 surplus_food")
+                print("請求中缺少 items 或 surplus_food")
                 return Response(
-                    {'error': '必須提供 surplus_food'},
+                    {'error': '必須提供訂單品項（items）或惜福品（surplus_food）'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
         else:
@@ -323,27 +340,29 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             print(f"序列化驗證失敗：{e}")
             raise
         
-        # 設置 store 和單價
-        surplus_food = serializer.validated_data.get('surplus_food')
-        
         # 生成取餐號碼
         pickup_number = self.generate_pickup_number(store.id)
         print(f"生成取餐號碼：{pickup_number}")
         
-        # 保存訂單
+        # 保存訂單（serializer.save 會調用 create 方法處理品項）
         order = serializer.save(
             store=store,
-            unit_price=surplus_food.surplus_price,
             pickup_number=pickup_number
         )
         
-        # 減少庫存
-        surplus_food.remaining_quantity -= order.quantity
-        surplus_food.orders_count += 1
-        surplus_food.save()
-        
         # 寫入 Firestore（惜福品專用 collection）
         try:
+            # 準備訂單品項資訊
+            items_info = []
+            for item in order.items.all():
+                items_info.append({
+                    'surplus_food_id': str(item.surplus_food.id),
+                    'surplus_food_title': item.surplus_food.title,
+                    'quantity': item.quantity,
+                    'unit_price': float(item.unit_price),
+                    'subtotal': float(item.subtotal)
+                })
+            
             surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
             surplus_orders_ref.set({
                 'store_id': str(store.id),
@@ -351,11 +370,10 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
                 'order_number': order.order_number,
                 'pickup_number': pickup_number,
                 'customer_name': order.customer_name,
-                'surplus_food_title': surplus_food.title,
-                'quantity': order.quantity,
+                'items': items_info,  # 多品項資訊
                 'total_price': float(order.total_price),
                 'status': order.status,
-                'order_type': order.order_type,  # 新增：訂單類型（內用/外帶）
+                'order_type': order.order_type,
                 'use_utensils': order.use_utensils,
                 'created_at': datetime.now(),
                 'pickup_time': order.pickup_time.isoformat() if order.pickup_time else None,
@@ -425,10 +443,12 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
         """取消訂單並恢復庫存，從 Firestore 刪除"""
         order = self.get_object()
         
-        # 恢復庫存
-        surplus_food = order.surplus_food
-        surplus_food.remaining_quantity += order.quantity
-        surplus_food.save()
+        # 恢復所有品項的庫存
+        for item in order.items.all():
+            surplus_food = item.surplus_food
+            surplus_food.remaining_quantity += item.quantity
+            surplus_food.orders_count -= 1
+            surplus_food.save()
         
         order.status = 'cancelled'
         order.save()
@@ -448,10 +468,12 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
         """拒絕訂單並恢復庫存，從 Firestore 刪除"""
         order = self.get_object()
         
-        # 恢復庫存
-        surplus_food = order.surplus_food
-        surplus_food.remaining_quantity += order.quantity
-        surplus_food.save()
+        # 恢復所有品項的庫存
+        for item in order.items.all():
+            surplus_food = item.surplus_food
+            surplus_food.remaining_quantity += item.quantity
+            surplus_food.orders_count -= 1
+            surplus_food.save()
         
         order.status = 'cancelled'  # 使用 cancelled 狀態表示拒絕
         order.save()

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory
+from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory, SurplusFoodOrderItem
 from datetime import time
 from decimal import Decimal
 
@@ -257,6 +257,181 @@ class SurplusFoodOrderSerializer(serializers.ModelSerializer):
         if quantity <= 0:
             raise serializers.ValidationError({
                 'quantity': '數量必須大於 0'
+            })
+        
+        return data
+
+
+class SurplusFoodOrderItemSerializer(serializers.ModelSerializer):
+    """惜福食品訂單項目序列化器"""
+    surplus_food_title = serializers.CharField(source='surplus_food.title', read_only=True)
+    surplus_food_detail = SurplusFoodListSerializer(source='surplus_food', read_only=True)
+    
+    class Meta:
+        model = SurplusFoodOrderItem
+        fields = [
+            'id', 'surplus_food', 'surplus_food_title', 'surplus_food_detail',
+            'quantity', 'unit_price', 'subtotal'
+        ]
+        read_only_fields = ['id', 'unit_price', 'subtotal']
+    
+    def validate(self, data):
+        """驗證訂單項目"""
+        surplus_food = data.get('surplus_food')
+        quantity = data.get('quantity', 1)
+        
+        if not surplus_food:
+            raise serializers.ValidationError({
+                'surplus_food': '必須選擇惜福品'
+            })
+        
+        # 檢查狀態
+        if surplus_food.status != 'active':
+            raise serializers.ValidationError({
+                'surplus_food': f'此惜福品目前無法訂購（狀態：{surplus_food.get_status_display()}）'
+            })
+        
+        # 檢查庫存
+        if surplus_food.remaining_quantity <= 0:
+            raise serializers.ValidationError({
+                'surplus_food': f'{surplus_food.title} 已售完'
+            })
+        
+        if quantity > surplus_food.remaining_quantity:
+            raise serializers.ValidationError({
+                'quantity': f'{surplus_food.title} 庫存不足，目前剩餘 {surplus_food.remaining_quantity} 份'
+            })
+        
+        # 驗證數量必須大於 0
+        if quantity <= 0:
+            raise serializers.ValidationError({
+                'quantity': '數量必須大於 0'
+            })
+        
+        return data
+
+
+# 更新原有的序列化器以支援多品項
+class SurplusFoodOrderSerializer(serializers.ModelSerializer):
+    """惜福食品訂單序列化器 - 支援多品項"""
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
+    order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
+    items = SurplusFoodOrderItemSerializer(many=True, required=False)
+    
+    # 支援 pickup_at 作為 pickup_time 的別名（API 兼容性）
+    pickup_at = serializers.DateTimeField(source='pickup_time', required=False, allow_null=True)
+    
+    # 保留舊的欄位用於向後兼容
+    surplus_food = serializers.PrimaryKeyRelatedField(
+        queryset=SurplusFood.objects.all(), 
+        write_only=True, 
+        required=False
+    )
+    quantity = serializers.IntegerField(write_only=True, required=False, default=1)
+    
+    class Meta:
+        model = SurplusFoodOrder
+        fields = [
+            'id', 'order_number', 'store', 'store_name',
+            'items',  # 新：多品項
+            'surplus_food', 'quantity',  # 舊：向後兼容
+            'customer_name', 'customer_phone', 'customer_email',
+            'total_price',
+            'payment_method', 'payment_method_display',
+            'order_type', 'order_type_display',
+            'status', 'status_display', 'pickup_time', 'pickup_at', 'pickup_number',
+            'use_utensils', 'notes',
+            'created_at', 'confirmed_at', 'completed_at'
+        ]
+        read_only_fields = [
+            'id', 'order_number', 'store', 'total_price', 'pickup_number',
+            'created_at', 'confirmed_at', 'completed_at'
+        ]
+    
+    def create(self, validated_data):
+        """創建訂單及其項目（支援新舊格式）"""
+        # 檢查是使用新格式（items）還是舊格式（surplus_food + quantity）
+        items_data = validated_data.pop('items', None)
+        surplus_food = validated_data.pop('surplus_food', None)
+        quantity = validated_data.pop('quantity', 1)
+        
+        order = SurplusFoodOrder.objects.create(**validated_data)
+        
+        if items_data:
+            # 新格式：多品項
+            for item_data in items_data:
+                sf = item_data['surplus_food']
+                qty = item_data['quantity']
+                
+                SurplusFoodOrderItem.objects.create(
+                    order=order,
+                    surplus_food=sf,
+                    quantity=qty,
+                    unit_price=sf.surplus_price
+                )
+                
+                sf.remaining_quantity -= qty
+                sf.orders_count += 1
+                sf.save()
+        elif surplus_food:
+            # 舊格式：單一品項
+            SurplusFoodOrderItem.objects.create(
+                order=order,
+                surplus_food=surplus_food,
+                quantity=quantity,
+                unit_price=surplus_food.surplus_price
+            )
+            
+            surplus_food.remaining_quantity -= quantity
+            surplus_food.orders_count += 1
+            surplus_food.save()
+        
+        # 更新訂單總價
+        order.update_total_price()
+        
+        return order
+    
+    def validate(self, data):
+        """驗證訂單資料"""
+        items_data = data.get('items')
+        surplus_food = data.get('surplus_food')
+        
+        # 必須提供 items 或 surplus_food 其中一個
+        if not items_data and not surplus_food:
+            raise serializers.ValidationError({
+                'items': '請提供訂單品項（items）或單一惜福品（surplus_food）'
+            })
+        
+        # 如果使用舊格式，進行驗證
+        if surplus_food:
+            quantity = data.get('quantity', 1)
+            
+            if surplus_food.status != 'active':
+                raise serializers.ValidationError({
+                    'surplus_food': f'此惜福品目前無法訂購'
+                })
+            
+            if surplus_food.remaining_quantity <= 0:
+                raise serializers.ValidationError({
+                    'surplus_food': '此惜福品已售完'
+                })
+            
+            if quantity > surplus_food.remaining_quantity:
+                raise serializers.ValidationError({
+                    'quantity': f'庫存不足，目前剩餘 {surplus_food.remaining_quantity} 份'
+                })
+            
+            if quantity <= 0:
+                raise serializers.ValidationError({
+                    'quantity': '數量必須大於 0'
+                })
+        
+        # 如果使用新格式，確保至少有一個品項
+        if items_data is not None and len(items_data) == 0:
+            raise serializers.ValidationError({
+                'items': '訂單至少要有一個品項'
             })
         
         return data

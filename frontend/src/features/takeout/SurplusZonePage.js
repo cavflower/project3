@@ -253,6 +253,15 @@ function SurplusZonePage() {
                       key={item.id}
                       className="menu-item d-flex justify-content-between align-items-center border-bottom py-3"
                     >
+                      {item.image && (
+                        <div className="me-3">
+                          <img 
+                            src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
+                            alt={item.title}
+                            style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
+                          />
+                        </div>
+                      )}
                       <div className="flex-grow-1">
                         <div className="d-flex align-items-center gap-2">
                           <h5 className="mb-1">{item.title}</h5>
@@ -362,6 +371,15 @@ function SurplusZonePage() {
                           key={item.id}
                           className="menu-item d-flex justify-content-between align-items-center border-bottom py-3"
                         >
+                          {item.image && (
+                            <div className="me-3">
+                              <img 
+                                src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
+                                alt={item.title}
+                                style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
+                              />
+                            </div>
+                          )}
                           <div className="flex-grow-1">
                             <div className="d-flex align-items-center gap-2">
                               <h5 className="mb-1">{item.title}</h5>

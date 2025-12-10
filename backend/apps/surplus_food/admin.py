@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory
+from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory, SurplusFoodOrderItem
 
 
 @admin.register(SurplusFoodCategory)
@@ -48,25 +48,55 @@ class SurplusFoodAdmin(admin.ModelAdmin):
     )
 
 
+class SurplusFoodOrderItemInline(admin.TabularInline):
+    """訂單項目內嵌顯示"""
+    model = SurplusFoodOrderItem
+    extra = 0
+    readonly_fields = ['surplus_food', 'quantity', 'unit_price', 'subtotal']
+    can_delete = False
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(SurplusFoodOrder)
 class SurplusFoodOrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'store', 'customer_name', 'surplus_food', 'quantity', 'total_price', 'status', 'created_at']
+    list_display = ['order_number', 'store', 'customer_name', 'get_items_summary', 'total_price', 'status', 'created_at']
     list_filter = ['status', 'payment_method', 'store']
     search_fields = ['order_number', 'customer_name', 'customer_phone']
     readonly_fields = ['order_number', 'total_price', 'created_at', 'confirmed_at', 'completed_at']
     ordering = ['-created_at']
+    inlines = [SurplusFoodOrderItemInline]
     
     fieldsets = (
         ('訂單資訊', {
-            'fields': ('order_number', 'store', 'surplus_food', 'status')
+            'fields': ('order_number', 'store', 'status', 'pickup_number')
         }),
         ('顧客資訊', {
             'fields': ('customer_name', 'customer_phone', 'customer_email')
         }),
         ('訂單詳情', {
-            'fields': ('quantity', 'unit_price', 'total_price', 'payment_method')
+            'fields': ('total_price', 'payment_method', 'order_type', 'use_utensils')
         }),
         ('時間與備註', {
             'fields': ('pickup_time', 'notes', 'created_at', 'confirmed_at', 'completed_at')
         }),
     )
+    
+    def get_items_summary(self, obj):
+        """顯示訂單品項摘要"""
+        items = obj.items.all()
+        if not items:
+            return '-'
+        summary = ', '.join([f"{item.surplus_food.title} x{item.quantity}" for item in items])
+        return summary if len(summary) <= 50 else summary[:47] + '...'
+    get_items_summary.short_description = '訂單品項'
+
+
+@admin.register(SurplusFoodOrderItem)
+class SurplusFoodOrderItemAdmin(admin.ModelAdmin):
+    list_display = ['order', 'surplus_food', 'quantity', 'unit_price', 'subtotal']
+    list_filter = ['order__store']
+    search_fields = ['order__order_number', 'surplus_food__title']
+    readonly_fields = ['subtotal']
+

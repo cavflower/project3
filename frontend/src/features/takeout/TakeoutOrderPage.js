@@ -188,10 +188,12 @@ function TakeoutOrderPage() {
                 
                 {/* 惜福專區按鈕 */}
                 <button
-                  className="surplus-zone-nav-btn"
-                  onClick={() => navigate(`/store/${storeId}/surplus`, {
+                  className={`surplus-zone-nav-btn ${!store?.enable_surplus_food ? 'disabled' : ''}`}
+                  onClick={() => store?.enable_surplus_food && navigate(`/store/${storeId}/surplus`, {
                     state: { cart: cart }
                   })}
+                  disabled={!store?.enable_surplus_food}
+                  style={!store?.enable_surplus_food ? { cursor: 'not-allowed', opacity: 0.5, backgroundColor: '#ccc' } : {}}
                 >
                   惜福專區
                 </button>
@@ -293,6 +295,15 @@ function TakeoutOrderPage() {
                           className="d-flex justify-content-between align-items-center border-bottom py-3"
                           style={isLinkedToSurplus ? { opacity: 0.5, pointerEvents: 'none' } : {}}
                         >
+                          {item.image && (
+                            <div className="me-3">
+                              <img 
+                                src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
+                                alt={item.name}
+                                style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
+                              />
+                            </div>
+                          )}
                           <div className="flex-grow-1">
                             <h5 className="mb-1">
                               {item.name}

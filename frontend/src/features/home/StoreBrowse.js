@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../store/AuthContext';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { getStore } from '../../api/storeApi';
 import './StoreBrowse.css';
 
 function StoreBrowse() {
@@ -8,6 +9,19 @@ function StoreBrowse() {
   const navigate = useNavigate();
   const { storeId } = useParams();
   const [selectedSeats, setSelectedSeats] = useState(1);
+  const [store, setStore] = useState(null);
+  
+  useEffect(() => {
+    const loadStore = async () => {
+      try {
+        const response = await getStore(storeId);
+        setStore(response.data);
+      } catch (err) {
+        console.error('Failed to load store:', err);
+      }
+    };
+    loadStore();
+  }, [storeId]);
   
   // 可選擇的座位數量選項
   const seatOptions = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -47,8 +61,10 @@ function StoreBrowse() {
 
               <div className="d-grid gap-2">
                 <button 
-                  className="btn btn-orange btn-lg mb-2"
-                  onClick={() => navigate(`/reservation/new/${storeId}`)}
+                  className={`btn btn-lg mb-2 ${store?.enable_reservation ? 'btn-orange' : 'btn-secondary'}`}
+                  onClick={() => store?.enable_reservation && navigate(`/reservation/new/${storeId}`)}
+                  disabled={!store?.enable_reservation}
+                  style={!store?.enable_reservation ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
                 >
                   <i className="bi bi-calendar-plus me-2"></i>
                   立即訂位

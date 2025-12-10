@@ -225,17 +225,28 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
           <p><strong>客戶：</strong>{order.customer_name}</p>
           <p><strong>電話：</strong>{order.customer_phone}</p>
           <p><strong>訂單類型：</strong>{getOrderType()}</p>
-          {order.pickup_time && (
-            <p><strong>取餐時間：</strong>{formatPickupTime(order.pickup_time)}</p>
-          )}
           <p><strong>訂單狀態：</strong>{statusLabels[order.status] || order.status_display}</p>
           <p><strong>付款方式：</strong>{order.payment_method_display}</p>
           <p><strong>備註：</strong>{order.notes || '—'}</p>
           <p><strong>餐具需求：</strong>{order.use_utensils ? '需要餐具' : '不需要餐具'}</p>
+          {order.pickup_time && order.order_type === 'takeout' && (
+            <p><strong>取餐時間：</strong>{formatPickupTime(order.pickup_time)}</p>
+          )}
           <div className="mt-2">
             <strong>品項：</strong>
             <ul className="mb-0">
-              <li>{order.surplus_food_detail?.title} × {order.quantity}</li>
+              {order.items && order.items.length > 0 ? (
+                order.items.map((item, index) => (
+                  <li key={index}>
+                    {item.surplus_food_title || item.surplus_food_detail?.title} × {item.quantity}
+                  </li>
+                ))
+              ) : (
+                // 向後兼容：舊格式單一品項
+                order.surplus_food_detail && (
+                  <li>{order.surplus_food_detail.title} × {order.quantity || 1}</li>
+                )
+              )}
             </ul>
           </div>
         </div>

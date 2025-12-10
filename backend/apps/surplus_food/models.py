@@ -399,25 +399,17 @@ class SurplusFoodOrder(models.Model):
         related_name='surplus_orders',
         verbose_name='店家'
     )
-    surplus_food = models.ForeignKey(
-        SurplusFood,
-        on_delete=models.CASCADE,
-        related_name='orders',
-        verbose_name='惜福食品'
-    )
+    # 移除單一品項關聯，改用 items 關聯支援多品項
+    # surplus_food 欄位已被 SurplusFoodOrderItem 取代
     customer_name = models.CharField(max_length=100, verbose_name='顧客姓名')
     customer_phone = models.CharField(max_length=20, verbose_name='顧客手機')
     customer_email = models.EmailField(blank=True, verbose_name='顧客Email')
-    quantity = models.PositiveIntegerField(default=1, verbose_name='數量')
-    unit_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name='單價'
-    )
+    # 移除 quantity 和 unit_price，這些資訊現在在 SurplusFoodOrderItem 中
     total_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        verbose_name='總價'
+        verbose_name='總價',
+        default=0
     )
     payment_method = models.CharField(
         max_length=20,
@@ -479,10 +471,19 @@ class SurplusFoodOrder(models.Model):
         if not self.order_number:
             self.order_number = self.generate_order_number()
         
-        # 計算總價
-        self.total_price = self.quantity * self.unit_price
+        # 總價由訂單項目計算，不在這裡計算
+        # self.total_price 會在創建訂單項目後更新
         
         super().save(*args, **kwargs)
+    
+    def update_total_price(self):
+        """根據訂單項目更新總價"""
+        from django.db.models import Sum, F
+        total = self.items.aggregate(
+            total=Sum(F('quantity') * F('unit_price'))
+        )['total'] or 0
+        self.total_price = total
+        self.save(update_fields=['total_price'])
     
     @staticmethod
     def generate_order_number():
@@ -498,3 +499,45 @@ class SurplusFoodOrder(models.Model):
             order_number = f"SFO{date_str}{random_str}"
         
         return order_number
+
+
+class SurplusFoodOrderItem(models.Model):
+    """
+    惜福食品訂單項目模型 - 支援一張訂單多個品項
+    """
+    order = models.ForeignKey(
+        SurplusFoodOrder,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name='訂單'
+    )
+    surplus_food = models.ForeignKey(
+        SurplusFood,
+        on_delete=models.CASCADE,
+        related_name='order_items',
+        verbose_name='惜福食品'
+    )
+    quantity = models.PositiveIntegerField(default=1, verbose_name='數量')
+    unit_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='單價'
+    )
+    subtotal = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='小計'
+    )
+    
+    class Meta:
+        db_table = 'surplus_food_order_items'
+        verbose_name = '惜福食品訂單項目'
+        verbose_name_plural = '惜福食品訂單項目'
+    
+    def __str__(self):
+        return f"{self.order.order_number} - {self.surplus_food.title} x {self.quantity}"
+    
+    def save(self, *args, **kwargs):
+        # 計算小計
+        self.subtotal = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
