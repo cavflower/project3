@@ -44,6 +44,7 @@ function TakeoutCartPage() {
   const [useUtensils, setUseUtensils] = useState("yes");
   const [notes, setNotes] = useState(initialCart?.notes || "");
   const [submitting, setSubmitting] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   const slots = useMemo(pickupSlots, []);
   
@@ -203,7 +204,9 @@ function TakeoutCartPage() {
           state: {
             pickupNumber: regularOrder.pickupNumber || null,
             paymentMethod: paymentLabel || paymentMethod,
-            hasSurplusOrders: surplusOrder ? true : false
+            hasSurplusOrders: surplusOrder ? true : false,
+            surplusOrderNumbers: surplusOrder ? [surplusOrder.code] : [],
+            surplusPickupNumbers: surplusOrder ? [surplusOrder.pickupNumber] : []
           },
         });
       } else {
@@ -512,18 +515,174 @@ function TakeoutCartPage() {
           {/* 送出按鈕 */}
           <button
             className="btn btn-primary w-100 py-3 fw-bold"
-            onClick={handleSubmit}
+            onClick={() => setShowCheckoutModal(true)}
             disabled={submitting || cartItems.length === 0}
           >
-            {submitting 
-              ? "送出中..." 
-              : paymentMethod === "cash"
-              ? `確認訂單 (NT$ ${formatPrice(total)})`
-              : `前往付款 (NT$ ${formatPrice(total)})`
-            }
+            確認訂單 (NT$ {formatPrice(total)})
           </button>
         </div>
       </div>
+
+      {/* 結帳確認Modal */}
+      {showCheckoutModal && (
+        <div className="checkout-modal-overlay" onClick={() => !submitting && setShowCheckoutModal(false)}>
+          <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>確認訂單</h3>
+              <button 
+                className="btn-close" 
+                onClick={() => setShowCheckoutModal(false)}
+                disabled={submitting}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* 店家資訊 */}
+              <div className="checkout-section">
+                <h5 className="section-title">
+                  <i className="bi bi-shop me-2"></i>店家資訊
+                </h5>
+                <div className="info-card">
+                  <strong>{store?.name}</strong>
+                  <p className="text-muted mb-0">{store?.address}</p>
+                </div>
+              </div>
+
+              {/* 訂單明細 */}
+              <div className="checkout-section">
+                <h5 className="section-title">
+                  <i className="bi bi-receipt me-2"></i>訂單明細
+                </h5>
+                <div className="order-items">
+                  {regularItems.length > 0 && (
+                    <div className="items-group">
+                      <div className="group-label">一般外帶商品</div>
+                      {regularItems.map((item) => (
+                        <div key={item.id} className="order-item">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-quantity">× {item.quantity}</span>
+                          <span className="item-price">NT$ {formatPrice(item.price * item.quantity)}</span>
+                        </div>
+                      ))}
+                      <div className="subtotal">
+                        小計：NT$ {formatPrice(regularTotal)}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {surplusItems.length > 0 && (
+                    <div className="items-group surplus-group">
+                      <div className="group-label">
+                        <i className="bi bi-leaf me-1"></i>惜福品
+                      </div>
+                      {surplusItems.map((item) => (
+                        <div key={item.id} className="order-item">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-quantity">× {item.quantity}</span>
+                          <span className="item-price">NT$ {formatPrice(item.price * item.quantity)}</span>
+                        </div>
+                      ))}
+                      <div className="subtotal">
+                        小計：NT$ {formatPrice(surplusTotal)}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="total-section">
+                    <div className="total-row">
+                      <span className="total-label">總計</span>
+                      <span className="total-amount">NT$ {formatPrice(total)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 取餐資訊 */}
+              <div className="checkout-section">
+                <h5 className="section-title">
+                  <i className="bi bi-clock me-2"></i>取餐資訊
+                </h5>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <label>取餐時間</label>
+                    <span>{new Date(pickupAt).toLocaleString("zh-TW", {
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>聯絡人</label>
+                    <span>{user ? (user.username || user.email) : contactName}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>聯絡電話</label>
+                    <span>{user ? (user.phone_number || "未提供") : contactPhone}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>餐具</label>
+                    <span>{useUtensils === "yes" ? "需要" : "不需要"}</span>
+                  </div>
+                </div>
+                {notes && (
+                  <div className="notes-display">
+                    <label>備註</label>
+                    <p>{notes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* 付款資訊 */}
+              <div className="checkout-section">
+                <h5 className="section-title">
+                  <i className="bi bi-credit-card me-2"></i>付款方式
+                </h5>
+                <div className="payment-method">
+                  <div className="payment-badge">
+                    {paymentOptionsList.find((o) => o.value === paymentMethod)?.label}
+                  </div>
+                  {paymentMethod === "cash" && (
+                    <small className="text-muted d-block mt-2">請於取餐時以現金付款</small>
+                  )}
+                  {paymentMethod === "credit_card" && (
+                    <small className="text-muted d-block mt-2">請於取餐時以信用卡付款</small>
+                  )}
+                  {paymentMethod === "line_pay" && (
+                    <small className="text-muted d-block mt-2">將前往 LINE Pay 付款頁面</small>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowCheckoutModal(false)}
+                disabled={submitting}
+              >
+                返回修改
+              </button>
+              <button
+                className="btn btn-primary btn-confirm"
+                onClick={() => {
+                  handleSubmit();
+                }}
+                disabled={submitting}
+              >
+                {submitting 
+                  ? "處理中..." 
+                  : paymentMethod === "cash"
+                  ? `確認送出`
+                  : `前往付款`
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

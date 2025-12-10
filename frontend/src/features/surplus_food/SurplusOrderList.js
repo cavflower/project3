@@ -225,6 +225,9 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
           <p><strong>客戶：</strong>{order.customer_name}</p>
           <p><strong>電話：</strong>{order.customer_phone}</p>
           <p><strong>訂單類型：</strong>{getOrderType()}</p>
+          {order.order_type === 'dine_in' && order.table_label && (
+            <p><strong>桌號：</strong>{order.table_label}</p>
+          )}
           <p><strong>訂單狀態：</strong>{statusLabels[order.status] || order.status_display}</p>
           <p><strong>付款方式：</strong>{order.payment_method_display}</p>
           <p><strong>備註：</strong>{order.notes || '—'}</p>

@@ -135,6 +135,7 @@ function DineInCartPage() {
           })),
           customer_name: finalName,
           customer_phone: finalPhone,
+          table_label: tableLabel || '',  // 添加桌號
           pickup_at: new Date().toISOString(),
           payment_method: paymentMethod,
           order_type: 'dine_in',  // 訂單類型為內用
@@ -190,6 +191,8 @@ function DineInCartPage() {
             pickupNumber: regularOrder.pickupNumber || null,
             paymentMethod: paymentLabel || paymentMethod,
             hasSurplusOrders: surplusOrders.length > 0,
+            surplusOrderNumbers: surplusOrders.map(o => o.code).filter(Boolean),
+            surplusPickupNumbers: surplusOrders.map(o => o.pickupNumber).filter(Boolean),
             isDineIn: true,
             tableLabel: tableLabel
           },

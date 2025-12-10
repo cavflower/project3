@@ -1,0 +1,437 @@
+/* 評價頁面整體佈局 */
+.review-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fff5eb 0%, #ffe4cc 100%);
+  padding: 40px 20px;
+  animation: fadeIn 0.5s ease;
+}
+
+.review-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* 頁面標題 */
+.review-header {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: slideDown 0.6s ease;
+}
+
+.review-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ffb07a 0%, #e86b2c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.review-header p {
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+/* 評分區塊 */
+.review-section {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  animation: slideUp 0.6s ease;
+}
+
+.review-section:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.review-section:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.review-section:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+.review-section:nth-child(5) {
+  animation-delay: 0.4s;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.section-icon {
+  font-size: 1.5rem;
+  color: #e86b2c;
+}
+
+.section-header h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+}
+
+/* 星星評分 */
+.rating-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #fff9f5;
+  border-radius: 12px;
+}
+
+.star-rating {
+  display: flex;
+  gap: 12px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 2.5rem;
+  color: #ddd;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.star-btn.active {
+  color: #ffb07a;
+  animation: starPop 0.3s ease;
+}
+
+.star-btn:hover {
+  transform: scale(1.15);
+}
+
+@keyframes starPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.rating-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e86b2c;
+  min-height: 28px;
+}
+
+/* 快速評價標籤 */
+.quick-tags {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.tag-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tag-btn:hover {
+  border-color: #ffb07a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 176, 122, 0.2);
+}
+
+.tag-btn.selected {
+  background: linear-gradient(135deg, #ffb07a 0%, #e86b2c 100%);
+  border-color: #e86b2c;
+  color: white;
+  box-shadow: 0 4px 15px rgba(232, 107, 44, 0.3);
+}
+
+.tag-btn svg {
+  font-size: 1.2rem;
+}
+
+/* 產品評分 */
+.product-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.product-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #fff9f5;
+  border-radius: 12px;
+  border-left: 4px solid #ffb07a;
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.product-item .star-rating {
+  gap: 8px;
+}
+
+.product-item .star-btn {
+  font-size: 1.8rem;
+}
+
+/* 文字評論 */
+.comment-input {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.3s ease;
+  background: #fff9f5;
+}
+
+.comment-input:focus {
+  outline: none;
+  border-color: #ffb07a;
+  box-shadow: 0 0 0 4px rgba(255, 176, 122, 0.1);
+}
+
+.char-count {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-top: 8px;
+}
+
+/* 提交按鈕 */
+.submit-section {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+  animation: slideUp 0.6s ease 0.5s both;
+}
+
+.submit-btn,
+.cancel-btn {
+  flex: 1;
+  padding: 18px 32px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+
+.cancel-btn {
+  background: white;
+  color: #6c757d;
+  border: 2px solid #dee2e6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.cancel-btn:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 提交成功畫面 */
+.review-success {
+  background: white;
+  border-radius: 20px;
+  padding: 60px 40px;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  animation: scaleIn 0.5s ease;
+}
+
+.success-icon {
+  font-size: 5rem;
+  color: #e86b2c;
+  margin-bottom: 24px;
+  animation: successPulse 1s ease infinite;
+}
+
+@keyframes successPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.review-success h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 12px;
+}
+
+.review-success p {
+  font-size: 1.1rem;
+  color: #6c757d;
+}
+
+/* 動畫效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .review-page {
+    padding: 20px 16px;
+  }
+
+  .review-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .review-section {
+    padding: 20px;
+  }
+
+  .section-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .star-btn {
+    font-size: 2rem;
+  }
+
+  .product-item .star-btn {
+    font-size: 1.5rem;
+  }
+
+  .quick-tags {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tag-btn {
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+
+  .submit-section {
+    flex-direction: column;
+  }
+
+  .submit-btn,
+  .cancel-btn {
+    width: 100%;
+  }
+
+  .review-success {
+    padding: 40px 24px;
+  }
+
+  .success-icon {
+    font-size: 4rem;
+  }
+
+  .review-success h2 {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .product-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .product-item .star-rating {
+    align-self: center;
+  }
+
+  .quick-tags {
+    grid-template-columns: 1fr;
+  }
+
+  .star-rating {
+    gap: 8px;
+  }
+
+  .star-btn {
+    font-size: 1.8rem;
+  }
+}

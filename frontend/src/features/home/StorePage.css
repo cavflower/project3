@@ -48,11 +48,34 @@
 }
 
 .store-info-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
   color: #6c757d;
   font-size: 0.95rem;
+}
+
+/* 菜單計數徽章 */
+.menu-count-badge {
+  display: inline-block;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-left: 1rem;
+}
+
+/* 菜單類別徽章 */
+.menu-item-category-badge {
+  display: inline-block;
+  background-color: #f5f5f5;
+  color: #666;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 .store-info-item i {
