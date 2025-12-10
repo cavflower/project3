@@ -38,13 +38,6 @@ import ConfirmationPage from './features/home/ConfirmationPage';
 import ReviewPage from './features/home/ReviewPage';
 import LoyaltyManagement from './features/loyalty_management/LoyaltyManagement';
 import TakeoutOrderPage from './features/takeout/TakeoutOrderPage';
-import TakeoutCartPage from './features/takeout/TakeoutCartPage';
-import SurplusZonePage from './features/takeout/SurplusZonePage';
-import DineInOrderPage from './features/dine_in/DineInOrderPage';
-import DineInCartPage from './features/dine_in/DineInCartPage';
-import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSettingsPage';
-import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
-import OrderManagementPage from './features/merchant_dashboard/order_management/OrderManagementPage';
 import EmployeeSchedulePage from './features/employee/EmployeeSchedulePage';
 
 
