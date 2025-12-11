@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { getUserOrders } from '../../api/orderApi';
 import { getOrderNotifications, markAllNotificationsAsRead } from '../../api/orderApi';
@@ -6,10 +7,11 @@ import './CustomerOrdersPage.css';
 
 const CustomerOrdersPage = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'orders');
 
   useEffect(() => {
     fetchData();
