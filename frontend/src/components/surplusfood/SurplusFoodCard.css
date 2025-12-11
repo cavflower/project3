@@ -1,0 +1,256 @@
+/* 惜福品商品卡樣式 */
+
+.surplus-food-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.surplus-food-item:hover {
+  background: #f0f0f0;
+  transform: translateX(4px);
+}
+
+.surplus-food-image-small {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #e0e0e0;
+}
+
+.surplus-food-image-small img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.surplus-no-image-small {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 2.5rem;
+}
+
+.surplus-food-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.surplus-food-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.surplus-food-info h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.surplus-food-description {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.surplus-dining-option-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid #c8e6c9;
+}
+
+.surplus-food-expiry {
+  display: flex;
+  align-items: center;
+  border: white;
+  border-radius: 6px;
+  color: #666;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+  width: fit-content;
+}
+
+.surplus-expiry-icon {
+  font-size: 0.9rem;
+}
+
+.surplus-food-price {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.surplus-original-price {
+  text-decoration: line-through;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.surplus-price {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #e74c3c;
+}
+
+.surplus-discount {
+  background: #ff6b6b;
+  color: white;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.surplus-food-quantity {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.surplus-food-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.surplus-food-actions button {
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+}
+
+.surplus-btn-icon svg {
+  font-size: 1rem;
+  color: black;
+}
+
+.surplus-btn-success {
+  background: #27ae60;
+  color: white;
+}
+
+.surplus-btn-success:hover {
+  background: #229954;
+  transform: translateY(-2px);
+}
+
+.surplus-btn-warning {
+  background: #f39c12;
+  color: white;
+}
+
+.surplus-btn-warning:hover {
+  background: #d68910;
+  transform: translateY(-2px);
+}
+
+.surplus-btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.surplus-btn-secondary:hover {
+  background: #7f8c8d;
+  transform: translateY(-2px);
+}
+
+.surplus-btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.surplus-btn-danger:hover {
+  background: #c0392b;
+  transform: translateY(-2px);
+}
+
+.surplus-status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.surplus-status-active {
+  background: #27ae60;
+  color: white;
+}
+
+.surplus-status-inactive {
+  background: #95a5a6;
+  color: white;
+}
+
+.surplus-status-sold-out {
+  background: #e74c3c;
+  color: white;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .surplus-food-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .surplus-food-image-small {
+    width: 100%;
+    height: 180px;
+  }
+
+  .surplus-food-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .food-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .food-image-small {
+    width: 100%;
+    height: 180px;
+  }
+
+  .food-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

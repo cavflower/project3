@@ -1,0 +1,209 @@
+/* 惜福專區獨立樣式 */
+
+/* 類別徽章樣式 - 惜福專區專用 */
+.surplus-zone-page .badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.surplus-zone-page .badge.bg-warning {
+  background-color: #ffc107 !important;
+  color: #000 !important;
+}
+
+.surplus-zone-page .badge.bg-danger {
+  background-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+.surplus-zone-page .badge.bg-success {
+  background-color: #28a745 !important;
+  color: #fff !important;
+}
+
+/* 價格顯示樣式 */
+.surplus-zone-page .price-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.surplus-zone-page .original-price {
+  font-size: 0.9rem;
+  text-decoration: line-through;
+  color: #6c757d;
+}
+
+.surplus-zone-page .surplus-price {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #28a745;
+}
+
+.surplus-zone-page .discount-badge {
+  background-color: #ff4444;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+/* 商品狀態標籤 */
+.surplus-zone-page .condition-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+}
+
+/* 庫存警告 */
+.surplus-zone-page .stock-warning {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* 類別計數徽章 */
+.surplus-zone-page .category-count {
+  background-color: #ff6b6b;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  margin-left: 0.3rem;
+}
+
+/* 購物車徽章 */
+.surplus-zone-page .cart-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ff4444;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* 惜福商品卡片 */
+.surplus-zone-page .menu-item {
+  transition: background-color 0.2s;
+}
+
+.surplus-zone-page .menu-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* 導航列樣式 */
+.surplus-zone-page .category-nav-tabs {
+  position: sticky;
+  top: 60px;
+  z-index: 100;
+  background-color: white;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 1rem;
+}
+
+.surplus-zone-page .nav-tabs-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+}
+
+.surplus-zone-page .nav-tabs-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.surplus-zone-page .nav-tabs-scroll::-webkit-scrollbar-thumb {
+  background-color: #dee2e6;
+  border-radius: 2px;
+}
+
+
+.surplus-zone-page .back-to-menu-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  color: #666;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.surplus-zone-page .category-nav-btn:hover,
+.surplus-zone-page .back-to-menu-btn:hover {
+  border-color: #ffb07a;
+  color: #e86b2c;
+  background: #fff5f0;
+}
+
+.surplus-zone-page .category-nav-btn.active {
+  background: linear-gradient(135deg, #ffb07a, #e86b2c);
+  color: #fff;
+  border-color: #fff;
+}
+
+.surplus-zone-page .back-to-menu-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  color: #666;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.surplus-zone-page .back-to-menu-btn:hover {
+  border-color: #ffb07a;
+  color: #e86b2c;
+  background: #fff5f0;
+}
+
+/* 購物車按鈕在導航列 */
+.surplus-zone-page .cart-nav-btn {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  color: #666;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.surplus-zone-page .cart-nav-btn:hover {
+  border-color: #e86b2c;
+  background: #fff;
+}

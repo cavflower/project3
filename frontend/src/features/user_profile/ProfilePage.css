@@ -1,0 +1,424 @@
+/* ProfilePage.css */
+
+.profile-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background-color: #f0f2f5;
+  min-height: calc(100vh - 60px);
+}
+
+.profile-wrapper {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.profile-container {
+  height: 100%;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  flex: 1;
+  overflow: hidden;
+}
+
+.profile-form {
+  display: flex;
+}
+
+/* --- 左側邊欄 --- */
+.profile-sidebar {
+  background-color: #f8f9fa;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40%;
+  border-right: 1px solid #e9ecef;
+}
+
+.profile-sidebar h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #343a40;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.avatar-upload-container {
+  position: relative;
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  width: 120px;
+  height: 120px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.avatar-edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.avatar-upload-container:hover .avatar-preview {
+  transform: scale(1.05);
+}
+
+.avatar-upload-container:hover .avatar-edit-overlay {
+  opacity: 1;
+}
+
+/* --- 右側主內容 --- */
+.profile-main {
+  padding: 2.5rem 3rem;
+  width: 60%;
+}
+
+.form-group {
+  margin-bottom: 1.8rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.6rem;
+  color: #495057;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #4dabf7;
+  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.2);
+}
+
+.form-group input[readOnly] {
+  background-color: #f1f3f5;
+  color: #868e96;
+  cursor: not-allowed;
+  border-color: #dee2e6;
+}
+
+/* 性別選擇 */
+.gender-radio-group {
+  display: flex;
+  gap: 15px;
+  margin-top: 8px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 2px solid #ced4da;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.radio-option:hover {
+  border-color: #4dabf7;
+  background: #f1f9ff;
+}
+
+.radio-option input[type="radio"] {
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+  margin: 2px;
+  accent-color: #4dabf7;
+}
+
+.radio-option input[type="radio"]:checked {
+  border-color: #4dabf7;
+}
+
+.radio-option:has(input[type="radio"]:checked) {
+  border-color: #4dabf7;
+  background: #e7f5ff;
+}
+
+.radio-option span {
+  font-size: 15px;
+  color: #495057;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.radio-option:has(input[type="radio"]:checked) span {
+  color: #1971c2;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  background: linear-gradient(90deg, #4dabf7, #364fc7);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+  box-shadow: 0 4px 15px rgba(54, 79, 199, 0.2);
+}
+
+.submit-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(54, 79, 199, 0.3);
+}
+
+.submit-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(54, 79, 199, 0.2);
+}
+
+/* --- 右側方案區塊 --- */
+.plan-sidebar {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-sidebar h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #343a40;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.current-plan-display {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex: 1;
+}
+
+.plan-badge {
+  background: #f8f9fa;
+  color: black;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.plan-details {
+  margin-top: 1rem;
+}
+
+.plan-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: black;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.plan-features li {
+  padding: 0.6rem 0;
+  color: #495057;
+  font-size: 0.95rem;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.plan-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #4dabf7;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.no-plan-text {
+  text-align: center;
+  color: #6c757d;
+  font-size: 1rem;
+  padding: 2rem 0;
+}
+
+.change-plan-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(90deg, #4dabf7, #364fc7);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(54, 79, 199, 0.2);
+}
+
+.change-plan-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(54, 79, 199, 0.3);
+}
+
+.change-plan-btn:active {
+  transform: translateY(-1px);
+}
+
+/* 平台費折扣資訊區塊 */
+.discount-info-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e9ecef;
+}
+
+.discount-info-section h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #343a40;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.discount-info-display {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.discount-badge-large {
+  background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+  color: white;
+  padding: 1.2rem 2rem;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(55, 178, 77, 0.3);
+  text-transform: uppercase;
+}
+
+.discount-details {
+  background: white;
+  border-radius: 10px;
+  padding: 1.2rem;
+  margin-top: 1rem;
+}
+
+.discount-label {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin: 0.5rem 0 0.3rem 0;
+  font-weight: 500;
+}
+
+.discount-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #37b24d;
+  margin: 0 0 1rem 0;
+}
+
+.discount-reason {
+  font-size: 0.95rem;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 0.8rem;
+  border-radius: 8px;
+  margin: 0.5rem 0 0 0;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.no-discount-text {
+  padding: 1.5rem;
+}
+
+.no-discount-text p {
+  color: #6c757d;
+  font-size: 1rem;
+  margin: 0.5rem 0;
+}
+
+.platform-fee-note {
+  font-size: 0.9rem;
+  color: #868e96;
+  font-weight: 500;
+}
+
+/* 響應式設計 */
+@media (max-width: 968px) {
+  .profile-wrapper {
+    flex-direction: column;
+  }
+
+  .plan-sidebar {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-form {
+    flex-direction: column;
+  }
+
+  .profile-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .profile-main {
+    width: 100%;
+  }
+}

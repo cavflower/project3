@@ -1,0 +1,333 @@
+/* 惜福食品管理樣式 */
+
+/* 類別區塊樣式 */
+.categories-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.category-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 16px;
+}
+
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.category-icon {
+  color: #667eea;
+  font-size: 1.5rem;
+}
+
+.category-title h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #333;
+}
+
+.category-description {
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-icon {
+  padding: 8px 12px;
+  min-width: auto;
+}
+
+.btn-compact {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+}
+
+/* 惜福品列表樣式 */
+.foods-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.food-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.food-item:hover {
+  background: #f0f0f0;
+  transform: translateX(4px);
+}
+
+.food-image-small {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #e0e0e0;
+}
+
+.food-image-small img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-image-small {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 2rem;
+}
+
+.food-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.food-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.food-info h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.food-code {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.food-price {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.original-price {
+  text-decoration: line-through;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.surplus-price {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #e74c3c;
+}
+
+.discount {
+  background: #e74c3c;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.food-quantity {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.food-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.food-actions button {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+}
+
+.surplus-btn-success {
+  background: #27ae60;
+  color: white;
+}
+
+.surplus-btn-success:hover {
+  background: #229954;
+}
+
+.surplus-btn-warning {
+  background: #f39c12;
+  color: white;
+}
+
+.surplus-btn-warning:hover {
+  background: #d68910;
+}
+
+.surplus-btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.surplus-btn-secondary:hover {
+  background: #7f8c8d;
+}
+
+.surplus-btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.surplus-btn-danger:hover {
+  background: #c0392b;
+}
+
+.surplus-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.surplus-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 狀態徽章 */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-active {
+  background: #27ae60;
+  color: white;
+}
+
+.status-inactive {
+  background: #95a5a6;
+  color: white;
+}
+
+.status-sold-out {
+  background: #e74c3c;
+  color: white;
+}
+
+/* 空狀態 */
+.empty-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+  font-size: 0.95rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+}
+
+/* Header */
+.surplus-content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.surplus-content-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .food-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .food-image-small {
+    width: 100%;
+    height: 150px;
+  }
+
+  .food-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .category-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .category-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

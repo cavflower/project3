@@ -1,0 +1,488 @@
+.takeout-cart-page {
+  min-height: calc(100vh - 70px);
+}
+
+.takeout-cart-page .cart-header {
+  background: linear-gradient(135deg, #ffb07a, #e86b2c);
+  color: #fff;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  font-weight: 600;
+}
+
+.takeout-cart-page .card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.takeout-cart-page .cart-item {
+  transition: background-color 0.2s;
+}
+
+.takeout-cart-page .cart-item:hover {
+  background-color: #f8f9fa;
+}
+
+.takeout-cart-page .cart-item:last-child {
+  border-bottom: none !important;
+}
+
+/* 數量控制按鈕 - 沿用外帶菜單樣式 */
+.quantity-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #e8e8e8;
+  color: #333;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.quantity-btn:hover {
+  background: #d8d8d8;
+  color: #000;
+}
+
+.quantity-btn:active {
+  transform: scale(0.95);
+}
+
+.quantity-display {
+  font-weight: 600;
+  font-size: 16px;
+  min-width: 30px;
+  text-align: center;
+  color: #333;
+}
+
+.quantity-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.quantity-controls button:hover {
+  transform: scale(1.1);
+}
+
+.btn-link {
+  color: #e86b2c;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.btn-link:hover {
+  color: #d15a1f;
+  text-decoration: underline;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #ffb07a;
+  box-shadow: 0 0 0 0.2rem rgba(255, 176, 122, 0.25);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #ffb07a, #e86b2c);
+  border: none;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ff9f5e, #d15a1f);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(232, 107, 44, 0.3);
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 結帳確認 Modal */
+.checkout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.checkout-modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.checkout-modal .modal-header {
+  padding: 24px;
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #ffb07a, #e86b2c);
+  color: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.checkout-modal .modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.checkout-modal .btn-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+  padding: 0;
+}
+
+.checkout-modal .btn-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.checkout-modal .modal-body {
+  padding: 24px;
+}
+
+.checkout-section {
+  margin-bottom: 24px;
+}
+
+.checkout-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #ffb07a;
+  display: flex;
+  align-items: center;
+}
+
+.info-card {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #e86b2c;
+}
+
+.info-card strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.order-items {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.items-group {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed #dee2e6;
+}
+
+.items-group:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.group-label {
+  font-weight: 600;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.surplus-group .group-label {
+  color: #28a745;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 0.95rem;
+}
+
+.order-item .item-name {
+  flex: 1;
+  color: #333;
+  font-weight: 500;
+}
+
+.order-item .item-quantity {
+  color: #666;
+  font-size: 0.9rem;
+  min-width: 40px;
+  text-align: center;
+}
+
+.order-item .item-price {
+  font-weight: 600;
+  color: #e86b2c;
+  min-width: 100px;
+  text-align: right;
+}
+
+.subtotal {
+  text-align: right;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px dashed #dee2e6;
+  font-weight: 600;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.total-section {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total-label {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.total-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e86b2c;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-item span {
+  font-size: 1rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.notes-display {
+  margin-top: 12px;
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.notes-display label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.notes-display p {
+  margin: 0;
+  color: #333;
+  line-height: 1.6;
+}
+
+.payment-method {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.payment-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ffb07a, #e86b2c);
+  color: white;
+  padding: 12px 32px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(232, 107, 44, 0.3);
+}
+
+.checkout-modal .modal-footer {
+  padding: 20px 24px;
+  border-top: 2px solid #f0f0f0;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  background: #f8f9fa;
+  border-radius: 0 0 16px 16px;
+}
+
+.checkout-modal .modal-footer .btn {
+  min-width: 120px;
+  padding: 12px 24px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.checkout-modal .modal-footer .btn-secondary {
+  background: white;
+  border: 2px solid #dee2e6;
+  color: #666;
+}
+
+.checkout-modal .modal-footer .btn-secondary:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  color: #333;
+}
+
+.checkout-modal .modal-footer .btn-confirm {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.checkout-modal .modal-footer .btn-confirm:hover {
+  background: linear-gradient(135deg, #218838, #1ba87e);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+}
+
+.checkout-modal .modal-footer .btn-confirm:disabled {
+  background: #ccc;
+  box-shadow: none;
+  transform: none;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .checkout-modal {
+    max-height: 95vh;
+    border-radius: 12px;
+  }
+
+  .checkout-modal .modal-header {
+    padding: 20px;
+  }
+
+  .checkout-modal .modal-header h3 {
+    font-size: 1.3rem;
+  }
+
+  .checkout-modal .modal-body {
+    padding: 20px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .total-label {
+    font-size: 1.1rem;
+  }
+
+  .total-amount {
+    font-size: 1.3rem;
+  }
+
+  .checkout-modal .modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .checkout-modal .modal-footer .btn {
+    width: 100%;
+  }
+}

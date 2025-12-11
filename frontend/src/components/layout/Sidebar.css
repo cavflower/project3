@@ -1,0 +1,84 @@
+.sidebar {
+  height: 100%;
+  width: 260px;
+  background-color: #F3DACE; /* Dusty Rose */
+  color: #4A4A4A;
+  padding: 1.5rem 1rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  transition: transform 0.3s ease-in-out;
+  z-index: 900;
+  transform: translateX(-100%);
+  box-shadow: 3px 0 6px rgba(0,0,0,0.1);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: calc(var(--navbar-height) + 1.5rem);
+}
+
+.sidebar.open {
+    transform: translateX(0);
+}
+
+.sidebar-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #E87A5D;
+}
+
+.sidebar-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-links li {
+  margin-bottom: 1rem;
+}
+
+.sidebar-links a {
+  text-decoration: none;
+  color: #4A4A4A;
+  font-size: 1rem;
+  display: block;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-links a:hover {
+  background-color: #E87A5D;
+  color: #fff;
+}
+
+.sidebar-section-title {
+    font-weight: bold;
+    color: #a3543d;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0 1rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #e8c9be;
+    margin: 1.5rem 0;
+}
+
+/* 禁用狀態樣式 */
+.sidebar-links li.disabled a {
+    color: #b0b0b0;
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.sidebar-links li.disabled a:hover {
+    background-color: transparent;
+    color: #b0b0b0;
+}

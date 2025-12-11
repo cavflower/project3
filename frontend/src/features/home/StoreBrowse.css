@@ -1,0 +1,101 @@
+/* 橘色主色調 - StoreBrowse */
+:root {
+  --orange-primary: #ef8e72;
+  --orange-light: #ff8c61;
+  --orange-dark: #e55a2b;
+  --orange-bg: #fff5f2;
+}
+
+/* 會員徽章 */
+.badge-member {
+  background: linear-gradient(135deg, var(--orange-primary), var(--orange-light));
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 橘色文字 */
+.text-orange {
+  color: var(--orange-primary) !important;
+}
+
+.text-orange-light {
+  color: var(--orange-light) !important;
+}
+
+/* 橘色按鈕 */
+.btn-orange {
+  background-color: var(--orange-primary);
+  border-color: var(--orange-primary);
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-orange:hover {
+  background-color: var(--orange-dark);
+  border-color: var(--orange-dark);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.btn-orange-gradient {
+  background: var(--orange-primary);
+  border: none;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-orange-gradient:hover {
+  background: linear-gradient(135deg, var(--orange-dark), var(--orange-primary));
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4);
+}
+
+/* 橘色 outline 按鈕 */
+.btn-outline-orange {
+  background-color: transparent;
+  border: 2px solid var(--orange-primary);
+  color: var(--orange-primary);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-orange:hover {
+  background-color: var(--orange-primary);
+  border-color: var(--orange-primary);
+  color: white;
+}
+
+/* 橘色 Alert */
+.alert-orange-light {
+  background-color: var(--orange-bg);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  color: var(--orange-dark);
+  border-radius: 8px;
+}
+
+/* 卡片樣式增強 */
+.card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+  background-color: white;
+  border-bottom: 2px solid #f0f0f0;
+  font-weight: 600;
+}
