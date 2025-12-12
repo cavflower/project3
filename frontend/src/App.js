@@ -285,8 +285,18 @@ function App() {
               />
 
               {/* 顧客會員中心路由 */}
+              {/* 綜合會員中心 - 所有商家 */}
               <Route
                 path="/customer/loyalty"
+                element={
+                  <ProtectedRoute>
+                    <CustomerLoyalty />
+                  </ProtectedRoute>
+                }
+              />
+              {/* 店家專屬會員中心 */}
+              <Route
+                path="/customer/loyalty/:storeId"
                 element={
                   <ProtectedRoute>
                     <CustomerLoyalty />

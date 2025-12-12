@@ -46,8 +46,10 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
         
         # 從 request 獲取用戶資訊（如果已登入）
         request = self.context.get('request')
+        user = None
         if request and request.user.is_authenticated:
             validated_data['user'] = request.user
+            user = request.user
         
         # 1. 寫入 PostgreSQL - 完整訂單資料
         order = TakeoutOrder.objects.create(
@@ -55,14 +57,63 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
             **validated_data
         )
         
-        # 建立訂單項目
+        # 建立訂單項目並計算總金額
+        total_amount = 0
         for item_data in items_data:
-            TakeoutOrderItem.objects.create(
+            item = TakeoutOrderItem.objects.create(
                 order=order,
                 **item_data
             )
+            total_amount += item.product.price * item.quantity
         
-        # 2. 寫入 Firestore - 即時訂單通知
+        # 2. 自動建立或更新會員帳戶（如果用戶已登入）
+        if user and store.enable_loyalty:
+            from apps.loyalty.models import CustomerLoyaltyAccount, PointRule, PointTransaction
+            from decimal import Decimal
+            
+            loyalty_account, created = CustomerLoyaltyAccount.objects.get_or_create(
+                user=user,
+                store=store,
+                defaults={'available_points': 0, 'total_points': 0}
+            )
+            if created:
+                logger.info(f"為用戶 {user.email} 在店家 {store.name} 創建會員帳戶")
+            
+            # 計算並累積點數（根據店家的點數規則）
+            try:
+                # 獲取該店家的活躍點數規則
+                point_rule = PointRule.objects.filter(
+                    store=store,
+                    active=True
+                ).first()
+                
+                if point_rule:
+                    # 檢查是否達到最低消費門檻
+                    min_spend = point_rule.min_spend or Decimal('0')
+                    if total_amount >= min_spend:
+                        # 計算獲得的點數
+                        earned_points = int(total_amount * point_rule.points_per_currency)
+                        
+                        if earned_points > 0:
+                            # 更新會員帳戶點數
+                            loyalty_account.available_points += earned_points
+                            loyalty_account.total_points += earned_points
+                            loyalty_account.save()
+                            
+                            # 創建點數交易記錄
+                            PointTransaction.objects.create(
+                                account=loyalty_account,
+                                points=earned_points,
+                                transaction_type='earn',
+                                description=f'外帶訂單消費 ${total_amount} 元獲得點數',
+                                order=order
+                            )
+                            
+                            logger.info(f"用戶 {user.email} 在店家 {store.name} 獲得 {earned_points} 點")
+            except Exception as e:
+                logger.error(f"計算點數時發生錯誤: {e}")
+        
+        # 3. 寫入 Firestore - 即時訂單通知
         try:
             db.collection('orders').document(pickup_number).set({
                 'store_id': store.id,
@@ -122,8 +173,10 @@ class DineInOrderSerializer(serializers.ModelSerializer):
         
         # 從 request 獲取用戶資訊（如果已登入）
         request = self.context.get('request')
+        user = None
         if request and request.user.is_authenticated:
             validated_data['user'] = request.user
+            user = request.user
         
         # 1. 寫入 PostgreSQL - 完整訂單資料
         order = DineInOrder.objects.create(
@@ -131,14 +184,62 @@ class DineInOrderSerializer(serializers.ModelSerializer):
             **validated_data
         )
         
-        # 建立訂單項目
+        # 建立訂單項目並計算總金額
+        total_amount = 0
         for item_data in items_data:
-            DineInOrderItem.objects.create(
+            item = DineInOrderItem.objects.create(
                 order=order,
                 **item_data
             )
+            total_amount += item.product.price * item.quantity
         
-        # 2. 寫入 Firestore - 即時訂單通知
+        # 2. 自動建立或更新會員帳戶（如果用戶已登入）
+        if user and store.enable_loyalty:
+            from apps.loyalty.models import CustomerLoyaltyAccount, PointRule, PointTransaction
+            from decimal import Decimal
+            
+            loyalty_account, created = CustomerLoyaltyAccount.objects.get_or_create(
+                user=user,
+                store=store,
+                defaults={'available_points': 0, 'total_points': 0}
+            )
+            if created:
+                logger.info(f"為用戶 {user.email} 在店家 {store.name} 創建會員帳戶")
+            
+            # 計算並累積點數（根據店家的點數規則）
+            try:
+                # 獲取該店家的活躍點數規則
+                point_rule = PointRule.objects.filter(
+                    store=store,
+                    active=True
+                ).first()
+                
+                if point_rule:
+                    # 檢查是否達到最低消費門檻
+                    min_spend = point_rule.min_spend or Decimal('0')
+                    if total_amount >= min_spend:
+                        # 計算獲得的點數
+                        earned_points = int(total_amount * point_rule.points_per_currency)
+                        
+                        if earned_points > 0:
+                            # 更新會員帳戶點數
+                            loyalty_account.available_points += earned_points
+                            loyalty_account.total_points += earned_points
+                            loyalty_account.save()
+                            
+                            # 創建點數交易記錄
+                            PointTransaction.objects.create(
+                                account=loyalty_account,
+                                points=earned_points,
+                                transaction_type='earn',
+                                description=f'內用訂單消費 ${total_amount} 元獲得點數'
+                            )
+                            
+                            logger.info(f"用戶 {user.email} 在店家 {store.name} 獲得 {earned_points} 點")
+            except Exception as e:
+                logger.error(f"計算點數時發生錯誤: {e}")
+        
+        # 3. 寫入 Firestore - 即時訂單通知
         try:
             db.collection('orders').document(order_number).set({
                 'store_id': store.id,

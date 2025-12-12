@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoyaltyManagement.css';
 import { FaArrowLeft, FaCoins, FaAward, FaGift, FaPlus, FaTrash } from 'react-icons/fa';
+import api from '../../api/api';
 
 const LoyaltyManagement = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('point-rules');
+  const [loading, setLoading] = useState(false);
   
   // 從 localStorage 恢復狀態
   const [levels, setLevels] = useState(() => {
@@ -13,10 +15,7 @@ const LoyaltyManagement = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [pointRules, setPointRules] = useState(() => {
-    const saved = localStorage.getItem('pointRules');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [pointRules, setPointRules] = useState([]);
 
   const [redemptions, setRedemptions] = useState(() => {
     const saved = localStorage.getItem('redemptionProducts');
@@ -28,15 +27,28 @@ const LoyaltyManagement = () => {
     localStorage.setItem('membershipLevels', JSON.stringify(levels));
   }, [levels]);
 
-  // 當 pointRules 變化時保存到 localStorage
-  useEffect(() => {
-    localStorage.setItem('pointRules', JSON.stringify(pointRules));
-  }, [pointRules]);
-
   // 當 redemptions 變化時保存到 localStorage
   useEffect(() => {
     localStorage.setItem('redemptionProducts', JSON.stringify(redemptions));
   }, [redemptions]);
+
+  // 載入點數規則
+  useEffect(() => {
+    loadPointRules();
+  }, []);
+
+  const loadPointRules = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/loyalty/merchant/point-rules/');
+      setPointRules(response.data);
+    } catch (error) {
+      console.error('載入點數規則失敗:', error);
+      alert('載入點數規則失敗，請重試');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="loyalty-management">
@@ -49,8 +61,12 @@ const LoyaltyManagement = () => {
       </header>
 
       <nav className="loyalty-nav">
-       
-       
+        <button
+          className={`nav-tab ${activeTab === 'point-rules' ? 'active' : ''}`}
+          onClick={() => setActiveTab('point-rules')}
+        >
+          <FaCoins /> 點數規則
+        </button>
         <button
           className={`nav-tab ${activeTab === 'membership-levels' ? 'active' : ''}`}
           onClick={() => setActiveTab('membership-levels')}
@@ -66,33 +82,13 @@ const LoyaltyManagement = () => {
       </nav>
 
       <main className="loyalty-content">
-        {activeTab === 'overview' && (
-          <div className="overview-section">
-            <h2>會員制度概況</h2>
-            <div className="overview-cards">
-              <div className="overview-card">
-                <FaCoins className="card-icon" />
-                <h3>點數規則</h3>
-                <p>管理顧客消費如何獲得點數</p>
-              </div>
-              <div className="overview-card">
-                <FaAward className="card-icon" />
-                <h3>會員等級</h3>
-                <p>設定不同等級的會員權益與折扣</p>
-              </div>
-              <div className="overview-card">
-                <FaGift className="card-icon" />
-                <h3>兌換商品</h3>
-                <p>建立可供會員用點數兌換的商品</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'point-rules' && (
           <PointRulesSection 
             pointRules={pointRules}
             setPointRules={setPointRules}
+            loading={loading}
+            setLoading={setLoading}
+            loadPointRules={loadPointRules}
           />
         )}
 
@@ -107,6 +103,8 @@ const LoyaltyManagement = () => {
           <RedemptionsSection 
             redemptions={redemptions}
             setRedemptions={setRedemptions}
+            loading={loading}
+            setLoading={setLoading}
           />
         )}
       </main>
@@ -114,38 +112,89 @@ const LoyaltyManagement = () => {
   );
 };
 
-const PointRulesSection = ({ pointRules, setPointRules }) => {
+const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loadPointRules }) => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    points_per_currency: 0,
+    currency_per_point: 100, // 預設每100元得1點
     min_spend: 0,
   });
 
-  const addRule = () => {
-    if (!formData.name || formData.points_per_currency <= 0) {
-      alert('請輸入有效的規則名稱和點數比例');
+  const addRule = async () => {
+    if (!formData.name || formData.currency_per_point <= 0) {
+      alert('請輸入有效的規則名稱和消費金額');
       return;
     }
 
-    const newRule = {
-      id: Date.now(),
-      ...formData,
-      points_per_currency: parseFloat(formData.points_per_currency),
-      min_spend: formData.min_spend ? parseFloat(formData.min_spend) : 0,
-    };
+    try {
+      setLoading(true);
+      // 轉換：每X元得1點 -> 每1元得Y點
+      const points_per_currency = 1 / parseFloat(formData.currency_per_point);
+      
+      const ruleData = {
+        name: formData.name,
+        points_per_currency: points_per_currency,
+        min_spend: formData.min_spend ? parseFloat(formData.min_spend) : 0,
+        active: true,
+      };
 
-    setPointRules([...pointRules, newRule]);
-    setFormData({
-      name: '',
-      points_per_currency: 0,
-      min_spend: 0,
-    });
-    setShowForm(false);
+      console.log('準備送出的規則資料:', ruleData);
+      console.log('檢查 merchant token:', localStorage.getItem('merchant_accessToken') ? '有 token' : '無 token');
+
+      const response = await api.post('/loyalty/merchant/point-rules/', ruleData);
+      console.log('API 回應:', response.data);
+      
+      // 重新載入規則列表
+      await loadPointRules();
+      
+      setFormData({
+        name: '',
+        currency_per_point: 100,
+        min_spend: 0,
+      });
+      setShowForm(false);
+      alert('點數規則新增成功！');
+    } catch (error) {
+      console.error('新增點數規則失敗:', error);
+      console.error('錯誤詳情:', error.response?.data);
+      
+      let errorMessage = '新增點數規則失敗';
+      if (error.response?.data) {
+        // 顯示後端返回的錯誤信息
+        const errors = error.response.data;
+        if (typeof errors === 'object') {
+          errorMessage += '：\n' + Object.entries(errors)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join('\n');
+        } else {
+          errorMessage += '：' + errors;
+        }
+      } else if (error.message) {
+        errorMessage += '：' + error.message;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeRule = (id) => {
-    setPointRules(pointRules.filter((rule) => rule.id !== id));
+  const removeRule = async (id) => {
+    if (!window.confirm('確定要刪除這個點數規則嗎？')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.delete(`/loyalty/merchant/point-rules/${id}/`);
+      await loadPointRules();
+      alert('點數規則刪除成功！');
+    } catch (error) {
+      console.error('刪除點數規則失敗:', error);
+      alert('刪除點數規則失敗，請重試');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -176,27 +225,34 @@ const PointRulesSection = ({ pointRules, setPointRules }) => {
             <thead>
               <tr>
                 <th>規則名稱</th>
-                <th>每消費1元得點</th>
+                <th>點數累積方式</th>
                 <th>最低消費金額</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              {pointRules.map((rule) => (
-                <tr key={rule.id}>
-                  <td>{rule.name}</td>
-                  <td>{rule.points_per_currency} 點</td>
-                  <td>{rule.min_spend > 0 ? `$${rule.min_spend}` : '無限制'}</td>
-                  <td>
-                    <button
-                      className="delete-btn-small"
-                      onClick={() => removeRule(rule.id)}
-                    >
-                      <FaTrash /> 刪除
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {pointRules.map((rule) => {
+                // 計算每X元得1點
+                const currencyPerPoint = rule.points_per_currency > 0 
+                  ? Math.round(1 / rule.points_per_currency) 
+                  : 0;
+                
+                return (
+                  <tr key={rule.id}>
+                    <td>{rule.name}</td>
+                    <td>每消費 <strong>${currencyPerPoint}</strong> 元累積 <strong>1</strong> 點</td>
+                    <td>{rule.min_spend > 0 ? `$${rule.min_spend}` : '無限制'}</td>
+                    <td>
+                      <button
+                        className="delete-btn-small"
+                        onClick={() => removeRule(rule.id)}
+                      >
+                        <FaTrash /> 刪除
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -229,20 +285,23 @@ const PointRulesSection = ({ pointRules, setPointRules }) => {
               </div>
 
               <div className="form-group">
-                <label>每消費1元可得點數 *</label>
+                <label>每消費多少元可以累積 1 點 *</label>
                 <input
                   type="number"
-                  placeholder="例如：1.5"
-                  min="0"
-                  step="0.1"
-                  value={formData.points_per_currency}
+                  placeholder="例如：100（表示每消費100元得1點）"
+                  min="1"
+                  step="1"
+                  value={formData.currency_per_point}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      points_per_currency: e.target.value,
+                      currency_per_point: e.target.value,
                     })
                   }
                 />
+                <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                  提示：輸入 100 表示每消費100元可得1點；輸入 50 表示每消費50元可得1點
+                </small>
               </div>
 
               <div className="form-group">
@@ -619,7 +678,7 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
   );
 };
 
-const RedemptionsSection = ({ redemptions, setRedemptions }) => {
+const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }) => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -628,40 +687,99 @@ const RedemptionsSection = ({ redemptions, setRedemptions }) => {
     inventory: null,
   });
 
-  const addRedemption = () => {
+  // 載入兌換商品列表
+  useEffect(() => {
+    loadRedemptions();
+  }, []);
+
+  const loadRedemptions = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/loyalty/merchant/redemptions/');
+      setRedemptions(response.data);
+    } catch (error) {
+      console.error('載入兌換商品失敗:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addRedemption = async () => {
     if (!formData.title || formData.required_points <= 0) {
       alert('請輸入有效的商品標題和所需點數');
       return;
     }
 
-    const newRedemption = {
-      id: Date.now(),
-      ...formData,
-      required_points: parseInt(formData.required_points),
-      inventory: formData.inventory ? parseInt(formData.inventory) : null,
-      is_active: true,
-    };
+    try {
+      setLoading(true);
+      const redemptionData = {
+        title: formData.title,
+        description: formData.description,
+        required_points: parseInt(formData.required_points),
+        inventory: formData.inventory ? parseInt(formData.inventory) : null,
+        is_active: true,
+      };
 
-    setRedemptions([...redemptions, newRedemption]);
-    setFormData({
-      title: '',
-      description: '',
-      required_points: 0,
-      inventory: null,
-    });
-    setShowForm(false);
+      await api.post('/loyalty/merchant/redemptions/', redemptionData);
+      
+      // 重新載入列表
+      await loadRedemptions();
+      
+      setFormData({
+        title: '',
+        description: '',
+        required_points: 0,
+        inventory: null,
+      });
+      setShowForm(false);
+      alert('兌換商品新增成功！');
+    } catch (error) {
+      console.error('新增兌換商品失敗:', error);
+      console.error('錯誤詳情:', error.response?.data);
+      const errorMsg = error.response?.data?.detail || 
+                       error.response?.data?.error || 
+                       JSON.stringify(error.response?.data) || 
+                       '新增兌換商品失敗，請重試';
+      alert(`新增失敗：${errorMsg}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeRedemption = (id) => {
-    setRedemptions(redemptions.filter((item) => item.id !== id));
+  const removeRedemption = async (id) => {
+    if (!window.confirm('確定要刪除這個兌換商品嗎？')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.delete(`/loyalty/merchant/redemptions/${id}/`);
+      await loadRedemptions();
+      alert('兌換商品刪除成功！');
+    } catch (error) {
+      console.error('刪除兌換商品失敗:', error);
+      alert('刪除兌換商品失敗，請重試');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleActive = (id) => {
-    setRedemptions(
-      redemptions.map((item) =>
-        item.id === id ? { ...item, is_active: !item.is_active } : item
-      )
-    );
+  const toggleActive = async (id) => {
+    const item = redemptions.find(r => r.id === id);
+    if (!item) return;
+
+    try {
+      setLoading(true);
+      await api.patch(`/loyalty/merchant/redemptions/${id}/`, {
+        is_active: !item.is_active
+      });
+      await loadRedemptions();
+    } catch (error) {
+      console.error('更新兌換商品狀態失敗:', error);
+      alert('更新狀態失敗，請重試');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

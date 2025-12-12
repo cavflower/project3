@@ -122,7 +122,7 @@ function StorePage() {
             返回店家列表
           </button>
           <Link 
-            to="/customer/loyalty"
+            to={`/customer/loyalty/${storeId}`}
             className="btn btn-outline-primary"
             style={{
               textDecoration: 'none',
