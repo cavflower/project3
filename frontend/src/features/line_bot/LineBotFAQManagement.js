@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAllFAQs, createFAQ, updateFAQ, deleteFAQ, getPopularFAQs } from '../../api/lineBotApi';
-import '../../styles/LineBotFAQManagement.css';
+import './LineBotFAQManagement.css';
 
 const LineBotFAQManagement = () => {
   const [faqs, setFaqs] = useState([]);

@@ -146,15 +146,6 @@
 }
 
 /* 按鈕樣式 */
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-}
 
 .btn-primary {
   background: #ff6b35;
