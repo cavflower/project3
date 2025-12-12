@@ -34,8 +34,10 @@ import GuestReservationLookup from './features/reservations/GuestReservationLook
 import ScheduleManagementPage from './features/merchant_dashboard/schedule_management/ScheduleManagementPage';
 import StoreBrowse from './features/home/StoreBrowse';
 import StorePage from './features/home/StorePage';
-import ConfirmationPage from './features/checkout/ConfirmationPage';
-import ReviewPage from './features/checkout/ReviewPage';
+import OrderPage from './features/home/OrderPage';
+import CheckoutPage from './features/home/CheckoutPage';
+import ConfirmationPage from './features/home/ConfirmationPage';
+import ReviewPage from './features/home/ReviewPage';
 import LoyaltyManagement from './features/loyalty_management/LoyaltyManagement';
 import CustomerLoyalty from './features/customer_loyalty/CustomerLoyalty';
 import RedemptionCatalog from './features/customer_loyalty/RedemptionCatalog';
@@ -49,7 +51,7 @@ import DineInCartPage from './features/dine_in/DineInCartPage';
 import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSettingsPage';
 import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
 import OrderManagementPage from './features/merchant_dashboard/order_management/OrderManagementPage';
-import FinancialReportPage from './features/merchant_dashboard/financial_report/FinancialReportPage';
+import FinancialReportPage from './features/merchant_dashboard/FinancialReportPage';
 
 
 // Context
@@ -126,7 +128,9 @@ function App() {
               />
           {/* 點入特定店家 頁面 */}
               <Route path="/store/:storeId" element={<StorePage />} />
+
           {/* 點餐主頁面 */}
+              <Route path="/store/:storeId/order" element={<OrderPage />} />
           
           {/* 外帶點餐 頁面 */}
               <Route path="/store/:storeId/takeout" element={<TakeoutOrderPage />} />
@@ -140,6 +144,7 @@ function App() {
               <Route path="/dinein/:storeId/cart" element={<DineInCartPage />} />
 
           {/* 線上結帳 頁面 */}
+              <Route path="/checkout" element={<CheckoutPage />} />
           
           {/* 訂單確認 頁面 */}
               <Route path="/confirmation/:orderId" element={<ConfirmationPage />} />
