@@ -41,6 +41,7 @@ import CustomerLoyalty from './features/customer_loyalty/CustomerLoyalty';
 import RedemptionCatalog from './features/customer_loyalty/RedemptionCatalog';
 import MyRedemptions from './features/customer_loyalty/MyRedemptions';
 import PointsHistory from './features/customer_loyalty/PointsHistory';
+import CustomerOrdersPage from './features/customer_orders/CustomerOrdersPage';
 import TakeoutOrderPage from './features/takeout/TakeoutOrderPage';
 import TakeoutCartPage from './features/takeout/TakeoutCartPage';
 import SurplusZonePage from './features/takeout/SurplusZonePage';
@@ -52,6 +53,7 @@ import OrderManagementPage from './features/merchant_dashboard/order_management/
 import FinancialReportPage from './features/merchant_dashboard/financial_report/FinancialReportPage';
 import LineBotFAQManagement from './features/line_bot/LineBotFAQManagement';
 import LineBotSettings from './components/merchant/linebot/LineBotSettings';
+
 
 
 
@@ -129,8 +131,6 @@ function App() {
               />
           {/* 點入特定店家 頁面 */}
               <Route path="/store/:storeId" element={<StorePage />} />
-
-          {/* 點餐主頁面 */}
 
           {/* 外帶點餐 頁面 */}
               <Route path="/store/:storeId/takeout" element={<TakeoutOrderPage />} />
@@ -261,6 +261,7 @@ function App() {
                 }
               />
 
+
               {/* 新增方案選擇頁面路由 */}
               <Route
                 path="/select-plan"
@@ -302,7 +303,9 @@ function App() {
               />
 
               {/* 顧客會員中心路由 */}
+
               {/* 綜合會員中心 - 所有商家 */}
+
               <Route
                 path="/customer/loyalty"
                 element={
@@ -311,6 +314,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               {/* 店家專屬會員中心 */}
               <Route
                 path="/customer/loyalty/:storeId"
@@ -320,6 +324,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/customer/loyalty/redemptions"
                 element={
@@ -341,6 +346,16 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <PointsHistory />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 顧客訂單頁面 */}
+              <Route
+                path="/customer/orders"
+                element={
+                  <ProtectedRoute>
+                    <CustomerOrdersPage />
                   </ProtectedRoute>
                 }
               />

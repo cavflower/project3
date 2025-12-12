@@ -15,3 +15,10 @@ export const createTakeoutOrder = (payload) =>
 
 export const createDineInOrder = (payload) =>
   api.post('/orders/dinein/', payload);
+
+export const getUserOrders = () => api.get('/orders/customer-orders/');
+
+export const getOrderNotifications = () => api.get('/orders/notifications/');
+
+export const markAllNotificationsAsRead = () => api.post('/orders/notifications/mark_all_read/');
+

@@ -24,6 +24,7 @@ const MerchantLoginPage = () => {
     const { email, password } = formData;
 
     try {
+
       console.log('=== 開始登入流程 ===');
       console.log('Email:', email);
       
@@ -43,6 +44,7 @@ const MerchantLoginPage = () => {
       console.log('步驟 2: 呼叫後端 API...');
       const backendResponse = await authApi.getBackendTokens(idToken, 'merchant');
       console.log('✓ 後端 API 回應成功');
+
 
       // 3. 使用後端回傳的 user 物件進行登入
       if (backendResponse.user) {
@@ -82,6 +84,7 @@ const MerchantLoginPage = () => {
       }
 
     } catch (err) {
+
       console.error("=== 登入流程失敗 ===");
       console.error("錯誤物件:", err);
       console.error("錯誤代碼:", err.code);
@@ -111,6 +114,7 @@ const MerchantLoginPage = () => {
         setError('❌ 認證失敗，請檢查您的帳號權限。');
       } else {
         setError(err.message || '❌ 登入失敗，請檢查您的信箱和密碼，或聯繫技術支援。');
+
       }
     } finally {
       setLoading(false);

@@ -29,6 +29,7 @@ const Sidebar = ({ isOpen }) => {
         enable_surplus_food: store.enable_surplus_food !== undefined ? store.enable_surplus_food : true,
       });
     } catch (error) {
+
       // 404 錯誤表示商家尚未建立店家資料，這是正常情況
       if (error.response?.status === 404) {
         console.log('[Sidebar] Store not found - merchant needs to create store settings first');
@@ -36,6 +37,7 @@ const Sidebar = ({ isOpen }) => {
       } else {
         console.error('[Sidebar] Error loading store settings:', error);
       }
+      console.error('載入店家設定失敗:', error);
     }
   };
 
@@ -55,6 +57,7 @@ const Sidebar = ({ isOpen }) => {
           <h3>功能選單</h3>
         </div>
         <ul className="sidebar-links">
+
           <li><Link to="/customer-home">🔍 搜尋店家</Link></li>
           <li>
             <Link 
@@ -84,25 +87,31 @@ const Sidebar = ({ isOpen }) => {
       <ul className="sidebar-links">
         {/* 菜單管理 */}
         <p className="sidebar-section-title">菜單管理</p>
+
         <li><Link to="/merchant/products">📦 商品管理</Link></li>
         <li><Link to="/merchant/dine-in">🪑 內用設定</Link></li>
         <li><Link to="/merchant/settings">🏪 餐廳設定</Link></li>
+
         
         <hr />
         
         {/* 營運管理 */}
         <p className="sidebar-section-title">營運管理</p>
+
         <li><Link to="/merchant/schedule">👨‍🍳 排班管理</Link></li>
         <li><Link to="/merchant/inventory">🧊 原物料管理</Link></li>
         <li><Link to="/merchant/reports">📊 營運報表</Link></li>
+
         
         <hr />
         
         {/* 行銷管理 */}
         <p className="sidebar-section-title">行銷管理</p>
+
         <li><Link to="/merchant/orders">🛒 訂單管理</Link></li>
         <li><Link to="/merchant/promotions">📢 行銷活動</Link></li>
         <li><Link to="/merchant/line-bot">🤖 餐廳助手</Link></li>
+
         
         <hr />
         
@@ -116,6 +125,7 @@ const Sidebar = ({ isOpen }) => {
         </li>
         <li className={!storeSettings.enable_surplus_food ? 'disabled' : ''}>
           <Link to="/merchant/surplus-food">♻️ 惜福品</Link>
+
         </li>
       </ul>
     </aside>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext'; // 1. 引入 useAuth
+import { FaBell } from 'react-icons/fa';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
@@ -45,6 +46,17 @@ const Navbar = ({ toggleSidebar }) => {
       // 如果使用者已登入，顯示頭像和下拉選單
       return (
         <div className="profile-section">
+
+          {user?.user_type === 'customer' && (
+            <Link 
+              to="/customer/orders" 
+              state={{ activeTab: 'notifications' }} 
+              className="notification-btn"
+              title="訂單通知"
+            >
+              <FaBell />
+            </Link>
+          )}
           <button className="avatar-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
             {user?.avatar_url && user.avatar_url.startsWith('data:image') ? (
               <img src={user.avatar_url} alt={user.username} className="avatar-img" />

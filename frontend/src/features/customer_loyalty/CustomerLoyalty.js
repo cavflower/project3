@@ -10,6 +10,7 @@ const CustomerLoyalty = () => {
   const navigate = useNavigate();
   const { storeId } = useParams(); // 獲取店家 ID（如果有）
 
+
   useEffect(() => {
     fetchAccounts();
   }, []);
@@ -27,6 +28,7 @@ const CustomerLoyalty = () => {
       }
       
       setAccounts(accountsData);
+
     } catch (error) {
       console.error('獲取會員帳戶失敗:', error);
     } finally {
@@ -70,6 +72,7 @@ const CustomerLoyalty = () => {
             ? '查看您在此店家的會員資訊和點數' 
             : '查看您在各商家的會員資訊和點數'}
         </p>
+
       </div>
 
       <div className="quick-actions">
@@ -125,6 +128,7 @@ const CustomerLoyalty = () => {
               前往消費建立會員
             </button>
           )}
+
         </div>
       ) : (
         <div className="accounts-grid">
@@ -134,6 +138,7 @@ const CustomerLoyalty = () => {
               className="account-card"
               onClick={() => navigate(`/customer/loyalty/${account.store}`)}
               style={{ cursor: 'pointer' }}
+
             >
               <div className="account-header">
                 <h3>{account.store_name}</h3>

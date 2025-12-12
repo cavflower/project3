@@ -51,6 +51,7 @@ const DineInSettingsPage = () => {
         } else {
           console.error('[DineIn] Failed to load store info:', err);
         }
+
       } finally {
         setIsLoadingStore(false);
       }

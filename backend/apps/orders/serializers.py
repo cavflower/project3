@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from firebase_admin import credentials, firestore, initialize_app
 import firebase_admin
-from .models import TakeoutOrder, TakeoutOrderItem, DineInOrder, DineInOrderItem
+from .models import TakeoutOrder, TakeoutOrderItem, DineInOrder, DineInOrderItem, Notification
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,7 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             validated_data['user'] = request.user
             user = request.user
+
         
         # 1. 寫入 PostgreSQL - 完整訂單資料
         order = TakeoutOrder.objects.create(
@@ -114,6 +115,7 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
                 logger.error(f"計算點數時發生錯誤: {e}")
         
         # 3. 寫入 Firestore - 即時訂單通知
+
         try:
             db.collection('orders').document(pickup_number).set({
                 'store_id': store.id,
@@ -173,10 +175,12 @@ class DineInOrderSerializer(serializers.ModelSerializer):
         
         # 從 request 獲取用戶資訊（如果已登入）
         request = self.context.get('request')
+
         user = None
         if request and request.user.is_authenticated:
             validated_data['user'] = request.user
             user = request.user
+
         
         # 1. 寫入 PostgreSQL - 完整訂單資料
         order = DineInOrder.objects.create(
@@ -240,6 +244,7 @@ class DineInOrderSerializer(serializers.ModelSerializer):
                 logger.error(f"計算點數時發生錯誤: {e}")
         
         # 3. 寫入 Firestore - 即時訂單通知
+
         try:
             db.collection('orders').document(order_number).set({
                 'store_id': store.id,
@@ -267,3 +272,15 @@ class DineInOrderSerializer(serializers.ModelSerializer):
     def generate_order_number(self, store):
         from uuid import uuid4
         return f"{store.id}-{uuid4().hex[:4].upper()}"
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    notification_type_display = serializers.CharField(source='get_notification_type_display', read_only=True)
+    
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'title', 'message', 'notification_type', 
+            'notification_type_display', 'is_read', 
+            'order_number', 'created_at'
+        ]

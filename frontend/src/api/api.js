@@ -36,11 +36,13 @@ const getUserTypeFromUrl = (url, method = 'get') => {
     return 'merchant';
   }
   
+
   // LINE BOT 相關 API，使用 merchant token
   if (url.includes('/line-bot/')) {
     return 'merchant';
   }
   
+
   // /users/me/ 需要根據當前頁面路徑判斷
   if (url.includes('/users/me/')) {
     const path = window.location.pathname;

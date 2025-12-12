@@ -36,6 +36,7 @@ const CustomerLoginPage = () => {
     const { email, password } = formData;
 
     try {
+
       console.log('=== 開始登入流程 ===');
       console.log('Email:', email);
       
@@ -55,6 +56,7 @@ const CustomerLoginPage = () => {
       console.log('步驟 2: 呼叫後端 API...');
       const backendResponse = await authApi.getBackendTokens(idToken, 'customer');
       console.log('✓ 後端 API 回應成功');
+
 
       // 3. 使用後端回傳的 user 物件進行登入
       if (backendResponse.user) {
@@ -124,6 +126,7 @@ const CustomerLoginPage = () => {
         setError('❌ 認證失敗，請檢查您的帳號權限。');
       } else {
         setError(err.message || '❌ 登入失敗，請檢查您的信箱和密碼，或聯繫技術支援。');
+
       }
     } finally {
       setLoading(false);

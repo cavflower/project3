@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from apps.stores.models import Store
 from apps.products.models import Product
 
@@ -152,3 +154,46 @@ class DineInOrderItem(models.Model):
 
     def __str__(self):
         return f"{self.order.order_number} - {self.product.name} x {self.quantity}"
+
+
+class Notification(models.Model):
+    """通知模型"""
+    NOTIFICATION_TYPES = (
+        ('order_status', '訂單狀態更新'),
+        ('system', '系統通知'),
+    )
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        verbose_name='用戶'
+    )
+    title = models.CharField(max_length=100, verbose_name='標題')
+    message = models.TextField(verbose_name='內容')
+    notification_type = models.CharField(
+        max_length=20, 
+        choices=NOTIFICATION_TYPES, 
+        default='order_status',
+        verbose_name='通知類型'
+    )
+    is_read = models.BooleanField(default=False, verbose_name='已讀')
+    
+    # 關聯到訂單 (可以是 TakeoutOrder 或 DineInOrder)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
+    # 為了方便前端顯示，也可以直接存 order_number
+    order_number = models.CharField(max_length=50, blank=True, verbose_name='訂單號碼')
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+
+    class Meta:
+        verbose_name = '通知'
+        verbose_name_plural = '通知'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user} - {self.title}"
+

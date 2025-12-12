@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.schedules',
     'apps.surplus_food',
     'apps.line_bot',
+
 ]
 
 MIDDLEWARE = [

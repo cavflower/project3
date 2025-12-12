@@ -68,6 +68,7 @@ const MerchantDashboard = () => {
         setHasLoadedOnce(true);
 
       } catch (error) {
+
         // 404 錯誤表示商家尚未建立店家資料，這是正常情況
         if (error.response?.status === 404) {
           console.log('[Dashboard] Store not found - merchant needs to create store settings first');
@@ -75,6 +76,7 @@ const MerchantDashboard = () => {
         } else {
           console.error('[Dashboard] Error loading dashboard data:', error);
         }
+
       } finally {
         setLoading(false);
       }

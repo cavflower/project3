@@ -1,11 +1,13 @@
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status as http_status
 from django.shortcuts import get_object_or_404
 from firebase_admin import firestore
-from .serializers import TakeoutOrderSerializer, DineInOrderSerializer
-from .models import TakeoutOrder, DineInOrder
+from .serializers import TakeoutOrderSerializer, DineInOrderSerializer, NotificationSerializer
+from .models import TakeoutOrder, DineInOrder, Notification
 from apps.stores.models import Store
 from django.db.models import Q
 
@@ -207,4 +209,75 @@ class OrderStatusUpdateView(APIView):
             return Response({'detail': 'Order deleted successfully'}, status=http_status.HTTP_204_NO_CONTENT)
             
         except Exception as exc:
+
             return Response({'detail': str(exc)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CustomerOrderListView(APIView):
+    """顧客訂單列表 API"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        
+        # 查詢外帶訂單
+        takeout_orders = TakeoutOrder.objects.filter(user=user).select_related('store')
+        # 查詢內用訂單
+        dinein_orders = DineInOrder.objects.filter(user=user).select_related('store')
+        
+        # 合併訂單資料
+        orders = []
+        
+        # 處理外帶訂單
+        for order in takeout_orders:
+            orders.append({
+                'id': order.id,
+                'store_name': order.store.name,
+                'pickup_number': order.pickup_number,
+                'order_number': order.pickup_number,
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+                'payment_method': order.get_payment_method_display(),
+                'notes': order.notes,
+                'status': order.status,
+                'status_display': order.get_status_display(),
+                'order_type_display': '外帶',
+                'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+            })
+        
+        # 處理內用訂單
+        for order in dinein_orders:
+            orders.append({
+                'id': order.id,
+                'store_name': order.store.name,
+                'pickup_number': order.order_number,
+                'order_number': order.order_number,
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+                'payment_method': order.get_payment_method_display(),
+                'notes': order.notes,
+                'status': order.status,
+                'status_display': order.get_status_display(),
+                'order_type_display': '內用',
+                'table_label': order.table_label,
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+            })
+        
+        # 按建立時間排序（最新的在前）
+        orders.sort(key=lambda x: x['created_at'] or '', reverse=True)
+        
+        return Response(orders)
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    """通知 ViewSet"""
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user)
+    
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        self.get_queryset().update(is_read=True)
+        return Response({'status': 'success'})

@@ -8,3 +8,4 @@ djangorestframework-simplejwt
 Pillow
 openai
 requests
+

@@ -71,6 +71,25 @@
 /* --- Profile Section --- */
 .profile-section {
   position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.notification-btn {
+  font-size: 1.2rem;
+  color: var(--text-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.notification-btn:hover {
+  color: var(--primary-color);
 }
 
 .avatar-btn {

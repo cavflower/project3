@@ -8,6 +8,7 @@ const LoyaltyManagement = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('point-rules');
   const [loading, setLoading] = useState(false);
+
   
   // 從 localStorage 恢復狀態
   const [levels, setLevels] = useState(() => {
@@ -16,6 +17,7 @@ const LoyaltyManagement = () => {
   });
 
   const [pointRules, setPointRules] = useState([]);
+
 
   const [redemptions, setRedemptions] = useState(() => {
     const saved = localStorage.getItem('redemptionProducts');
@@ -50,6 +52,7 @@ const LoyaltyManagement = () => {
     }
   };
 
+
   return (
     <div className="loyalty-management">
       <header className="loyalty-header">
@@ -61,12 +64,14 @@ const LoyaltyManagement = () => {
       </header>
 
       <nav className="loyalty-nav">
+
         <button
           className={`nav-tab ${activeTab === 'point-rules' ? 'active' : ''}`}
           onClick={() => setActiveTab('point-rules')}
         >
           <FaCoins /> 點數規則
         </button>
+
         <button
           className={`nav-tab ${activeTab === 'membership-levels' ? 'active' : ''}`}
           onClick={() => setActiveTab('membership-levels')}
@@ -82,13 +87,16 @@ const LoyaltyManagement = () => {
       </nav>
 
       <main className="loyalty-content">
+
         {activeTab === 'point-rules' && (
           <PointRulesSection 
             pointRules={pointRules}
             setPointRules={setPointRules}
+
             loading={loading}
             setLoading={setLoading}
             loadPointRules={loadPointRules}
+
           />
         )}
 
@@ -105,6 +113,7 @@ const LoyaltyManagement = () => {
             setRedemptions={setRedemptions}
             loading={loading}
             setLoading={setLoading}
+
           />
         )}
       </main>
@@ -195,6 +204,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
     } finally {
       setLoading(false);
     }
+
   };
 
   return (
@@ -678,6 +688,7 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
   );
 };
 
+
 const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }) => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -705,10 +716,12 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
   };
 
   const addRedemption = async () => {
+
     if (!formData.title || formData.required_points <= 0) {
       alert('請輸入有效的商品標題和所需點數');
       return;
     }
+
 
     try {
       setLoading(true);
@@ -780,6 +793,7 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
     } finally {
       setLoading(false);
     }
+
   };
 
   return (
