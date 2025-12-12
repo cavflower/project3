@@ -4,9 +4,7 @@ django-cors-headers
 psycopg2-binary
 python-dotenv
 firebase-admin
-django
-djangorestframework
-django-cors-headers
-psycopg2-binary
-python-dotenv
-firebase-admin
+djangorestframework-simplejwt
+Pillow
+openai
+requests

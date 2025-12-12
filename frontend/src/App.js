@@ -50,6 +50,8 @@ import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSett
 import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
 import OrderManagementPage from './features/merchant_dashboard/order_management/OrderManagementPage';
 import FinancialReportPage from './features/merchant_dashboard/financial_report/FinancialReportPage';
+import LineBotFAQManagement from './features/line_bot/LineBotFAQManagement';
+import LineBotSettings from './components/merchant/linebot/LineBotSettings';
 
 
 // Context
@@ -235,6 +237,26 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ScheduleManagementPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* LINE BOT FAQ 管理 */}
+              <Route
+                path="/merchant/line-bot/faq"
+                element={
+                  <ProtectedRoute>
+                    <LineBotFAQManagement />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* LINE BOT 設定頁面 */}
+              <Route
+                path="/merchant/line-bot"
+                element={
+                  <ProtectedRoute>
+                    <LineBotSettings />
                   </ProtectedRoute>
                 }
               />

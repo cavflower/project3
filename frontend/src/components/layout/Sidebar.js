@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { getMyStore } from '../../api/storeApi';
 import './Sidebar.css';
@@ -48,21 +49,21 @@ const Sidebar = ({ isOpen }) => {
           <h3>功能選單</h3>
         </div>
         <ul className="sidebar-links">
-          <li><a href="/customer-home">🔍 搜尋店家</a></li>
+          <li><Link to="/customer-home">🔍 搜尋店家</Link></li>
           <li>
-            <a 
-              href="/my-reservations" 
+            <Link 
+              to="/my-reservations" 
               onClick={handleReservationClick}
             >
               📅 我的訂位
-            </a>
+            </Link>
           </li>
-          <li><a href="/orders">🛒 我的訂單</a></li>
+          <li><Link to="/orders">🛒 我的訂單</Link></li>
           <hr />
           <p className="sidebar-section-title">會員中心</p>
-          <li><a href="/profile">👤 個人資料</a></li>
-          <li><a href="/customer/loyalty">🌟 我的會員</a></li>
-          <li><a href="/reviews">💬 我的評論</a></li>
+          <li><Link to="/profile">👤 個人資料</Link></li>
+          <li><Link to="/customer/loyalty">🌟 我的會員</Link></li>
+          <li><Link to="/reviews">💬 我的評論</Link></li>
         </ul>
       </aside>
     );
@@ -77,38 +78,38 @@ const Sidebar = ({ isOpen }) => {
       <ul className="sidebar-links">
         {/* 菜單管理 */}
         <p className="sidebar-section-title">菜單管理</p>
-        <li><a href="/merchant/products">📦 商品管理</a></li>
-        <li><a href="/merchant/dine-in">🪑 內用設定</a></li>
-        <li><a href="/merchant/settings">🏪 餐廳設定</a></li>
+        <li><Link to="/merchant/products">📦 商品管理</Link></li>
+        <li><Link to="/merchant/dine-in">🪑 內用設定</Link></li>
+        <li><Link to="/merchant/settings">🏪 餐廳設定</Link></li>
         
         <hr />
         
         {/* 營運管理 */}
         <p className="sidebar-section-title">營運管理</p>
-        <li><a href="/merchant/schedule">👨‍🍳 排班管理</a></li>
-        <li><a href="/merchant/inventory">🧊 原物料管理</a></li>
-        <li><a href="/merchant/reports">📊 營運報表</a></li>
+        <li><Link to="/merchant/schedule">👨‍🍳 排班管理</Link></li>
+        <li><Link to="/merchant/inventory">🧊 原物料管理</Link></li>
+        <li><Link to="/merchant/reports">📊 營運報表</Link></li>
         
         <hr />
         
         {/* 行銷管理 */}
         <p className="sidebar-section-title">行銷管理</p>
-        <li><a href="/merchant/orders">🛒 訂單管理</a></li>
-        <li><a href="/merchant/promotions">📢 行銷活動</a></li>
-        <li><a href="/merchant/line-bot">🤖 餐廳助手</a></li>
+        <li><Link to="/merchant/orders">🛒 訂單管理</Link></li>
+        <li><Link to="/merchant/promotions">📢 行銷活動</Link></li>
+        <li><Link to="/merchant/line-bot">🤖 餐廳助手</Link></li>
         
         <hr />
         
         {/* 額外功能 */}
         <p className="sidebar-section-title">額外功能</p>
         <li className={!storeSettings.enable_reservation ? 'disabled' : ''}>
-          <a href="/merchant/reservations">📅 訂位管理</a>
+          <Link to="/merchant/reservations">📅 訂位管理</Link>
         </li>
         <li className={!storeSettings.enable_loyalty ? 'disabled' : ''}>
-          <a href="/merchant/loyalty">🎁 會員制度</a>
+          <Link to="/merchant/loyalty">🎁 會員制度</Link>
         </li>
         <li className={!storeSettings.enable_surplus_food ? 'disabled' : ''}>
-          <a href="/merchant/surplus-food">♻️ 惜福品</a>
+          <Link to="/merchant/surplus-food">♻️ 惜福品</Link>
         </li>
       </ul>
     </aside>

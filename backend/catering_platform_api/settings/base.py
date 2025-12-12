@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'apps.inventory',
     'apps.schedules',
     'apps.surplus_food',
+    'apps.line_bot',
 ]
 
 MIDDLEWARE = [
