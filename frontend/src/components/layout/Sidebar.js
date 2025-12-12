@@ -29,7 +29,13 @@ const Sidebar = ({ isOpen }) => {
         enable_surplus_food: store.enable_surplus_food !== undefined ? store.enable_surplus_food : true,
       });
     } catch (error) {
-      console.error('載入店家設定失敗:', error);
+      // 404 錯誤表示商家尚未建立店家資料，這是正常情況
+      if (error.response?.status === 404) {
+        console.log('[Sidebar] Store not found - merchant needs to create store settings first');
+        // 保持預設值（全部啟用）
+      } else {
+        console.error('[Sidebar] Error loading store settings:', error);
+      }
     }
   };
 

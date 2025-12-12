@@ -36,14 +36,25 @@ const CustomerLoginPage = () => {
     const { email, password } = formData;
 
     try {
+      console.log('=== 開始登入流程 ===');
+      console.log('Email:', email);
+      
       // 1. Firebase 登入
+      console.log('步驟 1: 嘗試 Firebase 登入...');
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('✓ Firebase 登入成功');
+      
       const firebaseUser = userCredential.user;
+      console.log('Firebase UID:', firebaseUser.uid);
+      
       const idToken = await firebaseUser.getIdToken();
+      console.log('✓ 獲取 ID Token 成功');
 
       // 2. 呼叫 authApi 交換 token 並取得後端使用者資料
       // response.data 會是 { access, refresh, user }
+      console.log('步驟 2: 呼叫後端 API...');
       const backendResponse = await authApi.getBackendTokens(idToken, 'customer');
+      console.log('✓ 後端 API 回應成功');
 
       // 3. 使用後端回傳的 user 物件進行登入
       if (backendResponse.user) {
@@ -84,16 +95,35 @@ const CustomerLoginPage = () => {
       }
 
     } catch (err) {
-      console.error("登入流程失敗:", err);
-      console.error("錯誤詳情:", err.response?.data || err);
+      console.error("=== 登入流程失敗 ===");
+      console.error("錯誤物件:", err);
+      console.error("錯誤代碼:", err.code);
+      console.error("錯誤訊息:", err.message);
+      console.error("後端回應:", err.response?.data);
       
-      // 如果是 token 相關錯誤，提供更明確的訊息
-      if (err.response?.data?.error === 'Invalid Firebase ID token') {
-        setError('認證失敗，請重新登入。');
+      // Firebase 特定錯誤處理
+      if (err.code === 'auth/invalid-credential') {
+        setError('❌ 帳號或密碼錯誤，請確認您輸入的資訊是否正確。如果您是新註冊的會員，請確保已完成 Firebase 註冊流程。');
+      } else if (err.code === 'auth/user-not-found') {
+        setError('❌ 找不到此帳號。請先註冊會員帳號，或檢查 Email 是否正確。');
+      } else if (err.code === 'auth/wrong-password') {
+        setError('❌ 密碼錯誤，請重新輸入。');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('❌ Email 格式不正確。');
+      } else if (err.code === 'auth/user-disabled') {
+        setError('❌ 此帳號已被停用，請聯繫管理員。');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('❌ 登入嘗試次數過多，請稍後再試。');
+      }
+      // 後端 API 錯誤處理
+      else if (err.response?.data?.error === 'Invalid Firebase ID token') {
+        setError('❌ 認證失敗，請重新登入。');
       } else if (err.message.includes('user_type')) {
-        setError('使用者類型錯誤，請確認您使用的是正確的登入頁面。');
+        setError('❌ 使用者類型錯誤，請確認您使用的是正確的登入頁面。');
+      } else if (err.response?.status === 401) {
+        setError('❌ 認證失敗，請檢查您的帳號權限。');
       } else {
-        setError(err.message || '登入失敗，請檢查您的信箱和密碼。');
+        setError(err.message || '❌ 登入失敗，請檢查您的信箱和密碼，或聯繫技術支援。');
       }
     } finally {
       setLoading(false);

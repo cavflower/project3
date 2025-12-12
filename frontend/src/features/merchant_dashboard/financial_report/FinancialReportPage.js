@@ -71,7 +71,12 @@ const FinancialReportPage = () => {
         const storeRes = await getMyStore();
         storeId = storeRes.data?.id;
       } catch (err) {
-        console.error('無法獲取店家資料', err);
+        if (err.response?.status === 404) {
+          console.log('[FinancialReport] Store not found - merchant needs to create store settings first');
+          // 不顯示錯誤，僅記錄
+        } else {
+          console.error('[FinancialReport] Error fetching store:', err);
+        }
       }
 
       // 2. 獲取真實商品列表

@@ -11,7 +11,7 @@ class PointRuleSerializer(serializers.ModelSerializer):
 		fields = [
 			'id', 'store', 'name', 'points_per_currency', 'min_spend', 'active', 'created_at', 'updated_at'
 		]
-		read_only_fields = ['id', 'created_at', 'updated_at']
+		read_only_fields = ['id', 'store', 'created_at', 'updated_at']
 
 
 class MembershipLevelSerializer(serializers.ModelSerializer):
@@ -31,7 +31,7 @@ class RedemptionProductSerializer(serializers.ModelSerializer):
 			'id', 'store', 'title', 'description', 'required_points', 'inventory', 'is_active',
 			'created_at', 'updated_at'
 		]
-		read_only_fields = ['id', 'created_at', 'updated_at']
+		read_only_fields = ['id', 'store', 'created_at', 'updated_at']
 
 
 class CustomerLoyaltyAccountSerializer(serializers.ModelSerializer):

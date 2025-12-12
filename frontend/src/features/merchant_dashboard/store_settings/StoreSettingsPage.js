@@ -77,14 +77,6 @@ const StoreSettingsPage = () => {
   useEffect(() => {
     loadStoreData();
   }, []);
-  
-  useEffect(() => {
-  async function loadStore() {
-    const res = await getMyStore();
-    setStoreId(res.data?.id);
-  }
-  loadStore();
-}, []);
 
   const loadStoreData = async () => {
     try {
@@ -147,13 +139,16 @@ const StoreSettingsPage = () => {
       console.error('[StoreSettings] Error loading store:', err);
       console.error('[StoreSettings] Error response:', err.response);
       if (err.response?.status === 404) {
-        console.log('[StoreSettings] Store not found - user needs to create one first');
+        console.log('[StoreSettings] Store not found - this is normal for new merchants');
         // 店家不存在，這是正常情況（第一次使用）
+        // 不顯示錯誤，保持預設的空白表單
+        setStoreId(null);
       } else if (err.response?.status === 403) {
         console.error('[StoreSettings] Permission denied - user might not be a merchant');
         setError('您沒有權限訪問店家資訊。請確認您是以商家帳號登入。');
       } else {
-        setError('載入店家資訊失敗，請稍後再試。');
+        // 只有在非 404 錯誤時才顯示錯誤訊息
+        setError('載入店家資訊時發生錯誤，請稍後再試。');
       }
     } finally {
       setIsLoading(false);

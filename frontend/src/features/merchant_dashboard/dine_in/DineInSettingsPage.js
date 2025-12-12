@@ -45,7 +45,12 @@ const DineInSettingsPage = () => {
         const res = await getMyStore();
         setStoreId(res.data?.id || null);
       } catch (err) {
-        console.error('Failed to load store info', err);
+        if (err.response?.status === 404) {
+          console.log('[DineIn] Store not found - merchant needs to create store settings first');
+          setStoreId(null);
+        } else {
+          console.error('[DineIn] Failed to load store info:', err);
+        }
       } finally {
         setIsLoadingStore(false);
       }

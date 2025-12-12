@@ -35,7 +35,7 @@ function OrderManagementPage() {
         setStoreId(id);
         
         if (!id) {
-          setError('無法取得店家資料');
+          setError('無法取得店家資料，請先到「餐廳設定」建立你的店家資訊。');
           setLoading(false);
           return;
         }

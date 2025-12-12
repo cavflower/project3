@@ -68,8 +68,12 @@ const LineBotSettings = () => {
           setLoading(false);
         }
       } catch (err) {
-        console.error('獲取店家資料失敗:', err);
-        setError('獲取店家資料失敗，請先完成店家設定');
+        console.error('[LineBot] Error fetching store:', err);
+        if (err.response?.status === 404) {
+          setError('找不到店家資料，請先到「餐廳設定」建立你的店家資訊。');
+        } else {
+          setError('獲取店家資料失敗，請稍後再試。');
+        }
         setLoading(false);
       }
     };

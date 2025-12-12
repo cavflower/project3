@@ -150,43 +150,30 @@ function StorePage() {
             <i className="bi bi-arrow-left me-2"></i>
             返回店家列表
           </button>
-          {store.enable_loyalty ? (
-            <Link 
-              to="/customer/loyalty"
-              className="btn btn-outline-primary"
-              style={{
-                textDecoration: 'none',
-                padding: '0.5rem 1.5rem',
-                borderRadius: '20px',
-                border: '1px solid var(--primary-color)',
-                color: 'var(--primary-color)',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'var(--primary-color)';
-                e.target.style.color = '#fff';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'transparent';
-                e.target.style.color = 'var(--primary-color)';
-              }}
-            >
-              會員中心
-            </Link>
-          ) : (
-            <button 
-              className="btn btn-outline-secondary"
-              disabled
-              style={{
-                padding: '0.5rem 1.5rem',
-                borderRadius: '20px',
-                cursor: 'not-allowed',
-                opacity: 0.5
-              }}
-            >
-              會員中心
-            </button>
-          )}
+
+          <Link 
+            to={`/customer/loyalty/${storeId}`}
+            className="btn btn-outline-primary"
+            style={{
+              textDecoration: 'none',
+              padding: '0.5rem 1.5rem',
+              borderRadius: '20px',
+              border: '1px solid var(--primary-color)',
+              color: 'var(--primary-color)',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'var(--primary-color)';
+              e.target.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+              e.target.style.color = 'var(--primary-color)';
+            }}
+          >
+            會員中心
+          </Link>
+
         </div>
 
         {/* 餐廳標題和基本資訊 */}

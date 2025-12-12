@@ -68,8 +68,13 @@ const MerchantDashboard = () => {
         setHasLoadedOnce(true);
 
       } catch (error) {
-        console.error('載入儀表板資料失敗:', error);
-        // 如果載入失敗，保持預設值（全部啟用）
+        // 404 錯誤表示商家尚未建立店家資料，這是正常情況
+        if (error.response?.status === 404) {
+          console.log('[Dashboard] Store not found - merchant needs to create store settings first');
+          // 保持預設值（全部啟用）
+        } else {
+          console.error('[Dashboard] Error loading dashboard data:', error);
+        }
       } finally {
         setLoading(false);
       }
