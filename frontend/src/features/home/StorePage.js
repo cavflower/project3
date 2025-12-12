@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
 import { useAuth } from '../../store/AuthContext';
@@ -12,26 +12,14 @@ function StorePage() {
   const [store, setStore] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [productsLoading, setProductsLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('about');
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageType, setImageType] = useState(null); // 'store' or 'menu'
-  
-  // 商品分頁狀態
-  const [displayedProducts, setDisplayedProducts] = useState(20); // 初始顯示20個
-  const PRODUCTS_PER_PAGE = 20;
 
   useEffect(() => {
     loadStoreData();
   }, [storeId]);
-  
-  // 當切換到菜單頁籤時才載入商品
-  useEffect(() => {
-    if (activeTab === 'menu' && menuItems.length === 0 && !productsLoading) {
-      loadMenuItems(storeId);
-    }
-  }, [activeTab, storeId]);
 
   const loadStoreData = async () => {
     try {
@@ -39,8 +27,7 @@ function StorePage() {
       setError('');
       const response = await getStore(storeId);
       setStore(response.data);
-      // 移除這裡的自動載入商品
-      // await loadMenuItems(storeId);
+      await loadMenuItems(storeId);
     } catch (err) {
       console.error('Failed to load store:', err);
       setError('載入店家資訊失敗，請稍後再試。');
@@ -51,28 +38,12 @@ function StorePage() {
 
   const loadMenuItems = async (id) => {
     try {
-      setProductsLoading(true);
       const productRes = await getTakeoutProducts(id);
       setMenuItems(productRes.data);
     } catch (err) {
       console.error('Failed to load menu items:', err);
-    } finally {
-      setProductsLoading(false);
     }
   };
-  
-  // 載入更多商品
-  const loadMoreProducts = useCallback(() => {
-    setDisplayedProducts(prev => prev + PRODUCTS_PER_PAGE);
-  }, []);
-  
-  // 顯示的商品列表（分頁）
-  const visibleProducts = useMemo(() => {
-    return menuItems.slice(0, displayedProducts);
-  }, [menuItems, displayedProducts]);
-  
-  // 是否還有更多商品
-  const hasMoreProducts = displayedProducts < menuItems.length;
 
 
   const formatOpeningHours = (hours) => {
@@ -150,7 +121,6 @@ function StorePage() {
             <i className="bi bi-arrow-left me-2"></i>
             返回店家列表
           </button>
-
           <Link 
             to={`/customer/loyalty/${storeId}`}
             className="btn btn-outline-primary"
@@ -173,7 +143,6 @@ function StorePage() {
           >
             會員中心
           </Link>
-
         </div>
 
         {/* 餐廳標題和基本資訊 */}
@@ -472,60 +441,27 @@ function StorePage() {
 
               {activeTab === 'menu' && (
                 <div className="store-menu-section">
-                  {productsLoading ? (
-                    <div className="text-center py-5">
-                      <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">載入菜單中...</span>
-                      </div>
-                      <p className="mt-3 text-muted">載入菜單資料中...</p>
-                    </div>
-                  ) : store.menu_type === 'text' && store.menu_text ? (
+                  {store.menu_type === 'text' && store.menu_text ? (
                     <div className="store-section-card">
                       <div className="menu-header">
                         <h3 className="store-section-title">菜單</h3>
                         <span className="menu-tax-note">(含稅價格)</span>
-                        {menuItems.length > 0 && (
-                          <span className="menu-count-badge">共 {menuItems.length} 項商品</span>
-                        )}
                       </div>
                       <div className="menu-text-content">
-                          {visibleProducts.length > 0 ? (
-                            <>
-                              {visibleProducts
-                                .filter(item => item.service_type !== 'takeaway') // 內用顯示 dine_in 或 both
-                                .map(item => (
-                                  <div key={item.id} className="menu-item-card">
-                                    <div className="menu-item-header">
-                                      <h4 className="menu-item-title">{item.name}</h4>
-                                      <span className="menu-item-price">NT$ {Number(item.price).toFixed(0)}</span>
-                                    </div>
-                                    {item.description && (
-                                      <p className="menu-item-description">{item.description}</p>
-                                    )}
-                                    {item.category_name && (
-                                      <span className="menu-item-category-badge">{item.category_name}</span>
-                                    )}
+                          {menuItems.length > 0 ? (
+                            menuItems
+                              .filter(item => item.service_type !== 'takeaway') // 內用顯示 dine_in 或 both
+                              .map(item => (
+                                <div key={item.id} className="menu-item-card">
+                                  <div className="menu-item-header">
+                                    <h4 className="menu-item-title">{item.name}</h4>
+                                    <span className="menu-item-price">NT$ {Number(item.price).toFixed(0)}</span>
                                   </div>
-                                ))}
-                              
-                              {/* 載入更多按鈕 */}
-                              {hasMoreProducts && (
-                                <div className="text-center mt-4">
-                                  <button 
-                                    className="btn btn-outline-primary"
-                                    onClick={loadMoreProducts}
-                                    style={{
-                                      padding: '0.75rem 2rem',
-                                      borderRadius: '25px',
-                                      fontSize: '1rem'
-                                    }}
-                                  >
-                                    <i className="bi bi-arrow-down-circle me-2"></i>
-                                    載入更多 ({menuItems.length - displayedProducts} 項商品)
-                                  </button>
+                                  {item.description && (
+                                    <p className="menu-item-description">{item.description}</p>
+                                  )}
                                 </div>
-                              )}
-                            </>
+                              ))
                           ) : (
                             <p className="text-muted">目前尚無菜單資料</p>
                           )}

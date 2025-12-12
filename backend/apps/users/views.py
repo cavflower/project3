@@ -21,6 +21,7 @@ class FirebaseTokenLoginView(APIView):
 
         try:
             # Verify the ID token with Firebase Admin SDK
+            # 增加時間容錯，允許 5 秒的時間差異
             decoded_token = firebase_auth.verify_id_token(id_token, check_revoked=False, clock_skew_seconds=5)
             uid = decoded_token['uid']
 

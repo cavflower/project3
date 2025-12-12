@@ -54,6 +54,7 @@ import LineBotFAQManagement from './features/line_bot/LineBotFAQManagement';
 import LineBotSettings from './components/merchant/linebot/LineBotSettings';
 
 
+
 // Context
 import { useAuth } from './store/AuthContext'; 
 
@@ -128,8 +129,9 @@ function App() {
               />
           {/* 點入特定店家 頁面 */}
               <Route path="/store/:storeId" element={<StorePage />} />
+
           {/* 點餐主頁面 */}
-          
+
           {/* 外帶點餐 頁面 */}
               <Route path="/store/:storeId/takeout" element={<TakeoutOrderPage />} />
           {/* 惜福專區 頁面 */}
@@ -140,8 +142,6 @@ function App() {
               <Route path="/store/:storeId/dine-in/menu" element={<DineInOrderPage />} />
           {/* 內用購物車結帳 頁面 */}
               <Route path="/dinein/:storeId/cart" element={<DineInCartPage />} />
-
-          {/* 線上結帳 頁面 */}
           
           {/* 訂單確認 頁面 */}
               <Route path="/confirmation/:orderId" element={<ConfirmationPage />} />
