@@ -69,12 +69,14 @@ Channel secret在Basic settings的最下面
 步驟2:下載ngrok
 https://ngrok.com/download
 
+
 步驟3:google ai studio拿api key
 https://aistudio.google.com
 
 步驟4:在前端網頁的LINE BOT設定貼上這些(Channel access token、Channel secret、AI API Key)
 
 步驟5:啟動ngrok(要先啟動後端伺服器)
+去Your Authtoken複製啟動碼然後拍在ngrok的終端機裡面
 ngrok http 8000
 
 步驟6:在webhook網址貼上這串(然後順便關掉Auto-reply messages)
@@ -82,3 +84,4 @@ https://unexpired-bari-unteamed.ngrok-free.dev/api/line-bot/webhook/
 
 (unexpired-bari-unteamed.ngrok-free.dev這段可能會變，但應該不會? 沒變就照貼)
 然後按下驗證
+打開USE WEBHOOK

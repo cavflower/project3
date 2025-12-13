@@ -47,6 +47,7 @@ const LineBotSettings = () => {
     ai_temperature: 0.7,
     ai_max_tokens: 500,
     custom_system_prompt: '',
+    welcome_message: '',
     enable_ai_reply: true,
     enable_conversation_history: true,
     is_active: true,
@@ -325,6 +326,28 @@ const LineBotSettings = () => {
                 onChange={handleChange}
                 placeholder="例如：你是一位專業的餐廳客服，請以親切、專業的態度回答顧客問題..."
                 helperText="自訂 AI 回覆的角色和風格（選填）"
+              />
+            </Grid>
+          </Grid>
+
+          {/* 歡迎訊息設定 */}
+          <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+            歡迎訊息設定
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                label="加入好友歡迎訊息"
+                name="welcome_message"
+                value={formData.welcome_message}
+                onChange={handleChange}
+                placeholder="歡迎加入我們！👋\n\n感謝您成為我們的好友！我們提供美味餐點和優質服務。\n有任何問題隨時詢問我！"
+                helperText="用戶加入好友時自動發送的歡迎訊息（留空則使用預設訊息）"
               />
             </Grid>
           </Grid>

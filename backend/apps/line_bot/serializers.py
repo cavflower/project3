@@ -14,7 +14,7 @@ class StoreLineBotConfigSerializer(serializers.ModelSerializer):
             'line_channel_access_token', 'line_channel_secret',
             'ai_provider', 'ai_api_key', 'ai_model',
             'ai_temperature', 'ai_max_tokens',
-            'custom_system_prompt',
+            'custom_system_prompt', 'welcome_message',
             'enable_ai_reply', 'enable_conversation_history',
             'is_active', 'has_line_config', 'has_ai_config',
             'created_at', 'updated_at'

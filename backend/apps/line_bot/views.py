@@ -246,19 +246,45 @@ def handle_follow_event(event: dict):
     line_user_id = event['source']['userId']
     reply_token = event.get('replyToken')
     
-    # 使用全域配置取得用戶資料
-    temp_line_api = LineMessagingAPI()
-    profile = temp_line_api.get_profile(line_user_id)
-    
-    # 歡迎訊息
-    welcome_text = f"""歡迎加入 DineVerse！👋
+    # 取得第一個啟用的店家配置
+    try:
+        bot_config = StoreLineBotConfig.objects.filter(is_active=True).first()
+        
+        if bot_config and bot_config.line_channel_access_token:
+            # 使用店家專屬的 LINE API
+            line_api = LineMessagingAPI(bot_config)
+            
+            # 使用店家自訂的歡迎訊息，若無則使用預設訊息
+            if bot_config.welcome_message:
+                welcome_text = bot_config.welcome_message
+            else:
+                welcome_text = f"""歡迎加入 {bot_config.store.name}！👋
 
 感謝您成為我們的好友！
 
-請先完成帳號綁定，即可開始使用所有功能。"""
+有任何問題都可以直接詢問我，我會盡力為您解答。"""
+            
+            if settings.DEBUG:
+                print(f"[LINE Follow] Store: {bot_config.store.name}")
+                print(f"[LINE Follow] Welcome message: {welcome_text[:50]}...")
+        else:
+            # 沒有啟用的店家配置，使用全域配置
+            line_api = LineMessagingAPI()
+            welcome_text = """歡迎加入 DineVerse！👋
+
+感謝您成為我們的好友！"""
+            
+    except Exception as e:
+        if settings.DEBUG:
+            print(f"[LINE Follow] Error: {e}")
+        # 發生錯誤時使用全域配置
+        line_api = LineMessagingAPI()
+        welcome_text = """歡迎加入 DineVerse！👋
+
+感謝您成為我們的好友！"""
     
-    messages = [temp_line_api.create_text_message(welcome_text)]
-    temp_line_api.reply_message(reply_token, messages)
+    messages = [line_api.create_text_message(welcome_text)]
+    line_api.reply_message(reply_token, messages)
 
 
 def handle_unfollow_event(event: dict):

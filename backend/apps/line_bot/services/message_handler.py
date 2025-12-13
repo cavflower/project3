@@ -130,9 +130,9 @@ class AIReplyService:
             model_name = self.model
             # 如果模型名稱不包含 'models/' 前綴，則添加
             if not model_name.startswith('models/'):
-                # 將舊版本映射到新版本
+                # 將舊版本映射到新版本（使用 2.5 系列，配額更充裕）
                 model_mapping = {
-                    'gemini-1.5-flash': 'models/gemini-2.0-flash',
+                    'gemini-1.5-flash': 'models/gemini-2.5-flash',
                     'gemini-1.5-pro': 'models/gemini-2.5-pro',
                     'gemini-pro': 'models/gemini-2.5-pro',
                 }

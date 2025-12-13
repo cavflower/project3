@@ -71,6 +71,14 @@ class StoreLineBotConfig(models.Model):
         help_text='留空則使用預設提示詞'
     )
     
+    # 歡迎訊息設定
+    welcome_message = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='加入好友歡迎訊息',
+        help_text='用戶加入好友時自動發送的歡迎訊息，留空則使用預設訊息'
+    )
+    
     # 功能開關
     enable_ai_reply = models.BooleanField(
         default=True,
