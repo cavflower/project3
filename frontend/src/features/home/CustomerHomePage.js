@@ -4,15 +4,15 @@ import { getPublishedStores } from '../../api/storeApi';
 import './CustomerHomePage.css';
 
 const categories = [
-  { id: 'all', name: '全部', icon: 'grid' },
-  { id: 'japanese', name: '日式', icon: 'flower3' },
-  { id: 'korean', name: '韓式', icon: 'fire' },
-  { id: 'american', name: '美式', icon: 'egg' },
-  { id: 'taiwanese', name: '台式', icon: 'egg-fried' },
-  { id: 'western', name: '西式', icon: 'cup-hot' },
-  { id: 'beverages', name: '飲料', icon: 'cup-straw' },
-  { id: 'desserts', name: '甜點', icon: 'cake2' },
-  { id: 'other', name: '其他', icon: 'three-dots' },
+  { id: 'all', name: '全部', icon: 'grid-3x3-gap-fill', emoji: '🍽️' },
+  { id: 'japanese', name: '日式', icon: 'circle', emoji: '🍣' },
+  { id: 'korean', name: '韓式', icon: 'fire', emoji: '🔥' },
+  { id: 'american', name: '美式', icon: 'shop', emoji: '🍔' },
+  { id: 'taiwanese', name: '台式', icon: 'egg-fried', emoji: '🥢' },
+  { id: 'western', name: '西式', icon: 'cup-hot-fill', emoji: '☕' },
+  { id: 'beverages', name: '飲料', icon: 'cup-straw', emoji: '🥤' },
+  { id: 'desserts', name: '甜點', icon: 'cake2-fill', emoji: '🍰' },
+  { id: 'other', name: '其他', icon: 'three-dots', emoji: '🍴' },
 ];
 
 function CustomerHomePage() {
@@ -153,7 +153,11 @@ function CustomerHomePage() {
                 }`}
                 onClick={() => setSelectedCategory(category.id)}
               >
-                <i className={`bi bi-${category.icon} fs-5 mb-1`}></i>
+                {category.emoji ? (
+                  <span className="fs-4 mb-1" style={{ display: 'block' }}>{category.emoji}</span>
+                ) : (
+                  <i className={`bi bi-${category.icon} fs-5 mb-1`}></i>
+                )}
                 <span className="d-block small">{category.name}</span>
               </button>
             </div>

@@ -139,8 +139,10 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
         return order
 
     def generate_pickup_number(self, store):
-        from uuid import uuid4
-        return f"{store.id}-{uuid4().hex[:4].upper()}"
+        import random
+        # 生成 1-1000 的隨機取餐號碼
+        random_number = random.randint(1, 1000)
+        return str(random_number)
 
 
 # ===== 內用訂單 Serializers =====
@@ -270,8 +272,10 @@ class DineInOrderSerializer(serializers.ModelSerializer):
         return order
 
     def generate_order_number(self, store):
-        from uuid import uuid4
-        return f"{store.id}-{uuid4().hex[:4].upper()}"
+        import random
+        # 生成 1-1000 的隨機訂單號碼
+        random_number = random.randint(1, 1000)
+        return str(random_number)
 
 
 class NotificationSerializer(serializers.ModelSerializer):

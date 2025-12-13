@@ -14,18 +14,8 @@ function ConfirmationPage() {
     surplusOrderNumbers,
     surplusPickupNumbers 
   } = location.state || {};
-  const [currentNumber, setCurrentNumber] = useState(98); // 模擬目前叫號
-
-  // 模擬叫號更新
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentNumber(prev => prev + 1);
-    }, 100); // 每30秒更新一次
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const estimatedWaitMinutes = pickupNumber ? Math.max((parseInt(pickupNumber) - currentNumber) * 3, 0) : null;
+  // 取餐號碼是 1-1000 的隨機數字，不需要模擬叫號進度
+  // 只顯示取餐號碼即可
 
   return (
     <div className="confirmation-page" style={{ marginTop: '70px' }}>
@@ -75,29 +65,17 @@ function ConfirmationPage() {
               </div>
             </div>
 
-            {/* 目前叫號狀態 */}
+            {/* 訂單狀態提示 */}
             <div className="current-status-card">
               <div className="status-header">
                 <FaClock className="me-2" />
-                <h4>目前叫號狀態</h4>
+                <h4>訂單狀態</h4>
               </div>
               <div className="status-body">
-                <div className="current-number-display">
-                  <span className="label">目前叫號至</span>
-                  <span className="number">{currentNumber}</span>
+                <div className="status-message">
+                  <p>您的訂單正在準備中</p>
+                  <p className="text-muted">請留意店家叫號，聽到您的號碼後即可前往取餐</p>
                 </div>
-                {estimatedWaitMinutes !== null && pickupNumber && parseInt(pickupNumber) > currentNumber && (
-                  <div className="estimated-wait">
-                    <p>預估等待時間</p>
-                    <span className="wait-time">{estimatedWaitMinutes} 分鐘</span>
-                  </div>
-                )}
-                {pickupNumber && parseInt(pickupNumber) <= currentNumber && (
-                  <div className="ready-notice">
-                    <FaCheckCircle className="me-2" />
-                    您的餐點可能已經準備好了！請前往櫃檯取餐
-                  </div>
-                )}
               </div>
             </div>
 

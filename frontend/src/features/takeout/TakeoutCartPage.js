@@ -183,21 +183,8 @@ function TakeoutCartPage() {
       
       const paymentLabel = paymentOptionsList.find((o) => o.value === paymentMethod)?.label;
       
-      // 構建成功訊息
-      let alertMessage = `付款方式：${paymentLabel}\n`;
-      
       const regularOrder = orderResults.find(r => r.type === 'regular');
-      if (regularOrder) {
-        alertMessage += `\n【一般外帶訂單】\n取餐號碼：${regularOrder.pickupNumber || "待通知"}`;
-      }
-      
       const surplusOrder = orderResults.find(r => r.type === 'surplus');
-      if (surplusOrder) {
-        alertMessage += `\n\n【惜福品訂單】\n取餐號碼：${surplusOrder.pickupNumber || "待通知"}`;
-
-      }
-      
-      alert(alertMessage);
 
       // 如果有一般訂單，導向確認頁；否則返回店家頁面
       if (regularOrder && regularOrder.orderId) {
