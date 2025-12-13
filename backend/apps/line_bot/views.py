@@ -25,20 +25,21 @@ from .services.message_handler import MessageHandler
 import os
 
 
-def verify_signature(request_body: bytes, signature: str) -> bool:
+def verify_signature(request_body: bytes, signature: str, channel_secret: str) -> bool:
     """
     驗證 LINE Webhook 簽名
     
     Args:
         request_body: 請求主體
         signature: LINE 提供的簽名
+        channel_secret: Channel Secret（從資料庫讀取）
         
     Returns:
         bool: 簽名是否有效
     """
-    channel_secret = os.getenv('LINE_CHANNEL_SECRET', '').encode('utf-8')
+    secret_bytes = channel_secret.encode('utf-8')
     hash_digest = hmac.new(
-        channel_secret,
+        secret_bytes,
         request_body,
         hashlib.sha256
     ).digest()
@@ -47,20 +48,58 @@ def verify_signature(request_body: bytes, signature: str) -> bool:
 
 
 @csrf_exempt
-@require_http_methods(["POST"])
+@require_http_methods(["POST", "HEAD", "GET"])
 def webhook(request):
     """
     LINE Webhook 端點
     接收來自 LINE 平台的事件
     """
+    # LINE 驗證時會發送 GET 或 HEAD 請求
+    if request.method in ['GET', 'HEAD']:
+        return HttpResponse(status=200)
+    
+    # 從資料庫取得第一個啟用的店家配置（用於簽名驗證）
+    try:
+        bot_config = StoreLineBotConfig.objects.filter(is_active=True).first()
+        if not bot_config:
+            if settings.DEBUG:
+                print("[LINE Webhook] No active StoreLineBotConfig found!")
+            return HttpResponse(status=403)
+        
+        channel_secret = bot_config.line_channel_secret
+        if not channel_secret:
+            if settings.DEBUG:
+                print("[LINE Webhook] Channel Secret is empty in database!")
+            return HttpResponse(status=403)
+            
+        if settings.DEBUG:
+            print(f"[LINE Webhook] Using channel secret from database (length: {len(channel_secret)})")
+            
+    except Exception as e:
+        if settings.DEBUG:
+            print(f"[LINE Webhook] Error getting config: {e}")
+        return HttpResponse(status=403)
+    
     # 驗證簽名
     signature = request.headers.get('X-Line-Signature', '')
-    if not verify_signature(request.body, signature):
+    
+    # 開發模式：記錄詳細資訊以便除錯
+    if settings.DEBUG:
+        print(f"[LINE Webhook] Received request")
+        print(f"[LINE Webhook] Signature: {signature}")
+        print(f"[LINE Webhook] Body length: {len(request.body)}")
+        
+    if not verify_signature(request.body, signature, channel_secret):
+        if settings.DEBUG:
+            print(f"[LINE Webhook] Signature verification failed!")
         return HttpResponse(status=403)
     
     try:
         body = json.loads(request.body.decode('utf-8'))
         events = body.get('events', [])
+        
+        if settings.DEBUG:
+            print(f"[LINE Webhook] Events: {len(events)}")
         
         for event in events:
             handle_event(event)
@@ -68,7 +107,9 @@ def webhook(request):
         return HttpResponse(status=200)
     
     except Exception as e:
-        print(f"Webhook error: {e}")
+        print(f"[LINE Webhook] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return HttpResponse(status=500)
 
 
@@ -109,95 +150,86 @@ def handle_message_event(event: dict):
     user_message = message.get('text', '')
     reply_token = event.get('replyToken')
     
-    # 嘗試找到綁定的用戶
+    # 簡化版：使用第一個啟用的店家配置
+    # 未來可以透過 Channel ID 或其他方式識別多店家
     try:
-        binding = LineUserBinding.objects.get(line_user_id=line_user_id)
-        user = binding.user
+        # 取得第一個啟用的店家配置
+        bot_config = StoreLineBotConfig.objects.filter(is_active=True).first()
         
-        # 如果用戶是商家，取得店家資訊
-        if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
-            store = user.merchant_profile.store
-            
-            # 檢查店家是否已設定 LINE BOT
-            try:
-                bot_config = StoreLineBotConfig.objects.get(store=store, is_active=True)
-                
-                # 初始化店家專屬的服務
-                line_api = LineMessagingAPI(bot_config)
-                message_handler = MessageHandler(bot_config)
-                
-                store_info = {
-                    'id': store.id,
-                    'name': store.name,
-                    'cuisine_type': store.get_cuisine_type_display(),
-                    'address': store.address,
-                    'phone': store.phone,
-                    'opening_hours': store.opening_hours,
-                    'description': store.description,
-                }
-                
-                # 處理訊息並取得回覆
-                result = message_handler.handle_text_message(
-                    line_user_id=line_user_id,
-                    message=user_message,
-                    store_id=store.id,
-                    store_info=store_info
-                )
-                
-                # 記錄用戶訊息
-                ConversationLog.objects.create(
-                    store=store,
-                    line_user_id=line_user_id,
-                    sender_type='user',
-                    message_type='text',
-                    message_content=user_message,
-                    reply_token=reply_token
-                )
-                
-                # 記錄 BOT 回覆
-                ConversationLog.objects.create(
-                    store=store,
-                    line_user_id=line_user_id,
-                    sender_type='bot',
-                    message_type='text',
-                    message_content=result['reply'],
-                    matched_faq_id=result.get('matched_faq_id'),
-                    used_ai=result.get('used_ai', False),
-                    ai_model=result.get('ai_model')
-                )
-                
-                # 發送回覆
-                messages = [line_api.create_text_message(result['reply'])]
-                line_api.reply_message(reply_token, messages)
-                
-            except StoreLineBotConfig.DoesNotExist:
-                # 店家未設定 LINE BOT
-                reply_text = "此店家尚未啟用 LINE BOT 服務。請聯繫店家了解更多資訊。"
-                # 使用全域配置發送
-                temp_line_api = LineMessagingAPI()
-                messages = [temp_line_api.create_text_message(reply_text)]
-                temp_line_api.reply_message(reply_token, messages)
-        else:
-            # 一般用戶，提供通用回覆
-            reply_text = "您好！請問有什麼可以幫助您的嗎？\n\n如需使用完整功能，請先綁定您的帳號。"
-            temp_line_api = LineMessagingAPI()
-            messages = [temp_line_api.create_text_message(reply_text)]
-            temp_line_api.reply_message(reply_token, messages)
-            
-    except LineUserBinding.DoesNotExist:
-        # 未綁定的用戶
+        if not bot_config:
+            raise StoreLineBotConfig.DoesNotExist
+        
+        store = bot_config.store
+        
+        if settings.DEBUG:
+            print(f"[LINE Webhook] Store: {store.name}")
+            print(f"[LINE Webhook] Message: {user_message}")
+        
+        # 初始化店家專屬的服務
+        line_api = LineMessagingAPI(bot_config)
+        message_handler = MessageHandler(bot_config)
+        
+        store_info = {
+            'id': store.id,
+            'name': store.name,
+            'cuisine_type': store.get_cuisine_type_display(),
+            'address': store.address,
+            'phone': store.phone,
+            'opening_hours': store.opening_hours,
+            'description': store.description,
+        }
+        
+        # 處理訊息並取得回覆
+        result = message_handler.handle_text_message(
+            line_user_id=line_user_id,
+            message=user_message,
+            store_id=store.id,
+            store_info=store_info
+        )
+        
+        if settings.DEBUG:
+            print(f"[LINE Webhook] Reply: {result['reply']}")
+            print(f"[LINE Webhook] Matched FAQ: {result.get('matched_faq_id')}")
+        
+        # 記錄用戶訊息
+        ConversationLog.objects.create(
+            store=store,
+            line_user_id=line_user_id,
+            sender_type='user',
+            message_type='text',
+            message_content=user_message,
+            reply_token=reply_token
+        )
+        
+        # 記錄 BOT 回覆
+        ConversationLog.objects.create(
+            store=store,
+            line_user_id=line_user_id,
+            sender_type='bot',
+            message_type='text',
+            message_content=result['reply'],
+            matched_faq_id=result.get('matched_faq_id'),
+            used_ai=result.get('used_ai', False),
+            ai_model=result.get('ai_model')
+        )
+        
+        # 發送回覆
+        messages = [line_api.create_text_message(result['reply'])]
+        line_api.reply_message(reply_token, messages)
+        
+    except StoreLineBotConfig.DoesNotExist:
+        # 找不到對應的店家設定，發送預設訊息
+        if settings.DEBUG:
+            print("[LINE Webhook] No active StoreLineBotConfig found!")
+        
         welcome_text = """歡迎使用 DineVerse 餐廳助手！🎉
 
-為了提供更好的服務，請先完成帳號綁定：
-1. 登入 DineVerse 網站
-2. 前往「個人設定」
-3. 點擊「綁定 LINE 帳號」
-
-綁定後即可享有：
-✅ 個人化推薦
-✅ 優惠通知
-✅ 訂位提醒
-✅ 智能客服"""
+此 LINE 官方帳號尚未完成設定。
+請到「LINE BOT 設定」頁面完成以下步驟：
+1. 輸入 LINE Channel Access Token
+2. 輸入 LINE Channel Secret
+3. 設定 AI API Key
+4. 點擊「更新設定」並啟用 LINE BOT"""
         
         temp_line_api = LineMessagingAPI()
         messages = [temp_line_api.create_text_message(welcome_text)]

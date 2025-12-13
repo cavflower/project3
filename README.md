@@ -37,6 +37,11 @@ pip.exe install djangorestframework-simplejwt
 在 backend 資料夾中，手動建立一個名為 .env 的檔案。
 在 backend 資料夾手動建立serviceAccountKey.json檔案然後複製那一長串(在DC)
 
+**重要提示：LINE BOT 設定**
+- LINE BOT 的所有設定（Channel Access Token、Channel Secret、AI API Key）都從前端網頁設定
+- 不需要在 .env 檔案中設定 LINE 相關參數
+- 前往 `/merchant/line-bot` 頁面完成設定
+
 步驟 6：執行資料庫遷移 (Database Migrations)
 python manage.py migrate
 
@@ -53,3 +58,27 @@ cd backend; .\.venv\Scripts\python.exe manage.py migrate(資料庫結構動完�
 
 # 前端卸載指令(非必要，除非你專案炸了要重拉)
 Remove-Item -Recurse -Force node_modules
+
+
+# 本地LINE BOT測試
+步驟1:申請官方帳號(Messaging api)
+https://developers.line.biz/console/
+Channel access token在Messaging api的最下面
+Channel secret在Basic settings的最下面
+
+步驟2:下載ngrok
+https://ngrok.com/download
+
+步驟3:google ai studio拿api key
+https://aistudio.google.com
+
+步驟4:在前端網頁的LINE BOT設定貼上這些(Channel access token、Channel secret、AI API Key)
+
+步驟5:啟動ngrok(要先啟動後端伺服器)
+ngrok http 8000
+
+步驟6:在webhook網址貼上這串(然後順便關掉Auto-reply messages)
+https://unexpired-bari-unteamed.ngrok-free.dev/api/line-bot/webhook/
+
+(unexpired-bari-unteamed.ngrok-free.dev這段可能會變，但應該不會? 沒變就照貼)
+然後按下驗證

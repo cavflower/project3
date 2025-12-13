@@ -16,7 +16,9 @@ import {
   InputLabel,
   Divider,
   CircularProgress,
+  Stack,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../store/AuthContext';
 import { getMyStore } from '../../../api/storeApi';
 import {
@@ -27,6 +29,7 @@ import {
 
 const LineBotSettings = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [storeId, setStoreId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -171,9 +174,18 @@ const LineBotSettings = () => {
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          LINE BOT 設定
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4">
+            LINE BOT 設定
+          </Typography>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => navigate('/merchant/line-bot/faq')}
+          >
+            📝 管理 FAQ
+          </Button>
+        </Box>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>

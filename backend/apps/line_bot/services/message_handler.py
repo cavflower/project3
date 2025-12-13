@@ -126,7 +126,19 @@ class AIReplyService:
             full_prompt += f"顧客: {user_message}\n助手: "
             
             # 呼叫 Gemini API
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+            # 處理模型名稱：確保格式正確
+            model_name = self.model
+            # 如果模型名稱不包含 'models/' 前綴，則添加
+            if not model_name.startswith('models/'):
+                # 將舊版本映射到新版本
+                model_mapping = {
+                    'gemini-1.5-flash': 'models/gemini-2.0-flash',
+                    'gemini-1.5-pro': 'models/gemini-2.5-pro',
+                    'gemini-pro': 'models/gemini-2.5-pro',
+                }
+                model_name = model_mapping.get(model_name, f'models/{model_name}')
+            
+            url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={self.api_key}"
             
             headers = {
                 'Content-Type': 'application/json'

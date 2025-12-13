@@ -271,6 +271,8 @@ class ConversationLog(models.Model):
     ai_model = models.CharField(
         max_length=50,
         blank=True,
+        null=True,  # 允許資料庫為 NULL
+        default='',
         verbose_name='AI 模型',
         help_text='例如：gpt-4, gemini-pro'
     )

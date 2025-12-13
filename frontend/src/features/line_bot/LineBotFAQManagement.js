@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getAllFAQs, createFAQ, updateFAQ, deleteFAQ, getPopularFAQs } from '../../api/lineBotApi';
 import './LineBotFAQManagement.css';
 
 const LineBotFAQManagement = () => {
+  const navigate = useNavigate();
   const [faqs, setFaqs] = useState([]);
   const [popularFaqs, setPopularFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -148,7 +150,16 @@ const LineBotFAQManagement = () => {
   return (
     <div className="linebot-faq-management">
       <div className="faq-header">
-        <h2>🤖 LINE BOT FAQ 管理</h2>
+        <div>
+          <button
+            className="btn btn-secondary"
+            onClick={() => navigate('/merchant/line-bot')}
+            style={{ marginRight: '10px' }}
+          >
+            ← 返回設定
+          </button>
+          <h2 style={{ display: 'inline-block', marginLeft: '10px' }}>🤖 LINE BOT FAQ 管理</h2>
+        </div>
         <button
           className="btn btn-primary"
           onClick={() => setShowForm(!showForm)}

@@ -51,7 +51,7 @@ class StoreFAQSerializer(serializers.ModelSerializer):
             'keywords', 'priority', 'is_active', 'usage_count',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['usage_count', 'created_at', 'updated_at']
+        read_only_fields = ['store', 'usage_count', 'created_at', 'updated_at']
 
     def validate_keywords(self, value):
         """確保 keywords 是列表"""
