@@ -143,7 +143,7 @@ function DineInCartPage() {
           notes: notes,  // 備註不包含桌號
         };
         
-        const surplusResponse = await api.post('/merchant/surplus/orders/', surplusPayload);
+        const surplusResponse = await api.post('/surplus/orders/', surplusPayload);
         orderResults.push({
           type: 'surplus',
           code: surplusResponse.data?.order_number,

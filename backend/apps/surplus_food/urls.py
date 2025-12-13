@@ -17,6 +17,7 @@ router.register(r'orders', SurplusFoodOrderViewSet, basename='surplus-order')
 # 公開 API（顧客端）
 public_router = DefaultRouter()
 public_router.register(r'foods', PublicSurplusFoodViewSet, basename='public-surplus-food')
+public_router.register(r'orders', SurplusFoodOrderViewSet, basename='public-surplus-order')
 
 urlpatterns = [
     # 商家端 API

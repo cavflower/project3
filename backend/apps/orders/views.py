@@ -9,6 +9,7 @@ from firebase_admin import firestore
 from .serializers import TakeoutOrderSerializer, DineInOrderSerializer, NotificationSerializer
 from .models import TakeoutOrder, DineInOrder, Notification
 from apps.stores.models import Store
+from apps.surplus_food.models import SurplusFoodOrder
 from django.db.models import Q
 
 
@@ -223,6 +224,8 @@ class CustomerOrderListView(APIView):
         takeout_orders = TakeoutOrder.objects.filter(user=user).select_related('store')
         # 查詢內用訂單
         dinein_orders = DineInOrder.objects.filter(user=user).select_related('store')
+        # 查詢惜福品訂單
+        surplus_orders = SurplusFoodOrder.objects.filter(user=user).select_related('store')
         
         # 合併訂單資料
         orders = []
@@ -261,6 +264,25 @@ class CustomerOrderListView(APIView):
                 'order_type_display': '內用',
                 'table_label': order.table_label,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
+            })
+
+        # 處理惜福品訂單
+        for order in surplus_orders:
+            orders.append({
+                'id': order.id,
+                'store_name': order.store.name,
+                'pickup_number': order.pickup_number,
+                'order_number': order.order_number,
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+                'payment_method': order.get_payment_method_display(),
+                'notes': order.notes,
+                'status': order.status,
+                'status_display': order.get_status_display(),
+                'order_type_display': '惜福品',
+                'pickup_at': order.pickup_time.isoformat() if order.pickup_time else None,
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+                'total_price': order.total_price,
             })
         
         # 按建立時間排序（最新的在前）

@@ -46,9 +46,12 @@ const CustomerOrdersPage = () => {
     const statusMap = {
       pending: 'status-pending',
       accepted: 'status-accepted',
+      confirmed: 'status-accepted',
       ready_for_pickup: 'status-ready',
+      ready: 'status-ready',
       completed: 'status-completed',
       rejected: 'status-rejected',
+      cancelled: 'status-rejected',
     };
     return statusMap[status] || 'status-default';
   };

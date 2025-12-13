@@ -169,7 +169,7 @@ function TakeoutCartPage() {
           notes: notes,
         };
         
-        const surplusResponse = await api.post('/merchant/surplus/orders/', surplusPayload);
+        const surplusResponse = await api.post('/surplus/orders/', surplusPayload);
         orderResults.push({
           type: 'surplus',
           code: surplusResponse.data?.order_number,
