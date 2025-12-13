@@ -229,9 +229,21 @@ class CustomerOrderListView(APIView):
         
         # 處理外帶訂單
         for order in takeout_orders:
+            # 獲取訂單項目
+            items = []
+            for item in order.items.select_related('product').all():
+                items.append({
+                    'id': item.id,
+                    'product_id': item.product.id,
+                    'product_name': item.product.name,
+                    'quantity': item.quantity,
+                    'price': float(item.product.price),
+                })
+            
             orders.append({
                 'id': order.id,
                 'store_name': order.store.name,
+                'store_id': order.store.id,
                 'pickup_number': order.pickup_number,
                 'order_number': order.pickup_number,
                 'customer_name': order.customer_name,
@@ -243,13 +255,26 @@ class CustomerOrderListView(APIView):
                 'order_type_display': '外帶',
                 'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
+                'items': items,
             })
         
         # 處理內用訂單
         for order in dinein_orders:
+            # 獲取訂單項目
+            items = []
+            for item in order.items.select_related('product').all():
+                items.append({
+                    'id': item.id,
+                    'product_id': item.product.id,
+                    'product_name': item.product.name,
+                    'quantity': item.quantity,
+                    'price': float(item.product.price),
+                })
+            
             orders.append({
                 'id': order.id,
                 'store_name': order.store.name,
+                'store_id': order.store.id,
                 'pickup_number': order.order_number,
                 'order_number': order.order_number,
                 'customer_name': order.customer_name,
@@ -261,6 +286,7 @@ class CustomerOrderListView(APIView):
                 'order_type_display': '內用',
                 'table_label': order.table_label,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
+                'items': items,
             })
         
         # 按建立時間排序（最新的在前）

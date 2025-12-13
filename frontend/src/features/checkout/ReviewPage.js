@@ -1,28 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaStar, FaRegStar, FaUtensils, FaStore, FaSmile, FaThumbsUp, FaCheckCircle } from 'react-icons/fa';
+import { getUserOrders } from '../../api/orderApi';
 import './ReviewPage.css';
 
 function ReviewPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   
+  // 訂單資料
+  const [orderData, setOrderData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
   // 評分狀態
   const [storeRating, setStoreRating] = useState(0);
   const [storeHoverRating, setStoreHoverRating] = useState(0);
-  const [productRatings, setProductRatings] = useState({
-    product1: 0,
-    product2: 0,
-  });
-  const [productHoverRatings, setProductHoverRatings] = useState({
-    product1: 0,
-    product2: 0,
-  });
+  const [productRatings, setProductRatings] = useState({});
+  const [productHoverRatings, setProductHoverRatings] = useState({});
   
   // 評論內容
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // 載入訂單資料
+  useEffect(() => {
+    const fetchOrderData = async () => {
+      try {
+        const response = await getUserOrders();
+        const order = response.data.find(o => o.id === parseInt(orderId));
+        
+        if (order) {
+          setOrderData(order);
+          // 初始化產品評分狀態
+          const initialRatings = {};
+          const initialHoverRatings = {};
+          order.items.forEach(item => {
+            initialRatings[item.id] = 0;
+            initialHoverRatings[item.id] = 0;
+          });
+          setProductRatings(initialRatings);
+          setProductHoverRatings(initialHoverRatings);
+        } else {
+          alert('找不到訂單資料');
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('載入訂單失敗:', error);
+        alert('載入訂單失敗');
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrderData();
+  }, [orderId, navigate]);
 
   // 快速評價標籤
   const quickTags = [
@@ -60,9 +93,9 @@ function ReviewPage() {
       setIsSubmitting(false);
       setIsSubmitted(true);
       
-      // 2秒後返回首頁
+      // 2秒後返回顧客首頁
       setTimeout(() => {
-        navigate('/');
+        navigate('/customer-home');
       }, 2000);
     }, 1000);
   };
@@ -86,6 +119,16 @@ function ReviewPage() {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="review-page">
+        <div className="review-container">
+          <p>載入中...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (isSubmitted) {
     return (
       <div className="review-page">
@@ -100,6 +143,16 @@ function ReviewPage() {
     );
   }
 
+  if (!orderData) {
+    return (
+      <div className="review-page">
+        <div className="review-container">
+          <p>找不到訂單資料</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="review-page">
       <div className="review-container">
@@ -107,6 +160,7 @@ function ReviewPage() {
         <div className="review-header">
           <h1>評價您的用餐體驗</h1>
           <p>訂單編號：{orderId}</p>
+          <p>店家：{orderData.store_name || orderData.store}</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -155,38 +209,33 @@ function ReviewPage() {
           </div>
 
           {/* 產品評分 */}
-          <div className="review-section product-rating-section">
-            <div className="section-header">
-              <FaUtensils className="section-icon" />
-              <h3>餐點評分</h3>
-            </div>
-            <div className="product-ratings">
-              <div className="product-item">
-                <div className="product-info">
-                  <span className="product-name">一般產品 A</span>
-                </div>
-                {renderStars(
-                  productRatings.product1,
-                  productHoverRatings.product1,
-                  (rating) => handleProductRating('product1', rating),
-                  (rating) => setProductHoverRatings({ ...productHoverRatings, product1: rating }),
-                  () => setProductHoverRatings({ ...productHoverRatings, product1: 0 })
-                )}
+          {orderData && orderData.items && orderData.items.length > 0 && (
+            <div className="review-section product-rating-section">
+              <div className="section-header">
+                <FaUtensils className="section-icon" />
+                <h3>餐點評分</h3>
               </div>
-              <div className="product-item">
-                <div className="product-info">
-                  <span className="product-name">一般產品 B</span>
-                </div>
-                {renderStars(
-                  productRatings.product2,
-                  productHoverRatings.product2,
-                  (rating) => handleProductRating('product2', rating),
-                  (rating) => setProductHoverRatings({ ...productHoverRatings, product2: rating }),
-                  () => setProductHoverRatings({ ...productHoverRatings, product2: 0 })
-                )}
+              <div className="product-ratings">
+                {orderData.items.map((item) => (
+                  <div key={item.id} className="product-item">
+                    <div className="product-info">
+                      <span className="product-name">
+                        {item.product_name || item.name}
+                        {item.quantity > 1 && ` x${item.quantity}`}
+                      </span>
+                    </div>
+                    {renderStars(
+                      productRatings[item.id] || 0,
+                      productHoverRatings[item.id] || 0,
+                      (rating) => handleProductRating(item.id, rating),
+                      (rating) => setProductHoverRatings({ ...productHoverRatings, [item.id]: rating }),
+                      () => setProductHoverRatings({ ...productHoverRatings, [item.id]: 0 })
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
 
           {/* 文字評論 */}
           <div className="review-section comment-section">
@@ -217,7 +266,7 @@ function ReviewPage() {
             <button 
               type="button" 
               className="cancel-btn"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/customer-home')}
             >
               稍後再說
             </button>

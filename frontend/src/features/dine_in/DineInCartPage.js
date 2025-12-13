@@ -157,32 +157,8 @@ function DineInCartPage() {
       
       const paymentLabel = paymentOptionsList.find((o) => o.value === paymentMethod)?.label;
       
-      // 構建成功訊息
-      let alertMessage = `桌號：${tableLabel || '未提供'}\n付款方式：${paymentLabel}\n環保餐具：${useEcoTableware === 'yes' ? '有' : '無'}\n`;
-      
       const regularOrder = orderResults.find(r => r.type === 'regular');
-      if (regularOrder) {
-        alertMessage += `\n【內用訂單】\n取單號碼：${regularOrder.pickupNumber || "待通知"}`;
-      }
-      
       const surplusOrders = orderResults.filter(r => r.type === 'surplus');
-      if (surplusOrders.length > 0) {
-        const pickupNumbers = surplusOrders
-          .map(o => o.pickupNumber)
-          .filter(Boolean)
-          .join(', ');
-        const codes = surplusOrders.map(o => o.code).filter(Boolean).join(', ');
-        
-        alertMessage += `\n\n【惜福品訂單】`;
-        if (pickupNumbers) {
-          alertMessage += `\n取單號碼：${pickupNumbers}`;
-        }
-        alertMessage += `\n訂單編號：${codes || "待處理"}`;
-      }
-      
-      alertMessage += '\n\n請等待服務人員確認。';
-      
-      alert(alertMessage);
 
       // 如果有一般訂單，導向確認頁；否則返回菜單
       if (regularOrder && regularOrder.orderId) {
