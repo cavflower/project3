@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from apps.stores.models import Store
 from apps.products.models import Product
@@ -398,6 +399,15 @@ class SurplusFoodOrder(models.Model):
         on_delete=models.CASCADE,
         related_name='surplus_orders',
         verbose_name='店家'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='user_surplus_orders',
+        verbose_name='會員',
+        help_text='如果是會員下單則記錄用戶資訊'
     )
     # 移除單一品項關聯，改用 items 關聯支援多品項
     # surplus_food 欄位已被 SurplusFoodOrderItem 取代

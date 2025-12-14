@@ -345,10 +345,17 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
         print(f"生成取餐號碼：{pickup_number}")
         
         # 保存訂單（serializer.save 會調用 create 方法處理品項）
-        order = serializer.save(
-            store=store,
-            pickup_number=pickup_number
-        )
+        save_kwargs = {
+            'store': store,
+            'pickup_number': pickup_number
+        }
+        
+        # 如果用戶已登入且不是商家（或者是商家但想記錄），關聯用戶
+        # 通常惜福品是由顧客購買，所以記錄當前登入用戶
+        if request.user.is_authenticated:
+            save_kwargs['user'] = request.user
+            
+        order = serializer.save(**save_kwargs)
         
         # 寫入 Firestore（惜福品專用 collection）
         try:
