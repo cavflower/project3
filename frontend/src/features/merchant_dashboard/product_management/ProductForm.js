@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes } from 'react-icons/fa';
+import { FaTimes, FaTag } from 'react-icons/fa';
 import './ProductForm.css';
 import { createProduct, updateProduct } from '../../../api/productApi';
 
@@ -10,8 +10,10 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
     description: '',
     image: null,
     service_type: 'both',
+    food_tags: [],
   });
   const [error, setError] = useState('');
+  const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
     // 滾動到表單位置
@@ -29,6 +31,7 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
         description: product.description,
         image: null,
         service_type: product.service_type || 'both',
+        food_tags: product.food_tags || [],
       });
     }
   }, [product]);
@@ -46,6 +49,39 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
       ...prev,
       image: e.target.files[0],
     }));
+  };
+
+  const handleAddTag = (e) => {
+    e.preventDefault();
+    const trimmedTag = tagInput.trim();
+    
+    if (!trimmedTag) return;
+    
+    // 檢查是否已存在
+    if (formData.food_tags.includes(trimmedTag)) {
+      alert('此標籤已存在');
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      food_tags: [...prev.food_tags, trimmedTag]
+    }));
+    setTagInput('');
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      food_tags: prev.food_tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const handleTagInputKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag(e);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -76,6 +112,11 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
       } else if (initialCategory) {
         data.append('category', initialCategory.id);
       }
+      
+      // 加入食物標籤（每個標籤單獨 append）
+      formData.food_tags.forEach(tag => {
+        data.append('food_tags', tag);
+      });
       
       if (formData.image) {
         data.append('image', formData.image);
@@ -181,6 +222,49 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
               <option value="dine_in">內用</option>
               <option value="takeaway">外帶</option>
             </select>
+          </div>
+
+          <div className="form-group">
+            <label>
+              <FaTag /> 食物標籤（用於個人化推薦）
+            </label>
+            <p className="form-hint">輸入此商品的特性標籤，例如：辣、素食、健康</p>
+            
+            <div className="tag-input-container">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagInputKeyDown}
+                placeholder="輸入標籤後按 Enter"
+                maxLength={20}
+              />
+              <button
+                type="button"
+                className="add-tag-btn"
+                onClick={handleAddTag}
+              >
+                新增
+              </button>
+            </div>
+            
+            {formData.food_tags.length > 0 && (
+              <div className="food-tags-display">
+                {formData.food_tags.map((tag, index) => (
+                  <span key={index} className="food-tag-item">
+                    {tag}
+                    <button
+                      type="button"
+                      className="remove-tag-btn"
+                      onClick={() => handleRemoveTag(tag)}
+                      title="移除標籤"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="form-actions">

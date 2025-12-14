@@ -102,6 +102,7 @@ class PublicProductViewSet(viewsets.ReadOnlyModelViewSet):
         store_id = self.request.query_params.get('store')
         service_type = self.request.query_params.get('service_type')
         category_id = self.request.query_params.get('category')
+        food_tag = self.request.query_params.get('food_tag')
         
         if store_id:
             qs = qs.filter(store_id=store_id)
@@ -109,6 +110,9 @@ class PublicProductViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(service_type__in=[service_type, 'both'])
         if category_id:
             qs = qs.filter(category_id=category_id)
+        if food_tag:
+            # 支援按食物標籤篩選（JSONField 包含查詢）
+            qs = qs.filter(food_tags__contains=[food_tag])
         
         # 按類別排序
         return qs.order_by('category__display_order', 'category__name', 'name')

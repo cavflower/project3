@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaPlus, FaFolder } from 'react-icons/fa';
 import ProductForm from './ProductForm';
 import ProductCategoryForm from './ProductCategoryForm';
+import FoodTags from '../../../components/common/FoodTags';
 import './ProductManagementPage.css';
 import { getProducts, deleteProduct, getProductCategories, deleteProductCategory } from '../../../api/productApi';
 
@@ -250,6 +251,9 @@ const ProductManagementPage = () => {
                       </div>
                       <p className="price">NT$ {Number(product.price).toFixed(0)}</p>
                       <p>{product.description}</p>
+                      {product.food_tags && product.food_tags.length > 0 && (
+                        <FoodTags tags={product.food_tags} maxDisplay={5} />
+                      )}
                     </div>
                     <div className="product-actions-manage">
                       <button className="icon-btn edit-btn" onClick={() => handleEditClick(product)} title="編輯">

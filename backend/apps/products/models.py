@@ -71,6 +71,14 @@ class Product(models.Model):
         related_name='products',
         verbose_name='產品類別'
     )
+    
+    # 食物類型標籤（用於個人化推薦）- 店家自訂標籤
+    food_tags = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='食物標籤',
+        help_text='輸入此商品的食物特性標籤，例如：["辣", "甜", "素食"]'
+    )
 
     name = models.CharField(
         max_length=255,

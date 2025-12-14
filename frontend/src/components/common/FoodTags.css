@@ -1,0 +1,51 @@
+.food-tags-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.food-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  white-space: nowrap;
+}
+
+.food-tag .tag-icon {
+  font-size: 10px;
+}
+
+.food-tag-more {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  background-color: #e5e7eb;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* 響應式設計 */
+@media (max-width: 640px) {
+  .food-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  
+  .food-tag .tag-icon {
+    font-size: 9px;
+  }
+  
+  .food-tag-more {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+}

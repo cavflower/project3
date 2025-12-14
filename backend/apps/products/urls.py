@@ -1,7 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProductViewSet, PublicProductViewSet, ProductCategoryViewSet, PublicProductCategoryViewSet
-from .views import TakeoutOrderCreateView
+from .views import (
+    ProductViewSet, 
+    PublicProductViewSet, 
+    ProductCategoryViewSet, 
+    PublicProductCategoryViewSet,
+    TakeoutOrderCreateView
+)
 
 urlpatterns = [
     path('takeout/', TakeoutOrderCreateView.as_view(), name='takeout-order'),

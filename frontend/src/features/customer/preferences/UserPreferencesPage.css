@@ -1,0 +1,251 @@
+.preferences-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.preferences-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.header-icon {
+  font-size: 3rem;
+  color: #ef4444;
+  margin-bottom: 1rem;
+}
+
+.preferences-header h1 {
+  font-size: 2rem;
+  color: #1f2937;
+  margin: 0.5rem 0;
+}
+
+.header-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.error-state {
+  color: #ef4444;
+}
+
+/* 統計卡片 */
+.preferences-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+  font-size: 2rem;
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.stat-info h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.stat-info p {
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+}
+
+.recommendation-available {
+  color: #10b981;
+}
+
+/* 喜愛標籤區域 */
+.favorite-tags-section {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.favorite-tags-section h2 {
+  font-size: 1.5rem;
+  color: #1f2937;
+  margin: 0 0 1.5rem 0;
+}
+
+.favorite-tags-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.favorite-tag-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.favorite-tag-item:hover {
+  background: #f3f4f6;
+}
+
+.tag-rank {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ef4444;
+  min-width: 50px;
+  text-align: center;
+}
+
+.tag-content {
+  flex: 1;
+}
+
+.tag-content h3 {
+  font-size: 1.1rem;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.tag-stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tag-count {
+  color: #6b7280;
+  font-size: 0.9rem;
+  min-width: 80px;
+}
+
+.tag-bar {
+  flex: 1;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tag-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ef4444, #f59e0b);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* 空狀態 */
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #6b7280;
+}
+
+.empty-state p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.empty-hint {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+/* 推薦提示 */
+.recommendation-tip {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: start;
+}
+
+.tip-icon {
+  font-size: 2rem;
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.tip-content h3 {
+  font-size: 1.1rem;
+  color: #92400e;
+  margin: 0 0 0.5rem 0;
+}
+
+.tip-content p {
+  color: #78350f;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .preferences-page {
+    padding: 1rem;
+  }
+
+  .preferences-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-icon {
+    font-size: 2.5rem;
+  }
+
+  .preferences-stats {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .favorite-tags-section {
+    padding: 1.5rem;
+  }
+
+  .tag-rank {
+    font-size: 1.25rem;
+    min-width: 40px;
+  }
+
+  .tag-stats {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .tag-bar {
+    width: 100%;
+  }
+}

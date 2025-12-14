@@ -42,6 +42,11 @@ const getUserTypeFromUrl = (url, method = 'get') => {
     return 'merchant';
   }
   
+  // 推薦系統相關 API，使用 customer token
+  if (url.includes('/intelligence/')) {
+    return 'customer';
+  }
+  
 
   // /users/me/ 需要根據當前頁面路徑判斷
   if (url.includes('/users/me/')) {
