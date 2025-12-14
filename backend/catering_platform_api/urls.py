@@ -33,6 +33,7 @@ urlpatterns = [
     path('api/', include('apps.surplus_food.urls')),
     path('api/line-bot/', include('apps.line_bot.urls')),
     path('api/intelligence/', include('apps.intelligence.urls')),
+    path('api/reviews/', include('apps.reviews.urls')),
 
 ]
 

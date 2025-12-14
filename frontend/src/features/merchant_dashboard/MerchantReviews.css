@@ -1,0 +1,511 @@
+.merchant-reviews-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 20px;
+}
+
+.reviews-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+/* 統計卡片 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card.highlight {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.stat-icon {
+  font-size: 3rem;
+}
+
+.stat-info h3 {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.stat-card.highlight .stat-info h3,
+.stat-card.highlight .stat-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.stat-card.highlight .stat-value {
+  color: white;
+}
+
+.stat-subtitle {
+  font-size: 0.85rem;
+  color: #95a5a6;
+  margin: 0;
+}
+
+/* 標籤切換 */
+.tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  background: white;
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #7f8c8d;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab:hover {
+  background: #f8f9fa;
+  color: #2c3e50;
+}
+
+.tab.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 評論列表 */
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.review-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s;
+}
+
+.review-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.reviewer-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.reviewer-info h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+.review-date {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: #95a5a6;
+}
+
+/* 星星評分 */
+.star-rating {
+  display: flex;
+  gap: 4px;
+}
+
+.star {
+  font-size: 1.5rem;
+  color: #dcdde1;
+}
+
+.star.filled {
+  color: #ffd700;
+}
+
+/* 標籤 */
+.review-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tag {
+  padding: 6px 12px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* 評論內容 */
+.review-comment {
+  color: #34495e;
+  line-height: 1.6;
+  margin: 12px 0;
+  font-size: 1rem;
+}
+
+/* 商家回覆 */
+.merchant-reply {
+  background: #f8f9fa;
+  border-left: 4px solid #667eea;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.reply-header strong {
+  color: #667eea;
+  font-size: 0.95rem;
+}
+
+.reply-date {
+  font-size: 0.8rem;
+  color: #95a5a6;
+}
+
+.merchant-reply p {
+  margin: 0;
+  color: #2c3e50;
+  line-height: 1.6;
+}
+
+/* 按鈕 */
+.btn-reply,
+.btn-edit-reply {
+  margin-top: 12px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-reply:hover,
+.btn-edit-reply:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-edit-reply {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+/* 菜品評論特殊樣式 */
+.product-review .product-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.product-name {
+  font-size: 1.2rem;
+  color: #2c3e50;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* 空狀態 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #95a5a6;
+  font-size: 1.1rem;
+}
+
+/* 載入狀態 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 模態框 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #2c3e50;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #95a5a6;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f8f9fa;
+  color: #2c3e50;
+}
+
+.review-preview {
+  padding: 20px 24px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.review-preview .reviewer-info {
+  margin-bottom: 12px;
+}
+
+.review-preview p {
+  margin: 0;
+  color: #2c3e50;
+  line-height: 1.6;
+}
+
+.reply-textarea {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid #ecf0f1;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  margin: 24px;
+  width: calc(100% - 48px);
+  transition: border-color 0.2s;
+}
+
+.reply-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px;
+  border-top: 1px solid #ecf0f1;
+}
+
+.btn-cancel,
+.btn-submit {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background: #ecf0f1;
+  color: #2c3e50;
+}
+
+.btn-cancel:hover {
+  background: #dfe4e8;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .merchant-reviews-page {
+    padding: 12px;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-icon {
+    font-size: 2.5rem;
+  }
+
+  .tabs {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tab {
+    padding: 10px 16px;
+  }
+
+  .review-card {
+    padding: 16px;
+  }
+
+  .review-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .modal-content {
+    margin: 0;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .product-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

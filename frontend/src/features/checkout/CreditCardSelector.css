@@ -1,0 +1,273 @@
+.card-selector-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.card-selector-modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.card-selector-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-selector-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.card-selector-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.loading-text {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-size: 1rem;
+}
+
+.no-cards {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.no-cards p {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 1rem;
+}
+
+.btn-add-card {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-add-card:hover {
+  background: #45a049;
+}
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-item {
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fafafa;
+}
+
+.card-item:hover {
+  border-color: #2196F3;
+  background: #f0f8ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+}
+
+.card-item.selected {
+  border-color: #2196F3;
+  background: #e3f2fd;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.card-item input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.card-number {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: 1px;
+  font-family: 'Courier New', monospace;
+}
+
+.card-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.card-holder {
+  font-weight: 500;
+}
+
+.card-expiry {
+  color: #999;
+}
+
+.default-badge {
+  position: absolute;
+  top: -8px;
+  right: 0;
+  background: #4CAF50;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.card-selector-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.card-selector-footer button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background: #e0e0e0;
+}
+
+.btn-primary {
+  background: #2196F3;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #1976D2;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+/* 手機版響應式設計 */
+@media (max-width: 768px) {
+  .card-selector-modal {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .card-selector-header {
+    padding: 16px 20px;
+  }
+
+  .card-selector-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .card-selector-body {
+    padding: 16px 20px;
+  }
+
+  .card-item {
+    padding: 14px;
+  }
+
+  .card-number {
+    font-size: 1rem;
+  }
+
+  .card-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}

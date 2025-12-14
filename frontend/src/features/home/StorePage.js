@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
 import { useAuth } from '../../store/AuthContext';
 import { getTakeoutProducts } from '../../api/orderApi';
+import api from '../../api/api';
 import './StorePage.css';
 
 function StorePage() {
@@ -12,6 +13,8 @@ function StorePage() {
   const { user } = useAuth();
   const [store, setStore] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
+  const [reviewStats, setReviewStats] = useState({ avg: 0, count: 0 });
+  const [prefetchedStoreReviews, setPrefetchedStoreReviews] = useState(null);
   const [loading, setLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,6 +44,20 @@ function StorePage() {
       setError('');
       const response = await getStore(storeId);
       setStore(response.data);
+      // 同步抓取店家評論統計，用於頁首顯示
+      try {
+        const reviewsRes = await api.get(`/reviews/store-reviews/?store_id=${storeId}`);
+        const reviews = reviewsRes.data || [];
+        const avg = reviews.length > 0
+          ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+          : 0;
+        setReviewStats({ avg, count: reviews.length });
+        setPrefetchedStoreReviews(reviews);
+      } catch (e) {
+        console.warn('載入店家評論統計失敗', e);
+        setReviewStats({ avg: 0, count: 0 });
+        setPrefetchedStoreReviews(null);
+      }
       // 移除這裡的自動載入商品
       // await loadMenuItems(storeId);
 
@@ -199,7 +216,7 @@ function StorePage() {
                 )}
                 <span className="store-info-item">
                   <i className="bi bi-star-fill text-warning"></i>
-                  4.5 (123 評論)
+                  {reviewStats.avg} ({reviewStats.count} 評論)
                 </span>
               </div>
             </div>
@@ -483,33 +500,31 @@ function StorePage() {
                       </div>
                       <p className="mt-3 text-muted">載入菜單資料中...</p>
                     </div>
-                  ) : store.menu_type === 'text' && store.menu_text ? (
+                  ) : menuItems.length > 0 ? (
 
                     <div className="store-section-card">
                       <div className="menu-header">
                         <h3 className="store-section-title">菜單</h3>
                         <span className="menu-tax-note">(含稅價格)</span>
 
-                        {menuItems.length > 0 && (
-                          <span className="menu-count-badge">共 {menuItems.length} 項商品</span>
-                        )}
+                        <span className="menu-count-badge">共 {menuItems.length} 項商品</span>
                       </div>
                       <div className="menu-text-content">
                           {visibleProducts.length > 0 ? (
                             <>
-                              {visibleProducts
-                                .filter(item => item.service_type !== 'takeaway') // 內用顯示 dine_in 或 both
-                                .map(item => (
+                              {visibleProducts.map(item => (
                                   <div key={item.id} className="menu-item-card">
                                     <div className="menu-item-header">
-                                      <h4 className="menu-item-title">{item.name}</h4>
+                                      <div>
+                                        <h4 className="menu-item-title">{item.name}</h4>
+                                        {item.category_name && (
+                                          <span className="menu-item-category-badge">{item.category_name}</span>
+                                        )}
+                                      </div>
                                       <span className="menu-item-price">NT$ {Number(item.price).toFixed(0)}</span>
                                     </div>
                                     {item.description && (
                                       <p className="menu-item-description">{item.description}</p>
-                                    )}
-                                    {item.category_name && (
-                                      <span className="menu-item-category-badge">{item.category_name}</span>
                                     )}
                                   </div>
                                 ))}
@@ -576,12 +591,11 @@ function StorePage() {
               )}
 
               {activeTab === 'reviews' && (
-                <div className="store-reviews-section">
-                  <div className="store-section-card">
-                    <h3 className="store-section-title">評論</h3>
-                    <p className="text-muted">評論功能開發中...</p>
-                  </div>
-                </div>
+                <StoreReviews 
+                  storeId={storeId} 
+                  initialStoreReviews={prefetchedStoreReviews}
+                  initialStoreStats={reviewStats}
+                />
               )}
             </div>
           </div>
@@ -640,6 +654,249 @@ function StorePage() {
             </button>
             <img src={selectedImage} alt="放大檢視" />
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 評論組件
+function StoreReviews({ storeId, initialStoreReviews = null, initialStoreStats = null }) {
+  const [storeReviews, setStoreReviews] = useState(initialStoreReviews || []);
+  const [productReviews, setProductReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeReviewTab, setActiveReviewTab] = useState('store');
+  const [stats, setStats] = useState({
+    avgStoreRating: initialStoreStats?.avg ?? 0,
+    totalStoreReviews: initialStoreStats?.count ?? 0,
+    avgProductRating: 0,
+    totalProductReviews: 0
+  });
+
+  useEffect(() => {
+    loadReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId]);
+
+  const loadReviews = async () => {
+    try {
+      setLoading(true);
+      
+      // 店家評論：若有預取資料則直接使用，否則請求
+      let storeData = initialStoreReviews;
+      if (!storeData) {
+        const storeRes = await api.get(`/reviews/store-reviews/?store_id=${storeId}`);
+        storeData = storeRes.data;
+        setStoreReviews(storeData);
+      }
+      if (storeData) {
+        const avgStoreRating = storeData.length > 0
+          ? (storeData.reduce((sum, r) => sum + r.rating, 0) / storeData.length).toFixed(1)
+          : 0;
+        setStats(prev => ({
+          ...prev,
+          avgStoreRating,
+          totalStoreReviews: storeData.length
+        }));
+      }
+      
+      // 載入菜品評論
+      const productRes = await api.get(`/reviews/product-reviews/?store_id=${storeId}`);
+      setProductReviews(productRes.data);
+      
+      // 計算統計數據
+      const avgProductRating = productRes.data.length > 0
+        ? (productRes.data.reduce((sum, r) => sum + r.rating, 0) / productRes.data.length).toFixed(1)
+        : 0;
+      
+      setStats(prev => ({
+        ...prev,
+        avgProductRating,
+        totalProductReviews: productRes.data.length
+      }));
+    } catch (error) {
+      console.error('載入評論失敗:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderStars = (rating) => {
+    return (
+      <div className="review-stars">
+        {[1, 2, 3, 4, 5].map(star => (
+          <span key={star} className={star <= rating ? 'star filled' : 'star'}>
+            ★
+          </span>
+        ))}
+      </div>
+    );
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="store-section-card">
+        <div className="reviews-loading">載入評論中...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="store-reviews-container">
+      {/* 統計卡片 */}
+      <div className="reviews-stats-row">
+        <div className="review-stat-card">
+          <div className="stat-icon icon-shop">
+            <i className="bi bi-shop"></i>
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stats.avgStoreRating} ⭐</div>
+            <div className="stat-label">店家評分</div>
+            <div className="stat-count">{stats.totalStoreReviews} 則評論</div>
+          </div>
+        </div>
+
+        <div className="review-stat-card">
+          <div className="stat-icon icon-dish">
+            <i className="bi bi-egg-fried"></i>
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{stats.avgProductRating} ⭐</div>
+            <div className="stat-label">菜品評分</div>
+            <div className="stat-count">{stats.totalProductReviews} 則評論</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 評論分類標籤 */}
+      <div className="review-tabs">
+        <button
+          className={`review-tab ${activeReviewTab === 'store' ? 'active' : ''}`}
+          onClick={() => setActiveReviewTab('store')}
+        >
+          店家評論 ({stats.totalStoreReviews})
+        </button>
+        <button
+          className={`review-tab ${activeReviewTab === 'product' ? 'active' : ''}`}
+          onClick={() => setActiveReviewTab('product')}
+        >
+          菜品評論 ({stats.totalProductReviews})
+        </button>
+      </div>
+
+      {/* 店家評論列表 */}
+      {activeReviewTab === 'store' && (
+        <div className="reviews-list">
+          {storeReviews.length === 0 ? (
+            <div className="no-reviews">
+              <p>暫無店家評論</p>
+            </div>
+          ) : (
+            storeReviews.map(review => (
+              <div key={review.id} className="review-item">
+                <div className="review-header">
+                  <div className="reviewer-info">
+                    {review.user_avatar ? (
+                      <img 
+                        src={review.user_avatar} 
+                        alt={review.user_name}
+                        className="reviewer-avatar"
+                      />
+                    ) : (
+                      <div className="reviewer-avatar-placeholder">{review.user_name[0]}</div>
+                    )}
+                    <div>
+                      <div className="reviewer-name">{review.user_name}</div>
+                      <div className="review-date">{formatDate(review.created_at)}</div>
+                    </div>
+                  </div>
+                  {renderStars(review.rating)}
+                </div>
+
+                {review.tags && review.tags.length > 0 && (
+                  <div className="review-tags">
+                    {review.tags.map((tag, index) => (
+                      <span key={index} className="review-tag">{tag}</span>
+                    ))}
+                  </div>
+                )}
+
+                {review.comment && (
+                  <p className="review-comment">{review.comment}</p>
+                )}
+
+                {review.merchant_reply && (
+                  <div className="merchant-reply-box">
+                    <div className="reply-header">
+                      <strong>商家回覆</strong>
+                      <span className="reply-date">{formatDate(review.replied_at)}</span>
+                    </div>
+                    <p className="reply-text">{review.merchant_reply}</p>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* 菜品評論列表 */}
+      {activeReviewTab === 'product' && (
+        <div className="reviews-list">
+          {productReviews.length === 0 ? (
+            <div className="no-reviews">
+              <p>暫無菜品評論</p>
+            </div>
+          ) : (
+            productReviews.map(review => (
+              <div key={review.id} className="review-item product-review-item">
+                <div className="product-review-header">
+                  {review.product_image && (
+                    <img 
+                      src={review.product_image} 
+                      alt={review.product_name}
+                      className="product-thumb"
+                    />
+                  )}
+                  <div className="product-review-info">
+                    <h4 className="product-review-name">{review.product_name}</h4>
+                    {renderStars(review.rating)}
+                  </div>
+                </div>
+
+                <div className="review-header">
+                  <div className="reviewer-info">
+                    {review.user_avatar ? (
+                      <img 
+                        src={review.user_avatar} 
+                        alt={review.user_name}
+                        className="reviewer-avatar"
+                      />
+                    ) : (
+                      <div className="reviewer-avatar-placeholder">{review.user_name[0]}</div>
+                    )}
+                    <div>
+                      <div className="reviewer-name">{review.user_name}</div>
+                      <div className="review-date">{formatDate(review.created_at)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {review.comment && (
+                  <p className="review-comment">{review.comment}</p>
+                )}
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

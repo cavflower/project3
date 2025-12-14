@@ -8,4 +8,5 @@ djangorestframework-simplejwt
 Pillow
 openai
 requests
+cryptography
 

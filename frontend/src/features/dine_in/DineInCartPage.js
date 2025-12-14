@@ -4,6 +4,7 @@ import { FaArrowLeft, FaPlus, FaMinus } from "react-icons/fa";
 import { createDineInOrder } from "../../api/orderApi";
 import api from "../../api/api";
 import { useAuth } from "../../store/AuthContext";
+import CreditCardSelector from "../checkout/CreditCardSelector";
 import "../takeout/TakeoutCartPage.css";
 
 const paymentOptionsList = [
@@ -27,6 +28,8 @@ function DineInCartPage() {
   const [useEcoTableware, setUseEcoTableware] = useState("no");
   const [notes, setNotes] = useState(initialCart?.notes || "");
   const [submitting, setSubmitting] = useState(false);
+  const [showCardSelector, setShowCardSelector] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
 
   // 分離一般商品和惜福品
   const regularItems = useMemo(
@@ -97,6 +100,18 @@ function DineInCartPage() {
       finalName = user.username || user.email || '訪客';
       finalPhone = user.phone_number || '訪客';
     }
+    
+    // 如果選擇信用卡付款且已登入，先顯示卡片選擇器
+    if (paymentMethod === 'credit_card' && user) {
+      setShowCardSelector(true);
+      return;
+    }
+    
+    // 其他付款方式或未登入直接執行訂單
+    await executeOrder(finalName, finalPhone);
+  };
+  
+  const executeOrder = async (finalName, finalPhone) => {
     
     try {
       setSubmitting(true);
@@ -182,6 +197,22 @@ function DineInCartPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+  
+  const handleCardSelected = async (card) => {
+    setSelectedCard(card);
+    
+    // 決定使用的聯絡資訊
+    let finalName = '訪客';
+    let finalPhone = '訪客';
+    
+    if (user) {
+      finalName = user.username || user.email || '訪客';
+      finalPhone = user.phone_number || '訪客';
+    }
+    
+    // 執行訂單
+    await executeOrder(finalName, finalPhone);
   };
 
   return (
@@ -452,6 +483,13 @@ function DineInCartPage() {
           </button>
         </div>
       </div>
+      
+      {/* 信用卡選擇器 */}
+      <CreditCardSelector
+        show={showCardSelector}
+        onClose={() => setShowCardSelector(false)}
+        onSelectCard={handleCardSelected}
+      />
     </div>
   );
 }

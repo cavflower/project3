@@ -20,6 +20,7 @@ import AdminLoginPage from './features/admin/AdminLoginPage';
 import AdminDashboard from './features/admin/AdminDashboard';
 import CustomerHomePage from './features/home/CustomerHomePage';
 import MerchantDashboard from './features/merchant_dashboard/MerchantDashboard';
+import MerchantReviews from './features/merchant_dashboard/MerchantReviews';
 import ProfilePage from './features/user_profile/ProfilePage'; // 1. 匯入新的個人資料頁面
 import ProductManagementPage from './features/merchant_dashboard/product_management/ProductManagementPage';
 import PlanSelectionPage from './features/plan_selection/PlanSelectionPage'; // 匯入方案選擇頁面
@@ -164,6 +165,15 @@ function App() {
               <Route path="/merchant/dine-in" element={<ProtectedRoute><DineInSettingsPage /></ProtectedRoute>}
 />
 
+              {/* 商家評論管理 */}
+              <Route 
+                path="/merchant/reviews" 
+                element={
+                  <ProtectedRoute>
+                    <MerchantReviews />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* 店家儀表板 (/dashboard)：受保護 */}
               <Route 

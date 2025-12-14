@@ -1,0 +1,285 @@
+/* 信用卡管理樣式 */
+.payment-cards-section {
+  margin-top: 40px;
+  padding: 30px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.section-header h2 {
+  font-size: 24px;
+  color: #333;
+  margin: 0;
+}
+
+.add-card-btn {
+  padding: 10px 20px;
+  background: #ff6b35;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.3s;
+}
+
+.add-card-btn:hover {
+  background: #e85a2a;
+}
+
+.cards-list {
+  display: grid;
+  gap: 20px;
+}
+
+.card-item {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.card-item.default {
+  border: 2px solid #ff6b35;
+}
+
+.card-info {
+  flex: 1;
+}
+
+.card-number {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+
+.card-details {
+  display: flex;
+  gap: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.card-holder {
+  font-weight: 500;
+}
+
+.card-expiry {
+  color: #999;
+}
+
+.default-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #ff6b35;
+  color: white;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 10px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.set-default-btn,
+.edit-card-btn,
+.delete-card-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.set-default-btn {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.set-default-btn:hover {
+  background: #dee2e6;
+}
+
+.edit-card-btn {
+  background: #17a2b8;
+  color: white;
+}
+
+.edit-card-btn:hover {
+  background: #138496;
+}
+
+.delete-card-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.delete-card-btn:hover {
+  background: #c82333;
+}
+
+.no-cards-message {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+/* 信用卡表單 Modal */
+.card-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.card-modal {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.card-modal h3 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  color: #333;
+}
+
+.card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 8px;
+  color: #495057;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.form-group input {
+  padding: 12px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #ff6b35;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.submit-btn,
+.cancel-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.submit-btn {
+  background: #ff6b35;
+  color: white;
+}
+
+.submit-btn:hover {
+  background: #e85a2a;
+}
+
+.submit-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.cancel-btn:hover {
+  background: #dee2e6;
+}
+
+@media (max-width: 768px) {
+  .card-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}

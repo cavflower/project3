@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { updateMerchantPlan } from '../../api/authApi';
 import { getMyStore } from '../../api/storeApi';
+import PaymentCards from './PaymentCards';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -302,6 +303,9 @@ const ProfilePage = () => {
             </div>
           </div>
         )}
+
+        {/* 信用卡管理區域 - 僅顧客端顯示 */}
+        {user.user_type === 'customer' && <PaymentCards />}
       </div>
     </div>
   );
