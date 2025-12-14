@@ -266,7 +266,7 @@ const LineBotSettings = () => {
                 onChange={handleChange}
                 helperText={
                   formData.ai_provider === 'gemini'
-                    ? '例如: gemini-1.5-flash'
+                    ? '例如: gemini-2.5-flash'
                     : '例如: gpt-4o-mini'
                 }
               />

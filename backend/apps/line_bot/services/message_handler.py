@@ -116,9 +116,9 @@ class AIReplyService:
             # 準備對話內容
             full_prompt = f"{system_prompt}\n\n"
             
-            # 加入對話歷史（最多 5 則）
+            # 加入對話歷史（最多 3 則，減少 token 用量）
             if conversation_history and self.config.enable_conversation_history:
-                for msg in conversation_history[-5:]:
+                for msg in conversation_history[-3:]:  # 從 5 則改為 3 則
                     role = "顧客" if msg.get("role") == "user" else "助手"
                     full_prompt += f"{role}: {msg.get('content', '')}\n"
             
@@ -132,8 +132,8 @@ class AIReplyService:
             if not model_name.startswith('models/'):
                 # 將舊版本映射到新版本（使用 2.5 系列，配額更充裕）
                 model_mapping = {
-                    'gemini-1.5-flash': 'models/gemini-2.5-flash',
-                    'gemini-1.5-pro': 'models/gemini-2.5-pro',
+                    'gemini-2.5-flash': 'models/gemini-2.5-flash',
+                    'gemini-2.5-pro': 'models/gemini-2.5-pro',
                     'gemini-pro': 'models/gemini-2.5-pro',
                 }
                 model_name = model_mapping.get(model_name, f'models/{model_name}')
@@ -233,30 +233,16 @@ class AIReplyService:
         if self.config.custom_system_prompt:
             return self.config.custom_system_prompt
         
-        # 否則使用預設提示詞
-        prompt = f"""你是 {store_info.get('name', '餐廳')} 的 LINE 官方帳號智能客服助手。
+        # 簡化版提示詞，減少 token 用量
+        prompt = f"""你是 {store_info.get('name', '餐廳')} 的智能客服。
 
-餐廳資訊：
-- 餐廳名稱：{store_info.get('name', '未提供')}
-- 餐廳類型：{store_info.get('cuisine_type', '未提供')}
+基本資訊：
+- 類型：{store_info.get('cuisine_type', '未提供')}
 - 地址：{store_info.get('address', '未提供')}
 - 電話：{store_info.get('phone', '未提供')}
 - 營業時間：{store_info.get('opening_hours', '未提供')}
-- 餐廳描述：{store_info.get('description', '未提供')}
 
-你的任務：
-1. 友善、專業地回答客人的問題
-2. 提供準確的餐廳資訊
-3. 如果不確定答案，建議客人直接聯繫店家
-4. 保持簡潔，避免過長的回覆
-5. 使用繁體中文回覆
-6. 可以適時推薦餐點或優惠活動
-
-注意事項：
-- 不要捏造資訊
-- 不要承諾店家無法提供的服務
-- 遇到訂位、訂餐等需求時，引導客人使用系統功能或聯繫店家
-"""
+任務：友善回答問題，保持簡潔，使用繁體中文。不確定時建議聯繫店家。"""
         return prompt
 
 

@@ -91,15 +91,23 @@ class RecommendationService:
             if not product.food_tags:
                 continue
             
-            # 計算標籤匹配度
-            matching_tags = set(product.food_tags) & set(favorite_tags)
-            match_score = len(matching_tags)
+            # 計算標籤匹配度（改為包含匹配）
+            matching_tags = []
+            match_score = 0
+            
+            for product_tag in product.food_tags:
+                for favorite_tag in favorite_tags:
+                    # 如果商品標籤包含喜好標籤，或喜好標籤包含商品標籤
+                    if favorite_tag in product_tag or product_tag in favorite_tag:
+                        matching_tags.append(product_tag)
+                        match_score += 1
+                        break  # 避免同一個商品標籤重複計分
             
             if match_score > 0:
                 recommended_products.append({
                     'product': product,
                     'score': match_score,
-                    'matching_tags': list(matching_tags)
+                    'matching_tags': matching_tags  # 已經是列表，不需要轉換
                 })
         
         # 按匹配度排序
@@ -128,7 +136,7 @@ class RecommendationService:
     @staticmethod
     def get_similar_products(product, limit=5):
         """
-        找出與指定商品相似的商品（基於標籤）
+        找出與指定商品相似的商品（基於標籤包含匹配）
         """
         if not product.food_tags:
             return []
@@ -142,14 +150,23 @@ class RecommendationService:
             if not p.food_tags:
                 continue
             
-            # 計算標籤重疊度
-            common_tags = set(product.food_tags) & set(p.food_tags)
+            # 計算標籤重疊度（改為包含匹配）
+            common_tags = []
+            for p_tag in p.food_tags:
+                for prod_tag in product.food_tags:
+                    # 如果標籤互相包含
+                    if prod_tag in p_tag or p_tag in prod_tag:
+                        common_tags.append(p_tag)
+                        break
+            
             if common_tags:
-                similarity = len(common_tags) / len(set(product.food_tags) | set(p.food_tags))
+                # 計算相似度：共同標籤數 / 所有標籤數
+                all_tags = set(product.food_tags + p.food_tags)
+                similarity = len(common_tags) / len(all_tags)
                 similar_products.append({
                     'product': p,
                     'similarity': similarity,
-                    'common_tags': list(common_tags)
+                    'common_tags': common_tags
                 })
         
         # 按相似度排序
@@ -200,11 +217,15 @@ class RecommendationService:
                 logger.warning(f"  商品: {product.name}, food_tags: {product.food_tags}, 類型: {type(product.food_tags)}")
                 print(f"  商品: {product.name}, food_tags: {product.food_tags}, 類型: {type(product.food_tags)}", flush=True)
                 if product.food_tags:
-                    matching = set(product.food_tags) & set(favorite_tags)
-                    if matching:
-                        logger.warning(f"    ✓ 匹配標籤: {matching}")
-                        print(f"    ✓ 匹配標籤: {matching}", flush=True)
-                        total_score += len(matching)
+                    # 改為包含匹配：檢查商品標籤中是否包含用戶喜好標籤的字段
+                    for product_tag in product.food_tags:
+                        for favorite_tag in favorite_tags:
+                            # 如果商品標籤包含喜好標籤（例如："素食便當" 包含 "素食"）
+                            if favorite_tag in product_tag or product_tag in favorite_tag:
+                                logger.warning(f"    ✓ 匹配標籤: '{product_tag}' 包含 '{favorite_tag}'")
+                                print(f"    ✓ 匹配標籤: '{product_tag}' 包含 '{favorite_tag}'", flush=True)
+                                total_score += 1
+                                break  # 避免同一個商品標籤重複計分
             
             logger.warning(f"  最終分數: {total_score}")
             print(f"  最終分數: {total_score}", flush=True)

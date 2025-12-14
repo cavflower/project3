@@ -224,14 +224,51 @@ class StoreViewSet(viewsets.ModelViewSet):
         if has_surplus_food == 'true':
             stores = stores.filter(enable_surplus_food=True)
         
-        # 搜尋關鍵字
+        # 搜尋關鍵字（支援店名、描述、地址、料理類型和產品標籤）
         search = request.query_params.get('search')
         if search:
-            stores = stores.filter(
-                Q(name__icontains=search) | 
-                Q(description__icontains=search) |
-                Q(address__icontains=search)
+            from django.db.models import JSONField
+            from django.db.models.functions import Cast
+            
+            # 建立料理類型的中文對照字典
+            cuisine_type_map = dict(Store.CUISINE_TYPE_CHOICES)
+            
+            # 找出符合搜尋關鍵字的料理類型代碼
+            matching_cuisine_types = [
+                code for code, name in Store.CUISINE_TYPE_CHOICES 
+                if search.lower() in name.lower()
+            ]
+            
+            # 組合查詢條件（基本欄位搜尋）
+            query = Q(name__icontains=search) | \
+                    Q(description__icontains=search) | \
+                    Q(address__icontains=search)
+            
+            # 如果有符合的料理類型，加入查詢條件
+            if matching_cuisine_types:
+                query |= Q(cuisine_type__in=matching_cuisine_types)
+            
+            # 搜尋關聯產品的名稱和描述
+            query |= Q(products__name__icontains=search) | \
+                     Q(products__description__icontains=search)
+            
+            # 使用原生 SQL 搜尋 JSONField（將 JSON 轉為文本搜尋）
+            from django.db.models import Exists, OuterRef
+            from apps.products.models import Product
+            
+            # 子查詢：找出 food_tags 包含搜尋關鍵字的產品
+            products_with_tag = Product.objects.filter(
+                store=OuterRef('pk')
+            ).extra(
+                where=["food_tags::text LIKE %s"],
+                params=[f'%{search}%']
             )
+            
+            # 加入子查詢條件
+            stores = stores.filter(query | Q(Exists(products_with_tag))).distinct()
+        else:
+            # 沒有搜尋關鍵字時，不需要額外處理
+            pass
         
         # 使用輕量級序列化器提升效能
         from .serializers import PublishedStoreSerializer
