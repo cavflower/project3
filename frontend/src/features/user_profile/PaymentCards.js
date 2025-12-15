@@ -292,7 +292,7 @@ const PaymentCards = () => {
               </div>
 
               <div className="form-group">
-                <label>CVV *</label>
+                <label>CVV/CVC(安全碼) *</label>
                 <input
                   type="text"
                   name="cvv"
@@ -304,7 +304,7 @@ const PaymentCards = () => {
                 />
                 {editingCard && (
                   <small style={{ color: '#999', marginTop: '4px' }}>
-                    留空則保持原 CVV
+                    留空則保持原 CVV/CVC
                   </small>
                 )}
               </div>

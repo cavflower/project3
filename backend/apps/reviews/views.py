@@ -28,8 +28,9 @@ class StoreReviewViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(store_id=store_id)
         
         # 店家查看自己店的評論
-        if self.request.user.user_type == 'merchant':
-            queryset = queryset.filter(store__merchant=self.request.user)
+        if hasattr(self.request.user, 'user_type') and self.request.user.user_type == 'merchant':
+            # Store.merchant 指向 Merchant 模型，需要通過 merchant.user 來關聯
+            queryset = queryset.filter(store__merchant__user=self.request.user)
         
         return queryset
     
@@ -48,7 +49,7 @@ class StoreReviewViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if review.store.merchant != request.user:
+        if review.store.merchant.user != request.user:
             return Response(
                 {'error': '無權回覆此評論'},
                 status=status.HTTP_403_FORBIDDEN
@@ -89,7 +90,7 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         
         # 店家查看自己店的評論
         if self.request.user.user_type == 'merchant':
-            queryset = queryset.filter(store__merchant=self.request.user)
+            queryset = queryset.filter(store__merchant__user=self.request.user)
         
         return queryset
     
