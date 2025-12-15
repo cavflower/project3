@@ -57,6 +57,19 @@ const getUserTypeFromUrl = (url, method = 'get') => {
     return 'customer';
   }
   
+  // 信用卡管理相關 API，使用 customer token（僅顧客端使用）
+  if (url.includes('/users/payment-cards')) {
+    return 'customer';
+  }
+  
+  // 評論相關 API，根據當前頁面路徑判斷
+  if (url.includes('/reviews/')) {
+    const path = window.location.pathname;
+    if (path.includes('/merchant/')) {
+      return 'merchant';
+    }
+    return 'customer';
+  }
 
   if (url.includes('/products/') && !url.includes('/public/products/')) {
     return 'merchant';

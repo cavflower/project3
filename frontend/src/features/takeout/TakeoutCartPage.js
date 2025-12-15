@@ -4,6 +4,7 @@ import { FaArrowLeft, FaTrash, FaPlus, FaMinus } from "react-icons/fa";
 import { createTakeoutOrder } from "../../api/orderApi";
 import api from "../../api/api";
 import { useAuth } from "../../store/AuthContext";
+import CreditCardSelector from "../checkout/CreditCardSelector";
 import "./TakeoutCartPage.css";
 
 const paymentOptionsList = [
@@ -45,6 +46,8 @@ function TakeoutCartPage() {
   const [notes, setNotes] = useState(initialCart?.notes || "");
   const [submitting, setSubmitting] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showCardSelector, setShowCardSelector] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
 
   const slots = useMemo(pickupSlots, []);
   
@@ -123,6 +126,18 @@ function TakeoutCartPage() {
         return;
       }
     }
+    
+    // 如果選擇信用卡付款且已登入，先顯示卡片選擇器
+    if (paymentMethod === 'credit_card' && user) {
+      setShowCardSelector(true);
+      return;
+    }
+    
+    // 其他付款方式或未登入直接執行訂單
+    await executeOrder(finalName, finalPhone);
+  };
+  
+  const executeOrder = async (finalName, finalPhone) => {
     
     try {
       setSubmitting(true);
@@ -206,6 +221,27 @@ function TakeoutCartPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+  
+  const handleCardSelected = async (card) => {
+    setSelectedCard(card);
+    
+    // 決定使用的聯絡資訊
+    let finalName = contactName;
+    let finalPhone = contactPhone;
+    
+    if (user) {
+      finalName = user.username || user.email || "會員";
+      finalPhone = user.phone_number || "未提供";
+    } else {
+      if (!contactName || !contactPhone) {
+        alert("請填寫聯絡人姓名與電話。");
+        return;
+      }
+    }
+    
+    // 執行訂單
+    await executeOrder(finalName, finalPhone);
   };
 
   return (
@@ -671,6 +707,13 @@ function TakeoutCartPage() {
           </div>
         </div>
       )}
+      
+      {/* 信用卡選擇器 */}
+      <CreditCardSelector
+        show={showCardSelector}
+        onClose={() => setShowCardSelector(false)}
+        onSelectCard={handleCardSelected}
+      />
     </div>
   );
 }

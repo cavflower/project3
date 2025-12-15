@@ -860,3 +860,345 @@
     padding: 16px;
   }
 }
+
+/* ========== 評論區域樣式 ========== */
+.store-reviews-container {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.reviews-loading {
+  text-align: center;
+  padding: 40px;
+  color: #95a5a6;
+  font-size: 1rem;
+}
+
+/* 評論統計卡片 */
+.reviews-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.review-stat-card {
+  background: linear-gradient(135deg, #ff9aa2 0%, #ffc39c 100%);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 154, 162, 0.25);
+}
+
+.stat-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon i {
+  font-size: 2.4rem;
+  color: #f2dec5; /* light milk tea */
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #ffffff;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+
+.stat-count {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* 評論標籤切換 */
+.review-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  background: #f8f9fa;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.review-tab {
+  flex: 1;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #7f8c8d;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.review-tab:hover {
+  background: white;
+  color: #2c3e50;
+}
+
+.review-tab.active {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+/* 評論列表 */
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.no-reviews {
+  text-align: center;
+  padding: 60px 20px;
+  color: #95a5a6;
+}
+
+.no-reviews p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* 評論項目 */
+.review-item {
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: box-shadow 0.2s;
+}
+
+.review-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.reviewer-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reviewer-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ff6b6b;
+  flex-shrink: 0;
+}
+
+.reviewer-avatar-placeholder {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.reviewer-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.review-date {
+  font-size: 0.85rem;
+  color: #95a5a6;
+}
+
+/* 星星評分 */
+.review-stars {
+  display: flex;
+  gap: 4px;
+}
+
+.review-stars .star {
+  font-size: 1.3rem;
+  color: #dcdde1;
+}
+
+.review-stars .star.filled {
+  color: #ffd700;
+}
+
+/* 評論標籤 */
+.review-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.review-tag {
+  padding: 6px 12px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* 評論內容 */
+.review-comment {
+  color: #34495e;
+  line-height: 1.6;
+  margin: 12px 0;
+  font-size: 0.95rem;
+}
+
+/* 商家回覆 */
+.merchant-reply-box {
+  background: #fff;
+  border-left: 4px solid #ff6b6b;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.reply-header strong {
+  color: #ff6b6b;
+  font-size: 0.9rem;
+}
+
+.reply-date {
+  font-size: 0.8rem;
+  color: #95a5a6;
+}
+
+.reply-text {
+  margin: 0;
+  color: #2c3e50;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* 菜品評論特殊樣式 */
+.product-review-item {
+  background: #f8f9fa;
+}
+
+.product-review-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.product-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.product-review-info {
+  flex: 1;
+}
+
+.product-review-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .store-reviews-container {
+    padding: 16px;
+  }
+
+  .reviews-stats-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .review-stat-card {
+    padding: 16px;
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+    width: 48px;
+    height: 48px;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .review-tabs {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .review-item {
+    padding: 16px;
+  }
+
+  .review-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .product-review-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .product-thumb {
+    width: 100%;
+    height: 150px;
+  }
+}
+

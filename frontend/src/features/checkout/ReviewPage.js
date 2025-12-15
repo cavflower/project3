@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaStar, FaRegStar, FaUtensils, FaStore, FaSmile, FaThumbsUp, FaCheckCircle } from 'react-icons/fa';
 import { getUserOrders } from '../../api/orderApi';
+import api from '../../api/api';
 import './ReviewPage.css';
 
 function ReviewPage() {
@@ -86,18 +87,43 @@ function ReviewPage() {
       return;
     }
 
+    if (!orderData) {
+      alert('訂單資料載入中，請稍候');
+      return;
+    }
+
     setIsSubmitting(true);
     
-    // 模擬提交評論
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // 準備菜品評論數據
+      const productReviewsData = orderData.items.map(item => ({
+        product_id: item.product?.id || item.id,
+        rating: productRatings[item.product?.id || item.id] || 5,
+        comment: '' // 可以擴展為每個菜品單獨評論
+      }));
+
+      // 提交評論
+      const response = await api.post('/reviews/submissions/submit/', {
+        order_id: parseInt(orderId),
+        order_type: orderData.service_channel === 'dinein' ? 'dinein' : 'takeout',
+        store_rating: storeRating,
+        store_tags: selectedTags,
+        store_comment: comment,
+        product_reviews: productReviewsData
+      });
+
       setIsSubmitted(true);
       
       // 2秒後返回顧客首頁
       setTimeout(() => {
         navigate('/customer-home');
       }, 2000);
-    }, 1000);
+    } catch (error) {
+      console.error('提交評論失敗:', error);
+      alert(error.response?.data?.error || '提交評論失敗，請稍後再試');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStars = (rating, hoverRating, onRate, onHover, onLeave) => {
