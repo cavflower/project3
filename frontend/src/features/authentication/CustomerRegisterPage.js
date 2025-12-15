@@ -10,6 +10,7 @@ const CustomerRegisterPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    companyTaxId: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,7 @@ const CustomerRegisterPage = () => {
         email: user.email,
         username: username,
         user_type: 'customer',
+        company_tax_id: formData.companyTaxId.trim() || null,
       };
 
       const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
@@ -107,6 +109,17 @@ const CustomerRegisterPage = () => {
           <div className="input-group">
             <label htmlFor="confirmPassword">確認密碼</label>
             <input type="password" id="confirmPassword" placeholder="再次輸入密碼" value={formData.confirmPassword} onChange={handleChange} required />
+          </div>
+          <div className="input-group">
+            <label htmlFor="companyTaxId">公司統編 <span style={{ color: '#999', fontSize: '0.9em' }}>(選填)</span></label>
+            <input 
+              type="text" 
+              id="companyTaxId" 
+              placeholder="請輸入公司統編" 
+              value={formData.companyTaxId} 
+              onChange={handleChange}
+              maxLength="8"
+            />
           </div>
           <div className="form-footer">
             <Link to="/register/merchant">切換至店家註冊</Link>

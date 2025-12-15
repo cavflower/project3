@@ -1,5 +1,6 @@
 from django.db import models
 from apps.stores.models import Store
+from apps.users.models import User, Company
 
 
 class Staff(models.Model):
@@ -96,4 +97,65 @@ class Shift(models.Model):
         start_time = f"{self.start_hour:02d}:{self.start_minute:02d}"
         end_time = f"{self.end_hour:02d}:{self.end_minute:02d}"
         return f"{self.get_shift_type_display()} ({start_time} - {end_time})"
+
+
+class EmployeeScheduleRequest(models.Model):
+    """員工排班申請模型"""
+    
+    SHIFT_TYPE_CHOICES = [
+        ('morning', '早班'),
+        ('noon', '午班'),
+        ('evening', '晚班'),
+    ]
+    
+    employee = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='schedule_requests',
+        verbose_name='員工',
+        help_text='申請排班的員工'
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='employee_requests',
+        verbose_name='所屬公司',
+        help_text='員工所屬的公司'
+    )
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='employee_schedule_requests',
+        verbose_name='申請店家',
+        help_text='申請排班的店家'
+    )
+    date = models.DateField(verbose_name='日期')
+    shift_type = models.CharField(
+        max_length=20,
+        choices=SHIFT_TYPE_CHOICES,
+        verbose_name='時段類型'
+    )
+    role = models.CharField(max_length=100, verbose_name='職務')
+    notes = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='備註',
+        help_text='員工填寫的備註說明'
+    )
+    week_start_date = models.DateField(
+        verbose_name='週起始日期',
+        help_text='該申請所屬的週（週一日期）'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+    
+    class Meta:
+        db_table = 'employee_schedule_requests'
+        verbose_name = '員工排班申請'
+        verbose_name_plural = '員工排班申請'
+        ordering = ['-week_start_date', 'date', 'shift_type']
+        unique_together = [['employee', 'store', 'date', 'shift_type', 'week_start_date']]
+    
+    def __str__(self):
+        return f"{self.employee.username} - {self.store.name} - {self.date} {self.get_shift_type_display()}"
 

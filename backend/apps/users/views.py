@@ -46,12 +46,34 @@ class FirebaseTokenLoginView(APIView):
             refresh = RefreshToken.for_user(user)
             
             # 序列化使用者資料
-            user_serializer = UserSerializer(user)
+            try:
+                user_serializer = UserSerializer(user)
+                user_data = user_serializer.data
+            except Exception as serialization_error:
+                # 如果序列化失敗，記錄錯誤但繼續返回基本資料
+                import traceback
+                print(f"序列化使用者資料時發生錯誤: {serialization_error}")
+                print(traceback.format_exc())
+                # 返回基本使用者資料
+                user_data = {
+                    'id': user.id,
+                    'firebase_uid': user.firebase_uid,
+                    'email': user.email,
+                    'username': user.username,
+                    'user_type': user.user_type,
+                    'avatar_url': user.avatar_url or '',
+                    'phone_number': user.phone_number or '',
+                    'gender': user.gender or '',
+                    'address': user.address or '',
+                    'company_tax_id': user.company_tax_id,
+                    'created_at': user.created_at.isoformat() if user.created_at else None,
+                    'merchant_profile': None,
+                }
             
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
-                'user': user_serializer.data  # 將使用者資料一起回傳
+                'user': user_data  # 將使用者資料一起回傳
             })
 
         except firebase_auth.InvalidIdTokenError as e:

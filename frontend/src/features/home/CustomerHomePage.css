@@ -33,6 +33,36 @@
   color: white;
 }
 
+/* 排版申請卡片 */
+.layout-application-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.layout-application-card:hover {
+  border-color: var(--orange-light);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
+}
+
+.layout-application-title {
+  color: var(--orange-primary);
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.layout-application-desc {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
 /* 搜尋卡片 */
 .search-card {
   background: white;

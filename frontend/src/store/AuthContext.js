@@ -15,30 +15,41 @@ export const AuthProvider = ({ children }) => {
   // 在應用程式載入時檢查現有 session
   useEffect(() => {
     const checkUserSession = async () => {
-      // 檢查當前路徑，判斷應該使用哪個用戶類型的 token
-      const path = window.location.pathname;
-      let userType = 'customer';
+      // 先嘗試 customer token，再嘗試 merchant token
+      let userData = null;
       
-      if (path.includes('/merchant/') || path.includes('/dashboard') || path.includes('/select-plan')) {
-        userType = 'merchant';
-      }
-      
-      const tokenKey = `${userType}_accessToken`;
-      const token = localStorage.getItem(tokenKey);
-      
-      if (token) {
+      // 嘗試 customer token
+      const customerToken = localStorage.getItem('customer_accessToken');
+      if (customerToken) {
         try {
-          // 使用 authApi.getMe 來獲取用戶資料
-          const userData = await authApi.getMe(userType);
-          setUser(userData); // 恢復使用者 session
+          userData = await authApi.getMe('customer');
+          setUser(userData);
+          setLoading(false);
+          return;
         } catch (error) {
-          // Token 無效或過期
-          console.error("Session 檢查失敗:", error);
-          localStorage.removeItem(`${userType}_accessToken`);
-          localStorage.removeItem(`${userType}_refreshToken`);
-          setUser(null);
+          console.log("Customer token 驗證失敗，嘗試 merchant token");
+          localStorage.removeItem('customer_accessToken');
+          localStorage.removeItem('customer_refreshToken');
         }
       }
+      
+      // 嘗試 merchant token
+      const merchantToken = localStorage.getItem('merchant_accessToken');
+      if (merchantToken) {
+        try {
+          userData = await authApi.getMe('merchant');
+          setUser(userData);
+          setLoading(false);
+          return;
+        } catch (error) {
+          console.log("Merchant token 驗證失敗");
+          localStorage.removeItem('merchant_accessToken');
+          localStorage.removeItem('merchant_refreshToken');
+        }
+      }
+      
+      // 如果兩個 token 都失敗或不存在
+      setUser(null);
       setLoading(false); // 檢查完成，設定 loading 為 false
     };
 
@@ -147,10 +158,10 @@ export const AuthProvider = ({ children }) => {
     isLoggedIn: !!user 
   };
 
-  // 在 loading 期間不渲染子元件，以防止畫面閃爍
+  // 渲染子元件，讓 ProtectedRoute 自己處理 loading 狀態
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

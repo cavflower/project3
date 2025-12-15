@@ -62,8 +62,28 @@ const getUserTypeFromUrl = (url, method = 'get') => {
     return 'merchant';
   }
   
-  // 排班管理相關的 API，使用 merchant token
+  // 排班管理相關的 API
   if (url.includes('/schedules/')) {
+    // 員工排班申請相關 API
+    if (url.includes('/employee-requests/')) {
+      // 員工專用的 API（my_requests, company_stores）使用 customer token
+      if (url.includes('/my_requests/') || url.includes('/company_stores/')) {
+        return 'customer';
+      }
+      // 其他 employee-requests API：
+      // - GET /employee-requests/：店家查看所有員工申請，使用 merchant token
+      // - POST /employee-requests/：員工提交申請，使用 customer token
+      // - GET /employee-requests/{id}/：根據當前頁面判斷
+      // 為了簡化，我們根據當前頁面路徑判斷：
+      const path = window.location.pathname;
+      if (path.includes('/merchant/')) {
+        // 如果是店家頁面，使用 merchant token
+        return 'merchant';
+      }
+      // 默認使用 customer token（員工使用）
+      return 'customer';
+    }
+    // 其他排班管理 API 使用 merchant token（店家管理用）
     return 'merchant';
   }
   

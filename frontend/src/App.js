@@ -53,6 +53,8 @@ import OrderManagementPage from './features/merchant_dashboard/order_management/
 import FinancialReportPage from './features/merchant_dashboard/financial_report/FinancialReportPage';
 import LineBotFAQManagement from './features/line_bot/LineBotFAQManagement';
 import LineBotSettings from './components/merchant/linebot/LineBotSettings';
+import LayoutApplicationPage from './features/layout_application/LayoutApplicationPage';
+import ErrorBoundary from './features/layout_application/ErrorBoundary';
 
 
 
@@ -68,12 +70,36 @@ function ProtectedRoute({ children }) {
   const { isLoggedIn, loading } = useAuth(); // 確保 AuthContext 有回傳 loading
 
   if (loading) {
-    // 在驗證還在載入時不要重定向，改顯示空或 spinner
-    return null; 
+    // 在驗證還在載入時顯示載入中，不要重定向
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '50vh',
+        fontSize: '1.2rem',
+        color: '#666'
+      }}>
+        載入中...
+      </div>
+    );
   }
 
   if (!isLoggedIn) {
-    return <Navigate to="/login/customer" replace />;
+    // 根據當前路徑判斷應該導向哪個登入頁
+    const path = window.location.pathname;
+    let loginPath = '/login/customer';
+    
+    // 店家相關路徑導向店家登入
+    if (path.includes('/merchant/') || path.includes('/dashboard') || path.includes('/select-plan')) {
+      loginPath = '/login/merchant';
+    }
+    // 排版申請是顧客功能，導向顧客登入
+    else if (path.includes('/layout-application')) {
+      loginPath = '/login/customer';
+    }
+    
+    return <Navigate to={loginPath} replace />;
   }
   return children;
 }
@@ -356,6 +382,18 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <CustomerOrdersPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 排版申請頁面 */}
+              <Route
+                path="/layout-application"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <LayoutApplicationPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />

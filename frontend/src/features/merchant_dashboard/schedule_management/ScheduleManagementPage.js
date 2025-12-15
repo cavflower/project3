@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../../store/AuthContext';
-import { getScheduleData, saveScheduleData, exportScheduleCSV } from '../../../api/scheduleApi';
+import { getScheduleData, saveScheduleData, exportScheduleCSV, getEmployeeRequests } from '../../../api/scheduleApi';
 import './ScheduleManagementPage.css';
 
 const shiftPresets = {
@@ -110,11 +110,22 @@ const ScheduleManagementPage = () => {
   const { user } = useAuth();
   const [shifts, setShifts] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [employeeRequests, setEmployeeRequests] = useState([]);
   const [shiftForm, setShiftForm] = useState(defaultShiftForm);
   const [staffForm, setStaffForm] = useState(defaultStaffForm);
   const [editingShiftId, setEditingShiftId] = useState(null);
   const [editingStaffId, setEditingStaffId] = useState(null);
   const [saveStatus, setSaveStatus] = useState('');
+
+  // 載入員工申請列表
+  const loadEmployeeRequests = async () => {
+    try {
+      const response = await getEmployeeRequests();
+      setEmployeeRequests(response.data || []);
+    } catch (err) {
+      console.error('載入員工申請失敗:', err);
+    }
+  };
 
   // 當用戶改變時，從 API 載入該店家的資料
   useEffect(() => {
@@ -190,6 +201,7 @@ const ScheduleManagementPage = () => {
     };
 
     loadScheduleData();
+    loadEmployeeRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]); // 只依賴 user.id，避免 user 對象變化時重新執行
 
@@ -988,6 +1000,43 @@ const ScheduleManagementPage = () => {
                       刪除
                     </button>
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="schedule-card full-width">
+        <div className="card-header">
+          <h3>員工排班申請</h3>
+        </div>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>日期</th>
+                <th>時段</th>
+                <th>職務</th>
+                <th>備註</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employeeRequests.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="empty">
+                    尚無員工排班申請
+                  </td>
+                </tr>
+              )}
+              {employeeRequests.map((request) => (
+                <tr key={request.id}>
+                  <td>{request.employee_name}</td>
+                  <td>{request.date}</td>
+                  <td>{request.shift_type_display}</td>
+                  <td>{request.role}</td>
+                  <td>{request.notes || '-'}</td>
                 </tr>
               ))}
             </tbody>

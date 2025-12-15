@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Staff, Shift
+from .models import Staff, Shift, EmployeeScheduleRequest
 
 
 class StaffSerializer(serializers.ModelSerializer):
@@ -70,4 +70,68 @@ class ScheduleDataSerializer(serializers.Serializer):
     
     shifts = ShiftSerializer(many=True, required=False, allow_empty=True)
     staff = StaffSerializer(many=True, required=False, allow_empty=True)
+
+
+class EmployeeScheduleRequestSerializer(serializers.ModelSerializer):
+    """員工排班申請序列化器"""
+    
+    employee_name = serializers.SerializerMethodField()
+    company_name = serializers.SerializerMethodField()
+    store_name = serializers.SerializerMethodField()
+    shift_type_display = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = EmployeeScheduleRequest
+        fields = [
+            'id',
+            'employee',
+            'employee_name',
+            'company',
+            'company_name',
+            'store',
+            'store_name',
+            'date',
+            'shift_type',
+            'shift_type_display',
+            'role',
+            'notes',
+            'week_start_date',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'employee', 'company', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'date': {'required': True},
+            'shift_type': {'required': True},
+            'role': {'required': True},
+            'week_start_date': {'required': True},
+        }
+    
+    def get_employee_name(self, obj):
+        """安全獲取員工名稱"""
+        try:
+            return obj.employee.username if obj.employee else ''
+        except:
+            return ''
+    
+    def get_company_name(self, obj):
+        """安全獲取公司名稱"""
+        try:
+            return obj.company.name if obj.company else ''
+        except:
+            return ''
+    
+    def get_store_name(self, obj):
+        """安全獲取店家名稱"""
+        try:
+            return obj.store.name if obj.store else ''
+        except:
+            return ''
+    
+    def get_shift_type_display(self, obj):
+        """安全獲取時段顯示名稱"""
+        try:
+            return obj.get_shift_type_display() if obj.shift_type else ''
+        except:
+            return obj.shift_type if obj.shift_type else ''
 
