@@ -14,7 +14,6 @@ function StorePage() {
   const [store, setStore] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [reviewStats, setReviewStats] = useState({ avg: 0, count: 0 });
-  const [prefetchedStoreReviews, setPrefetchedStoreReviews] = useState(null);
   const [loading, setLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -52,11 +51,9 @@ function StorePage() {
           ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
           : 0;
         setReviewStats({ avg, count: reviews.length });
-        setPrefetchedStoreReviews(reviews);
       } catch (e) {
         console.warn('載入店家評論統計失敗', e);
         setReviewStats({ avg: 0, count: 0 });
-        setPrefetchedStoreReviews(null);
       }
       // 移除這裡的自動載入商品
       // await loadMenuItems(storeId);
@@ -591,11 +588,7 @@ function StorePage() {
               )}
 
               {activeTab === 'reviews' && (
-                <StoreReviews 
-                  storeId={storeId} 
-                  initialStoreReviews={prefetchedStoreReviews}
-                  initialStoreStats={reviewStats}
-                />
+                <StoreReviews storeId={storeId} />
               )}
             </div>
           </div>
@@ -661,59 +654,49 @@ function StorePage() {
 }
 
 // 評論組件
-function StoreReviews({ storeId, initialStoreReviews = null, initialStoreStats = null }) {
-  const [storeReviews, setStoreReviews] = useState(initialStoreReviews || []);
+function StoreReviews({ storeId }) {
+  const [storeReviews, setStoreReviews] = useState([]);
   const [productReviews, setProductReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeReviewTab, setActiveReviewTab] = useState('store');
   const [stats, setStats] = useState({
-    avgStoreRating: initialStoreStats?.avg ?? 0,
-    totalStoreReviews: initialStoreStats?.count ?? 0,
+    avgStoreRating: 0,
+    totalStoreReviews: 0,
     avgProductRating: 0,
     totalProductReviews: 0
   });
 
   useEffect(() => {
     loadReviews();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
 
   const loadReviews = async () => {
     try {
       setLoading(true);
       
-      // 店家評論：若有預取資料則直接使用，否則請求
-      let storeData = initialStoreReviews;
-      if (!storeData) {
-        const storeRes = await api.get(`/reviews/store-reviews/?store_id=${storeId}`);
-        storeData = storeRes.data;
-        setStoreReviews(storeData);
-      }
-      if (storeData) {
-        const avgStoreRating = storeData.length > 0
-          ? (storeData.reduce((sum, r) => sum + r.rating, 0) / storeData.length).toFixed(1)
-          : 0;
-        setStats(prev => ({
-          ...prev,
-          avgStoreRating,
-          totalStoreReviews: storeData.length
-        }));
-      }
+      // 載入店家評論
+      const storeRes = await api.get(`/reviews/store-reviews/?store_id=${storeId}`);
+      setStoreReviews(storeRes.data);
       
       // 載入菜品評論
       const productRes = await api.get(`/reviews/product-reviews/?store_id=${storeId}`);
       setProductReviews(productRes.data);
       
       // 計算統計數據
+      const avgStoreRating = storeRes.data.length > 0
+        ? (storeRes.data.reduce((sum, r) => sum + r.rating, 0) / storeRes.data.length).toFixed(1)
+        : 0;
+      
       const avgProductRating = productRes.data.length > 0
         ? (productRes.data.reduce((sum, r) => sum + r.rating, 0) / productRes.data.length).toFixed(1)
         : 0;
       
-      setStats(prev => ({
-        ...prev,
+      setStats({
+        avgStoreRating,
+        totalStoreReviews: storeRes.data.length,
         avgProductRating,
         totalProductReviews: productRes.data.length
-      }));
+      });
     } catch (error) {
       console.error('載入評論失敗:', error);
     } finally {
