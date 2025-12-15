@@ -11,6 +11,7 @@ class StoreLineBotConfig(models.Model):
     AI_PROVIDER_CHOICES = [
         ('gemini', 'Google Gemini'),
         ('openai', 'OpenAI GPT'),
+        ('groq', 'Groq'),
     ]
     
     store = models.OneToOneField(
@@ -45,7 +46,7 @@ class StoreLineBotConfig(models.Model):
         max_length=500,
         blank=True,
         verbose_name='AI API Key',
-        help_text='Google AI Studio 或 OpenAI API Key'
+        help_text='Google AI Studio、OpenAI 或 Groq API Key'
     )
     ai_model = models.CharField(
         max_length=100,

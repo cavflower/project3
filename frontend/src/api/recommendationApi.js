@@ -16,11 +16,14 @@ export const getRecommendedProducts = async (storeId = null, limit = 10) => {
 /**
  * 獲取推薦店家
  * @param {number} limit - 返回數量（預設5）
+ * @param {Array} tags - 可選，用戶選擇的標籤陣列
  */
-export const getRecommendedStores = async (limit = 5) => {
-  return api.get('/intelligence/recommendations/stores/', {
-    params: { limit }
-  });
+export const getRecommendedStores = async (limit = 5, tags = null) => {
+  const params = { limit };
+  if (tags && tags.length > 0) {
+    params.tags = tags.join(',');
+  }
+  return api.get('/intelligence/recommendations/stores/', { params });
 };
 
 /**

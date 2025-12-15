@@ -253,6 +253,7 @@ const LineBotSettings = () => {
                 >
                   <MenuItem value="gemini">Google Gemini</MenuItem>
                   <MenuItem value="openai">OpenAI GPT</MenuItem>
+                  <MenuItem value="groq">Groq</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -267,6 +268,8 @@ const LineBotSettings = () => {
                 helperText={
                   formData.ai_provider === 'gemini'
                     ? '例如: gemini-2.5-flash'
+                    : formData.ai_provider === 'groq'
+                    ? '例如: llama-3.1-8b-instant, llama-3.3-70b-versatile'
                     : '例如: gpt-4o-mini'
                 }
               />
@@ -284,6 +287,8 @@ const LineBotSettings = () => {
                 helperText={
                   formData.ai_provider === 'gemini'
                     ? '從 Google AI Studio 取得'
+                    : formData.ai_provider === 'groq'
+                    ? '從 Groq Console 取得'
                     : '從 OpenAI 取得'
                 }
               />

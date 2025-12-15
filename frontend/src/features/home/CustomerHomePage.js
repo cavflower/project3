@@ -25,6 +25,7 @@ function CustomerHomePage() {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userPreferences, setUserPreferences] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
   const [filters, setFilters] = useState({
     has_reservation: false,
     has_loyalty: false,
@@ -33,7 +34,7 @@ function CustomerHomePage() {
   
   useEffect(() => {
     loadStores();
-  }, [selectedCategory, filters, user]);
+  }, [selectedCategory, filters, user, selectedTags]);
 
   const loadStores = async () => {
     try {
@@ -54,8 +55,17 @@ function CustomerHomePage() {
           console.log('[CustomerHome] 用戶偏好數據:', preferencesResponse.data);
           setUserPreferences(preferencesResponse.data);
           
+          // 設定預設選擇：有數據則選擇點餐最多次的標籤，無數據則空陣列（顯示熱門店家）
+          if (!selectedTags || selectedTags.length === 0) {
+            if (preferencesResponse.data && preferencesResponse.data.favorite_tags && preferencesResponse.data.favorite_tags.length > 0) {
+              setSelectedTags([preferencesResponse.data.favorite_tags[0].tag]); // 選擇點餐最多次的標籤
+            } else {
+              setSelectedTags([]); // 無數據，空陣列表示顯示熱門店家
+            }
+          }
+          
           // 獲取推薦店家
-          const response = await getRecommendedStores(10);
+          const response = await getRecommendedStores(10, selectedTags.length > 0 ? selectedTags : null);
           const formattedStores = response.data.map(store => ({
             id: store.id,
             name: store.name,
@@ -338,24 +348,50 @@ function CustomerHomePage() {
         {/* 店家列表 */}
         {!loading && (
           <>
+            {selectedCategory === 'recommended' && user && userPreferences && userPreferences.favorite_tags && userPreferences.favorite_tags.length > 1 && (
+              <div className="row mb-3">
+                <div className="col-12">
+                  <div className="tag-filter-section">
+                    <label htmlFor="tagFilter" className="tag-filter-label">
+                      <i className="bi bi-funnel-fill me-2"></i>
+                      切換喜好標籤：
+                    </label>
+                    <select
+                      id="tagFilter"
+                      className="tag-filter-select"
+                      value={selectedTags && selectedTags.length > 0 ? selectedTags[0] : ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setSelectedTags([e.target.value]);
+                        }
+                      }}
+                    >
+                      {userPreferences.favorite_tags.map((tagData, index) => (
+                        <option key={index} value={tagData.tag}>
+                          {tagData.tag} (點餐 {tagData.count} 次)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {selectedCategory === 'recommended' && stores.length > 0 && user && (
               <div className="row mb-3">
                 <div className="col-12">
                   <div className="recommendation-banner">
                     <i className="bi bi-heart-fill me-2"></i>
-                    {userPreferences && userPreferences.favorite_tags && userPreferences.favorite_tags.length > 0 ? (
+                    {selectedTags && selectedTags.length > 0 ? (
                       <>
-                        因為您喜歡
+                        根據您最常點選的
                         <strong className="mx-2">
-                          {userPreferences.favorite_tags.slice(0, 3).map(t => t.tag).join('、')}
+                          {selectedTags.join('、')}
                         </strong>
-                        類型的美食，為您推薦以下店家
+                        標籤推薦以下店家
                       </>
                     ) : (
-                      <>
-                        根據您的點餐喜好，為您精選以下店家
-                        {console.log('[Debug] userPreferences:', userPreferences)}
-                      </>
+                      <>為您推薦熱門店家</>
                     )}
                   </div>
                 </div>

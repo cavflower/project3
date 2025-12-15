@@ -60,6 +60,7 @@ class RecommendationViewSet(viewsets.ViewSet):
         
         Query Parameters:
         - limit: 返回數量（預設5）
+        - tags: 可選，用戶選擇的標籤（逗號分隔，例如：tags=素食,辣）
         """
         logger.warning(f"=== 推薦店家 API 被調用 ===")
         logger.warning(f"用戶: {request.user}, 已認證: {request.user.is_authenticated}")
@@ -76,11 +77,20 @@ class RecommendationViewSet(viewsets.ViewSet):
             return Response(serializer.data)
         
         limit = int(request.query_params.get('limit', 5))
+        
+        # 獲取用戶選擇的標籤
+        selected_tags_str = request.query_params.get('tags', '')
+        selected_tags = None
+        if selected_tags_str:
+            selected_tags = [tag.strip() for tag in selected_tags_str.split(',') if tag.strip()]
+            logger.warning(f"用戶選擇的標籤: {selected_tags}")
+        
         logger.warning(f"開始為用戶 {request.user.username} 生成推薦，limit={limit}")
         
         stores = RecommendationService.get_store_recommendations_for_user(
             user=request.user,
-            limit=limit
+            limit=limit,
+            selected_tags=selected_tags
         )
         
         logger.warning(f"推薦服務返回 {len(stores)} 間店家")

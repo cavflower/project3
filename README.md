@@ -32,6 +32,7 @@ pip install -r requirements/development.txt
 python -m pip install Pillow
 pip.exe install firebase-admin
 pip.exe install djangorestframework-simplejwt
+pip install groq(可選)
 
 步驟 5：設定環境變數
 在 backend 資料夾中，手動建立一個名為 .env 的檔案。
@@ -65,6 +66,7 @@ Remove-Item -Recurse -Force node_modules
 https://developers.line.biz/console/
 Channel access token在Messaging api的最下面
 Channel secret在Basic settings的最下面
+要去啟用Messaging api不然CONSOLE看不到
 
 步驟2:下載ngrok
 https://ngrok.com/download

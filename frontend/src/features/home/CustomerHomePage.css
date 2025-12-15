@@ -275,6 +275,58 @@
   display: inline-block;
 }
 
+/* 標籤篩選區域 */
+.tag-filter-section {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tag-filter-label {
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.tag-filter-select {
+  flex: 1;
+  min-width: 300px;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tag-filter-select:focus {
+  outline: none;
+  border-color: var(--orange-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.tag-filter-select option {
+  padding: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.tag-filter-select option:checked {
+  background: linear-gradient(135deg, var(--orange-primary), var(--orange-light));
+  color: white;
+}
+
+.tag-filter-select[multiple] {
+  min-height: 120px;
+}
+
 .store-card-body {
   padding: 1.25rem;
   flex: 1;

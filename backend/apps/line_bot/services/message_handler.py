@@ -99,6 +99,8 @@ class AIReplyService:
             return self._generate_gemini_reply(user_message, store_info, conversation_history)
         elif self.provider == 'openai':
             return self._generate_openai_reply(user_message, store_info, conversation_history)
+        elif self.provider == 'groq':
+            return self._generate_groq_reply(user_message, store_info, conversation_history)
         else:
             return "抱歉，AI 服務暫時無法使用。"
     
@@ -217,6 +219,59 @@ class AIReplyService:
             
         except Exception as e:
             print(f"OpenAI reply error: {e}")
+            return "抱歉，我現在無法回答這個問題。請稍後再試，或直接聯繫店家。"
+    
+    def _generate_groq_reply(
+        self,
+        user_message: str,
+        store_info: Dict,
+        conversation_history: List[Dict] = None
+    ) -> str:
+        """使用 Groq 生成回覆"""
+        try:
+            from groq import Groq
+            
+            # 初始化 Groq 客戶端
+            client = Groq(api_key=self.api_key)
+            
+            # 建立系統提示詞
+            system_prompt = self._create_system_prompt(store_info)
+            
+            # 建立對話訊息
+            messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+            
+            # 加入對話歷史（最多 3 則）
+            if conversation_history and self.config.enable_conversation_history:
+                for msg in conversation_history[-3:]:
+                    messages.append({
+                        "role": msg.get("role", "user"),
+                        "content": msg.get("content", "")
+                    })
+            
+            # 加入當前用戶訊息
+            messages.append({
+                "role": "user",
+                "content": user_message
+            })
+            
+            # 呼叫 Groq API
+            completion = client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                top_p=1,
+                stream=False,  # 使用非串流模式以簡化處理
+                stop=None
+            )
+            
+            reply = completion.choices[0].message.content.strip()
+            return reply
+            
+        except Exception as e:
+            print(f"Groq reply error: {e}")
             return "抱歉，我現在無法回答這個問題。請稍後再試，或直接聯繫店家。"
     
     def _create_system_prompt(self, store_info: Dict) -> str:
