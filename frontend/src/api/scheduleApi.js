@@ -103,3 +103,49 @@ export const exportScheduleCSV = () => {
   });
 };
 
+/**
+ * 員工排班申請相關 API
+ */
+
+/**
+ * 獲取員工所屬公司的店家列表
+ * @returns {Promise}
+ */
+export const getCompanyStores = () => {
+  return api.get('/schedules/employee-requests/company_stores/');
+};
+
+/**
+ * 提交員工排班申請
+ * @param {Object} requestData - 申請資料
+ * @returns {Promise}
+ */
+export const submitScheduleRequest = (requestData) => {
+  return api.post('/schedules/employee-requests/', requestData);
+};
+
+/**
+ * 獲取員工的所有申請
+ * @returns {Promise}
+ */
+export const getMyScheduleRequests = () => {
+  return api.get('/schedules/employee-requests/my_requests/');
+};
+
+/**
+ * 獲取店家的所有員工申請（店家端）
+ * @returns {Promise}
+ */
+export const getEmployeeRequests = () => {
+  return api.get('/schedules/employee-requests/');
+};
+
+/**
+ * 刪除員工申請
+ * @param {number} id - 申請 ID
+ * @returns {Promise}
+ */
+export const deleteScheduleRequest = (id) => {
+  return api.delete(`/schedules/employee-requests/${id}/`);
+};
+

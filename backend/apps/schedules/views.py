@@ -6,8 +6,11 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
 import csv
-from .models import Staff, Shift
-from .serializers import StaffSerializer, ShiftSerializer, ScheduleDataSerializer
+from .models import Staff, Shift, EmployeeScheduleRequest
+from .serializers import StaffSerializer, ShiftSerializer, ScheduleDataSerializer, EmployeeScheduleRequestSerializer
+from apps.users.models import Company
+from apps.stores.models import Store
+from datetime import datetime, timedelta
 
 
 class StaffViewSet(viewsets.ModelViewSet):
@@ -355,4 +358,168 @@ class ShiftViewSet(viewsets.ModelViewSet):
             ])
         
         return response
+
+
+class EmployeeScheduleRequestViewSet(viewsets.ModelViewSet):
+    """員工排班申請 ViewSet"""
+    
+    serializer_class = EmployeeScheduleRequestSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """根據用戶類型返回不同的查詢集"""
+        user = self.request.user
+        
+        # 如果是店家，返回該店家所有員工的申請
+        if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
+            store = user.merchant_profile.store
+            return EmployeeScheduleRequest.objects.filter(store=store).select_related('employee', 'company', 'store')
+        
+        # 如果是員工（有 company_tax_id），返回該員工的申請
+        elif user.company_tax_id:
+            return EmployeeScheduleRequest.objects.filter(employee=user).select_related('employee', 'company', 'store')
+        
+        return EmployeeScheduleRequest.objects.none()
+    
+    def perform_create(self, serializer):
+        """建立申請時自動設定員工和公司"""
+        user = self.request.user
+        
+        # 檢查是否為員工（有 company_tax_id）
+        if not user.company_tax_id:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("只有公司員工才能提交排班申請")
+        
+        # 獲取公司（如果不存在則創建）
+        try:
+            company = Company.objects.get(tax_id=user.company_tax_id)
+        except Company.DoesNotExist:
+            # 如果公司不存在，自動創建一個（使用統編作為名稱）
+            company = Company.objects.create(
+                tax_id=user.company_tax_id,
+                name=f"公司 {user.company_tax_id}"
+            )
+        
+        # 獲取店家
+        store_id = self.request.data.get('store')
+        if not store_id:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("必須選擇店家")
+        
+        try:
+            store = Store.objects.get(id=store_id)
+        except Store.DoesNotExist:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("找不到指定的店家")
+        
+        # 計算週起始日期（週一）
+        date_str = self.request.data.get('date')
+        if date_str:
+            try:
+                date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                # 計算該日期所在週的週一
+                week_start = date - timedelta(days=date.weekday())
+            except ValueError:
+                week_start = None
+        else:
+            week_start = None
+        
+        serializer.save(
+            employee=user,
+            company=company,
+            store=store,
+            week_start_date=week_start
+        )
+    
+    @action(detail=False, methods=['get'])
+    def my_requests(self, request):
+        """獲取當前員工的所有申請"""
+        user = request.user
+        
+        if not user.company_tax_id:
+            return Response(
+                {'error': '只有公司員工才能查看申請'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            requests = EmployeeScheduleRequest.objects.filter(employee=user).select_related('store', 'company', 'employee')
+            serializer = self.get_serializer(requests, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            import traceback
+            print(f"獲取員工申請時發生錯誤: {e}")
+            print(traceback.format_exc())
+            return Response(
+                {'error': f'載入申請記錄失敗: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'])
+    def company_stores(self, request):
+        """獲取員工所屬公司相關的店家列表"""
+        user = request.user
+        
+        if not user.company_tax_id:
+            return Response(
+                {'error': '只有公司員工才能查看店家列表'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            # 統一統編格式（去除空格、轉為大寫）
+            employee_tax_id = user.company_tax_id.strip().upper()
+            print(f"[DEBUG] 員工統編: '{employee_tax_id}' (原始: '{user.company_tax_id}')")
+            
+            # 直接通過統編匹配 Merchant
+            # Merchant.company_account 就是統編，應該與員工的 company_tax_id 匹配
+            from apps.users.models import Merchant
+            from apps.stores.models import Store
+            
+            # 先獲取所有 Merchant 並檢查統編格式
+            all_merchants = Merchant.objects.all()
+            print(f"[DEBUG] 資料庫中共有 {all_merchants.count()} 個商家")
+            
+            # 列出所有商家的統編（用於調試）
+            for m in all_merchants:
+                merchant_tax_id = m.company_account.strip().upper() if m.company_account else ''
+                print(f"[DEBUG] 商家 {m.user.username} 的統編: '{merchant_tax_id}' (原始: '{m.company_account}')")
+            
+            # 精確匹配（統編格式已統一）
+            merchants = Merchant.objects.filter(company_account=employee_tax_id)
+            print(f"[DEBUG] 精確匹配找到 {merchants.count()} 個商家")
+            
+            # 如果精確匹配失敗，嘗試不區分大小寫和空格的匹配
+            if merchants.count() == 0:
+                matching_merchants = []
+                for merchant in all_merchants:
+                    merchant_tax_id = merchant.company_account.strip().upper() if merchant.company_account else ''
+                    if merchant_tax_id == employee_tax_id:
+                        matching_merchants.append(merchant)
+                if matching_merchants:
+                    merchants = Merchant.objects.filter(id__in=[m.id for m in matching_merchants])
+                    print(f"[DEBUG] 模糊匹配後找到 {merchants.count()} 個商家")
+            
+            # 獲取這些商家對應的店家
+            stores = Store.objects.filter(merchant__in=merchants)
+            print(f"[DEBUG] 找到 {stores.count()} 個店家")
+            
+            # 列出所有店家的名稱（用於調試）
+            for store in stores:
+                print(f"[DEBUG] 店家: {store.name} (ID: {store.id}, 商家統編: {store.merchant.company_account})")
+            
+            store_list = [{
+                'id': store.id,
+                'name': store.name,
+                'address': store.address,
+            } for store in stores]
+            
+            return Response(store_list)
+        except Exception as e:
+            # 處理所有可能的錯誤
+            import traceback
+            print(f"[ERROR] 載入店家列表時發生錯誤: {e}")
+            print(traceback.format_exc())
+            # 返回空列表而不是錯誤，讓員工仍然可以使用功能
+            return Response([])
 

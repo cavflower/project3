@@ -48,8 +48,42 @@ class User(AbstractBaseUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'firebase_uid']
 
+    company_tax_id = models.CharField(
+        max_length=8,
+        blank=True,
+        null=True,
+        verbose_name='公司統編',
+        help_text='選填，如果填寫且對應到某間公司，則代表是該公司員工'
+    )
+
     def __str__(self):
         return self.email
+
+class Company(models.Model):
+    """
+    公司模型 - 用於管理公司資訊和員工關聯
+    """
+    tax_id = models.CharField(
+        max_length=8,
+        unique=True,
+        verbose_name='公司統編',
+        help_text='公司統一編號'
+    )
+    name = models.CharField(
+        max_length=255,
+        verbose_name='公司名稱',
+        help_text='公司名稱'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = '公司'
+        verbose_name_plural = '公司'
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.tax_id})"
 
 class Merchant(models.Model):
     PLAN_CHOICES = (
