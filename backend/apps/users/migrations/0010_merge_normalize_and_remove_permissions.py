@@ -1,5 +1,5 @@
-# Generated manually to normalize existing tax IDs
-from django.db import migrations
+# Generated manually to merge 0010_normalize_tax_ids and 0010_remove_user_groups_remove_user_user_permissions_and_more
+from django.db import migrations, models
 
 
 def normalize_tax_ids(apps, schema_editor):
@@ -55,18 +55,36 @@ def normalize_tax_ids(apps, schema_editor):
 
 def reverse_normalize_tax_ids(apps, schema_editor):
     """反向操作：無法完全還原，因為我們不知道原始格式"""
-    # 這個操作無法完全還原，因為我們不知道原始格式
-    # 但這不會造成問題，因為格式統一後更有利於匹配
     pass
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0009_company_user_company_tax_id'),
+        ('users', '0009_merge_company_and_paymentcard'),
+    ]
+
+    replaces = [
+        ('users', '0010_normalize_tax_ids'),
+        ('users', '0010_remove_user_groups_remove_user_user_permissions_and_more'),
     ]
 
     operations = [
+        # From 0010_normalize_tax_ids
         migrations.RunPython(normalize_tax_ids, reverse_normalize_tax_ids),
+        
+        # From 0010_remove_user_groups_remove_user_user_permissions_and_more
+        migrations.RemoveField(
+            model_name='user',
+            name='groups',
+        ),
+        migrations.RemoveField(
+            model_name='user',
+            name='user_permissions',
+        ),
+        migrations.AddField(
+            model_name='user',
+            name='is_superuser',
+            field=models.BooleanField(default=False, verbose_name='超級用戶'),
+        ),
     ]
-

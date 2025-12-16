@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('schedules', '0001_initial'),
         ('stores', '0014_store_stores_stor_is_publ_e1a787_idx_and_more'),
-        ('users', '0009_company_user_company_tax_id'),
+        ('users', '0009_merge_company_and_paymentcard'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
