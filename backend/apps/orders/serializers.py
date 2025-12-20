@@ -158,9 +158,17 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
 
     def generate_pickup_number(self, store):
         import random
-        # 生成 1-1000 的隨機取餐號碼
-        random_number = random.randint(1, 1000)
-        return str(random_number)
+        max_attempts = 100
+        for _ in range(max_attempts):
+            # 生成 1-1000 的隨機取餐號碼
+            random_number = random.randint(1, 1000)
+            pickup_number = str(random_number)
+            # 檢查是否已存在
+            if not TakeoutOrder.objects.filter(pickup_number=pickup_number).exists():
+                return pickup_number
+        # 如果用完了 1-1000，改用時間戳格式
+        import time
+        return f"T{int(time.time()) % 10000}"
 
 
 # ===== 內用訂單 Serializers =====
@@ -309,9 +317,17 @@ class DineInOrderSerializer(serializers.ModelSerializer):
 
     def generate_order_number(self, store):
         import random
-        # 生成 1-1000 的隨機訂單號碼
-        random_number = random.randint(1, 1000)
-        return str(random_number)
+        max_attempts = 100
+        for _ in range(max_attempts):
+            # 生成 1-1000 的隨機訂單號碼
+            random_number = random.randint(1, 1000)
+            order_number = str(random_number)
+            # 檢查是否已存在
+            if not DineInOrder.objects.filter(order_number=order_number).exists():
+                return order_number
+        # 如果用完了 1-1000，改用時間戳格式
+        import time
+        return f"D{int(time.time()) % 10000}"
 
 
 class NotificationSerializer(serializers.ModelSerializer):

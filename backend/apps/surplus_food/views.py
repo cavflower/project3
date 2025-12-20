@@ -452,12 +452,13 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
         order.status = 'cancelled'
         order.save()
         
-        # 從 Firestore 刪除
+        # 更新 Firestore 狀態為 cancelled（讓顧客端即時收到通知）
+        # 不直接刪除，讓顧客端有時間看到狀態變更
         try:
             surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
-            surplus_orders_ref.delete()
+            surplus_orders_ref.update({'status': 'cancelled'})
         except Exception as e:
-            print(f"刪除 Firestore 文件失敗: {e}")
+            print(f"更新 Firestore 失敗: {e}")
         
         serializer = self.get_serializer(order)
         return Response(serializer.data)

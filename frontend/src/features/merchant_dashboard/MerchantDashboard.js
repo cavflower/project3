@@ -96,18 +96,26 @@ const MerchantDashboard = () => {
   useEffect(() => {
     if (!storeId) return;
 
-    let isInitialLoad = true;
+    let isOrdersInitialLoad = true;
+    let isSurplusInitialLoad = true;
+    let refreshTimeout = null;
 
-    // 刷新待確認訂單
-    const refreshPendingOrders = async () => {
-      try {
-        const pendingOrdersResponse = await getMerchantPendingOrders();
-        if (pendingOrdersResponse?.data?.pending_orders) {
-          setPendingOrders(pendingOrdersResponse.data.pending_orders);
+    // 刷新待確認訂單（有防抖，等待兩個集合都有變更後再刷新）
+    const refreshPendingOrders = () => {
+      // 清除之前的計時器
+      if (refreshTimeout) clearTimeout(refreshTimeout);
+
+      // 設置新的計時器，等待 300ms 確保兩個集合的變更都接收到
+      refreshTimeout = setTimeout(async () => {
+        try {
+          const pendingOrdersResponse = await getMerchantPendingOrders();
+          if (pendingOrdersResponse?.data?.pending_orders) {
+            setPendingOrders(pendingOrdersResponse.data.pending_orders);
+          }
+        } catch (error) {
+          console.error('[Dashboard] Error refreshing pending orders:', error);
         }
-      } catch (error) {
-        console.error('[Dashboard] Error refreshing pending orders:', error);
-      }
+      }, 300);
     };
 
     // 監聽一般訂單（外帶、內用）
@@ -115,7 +123,10 @@ const MerchantDashboard = () => {
     const ordersQuery = query(ordersRef, where('store_id', '==', storeId));
 
     const unsubscribeOrders = onSnapshot(ordersQuery, () => {
-      if (isInitialLoad) return;
+      if (isOrdersInitialLoad) {
+        isOrdersInitialLoad = false;
+        return;
+      }
       refreshPendingOrders();
     }, (error) => {
       console.error('[Dashboard] Orders Firestore listener error:', error);
@@ -126,8 +137,8 @@ const MerchantDashboard = () => {
     const surplusQuery = query(surplusOrdersRef, where('store_id', '==', String(storeId)));
 
     const unsubscribeSurplus = onSnapshot(surplusQuery, () => {
-      if (isInitialLoad) {
-        isInitialLoad = false;
+      if (isSurplusInitialLoad) {
+        isSurplusInitialLoad = false;
         return;
       }
       refreshPendingOrders();
@@ -138,6 +149,7 @@ const MerchantDashboard = () => {
     return () => {
       unsubscribeOrders();
       unsubscribeSurplus();
+      if (refreshTimeout) clearTimeout(refreshTimeout);
     };
   }, [storeId]);
 

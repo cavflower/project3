@@ -179,9 +179,8 @@ class OrderStatusUpdateView(APIView):
                 order.completed_at = timezone.now()
             order.save()
             
-            # 如果狀態變更為 completed 或 rejected，從 Firestore 刪除
-            if new_status in ['completed', 'rejected']:
-                firestore.client().collection('orders').document(pickup_number).delete()
+            # 如果狀態變更為 completed 或 rejected，保持 Firestore 中的狀態更新
+            # 不刪除，讓顧客端可以收到即時通知
             
             return Response({
                 'pickup_number': pickup_number, 
