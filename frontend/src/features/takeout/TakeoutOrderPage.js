@@ -3,8 +3,9 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { FaPlus, FaMinus, FaShoppingCart } from "react-icons/fa";
 import { getStore } from "../../api/storeApi";
 import { getTakeoutProducts } from "../../api/orderApi";
-import { getPublicProductCategories } from "../../api/productApi";
+import { getPublicProductCategories, getPublicSpecificationGroups } from "../../api/productApi";
 import { useAuth } from "../../store/AuthContext";
+import ProductSpecificationModal from "../../components/common/ProductSpecificationModal";
 import "./TakeoutOrderPage.css";
 
 const initialCart = {
@@ -19,20 +20,34 @@ const formatPrice = (value) => Math.round(Number(value) || 0);
 function cartReducer(state, action) {
   switch (action.type) {
     case "ADD_ITEM": {
-      const existing = state.items.find((item) => item.id === action.payload.id);
+      // 如果商品有規格，使用 specKey 來區分不同規格組合
+      const itemKey = action.payload.specKey
+        ? `${action.payload.id}_${action.payload.specKey}`
+        : action.payload.id.toString();
+
+      const existing = state.items.find((item) => {
+        const existingKey = item.specKey
+          ? `${item.id}_${item.specKey}`
+          : item.id.toString();
+        return existingKey === itemKey;
+      });
+
       const items = existing
-        ? state.items.map((item) =>
-            item.id === action.payload.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          )
-        : [...state.items, { ...action.payload, quantity: 1 }];
+        ? state.items.map((item) => {
+          const existingKey = item.specKey
+            ? `${item.id}_${item.specKey}`
+            : item.id.toString();
+          return existingKey === itemKey
+            ? { ...item, quantity: item.quantity + 1 }
+            : item;
+        })
+        : [...state.items, { ...action.payload, quantity: 1, cartKey: itemKey }];
       return { ...state, items };
     }
     case "DECREMENT_ITEM": {
       const items = state.items
         .map((item) =>
-          item.id === action.payload
+          item.cartKey === action.payload
             ? { ...item, quantity: item.quantity - 1 }
             : item
         )
@@ -64,10 +79,42 @@ function TakeoutOrderPage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [error, setError] = useState("");
   const categoryRefs = useRef({});
-  
+
+  // 規格選擇 Modal 狀態
+  const [showSpecModal, setShowSpecModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
   // 如果從購物車頁面返回，恢復購物車狀態
   const initialCartState = location.state?.cart || initialCart;
   const [cart, dispatch] = useReducer(cartReducer, initialCartState);
+
+  // 處理商品點擊：檢查是否有規格
+  const handleProductClick = async (product) => {
+    try {
+      const response = await getPublicSpecificationGroups(product.id);
+      const specs = response.data || [];
+
+      if (specs.length > 0 && specs.some(g => g.options && g.options.length > 0)) {
+        // 有規格，顯示 Modal
+        setSelectedProduct(product);
+        setShowSpecModal(true);
+      } else {
+        // 無規格，直接加入購物車
+        dispatch({ type: "ADD_ITEM", payload: { ...product, itemType: 'regular' } });
+      }
+    } catch (err) {
+      console.error('檢查規格失敗:', err);
+      // 失敗時直接加入
+      dispatch({ type: "ADD_ITEM", payload: { ...product, itemType: 'regular' } });
+    }
+  };
+
+  // 規格選擇完成
+  const handleSpecConfirm = (productWithSpecs) => {
+    dispatch({ type: "ADD_ITEM", payload: { ...productWithSpecs, itemType: 'regular' } });
+    setShowSpecModal(false);
+    setSelectedProduct(null);
+  };
 
   useEffect(() => {
     async function load() {
@@ -79,11 +126,11 @@ function TakeoutOrderPage() {
           getTakeoutProducts(storeId),
           getPublicProductCategories(storeId)
         ]);
-        
+
         setStore(storeRes.data);
         setMenuItems(productsRes.data);
         setCategories(categoriesRes.data || []);
-        
+
         // 預設選中第一個類別
         if (categoriesRes.data && categoriesRes.data.length > 0) {
           setSelectedCategory(categoriesRes.data[0].id);
@@ -105,10 +152,10 @@ function TakeoutOrderPage() {
   const handleGoToCart = () => {
     // 只傳遞可序列化的資料，不傳遞 dispatch 函數
     navigate(`/takeout/${storeId}/cart`, {
-      state: { 
+      state: {
         cart: cart,
         store: store,
-        storeId: storeId 
+        storeId: storeId
       }
     });
   };
@@ -183,9 +230,9 @@ function TakeoutOrderPage() {
                   <FaShoppingCart size={18} />
                   {cart.items.length > 0 && (
                     <span className="cart-badge">{cart.items.length}</span>
-                  )}             
+                  )}
                 </button>
-                
+
                 {/* 惜福專區按鈕 */}
                 <button
                   className={`surplus-zone-nav-btn ${!store?.enable_surplus_food ? 'disabled' : ''}`}
@@ -212,10 +259,12 @@ function TakeoutOrderPage() {
                   <p className="text-muted">目前尚無外帶餐點。</p>
                 )}
                 {menuItems.map((item) => {
-                  const cartItem = cart.items.find(ci => ci.id === item.id);
-                  const quantity = cartItem ? cartItem.quantity : 0;
-                  const isLinkedToSurplus = item.is_linked_to_surplus || false; // 被關聯為惜福品
-                  
+                  // 計算該商品的總數量（所有規格組合加總）
+                  const cartItemsForProduct = cart.items.filter(ci => ci.id === item.id);
+                  const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
+                  const lastCartItem = cartItemsForProduct[cartItemsForProduct.length - 1];
+                  const isLinkedToSurplus = item.is_linked_to_surplus || false;
+
                   return (
                     <div
                       key={item.id}
@@ -238,7 +287,7 @@ function TakeoutOrderPage() {
                         quantity === 0 ? (
                           <button
                             className="btn rounded-circle add-btn"
-                            onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
+                            onClick={() => handleProductClick(item)}
                             title="加入購物車"
                           >
                             <FaPlus />
@@ -247,14 +296,14 @@ function TakeoutOrderPage() {
                           <div className="quantity-control d-flex align-items-center gap-2">
                             <button
                               className="btn rounded-circle quantity-btn"
-                              onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
+                              onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: lastCartItem?.cartKey })}
                             >
                               <FaMinus />
                             </button>
                             <span className="quantity-display">{quantity}</span>
                             <button
                               className="btn rounded-circle quantity-btn"
-                              onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
+                              onClick={() => handleProductClick(item)}
                             >
                               <FaPlus />
                             </button>
@@ -270,7 +319,7 @@ function TakeoutOrderPage() {
             categories.map((category) => {
               const categoryProducts = menuItems.filter(item => item.category === category.id);
               if (categoryProducts.length === 0) return null;
-              
+
               return (
                 <div
                   key={category.id}
@@ -285,10 +334,12 @@ function TakeoutOrderPage() {
                   </div>
                   <div className="card-body">
                     {categoryProducts.map((item) => {
-                      const cartItem = cart.items.find(ci => ci.id === item.id);
-                      const quantity = cartItem ? cartItem.quantity : 0;
-                      const isLinkedToSurplus = item.is_linked_to_surplus || false; // 被關聯為惜福品
-                      
+                      // 計算該商品的總數量（所有規格組合加總）
+                      const cartItemsForProduct = cart.items.filter(ci => ci.id === item.id);
+                      const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
+                      const lastCartItem = cartItemsForProduct[cartItemsForProduct.length - 1];
+                      const isLinkedToSurplus = item.is_linked_to_surplus || false;
+
                       return (
                         <div
                           key={item.id}
@@ -297,7 +348,7 @@ function TakeoutOrderPage() {
                         >
                           {item.image && (
                             <div className="me-3">
-                              <img 
+                              <img
                                 src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
                                 alt={item.name}
                                 style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
@@ -320,7 +371,7 @@ function TakeoutOrderPage() {
                             quantity === 0 ? (
                               <button
                                 className="btn rounded-circle add-btn"
-                                onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
+                                onClick={() => handleProductClick(item)}
                                 title="加入購物車"
                               >
                                 <FaPlus />
@@ -329,14 +380,14 @@ function TakeoutOrderPage() {
                               <div className="quantity-control d-flex align-items-center gap-2">
                                 <button
                                   className="btn rounded-circle quantity-btn"
-                                  onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
+                                  onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: lastCartItem?.cartKey })}
                                 >
                                   <FaMinus />
                                 </button>
                                 <span className="quantity-display">{quantity}</span>
                                 <button
                                   className="btn rounded-circle quantity-btn"
-                                  onClick={() => dispatch({ type: "ADD_ITEM", payload: { ...item, itemType: 'regular' } })}
+                                  onClick={() => handleProductClick(item)}
                                 >
                                   <FaPlus />
                                 </button>
@@ -353,6 +404,17 @@ function TakeoutOrderPage() {
           )}
         </div>
       </div>
+      {/* 規格選擇 Modal */}
+      {showSpecModal && selectedProduct && (
+        <ProductSpecificationModal
+          product={selectedProduct}
+          onConfirm={handleSpecConfirm}
+          onCancel={() => {
+            setShowSpecModal(false);
+            setSelectedProduct(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -71,6 +71,20 @@ class TakeoutOrderItem(models.Model):
         verbose_name='商品'
     )
     quantity = models.PositiveIntegerField(verbose_name='數量')
+    unit_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='單價',
+        help_text='含規格調整後的單價'
+    )
+    specifications = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='規格選擇',
+        help_text='儲存已選規格的 JSON 資料，如 [{"groupName": "大小", "optionName": "大份", "priceAdjustment": 20}]'
+    )
 
     class Meta:
         verbose_name = '外帶訂單項目'
@@ -92,6 +106,7 @@ class DineInOrder(models.Model):
         ('accepted', '已接受'),
         ('preparing', '準備中'),
         ('ready', '已完成'),
+        ('ready_for_pickup', '可取餐'),
         ('completed', '已送達'),
         ('rejected', '已拒絕'),
     )
@@ -147,6 +162,20 @@ class DineInOrderItem(models.Model):
         verbose_name='商品'
     )
     quantity = models.PositiveIntegerField(verbose_name='數量')
+    unit_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='單價',
+        help_text='含規格調整後的單價'
+    )
+    specifications = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='規格選擇',
+        help_text='儲存已選規格的 JSON 資料'
+    )
 
     class Meta:
         verbose_name = '內用訂單項目'

@@ -18,7 +18,11 @@ db = firestore.client()
 class TakeoutOrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = TakeoutOrderItem
-        fields = ['product', 'quantity']
+        fields = ['product', 'quantity', 'unit_price', 'specifications']
+        extra_kwargs = {
+            'unit_price': {'required': False},
+            'specifications': {'required': False},
+        }
 
     def validate_product(self, value):
         store = self.context['store']
@@ -60,12 +64,29 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
         
         # 建立訂單項目並計算總金額
         total_amount = 0
+        firestore_items = []
         for item_data in items_data:
+            product = item_data['product']
+            quantity = item_data['quantity']
+            unit_price = item_data.get('unit_price') or product.price
+            specifications = item_data.get('specifications', [])
+            
             item = TakeoutOrderItem.objects.create(
                 order=order,
-                **item_data
+                product=product,
+                quantity=quantity,
+                unit_price=unit_price,
+                specifications=specifications
             )
-            total_amount += item.product.price * item.quantity
+            total_amount += float(unit_price) * quantity
+            
+            # 準備 Firestore 資料
+            firestore_items.append({
+                'product_id': product.id,
+                'quantity': quantity,
+                'unit_price': float(unit_price),
+                'specifications': specifications
+            })
         
         # 2. 自動建立或更新會員帳戶（如果用戶已登入）
         if user and store.enable_loyalty:
@@ -126,10 +147,7 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
                 'notes': validated_data.get('notes', ''),
                 'channel': 'takeout',
                 'use_utensils': validated_data.get('use_utensils', False),
-                'items': [
-                    {'product_id': item['product'].id, 'quantity': item['quantity']}
-                    for item in items_data
-                ],
+                'items': firestore_items,
                 'status': 'pending',
                 'created_at': firestore.SERVER_TIMESTAMP,
             })
@@ -149,7 +167,11 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
 class DineInOrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = DineInOrderItem
-        fields = ['product', 'quantity']
+        fields = ['product', 'quantity', 'unit_price', 'specifications']
+        extra_kwargs = {
+            'unit_price': {'required': False},
+            'specifications': {'required': False},
+        }
 
     def validate_product(self, value):
         store = self.context['store']
@@ -192,12 +214,29 @@ class DineInOrderSerializer(serializers.ModelSerializer):
         
         # 建立訂單項目並計算總金額
         total_amount = 0
+        firestore_items = []
         for item_data in items_data:
+            product = item_data['product']
+            quantity = item_data['quantity']
+            unit_price = item_data.get('unit_price') or product.price
+            specifications = item_data.get('specifications', [])
+            
             item = DineInOrderItem.objects.create(
                 order=order,
-                **item_data
+                product=product,
+                quantity=quantity,
+                unit_price=unit_price,
+                specifications=specifications
             )
-            total_amount += item.product.price * item.quantity
+            total_amount += float(unit_price) * quantity
+            
+            # 準備 Firestore 資料
+            firestore_items.append({
+                'product_id': product.id,
+                'quantity': quantity,
+                'unit_price': float(unit_price),
+                'specifications': specifications
+            })
         
         # 2. 自動建立或更新會員帳戶（如果用戶已登入）
         if user and store.enable_loyalty:
@@ -251,18 +290,15 @@ class DineInOrderSerializer(serializers.ModelSerializer):
             db.collection('orders').document(order_number).set({
                 'store_id': store.id,
                 'order_number': order_number,
-                'pickup_number': order_number,  # 相容舊欄位
+                'pickup_number': order_number,
                 'customer_name': validated_data.get('customer_name', ''),
                 'customer_phone': validated_data.get('customer_phone', ''),
                 'table_label': validated_data.get('table_label', ''),
                 'payment_method': validated_data.get('payment_method', ''),
-                'notes': validated_data.get('notes', ''),  # 備註預設為空字串
+                'notes': validated_data.get('notes', ''),
                 'channel': 'dine_in',
-                'use_eco_tableware': validated_data.get('use_eco_tableware', False),  # 正確的餐具欄位
-                'items': [
-                    {'product_id': item['product'].id, 'quantity': item['quantity']}
-                    for item in items_data
-                ],
+                'use_eco_tableware': validated_data.get('use_eco_tableware', False),
+                'items': firestore_items,
                 'status': 'pending',
                 'created_at': firestore.SERVER_TIMESTAMP,
             })

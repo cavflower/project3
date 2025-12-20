@@ -28,40 +28,40 @@ function OrderManagementPage() {
       try {
         setLoading(true);
         setError('');
-        
+
         // 先獲取店家 ID
         const storeRes = await getMyStore();
         const id = storeRes.data?.id;
         setStoreId(id);
-        
+
         if (!id) {
           setError('無法取得店家資料，請先到「餐廳設定」建立你的店家資訊。');
           setLoading(false);
           return;
         }
-        
+
         // 並行載入訂單和商品資料
         const [ordersRes, productsRes] = await Promise.all([
           api.get('/orders/list/', { params: { store_id: id } }),
           api.get('/products/public/products/', { params: { store: id } })
         ]);
-        
+
         // 處理訂單資料
         const items = (ordersRes.data || []).map((data) => ({
           ...data,
           created_at: data.created_at ? new Date(data.created_at) : null,
           pickup_at: data.pickup_at ? new Date(data.pickup_at) : null,
         }));
-        
+
         setOrders(items);
-        
+
         // 處理商品名稱對照
         const map = {};
         (productsRes.data || []).forEach((p) => {
           map[p.id] = p.name || p.title || `商品${p.id}`;
         });
         setProductMap(map);
-        
+
       } catch (err) {
         console.error('load orders error', err);
         const detail =
@@ -79,7 +79,7 @@ function OrderManagementPage() {
   const handleUpdateStatus = async (pickupNumber, status) => {
     // 樂觀更新：先保存舊狀態
     const oldOrders = [...orders];
-    
+
     // 立即更新 UI
     setOrders((prev) =>
       prev.map((o) =>
@@ -88,7 +88,7 @@ function OrderManagementPage() {
           : o
       )
     );
-    
+
     try {
       setUpdating(true);
       // 背景發送請求
@@ -105,15 +105,15 @@ function OrderManagementPage() {
 
   const handleDelete = async (pickupNumber) => {
     if (!window.confirm('確定要永久刪除此訂單？此操作將從資料庫中完全移除訂單資料。')) return;
-    
+
     // 樂觀更新：先保存舊訂單清單
     const oldOrders = [...orders];
-    
+
     // 立即從 UI 移除
     setOrders((prev) =>
       prev.filter((o) => o.pickup_number !== pickupNumber && o.id !== pickupNumber)
     );
-    
+
     try {
       setUpdating(true);
       // 背景發送刪除請求
@@ -142,17 +142,17 @@ function OrderManagementPage() {
 
   const filteredOrders = useMemo(() => {
     let filtered = sortedOrders;
-    
+
     // 狀態篩選
     if (statusFilter !== 'all') {
       filtered = filtered.filter((o) => (o.status || 'pending') === statusFilter);
     }
-    
+
     // 內用/外帶篩選
     if (channelFilter !== 'all') {
       filtered = filtered.filter((o) => o.channel === channelFilter);
     }
-    
+
     return filtered;
   }, [sortedOrders, statusFilter, channelFilter]);
 
@@ -225,9 +225,8 @@ function OrderManagementPage() {
         ].map((opt) => (
           <button
             key={opt.key}
-            className={`btn btn-sm filter-btn ${
-              statusFilter === opt.key ? 'filter-btn-active' : ''
-            }`}
+            className={`btn btn-sm filter-btn ${statusFilter === opt.key ? 'filter-btn-active' : ''
+              }`}
             onClick={() => {
               setStatusFilter(opt.key);
               setPage(1);
@@ -246,9 +245,8 @@ function OrderManagementPage() {
         ].map((opt) => (
           <button
             key={opt.key}
-            className={`btn btn-sm filter-btn ${
-              channelFilter === opt.key ? 'filter-btn-active' : ''
-            }`}
+            className={`btn btn-sm filter-btn ${channelFilter === opt.key ? 'filter-btn-active' : ''
+              }`}
             onClick={() => {
               setChannelFilter(opt.key);
               setPage(1);
@@ -347,6 +345,39 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
                     {productMap[it.product_id || it.product] ||
                       `商品ID: ${it.product_id || it.product}`}{' '}
                     × {it.quantity}
+                    {it.unit_price && (
+                      <span className="text-muted ms-1">
+                        (NT$ {Math.round(it.unit_price)})
+                      </span>
+                    )}
+                    {/* 顯示規格 - 按類別分組 */}
+                    {it.specifications && it.specifications.length > 0 && (
+                      <div className="ms-3 small text-secondary">
+                        {/* 按 groupName 分組 */}
+                        {Object.entries(
+                          it.specifications.reduce((groups, spec) => {
+                            const group = spec.groupName || '其他';
+                            if (!groups[group]) groups[group] = [];
+                            groups[group].push(spec);
+                            return groups;
+                          }, {})
+                        ).map(([groupName, specs], groupIdx) => (
+                          <span key={groupIdx} className="me-2">
+                            {groupName}: {specs.map((spec, specIdx) => (
+                              <span key={specIdx}>
+                                {specIdx > 0 && '、'}
+                                {spec.optionName}
+                                {spec.priceAdjustment !== 0 && (
+                                  <span className={spec.priceAdjustment > 0 ? 'text-danger' : 'text-success'}>
+                                    {spec.priceAdjustment > 0 ? ` +$${spec.priceAdjustment}` : ` -$${Math.abs(spec.priceAdjustment)}`}
+                                  </span>
+                                )}
+                              </span>
+                            ))}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -379,7 +410,7 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
               className="surplus-btn-sm surplus-btn-primary btn-accept"
               disabled={updating}
               onClick={() => onUpdateStatus(
-                order.pickup_number || order.id, 
+                order.pickup_number || order.id,
                 'ready_for_pickup'
               )}
             >

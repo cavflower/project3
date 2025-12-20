@@ -1,0 +1,222 @@
+/* 規格選擇 Modal 樣式 */
+.spec-select-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 16px;
+}
+
+.spec-select-modal {
+    background: white;
+    border-radius: 16px;
+    max-width: 450px;
+    width: 100%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.spec-select-header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+}
+
+.spec-select-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    color: #333;
+}
+
+.spec-base-price {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.spec-select-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+}
+
+.spec-loading {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.spec-error {
+    background: #ffebee;
+    color: #c62828;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.spec-no-options {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+}
+
+.spec-select-group {
+    margin-bottom: 20px;
+}
+
+.spec-group-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    color: #333;
+}
+
+.spec-group-type {
+    font-size: 12px;
+    font-weight: 400;
+    color: #888;
+}
+
+.spec-required {
+    color: #e53935;
+    margin-left: 6px;
+    font-weight: 500;
+}
+
+.spec-options-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.spec-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 25px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.spec-option-btn:hover {
+    border-color: #ff6b6b;
+}
+
+.spec-option-btn.selected {
+    border-color: #ff6b6b;
+    background: #fff5f5;
+    color: #ff6b6b;
+}
+
+.option-name {
+    color: #333;
+}
+
+.spec-option-btn.selected .option-name {
+    color: #ff6b6b;
+    font-weight: 500;
+}
+
+.option-price {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.option-price.positive {
+    color: #e53935;
+}
+
+.option-price.negative {
+    color: #2e7d32;
+}
+
+.spec-select-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+}
+
+.spec-total-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 16px;
+}
+
+.total-amount {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ff6b6b;
+}
+
+.spec-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.spec-cancel-btn,
+.spec-confirm-btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.spec-cancel-btn {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.spec-cancel-btn:hover {
+    background: #e0e0e0;
+}
+
+.spec-confirm-btn {
+    background: #ff6b6b;
+    color: white;
+}
+
+.spec-confirm-btn:hover {
+    background: #ff5252;
+}
+
+/* 響應式 */
+@media (max-width: 480px) {
+    .spec-select-modal {
+        max-height: 90vh;
+        border-radius: 16px 16px 0 0;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 100%;
+    }
+
+    .spec-select-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+}

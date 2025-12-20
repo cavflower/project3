@@ -22,3 +22,7 @@ export const getOrderNotifications = () => api.get('/orders/notifications/');
 
 export const markAllNotificationsAsRead = () => api.post('/orders/notifications/mark_all_read/');
 
+export const deleteNotification = (id) => api.delete(`/orders/notifications/${id}/`);
+
+export const deleteAllNotifications = () => api.delete('/orders/notifications/delete_all/');
+

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, ProductCategory
+from .models import Product, ProductCategory, ProductSpecification, SpecificationGroup
 
 
 class ProductCategorySerializer(serializers.ModelSerializer):
@@ -92,4 +92,55 @@ class PublicProductSerializer(serializers.ModelSerializer):
         from apps.surplus_food.models import SurplusFood
         return SurplusFood.objects.filter(product=obj, status='active').exists()
 
+
+class ProductSpecificationSerializer(serializers.ModelSerializer):
+    """規格選項序列化器"""
+    price_adjustment_display = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ProductSpecification
+        fields = [
+            'id', 'group', 'name', 'price_adjustment', 
+            'price_adjustment_display', 'is_active', 'display_order', 
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def get_price_adjustment_display(self, obj):
+        """格式化價格調整顯示"""
+        if obj.price_adjustment > 0:
+            return f"+NT${obj.price_adjustment}"
+        elif obj.price_adjustment < 0:
+            return f"-NT${abs(obj.price_adjustment)}"
+        return "NT$0"
+
+
+class SpecificationGroupSerializer(serializers.ModelSerializer):
+    """規格類別序列化器"""
+    options = ProductSpecificationSerializer(many=True, read_only=True)
+    selection_type_display = serializers.CharField(source='get_selection_type_display', read_only=True)
+    options_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SpecificationGroup
+        fields = [
+            'id', 'product', 'name', 'selection_type', 'selection_type_display',
+            'is_required', 'display_order', 'is_active', 
+            'options', 'options_count', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def get_options_count(self, obj):
+        """取得該類別下的選項數量"""
+        return obj.options.count()
+    
+    def validate_product(self, value):
+        """驗證商品屬於當前商家"""
+        request = self.context.get('request')
+        if request:
+            merchant = getattr(request.user, 'merchant_profile', None)
+            if merchant and hasattr(merchant, 'store'):
+                if value.store != merchant.store:
+                    raise serializers.ValidationError('無權限操作此商品的規格類別')
+        return value
 

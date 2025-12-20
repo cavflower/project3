@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
+import { db } from '../../lib/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { useAuth } from '../../store/AuthContext';
 
 const SurplusOrderList = () => {
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all'); // 'all', 'dine_in', 'takeout'
+  const [realtimeStatus, setRealtimeStatus] = useState('連線中...');
 
-  useEffect(() => {
-    loadOrders();
-  }, [statusFilter, channelFilter]);
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     try {
       setLoading(true);
       const params = {};
@@ -25,6 +26,64 @@ const SurplusOrderList = () => {
     } finally {
       setLoading(false);
     }
+  }, [statusFilter, channelFilter]);
+
+  // 初始載入
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  // Firestore 即時監聽惜福品訂單
+  useEffect(() => {
+    const surplusOrdersRef = collection(db, 'surplus_orders');
+
+    const unsubscribe = onSnapshot(surplusOrdersRef, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          console.log('新惜福品訂單:', change.doc.data());
+          // 有新訂單時重新載入
+          loadOrders();
+        } else if (change.type === 'modified') {
+          const updatedOrder = change.doc.data();
+          console.log('惜福品訂單更新:', updatedOrder);
+
+          // 更新本地訂單狀態
+          setOrders(prevOrders =>
+            prevOrders.map(order => {
+              if (order.order_number === updatedOrder.order_number ||
+                order.pickup_number === updatedOrder.pickup_number) {
+                return {
+                  ...order,
+                  status: updatedOrder.status,
+                  status_display: getStatusLabel(updatedOrder.status)
+                };
+              }
+              return order;
+            })
+          );
+        } else if (change.type === 'removed') {
+          console.log('惜福品訂單已刪除:', change.doc.data());
+          loadOrders();
+        }
+      });
+      setRealtimeStatus('即時更新中');
+    }, (error) => {
+      console.error('Firestore 監聯錯誤:', error);
+      setRealtimeStatus('連線失敗');
+    });
+
+    return () => unsubscribe();
+  }, [loadOrders]);
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      'pending': '待確認',
+      'confirmed': '已確認',
+      'ready': '可取餐',
+      'completed': '已完成',
+      'cancelled': '已取消'
+    };
+    return labels[status] || status;
   };
 
   const handleUpdateStatus = async (orderId, action) => {
@@ -36,13 +95,13 @@ const SurplusOrderList = () => {
       'cancel': 'cancelled',
       'reject': 'cancelled'
     };
-    
+
     const newStatus = statusMap[action];
-    
+
     // 樂觀更新：先更新 UI
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.id === orderId 
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
+        order.id === orderId
           ? { ...order, status: newStatus, status_display: getStatusLabel(newStatus) }
           : order
       )
@@ -68,25 +127,14 @@ const SurplusOrderList = () => {
     }
   };
 
-  const getStatusLabel = (status) => {
-    const labels = {
-      'pending': '待確認',
-      'confirmed': '已確認',
-      'ready': '可取餐',
-      'completed': '已完成',
-      'cancelled': '已取消'
-    };
-    return labels[status] || status;
-  };
-
   const handleDeleteOrder = async (orderId) => {
     if (!window.confirm('確定要刪除此訂單嗎？')) {
       return;
     }
-    
+
     // 樂觀更新：先從 UI 移除
     setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
-    
+
     try {
       await surplusFoodApi.deleteOrder(orderId);
     } catch (error) {
@@ -99,8 +147,12 @@ const SurplusOrderList = () => {
 
   return (
     <div className="tab-content">
-      <div className="content-header">
+      <div className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>惜福食品訂單</h2>
+        <div className={`realtime-status ${realtimeStatus === '即時更新中' ? 'connected' : ''}`}>
+          <span className="status-dot"></span>
+          {realtimeStatus}
+        </div>
       </div>
 
       {/* 狀態篩選器 */}
@@ -173,9 +225,9 @@ const SurplusOrderList = () => {
             <div className="empty-state">目前沒有訂單</div>
           ) : (
             orders.map(order => (
-              <OrderCard 
-                key={order.id} 
-                order={order} 
+              <OrderCard
+                key={order.id}
+                order={order}
                 onUpdateStatus={handleUpdateStatus}
                 onDeleteOrder={handleDeleteOrder}
               />
@@ -257,14 +309,14 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
       <div className="order-actions">
         {order.status === 'pending' && (
           <>
-            <button 
-              className="surplus-btn-sm btn-success" 
+            <button
+              className="surplus-btn-sm btn-success"
               onClick={() => onUpdateStatus(order.id, 'confirm')}
             >
               確認訂單
             </button>
-            <button 
-              className="surplus-btn-sm btn-danger" 
+            <button
+              className="surplus-btn-sm btn-danger"
               onClick={() => onUpdateStatus(order.id, 'reject')}
             >
               拒絕
@@ -273,14 +325,14 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
         )}
         {order.status === 'confirmed' && (
           <>
-            <button 
-              className="surplus-btn-sm surplus-btn-primary" 
+            <button
+              className="surplus-btn-sm surplus-btn-primary"
               onClick={() => onUpdateStatus(order.id, 'ready')}
             >
               可取餐
             </button>
-            <button 
-              className="surplus-btn-sm btn-danger" 
+            <button
+              className="surplus-btn-sm btn-danger"
               onClick={() => onUpdateStatus(order.id, 'cancel')}
             >
               取消
@@ -288,16 +340,16 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
           </>
         )}
         {order.status === 'ready' && (
-          <button 
-            className="surplus-btn-sm btn-success" 
+          <button
+            className="surplus-btn-sm btn-success"
             onClick={() => onUpdateStatus(order.id, 'complete')}
           >
             完成訂單
           </button>
         )}
         {(order.status === 'completed' || order.status === 'cancelled') && (
-          <button 
-            className="surplus-btn-sm btn-danger" 
+          <button
+            className="surplus-btn-sm btn-danger"
             onClick={() => onDeleteOrder(order.id)}
           >
             刪除

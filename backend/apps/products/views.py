@@ -1,10 +1,11 @@
 # backend/apps/products/views.py
 
+from django.db.models import Prefetch
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from .models import Product, ProductCategory
-from .serializers import ProductSerializer, PublicProductSerializer, ProductCategorySerializer
+from .models import Product, ProductCategory, ProductSpecification, SpecificationGroup
+from .serializers import ProductSerializer, PublicProductSerializer, ProductCategorySerializer, ProductSpecificationSerializer, SpecificationGroupSerializer
 from rest_framework import generics, permissions
 from django.shortcuts import get_object_or_404
 from apps.orders.serializers import TakeoutOrderSerializer
@@ -133,7 +134,110 @@ class PublicProductCategoryViewSet(viewsets.ReadOnlyModelViewSet):
         if store_id:
             qs = qs.filter(store_id=store_id)
         return qs.order_by('display_order', 'name')
+
+
+class SpecificationGroupViewSet(viewsets.ModelViewSet):
+    """
+    規格類別的 CRUD API
+    支援依商品 ID 篩選類別列表
+    """
+    serializer_class = SpecificationGroupSerializer
+    permission_classes = [permissions.IsAuthenticated]
     
+    def get_queryset(self):
+        merchant = getattr(self.request.user, 'merchant_profile', None)
+        if not merchant or not hasattr(merchant, 'store'):
+            return SpecificationGroup.objects.none()
+        
+        queryset = SpecificationGroup.objects.filter(
+            product__store=merchant.store
+        ).select_related('product').prefetch_related('options')
+        
+        # 支援依商品 ID 篩選
+        product_id = self.request.query_params.get('product')
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        
+        return queryset.order_by('display_order', 'name')
+    
+    def perform_create(self, serializer):
+        product = serializer.validated_data.get('product')
+        merchant = getattr(self.request.user, 'merchant_profile', None)
+        
+        if not merchant or not hasattr(merchant, 'store'):
+            raise serializers.ValidationError('用戶不是商家或沒有店舖')
+        
+        if product.store != merchant.store:
+            raise serializers.ValidationError('無權限操作此商品的規格類別')
+        
+        serializer.save()
+
+
+class ProductSpecificationViewSet(viewsets.ModelViewSet):
+    """
+    規格選項的 CRUD API
+    支援依規格類別 ID 篩選選項列表
+    """
+    serializer_class = ProductSpecificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        merchant = getattr(self.request.user, 'merchant_profile', None)
+        if not merchant or not hasattr(merchant, 'store'):
+            return ProductSpecification.objects.none()
+        
+        queryset = ProductSpecification.objects.filter(
+            group__product__store=merchant.store
+        ).select_related('group', 'group__product')
+        
+        # 支援依規格類別 ID 篩選
+        group_id = self.request.query_params.get('group')
+        if group_id:
+            queryset = queryset.filter(group_id=group_id)
+        
+        return queryset.order_by('display_order', 'name')
+    
+    def perform_create(self, serializer):
+        group = serializer.validated_data.get('group')
+        merchant = getattr(self.request.user, 'merchant_profile', None)
+        
+        if not merchant or not hasattr(merchant, 'store'):
+            raise serializers.ValidationError('用戶不是商家或沒有店舖')
+        
+        if group.product.store != merchant.store:
+            raise serializers.ValidationError('無權限操作此規格類別的選項')
+        
+        serializer.save()
+
+
+class PublicSpecificationGroupViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    公開的規格類別 API
+    允許顧客端查看商品的規格類別和選項（僅限啟用的）
+    """
+    serializer_class = SpecificationGroupSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        queryset = SpecificationGroup.objects.filter(
+            is_active=True
+        )
+        
+        # 支援依商品 ID 篩選
+        product_id = self.request.query_params.get('product')
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        
+        # 只返回啟用的選項
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                'options',
+                queryset=ProductSpecification.objects.filter(is_active=True).order_by('display_order', 'name')
+            )
+        )
+        
+        return queryset.order_by('display_order', 'name')
+
 
 class TakeoutOrderCreateView(generics.CreateAPIView):
     serializer_class = TakeoutOrderSerializer
@@ -144,3 +248,4 @@ class TakeoutOrderCreateView(generics.CreateAPIView):
         store_id = self.request.data.get('store')
         context['store'] = get_object_or_404(Store, pk=store_id)
         return context
+

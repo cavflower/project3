@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaPlus, FaFolder } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaFolder, FaCog } from 'react-icons/fa';
 import ProductForm from './ProductForm';
 import ProductCategoryForm from './ProductCategoryForm';
+import ProductSpecificationForm from './ProductSpecificationForm';
 import FoodTags from '../../../components/common/FoodTags';
 import './ProductManagementPage.css';
 import { getProducts, deleteProduct, getProductCategories, deleteProductCategory } from '../../../api/productApi';
@@ -15,6 +16,8 @@ const ProductManagementPage = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [error, setError] = useState('');
+  const [isSpecFormVisible, setIsSpecFormVisible] = useState(false);
+  const [specProduct, setSpecProduct] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -60,7 +63,7 @@ const ProductManagementPage = () => {
 
   const handleDeleteCategory = async (categoryId) => {
     const categoryProducts = products.filter(p => p.category === categoryId);
-    
+
     if (categoryProducts.length > 0) {
       alert(`此類別下還有 ${categoryProducts.length} 個商品，無法刪除！\n請先刪除或移動該類別下的所有商品。`);
       return;
@@ -122,7 +125,7 @@ const ProductManagementPage = () => {
   // 按類別分組產品
   const groupProductsByCategory = () => {
     const grouped = {};
-    
+
     // 初始化所有啟用的類別
     categories
       .filter(cat => cat.is_active)
@@ -196,6 +199,16 @@ const ProductManagementPage = () => {
         />
       )}
 
+      {isSpecFormVisible && specProduct && (
+        <ProductSpecificationForm
+          product={specProduct}
+          onClose={() => {
+            setIsSpecFormVisible(false);
+            setSpecProduct(null);
+          }}
+        />
+      )}
+
       <div className="product-content-header">
         <button className="product-btn-add" onClick={handleAddCategoryClick}>
           <FaPlus /> 新增類別
@@ -214,20 +227,20 @@ const ProductManagementPage = () => {
                 )}
               </div>
               <div className="category-actions">
-                <button 
+                <button
                   className="product-btn-add btn-compact"
                   onClick={() => handleAddClick(category)}
                 >
                   <FaPlus /> 新增商品
                 </button>
-                <button 
+                <button
                   className="product-btn-secondary btn-icon"
                   onClick={() => handleEditCategory(category)}
                   title="編輯類別"
                 >
                   <FaEdit />
                 </button>
-                <button 
+                <button
                   className="product-btn-danger btn-icon"
                   onClick={() => handleDeleteCategory(category.id)}
                   title="刪除類別"
@@ -256,6 +269,9 @@ const ProductManagementPage = () => {
                       )}
                     </div>
                     <div className="product-actions-manage">
+                      <button className="icon-btn spec-btn" onClick={() => { setSpecProduct(product); setIsSpecFormVisible(true); }} title="規格設定">
+                        <FaCog />
+                      </button>
                       <button className="icon-btn edit-btn" onClick={() => handleEditClick(product)} title="編輯">
                         <FaEdit />
                       </button>

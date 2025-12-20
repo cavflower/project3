@@ -19,9 +19,9 @@ function DineInCartPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  
+
   const { cart: initialCart, store, storeId, tableLabel } = location.state || {};
-  
+
   // 使用本地狀態管理購物車
   const [cartItems, setCartItems] = useState(initialCart?.items || []);
   const [paymentMethod, setPaymentMethod] = useState(paymentOptionsList[0].value);
@@ -30,28 +30,32 @@ function DineInCartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showCardSelector, setShowCardSelector] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   // 分離一般商品和惜福品
   const regularItems = useMemo(
     () => cartItems.filter(item => item.itemType === 'regular' || !item.itemType),
     [cartItems]
   );
-  
+
   const surplusItems = useMemo(
     () => cartItems.filter(item => item.itemType === 'surplus'),
     [cartItems]
   );
-  
+
   const regularTotal = useMemo(
-    () => regularItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0) || 0,
+    () => regularItems.reduce((sum, item) => {
+      const itemPrice = item.finalPrice || item.price;
+      return sum + Number(itemPrice) * item.quantity;
+    }, 0) || 0,
     [regularItems]
   );
-  
+
   const surplusTotal = useMemo(
     () => surplusItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0) || 0,
     [surplusItems]
   );
-  
+
   const total = regularTotal + surplusTotal;
 
   if (!initialCart || !store) {
@@ -65,21 +69,23 @@ function DineInCartPage() {
     );
   }
 
-  const handleQuantityChange = (itemId, change) => {
+  const handleQuantityChange = (cartKey, change) => {
     setCartItems(prevItems => {
       if (change > 0) {
-        return prevItems.map(item =>
-          item.id === itemId
+        return prevItems.map(item => {
+          const itemKey = item.cartKey || item.id?.toString() || item.id;
+          return itemKey === cartKey
             ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
+            : item;
+        });
       } else {
         return prevItems
-          .map(item =>
-            item.id === itemId
+          .map(item => {
+            const itemKey = item.cartKey || item.id?.toString() || item.id;
+            return itemKey === cartKey
               ? { ...item, quantity: item.quantity - 1 }
-              : item
-          )
+              : item;
+          })
           .filter(item => item.quantity > 0);
       }
     });
@@ -90,33 +96,33 @@ function DineInCartPage() {
       alert("購物車是空的。");
       return;
     }
-    
+
     // 決定使用的聯絡資訊
     let finalName = '訪客';
     let finalPhone = '訪客';
-    
+
     // 如果有登入，使用真實用戶資料
     if (user) {
       finalName = user.username || user.email || '訪客';
       finalPhone = user.phone_number || '訪客';
     }
-    
+
     // 如果選擇信用卡付款且已登入，先顯示卡片選擇器
     if (paymentMethod === 'credit_card' && user) {
       setShowCardSelector(true);
       return;
     }
-    
+
     // 其他付款方式或未登入直接執行訂單
     await executeOrder(finalName, finalPhone);
   };
-  
+
   const executeOrder = async (finalName, finalPhone) => {
-    
+
     try {
       setSubmitting(true);
       const orderResults = [];
-      
+
       // 1. 如果有一般商品，創建一般內用訂單
       if (regularItems.length > 0) {
         const regularPayload = {
@@ -130,6 +136,8 @@ function DineInCartPage() {
           items: regularItems.map((item) => ({
             product: item.id,
             quantity: item.quantity,
+            unit_price: item.finalPrice || item.price,
+            specifications: item.selectedSpecs || [],
           })),
         };
 
@@ -140,7 +148,7 @@ function DineInCartPage() {
           pickupNumber: regularResponse.data?.order_number  // 內用訂單使用 order_number
         });
       }
-      
+
       // 2. 如果有惜福品，合併成一張訂單
       if (surplusItems.length > 0) {
         const surplusPayload = {
@@ -157,7 +165,7 @@ function DineInCartPage() {
           use_utensils: useEcoTableware === "yes",
           notes: notes,  // 備註不包含桌號
         };
-        
+
         const surplusResponse = await api.post('/surplus/orders/', surplusPayload);
         orderResults.push({
           type: 'surplus',
@@ -166,16 +174,16 @@ function DineInCartPage() {
           orderId: surplusResponse.data?.id
         });
       }
-      
+
       // 清空購物車
       setCartItems([]);
-      
+
       const paymentLabel = paymentOptionsList.find((o) => o.value === paymentMethod)?.label;
-      
+
       const regularOrder = orderResults.find(r => r.type === 'regular');
       const surplusOrders = orderResults.filter(r => r.type === 'surplus');
 
-      // 如果有一般訂單，導向確認頁；否則返回菜單
+      // 如果有一般訂單，導向確認頁
       if (regularOrder && regularOrder.orderId) {
         navigate(`/confirmation/${regularOrder.orderId}`, {
           state: {
@@ -184,6 +192,19 @@ function DineInCartPage() {
             hasSurplusOrders: surplusOrders.length > 0,
             surplusOrderNumbers: surplusOrders.map(o => o.code).filter(Boolean),
             surplusPickupNumbers: surplusOrders.map(o => o.pickupNumber).filter(Boolean),
+            isDineIn: true,
+            tableLabel: tableLabel
+          },
+        });
+      } else if (surplusOrders.length > 0) {
+        // 只有惜福品訂單，導向惜福品確認頁
+        const firstSurplusOrder = surplusOrders[0];
+        navigate(`/confirmation/surplus/${firstSurplusOrder.orderId || 'success'}`, {
+          state: {
+            pickupNumber: firstSurplusOrder.pickupNumber || null,
+            orderNumber: firstSurplusOrder.code || null,
+            paymentMethod: paymentLabel || paymentMethod,
+            isSurplusOnly: true,
             isDineIn: true,
             tableLabel: tableLabel
           },
@@ -198,19 +219,19 @@ function DineInCartPage() {
       setSubmitting(false);
     }
   };
-  
+
   const handleCardSelected = async (card) => {
     setSelectedCard(card);
-    
+
     // 決定使用的聯絡資訊
     let finalName = '訪客';
     let finalPhone = '訪客';
-    
+
     if (user) {
       finalName = user.username || user.email || '訪客';
       finalPhone = user.phone_number || '訪客';
     }
-    
+
     // 執行訂單
     await executeOrder(finalName, finalPhone);
   };
@@ -219,10 +240,10 @@ function DineInCartPage() {
     <div className="takeout-cart-page container" style={{ marginTop: "70px", marginBottom: "40px" }}>
       <div className="row mb-4">
         <div className="col-12">
-          <button 
-            className="btn btn-link ps-0" 
-            onClick={() => navigate(`/store/${storeId}/dine-in/menu?table=${tableLabel || ''}`, { 
-              state: { 
+          <button
+            className="btn btn-link ps-0"
+            onClick={() => navigate(`/store/${storeId}/dine-in/menu?table=${tableLabel || ''}`, {
+              state: {
                 cart: {
                   items: cartItems,
                   notes: notes
@@ -273,47 +294,64 @@ function DineInCartPage() {
                       <h6 className="text-muted mb-3">
                         <i className="bi bi-bag me-2"></i>一般內用商品
                       </h6>
-                      {regularItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
-                        >
-                          <div className="flex-grow-1">
-                            <h5 className="mb-1">{item.name}</h5>
-                            <p className="text-muted mb-1">{item.description}</p>
-                            <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
-                          </div>
-                          <div className="d-flex align-items-center gap-3">
-                            <div className="quantity-controls d-flex align-items-center gap-2">
-                              <button
-                                className="btn rounded-circle quantity-btn"
-                                onClick={() => handleQuantityChange(item.id, -1)}
-                              >
-                                <FaMinus />
-                              </button>
-                              <span className="quantity-display">
-                                {item.quantity}
-                              </span>
-                              <button
-                                className="btn rounded-circle quantity-btn"
-                                onClick={() => handleQuantityChange(item.id, 1)}
-                              >
-                                <FaPlus />
-                              </button>
+                      {regularItems.map((item) => {
+                        const displayPrice = item.finalPrice || item.price;
+                        return (
+                          <div
+                            key={item.cartKey || item.id}
+                            className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
+                          >
+                            <div className="flex-grow-1">
+                              <h5 className="mb-1">{item.name}</h5>
+                              {/* 顯示已選規格 */}
+                              {item.selectedSpecs && item.selectedSpecs.length > 0 && (
+                                <div className="selected-specs mb-1">
+                                  {item.selectedSpecs.map((spec, idx) => (
+                                    <span key={idx} className="badge bg-light text-dark me-1" style={{ fontSize: '0.75rem' }}>
+                                      {spec.groupName}: {spec.optionName}
+                                      {spec.priceAdjustment !== 0 && (
+                                        <span className={spec.priceAdjustment > 0 ? 'text-danger' : 'text-success'}>
+                                          {spec.priceAdjustment > 0 ? ` +$${spec.priceAdjustment}` : ` -$${Math.abs(spec.priceAdjustment)}`}
+                                        </span>
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              <strong className="text-dark">NT$ {formatPrice(displayPrice)}</strong>
                             </div>
-                            <div className="text-end" style={{ minWidth: '80px' }}>
-                              <strong className="text-dark">NT$ {formatPrice(item.price * item.quantity)}</strong>
+                            <div className="d-flex align-items-center gap-3">
+                              <div className="quantity-controls d-flex align-items-center gap-2">
+                                <button
+                                  className="btn rounded-circle quantity-btn"
+                                  onClick={() => handleQuantityChange(item.cartKey, -1)}
+                                >
+                                  <FaMinus />
+                                </button>
+                                <span className="quantity-display">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  className="btn rounded-circle quantity-btn"
+                                  onClick={() => handleQuantityChange(item.cartKey, 1)}
+                                >
+                                  <FaPlus />
+                                </button>
+                              </div>
+                              <div className="text-end" style={{ minWidth: '80px' }}>
+                                <strong className="text-dark">NT$ {formatPrice(displayPrice * item.quantity)}</strong>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                       <div className="pt-2 text-end">
                         <span className="text-muted">小計：</span>
                         <strong className="text-dark ms-2">NT$ {formatPrice(regularTotal)}</strong>
                       </div>
                     </div>
                   )}
-                  
+
                   {/* 惜福品區塊 */}
                   {surplusItems.length > 0 && (
                     <div className="mb-4">
@@ -322,7 +360,7 @@ function DineInCartPage() {
                       </h6>
                       {surplusItems.map((item) => (
                         <div
-                          key={item.id}
+                          key={item.cartKey || item.id}
                           className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
                           style={{ backgroundColor: '#f0fff4' }}
                         >
@@ -349,7 +387,7 @@ function DineInCartPage() {
                             <div className="quantity-controls d-flex align-items-center gap-2">
                               <button
                                 className="btn rounded-circle quantity-btn"
-                                onClick={() => handleQuantityChange(item.id, -1)}
+                                onClick={() => handleQuantityChange(item.cartKey || item.id.toString(), -1)}
                               >
                                 <FaMinus />
                               </button>
@@ -358,7 +396,7 @@ function DineInCartPage() {
                               </span>
                               <button
                                 className="btn rounded-circle quantity-btn"
-                                onClick={() => handleQuantityChange(item.id, 1)}
+                                onClick={() => handleQuantityChange(item.cartKey || item.id.toString(), 1)}
                                 disabled={item.remaining_quantity && item.quantity >= item.remaining_quantity}
                               >
                                 <FaPlus />
@@ -376,7 +414,7 @@ function DineInCartPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* 總計 */}
                   <div className="pt-3 mt-3 border-top">
                     <div className="d-flex justify-content-between align-items-center">
@@ -473,23 +511,170 @@ function DineInCartPage() {
           {/* 送出按鈕 */}
           <button
             className="btn btn-primary w-100 py-3 fw-bold"
-            onClick={handleSubmit}
+            onClick={() => setShowCheckoutModal(true)}
             disabled={submitting || cartItems.length === 0}
           >
-            {submitting 
-              ? "送出中..." 
-              : `送出訂單 (NT$ ${formatPrice(total)})`
-            }
+            確認訂單 (NT$ {formatPrice(total)})
           </button>
         </div>
       </div>
-      
+
       {/* 信用卡選擇器 */}
       <CreditCardSelector
         show={showCardSelector}
         onClose={() => setShowCardSelector(false)}
         onSelectCard={handleCardSelected}
       />
+
+      {/* 結帳確認Modal */}
+      {showCheckoutModal && (
+        <div className="checkout-modal-overlay" onClick={() => !submitting && setShowCheckoutModal(false)}>
+          <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>確認訂單</h3>
+              <button
+                className="btn-close"
+                onClick={() => setShowCheckoutModal(false)}
+                disabled={submitting}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* 店家資訊 */}
+              <div className="checkout-section">
+                <h5 className="section-title">
+                  <i className="bi bi-shop me-2"></i>店家資訊
+                </h5>
+                <div className="info-card">
+                  <strong>{store?.name}</strong>
+                  <p className="text-muted mb-0">{store?.address}</p>
+                  {tableLabel && (
+                    <p className="mb-0 mt-2"><strong>桌號：</strong>{tableLabel}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* 訂單明細 */}
+              <div className="checkout-section">
+                <h5 className="section-title">
+                  <i className="bi bi-receipt me-2"></i>訂單明細
+                </h5>
+                <div className="order-items">
+                  {regularItems.length > 0 && (
+                    <div className="items-group">
+                      <div className="group-label">一般內用商品</div>
+                      {regularItems.map((item) => (
+                        <div key={item.cartKey || item.id} className="order-item">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-quantity">× {item.quantity}</span>
+                          <span className="item-price">NT$ {formatPrice((item.finalPrice || item.price) * item.quantity)}</span>
+                        </div>
+                      ))}
+                      <div className="subtotal">
+                        小計：NT$ {formatPrice(regularTotal)}
+                      </div>
+                    </div>
+                  )}
+
+                  {surplusItems.length > 0 && (
+                    <div className="items-group surplus-group">
+                      <div className="group-label">
+                        <i className="bi bi-leaf me-1"></i>惜福品
+                      </div>
+                      {surplusItems.map((item) => (
+                        <div key={item.id} className="order-item">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-quantity">× {item.quantity}</span>
+                          <span className="item-price">NT$ {formatPrice(item.price * item.quantity)}</span>
+                        </div>
+                      ))}
+                      <div className="subtotal">
+                        小計：NT$ {formatPrice(surplusTotal)}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="total-section">
+                    <div className="total-row">
+                      <span className="total-label">總計</span>
+                      <span className="total-amount">NT$ {formatPrice(total)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 用餐資訊 */}
+              <div className="checkout-section">
+                <h5 className="section-title">
+                  <i className="bi bi-info-circle me-2"></i>用餐資訊
+                </h5>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <label>聯絡人</label>
+                    <span>{user ? (user.username || user.email) : '訪客'}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>聯絡電話</label>
+                    <span>{user ? (user.phone_number || "未提供") : '訪客'}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>環保餐具</label>
+                    <span>{useEcoTableware === "yes" ? "有" : "無"}</span>
+                  </div>
+                </div>
+                {notes && (
+                  <div className="notes-display">
+                    <label>備註</label>
+                    <p>{notes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* 付款資訊 */}
+              <div className="checkout-section">
+                <h5 className="section-title">
+                  <i className="bi bi-credit-card me-2"></i>付款方式
+                </h5>
+                <div className="payment-method">
+                  <div className="payment-badge">
+                    {paymentOptionsList.find((o) => o.value === paymentMethod)?.label}
+                  </div>
+                  {paymentMethod === "cash" && (
+                    <small className="text-muted d-block mt-2">請以現金付款</small>
+                  )}
+                  {paymentMethod === "credit_card" && (
+                    <small className="text-muted d-block mt-2">請以信用卡付款</small>
+                  )}
+                  {paymentMethod === "line_pay" && (
+                    <small className="text-muted d-block mt-2">將前往 LINE Pay 付款頁面</small>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowCheckoutModal(false)}
+                disabled={submitting}
+              >
+                返回修改
+              </button>
+              <button
+                className="btn btn-primary btn-confirm"
+                onClick={() => {
+                  handleSubmit();
+                }}
+                disabled={submitting}
+              >
+                {submitting ? "送出中..." : "確認送出"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

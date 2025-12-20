@@ -61,7 +61,12 @@ class OrderListView(generics.ListAPIView):
                 'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
                 'items': [
-                    {'product_id': item.product_id, 'quantity': item.quantity}
+                    {
+                        'product_id': item.product_id,
+                        'quantity': item.quantity,
+                        'unit_price': float(item.unit_price) if item.unit_price else None,
+                        'specifications': item.specifications or []
+                    }
                     for item in order.items.all()
                 ]
             })
@@ -84,7 +89,12 @@ class OrderListView(generics.ListAPIView):
                 'table_label': order.table_label,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
                 'items': [
-                    {'product_id': item.product_id, 'quantity': item.quantity}
+                    {
+                        'product_id': item.product_id,
+                        'quantity': item.quantity,
+                        'unit_price': float(item.unit_price) if item.unit_price else None,
+                        'specifications': item.specifications or []
+                    }
                     for item in order.items.all()
                 ]
             })
@@ -317,15 +327,31 @@ class CustomerOrderListView(APIView):
         return Response(orders)
 
 
-class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+class NotificationViewSet(viewsets.ModelViewSet):
     """通知 ViewSet"""
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user)
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
     
     @action(detail=False, methods=['post'])
     def mark_all_read(self, request):
         self.get_queryset().update(is_read=True)
         return Response({'status': 'success'})
+    
+    @action(detail=False, methods=['delete'])
+    def delete_all(self, request):
+        """刪除所有通知"""
+        self.get_queryset().delete()
+        return Response({'status': 'success'})
+    
+    @action(detail=True, methods=['delete'])
+    def delete_one(self, request, pk=None):
+        """刪除單個通知"""
+        try:
+            notification = self.get_queryset().get(pk=pk)
+            notification.delete()
+            return Response({'status': 'success'})
+        except Notification.DoesNotExist:
+            return Response({'error': '通知不存在'}, status=404)

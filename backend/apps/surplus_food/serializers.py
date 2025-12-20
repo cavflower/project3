@@ -192,6 +192,7 @@ class SurplusFoodListSerializer(serializers.ModelSerializer):
         model = SurplusFood
         fields = [
             'id', 'code', 'title', 'description', 'store', 'store_name', 'category', 'category_name',
+            'product',  # 加入關聯商品欄位
             'original_price', 'surplus_price', 'discount_percent',
             'quantity', 'remaining_quantity', 'condition', 'condition_display',
             'dining_option', 'dining_option_display', 'expiry_date',

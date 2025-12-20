@@ -3,27 +3,41 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { FaPlus, FaMinus, FaShoppingCart } from "react-icons/fa";
 import { getStore } from '../../api/storeApi';
 import { createDineInOrder, getDineInProducts } from '../../api/orderApi';
-import { getPublicProductCategories } from '../../api/productApi';
+import { getPublicProductCategories, getPublicSpecificationGroups } from '../../api/productApi';
 import { useAuth } from "../../store/AuthContext";
+import ProductSpecificationModal from '../../components/common/ProductSpecificationModal';
 import '../takeout/TakeoutOrderPage.css';
 
 const cartReducer = (state, action) => {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const existing = state.items.find((item) => item.id === action.payload.id);
+      const itemKey = action.payload.specKey
+        ? `${action.payload.id}_${action.payload.specKey}`
+        : action.payload.id.toString();
+
+      const existing = state.items.find((item) => {
+        const existingKey = item.specKey
+          ? `${item.id}_${item.specKey}`
+          : item.id.toString();
+        return existingKey === itemKey;
+      });
+
       const items = existing
-        ? state.items.map((item) =>
-            item.id === action.payload.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          )
-        : [...state.items, { ...action.payload, quantity: 1 }];
+        ? state.items.map((item) => {
+          const existingKey = item.specKey
+            ? `${item.id}_${item.specKey}`
+            : item.id.toString();
+          return existingKey === itemKey
+            ? { ...item, quantity: item.quantity + 1 }
+            : item;
+        })
+        : [...state.items, { ...action.payload, quantity: 1, cartKey: itemKey }];
       return { ...state, items };
     }
     case 'DECREMENT_ITEM': {
       const items = state.items
         .map((item) =>
-          item.id === action.payload ? { ...item, quantity: item.quantity - 1 } : item
+          item.cartKey === action.payload ? { ...item, quantity: item.quantity - 1 } : item
         )
         .filter((item) => item.quantity > 0);
       return { ...state, items };
@@ -65,10 +79,38 @@ function DineInOrderPage() {
   const [pickupNumber, setPickupNumber] = useState('');
   const categoryRefs = useRef({});
 
+  // 規格選擇 Modal 狀態
+  const [showSpecModal, setShowSpecModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
   const [cart, dispatch] = useReducer(cartReducer, {
     items: [],
     notes: '',
   });
+
+  // 處理商品點擊：檢查是否有規格
+  const handleProductClick = async (product) => {
+    try {
+      const response = await getPublicSpecificationGroups(product.id);
+      const specs = response.data || [];
+
+      if (specs.length > 0 && specs.some(g => g.options && g.options.length > 0)) {
+        setSelectedProduct(product);
+        setShowSpecModal(true);
+      } else {
+        dispatch({ type: 'ADD_ITEM', payload: { ...product, itemType: 'regular' } });
+      }
+    } catch (err) {
+      console.error('檢查規格失敗:', err);
+      dispatch({ type: 'ADD_ITEM', payload: { ...product, itemType: 'regular' } });
+    }
+  };
+
+  const handleSpecConfirm = (productWithSpecs) => {
+    dispatch({ type: 'ADD_ITEM', payload: { ...productWithSpecs, itemType: 'regular' } });
+    setShowSpecModal(false);
+    setSelectedProduct(null);
+  };
 
   useEffect(() => {
     async function load() {
@@ -80,14 +122,14 @@ function DineInOrderPage() {
           getDineInProducts(storeId),
           getPublicProductCategories(storeId)
         ]);
-        
+
         setStore(storeRes.data);
         const dineInMenu = (productsRes.data || []).filter(
           (item) => item.service_type === 'dine_in' || item.service_type === 'both'
         );
         setMenuItems(dineInMenu);
         setCategories(categoriesRes.data || []);
-        
+
         // 預設選中第一個類別
         if (categoriesRes.data && categoriesRes.data.length > 0) {
           setSelectedCategory(categoriesRes.data[0].id);
@@ -110,7 +152,7 @@ function DineInOrderPage() {
   const handleGoToCart = () => {
     // 導向內用專用購物車頁面
     navigate(`/dinein/${storeId}/cart`, {
-      state: { 
+      state: {
         cart: cart,
         store: store,
         storeId: storeId,
@@ -151,8 +193,7 @@ function DineInOrderPage() {
       const paymentLabel =
         paymentOptions.find((o) => o.value === paymentMethod)?.label || paymentMethod;
       alert(
-        `桌號：${tableLabel || '未提供'}\n付款方式：${paymentLabel}\n取單號碼：${
-          pickupNo || '待通知'
+        `桌號：${tableLabel || '未提供'}\n付款方式：${paymentLabel}\n取單號碼：${pickupNo || '待通知'
         }\n環保餐具：${useEcoTableware === 'yes' ? '需要' : '不需要'}\n請等待服務人員確認。`
       );
       const orderId = response.data?.id || 'pending';
@@ -245,14 +286,14 @@ function DineInOrderPage() {
                   <FaShoppingCart size={18} />
                   {cart.items.length > 0 && (
                     <span className="cart-badge">{cart.items.length}</span>
-                  )}             
+                  )}
                 </button>
-                
+
                 {/* 惜福專區按鈕 */}
                 <button
                   className={`surplus-zone-nav-btn ${!store?.enable_surplus_food ? 'disabled' : ''}`}
                   onClick={() => store?.enable_surplus_food && navigate(`/store/${storeId}/surplus`, {
-                    state: { 
+                    state: {
                       cart: cart,
                       tableLabel: tableLabel
                     }
@@ -277,10 +318,12 @@ function DineInOrderPage() {
                   <p className="text-muted">目前尚無餐點，請洽服務人員。</p>
                 )}
                 {menuItems.map((item) => {
-                  const cartItem = cart.items.find(ci => ci.id === item.id);
-                  const quantity = cartItem ? cartItem.quantity : 0;
+                  // 計算該商品的總數量（所有規格組合加總）
+                  const cartItemsForProduct = cart.items.filter(ci => ci.id === item.id);
+                  const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
+                  const lastCartItem = cartItemsForProduct[cartItemsForProduct.length - 1];
                   const isLinkedToSurplus = item.is_linked_to_surplus || false;
-                  
+
                   return (
                     <div
                       key={item.id}
@@ -303,7 +346,7 @@ function DineInOrderPage() {
                         quantity === 0 ? (
                           <button
                             className="btn rounded-circle add-btn"
-                            onClick={() => dispatch({ type: 'ADD_ITEM', payload: { ...item, itemType: 'regular' } })}
+                            onClick={() => handleProductClick(item)}
                             title="加入購物車"
                           >
                             <FaPlus />
@@ -312,14 +355,14 @@ function DineInOrderPage() {
                           <div className="quantity-control d-flex align-items-center gap-2">
                             <button
                               className="btn rounded-circle quantity-btn"
-                              onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: item.id })}
+                              onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: lastCartItem?.cartKey })}
                             >
                               <FaMinus />
                             </button>
                             <span className="quantity-display">{quantity}</span>
                             <button
                               className="btn rounded-circle quantity-btn"
-                              onClick={() => dispatch({ type: 'ADD_ITEM', payload: { ...item, itemType: 'regular' } })}
+                              onClick={() => handleProductClick(item)}
                             >
                               <FaPlus />
                             </button>
@@ -335,7 +378,7 @@ function DineInOrderPage() {
             categories.map((category) => {
               const categoryProducts = menuItems.filter(item => item.category === category.id);
               if (categoryProducts.length === 0) return null;
-              
+
               return (
                 <div
                   key={category.id}
@@ -350,10 +393,12 @@ function DineInOrderPage() {
                   </div>
                   <div className="card-body">
                     {categoryProducts.map((item) => {
-                      const cartItem = cart.items.find(ci => ci.id === item.id);
-                      const quantity = cartItem ? cartItem.quantity : 0;
+                      // 計算該商品的總數量（所有規格組合加總）
+                      const cartItemsForProduct = cart.items.filter(ci => ci.id === item.id);
+                      const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
+                      const lastCartItem = cartItemsForProduct[cartItemsForProduct.length - 1];
                       const isLinkedToSurplus = item.is_linked_to_surplus || false;
-                      
+
                       return (
                         <div
                           key={item.id}
@@ -362,7 +407,7 @@ function DineInOrderPage() {
                         >
                           {item.image && (
                             <div className="me-3">
-                              <img 
+                              <img
                                 src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
                                 alt={item.name}
                                 style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
@@ -385,7 +430,7 @@ function DineInOrderPage() {
                             quantity === 0 ? (
                               <button
                                 className="btn rounded-circle add-btn"
-                                onClick={() => dispatch({ type: 'ADD_ITEM', payload: { ...item, itemType: 'regular' } })}
+                                onClick={() => handleProductClick(item)}
                                 title="加入購物車"
                               >
                                 <FaPlus />
@@ -394,14 +439,14 @@ function DineInOrderPage() {
                               <div className="quantity-control d-flex align-items-center gap-2">
                                 <button
                                   className="btn rounded-circle quantity-btn"
-                                  onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: item.id })}
+                                  onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: lastCartItem?.cartKey })}
                                 >
                                   <FaMinus />
                                 </button>
                                 <span className="quantity-display">{quantity}</span>
                                 <button
                                   className="btn rounded-circle quantity-btn"
-                                  onClick={() => dispatch({ type: 'ADD_ITEM', payload: { ...item, itemType: 'regular' } })}
+                                  onClick={() => handleProductClick(item)}
                                 >
                                   <FaPlus />
                                 </button>
@@ -419,7 +464,17 @@ function DineInOrderPage() {
         </div>
       </div>
 
-      {/* 購物車已移至 Navbar，不需要底部結帳按鈕 */}
+      {/* 規格選擇 Modal */}
+      {showSpecModal && selectedProduct && (
+        <ProductSpecificationModal
+          product={selectedProduct}
+          onConfirm={handleSpecConfirm}
+          onCancel={() => {
+            setShowSpecModal(false);
+            setSelectedProduct(null);
+          }}
+        />
+      )}
     </div>
   );
 }

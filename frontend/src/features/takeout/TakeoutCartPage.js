@@ -20,7 +20,7 @@ const pickupSlots = () => {
   const now = new Date();
   // 從現在開始加 20 分鐘為最快取餐時間
   const startTime = new Date(now.getTime() + 20 * 60000);
-  
+
   // 每 5 分鐘一個選項，最多 10 項
   for (let i = 0; i < 10; i++) {
     const slot = new Date(startTime.getTime() + i * 5 * 60000);
@@ -33,9 +33,9 @@ function TakeoutCartPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  
+
   const { cart: initialCart, store, storeId } = location.state || {};
-  
+
   // 使用本地狀態管理購物車
   const [cartItems, setCartItems] = useState(initialCart?.items || []);
   const [contactName, setContactName] = useState(initialCart?.contact?.name || user?.username || "");
@@ -50,28 +50,31 @@ function TakeoutCartPage() {
   const [selectedCard, setSelectedCard] = useState(null);
 
   const slots = useMemo(pickupSlots, []);
-  
+
   // 分離一般商品和惜福品
   const regularItems = useMemo(
     () => cartItems.filter(item => item.itemType === 'regular' || !item.itemType),
     [cartItems]
   );
-  
+
   const surplusItems = useMemo(
     () => cartItems.filter(item => item.itemType === 'surplus'),
     [cartItems]
   );
-  
+
   const regularTotal = useMemo(
-    () => regularItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0) || 0,
+    () => regularItems.reduce((sum, item) => {
+      const itemPrice = item.finalPrice || item.price;
+      return sum + Number(itemPrice) * item.quantity;
+    }, 0) || 0,
     [regularItems]
   );
-  
+
   const surplusTotal = useMemo(
     () => surplusItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0) || 0,
     [surplusItems]
   );
-  
+
   const total = regularTotal + surplusTotal;
 
   if (!initialCart || !store) {
@@ -85,21 +88,23 @@ function TakeoutCartPage() {
     );
   }
 
-  const handleQuantityChange = (itemId, change) => {
+  const handleQuantityChange = (cartKey, change) => {
     setCartItems(prevItems => {
       if (change > 0) {
-        return prevItems.map(item =>
-          item.id === itemId
+        return prevItems.map(item => {
+          const itemKey = item.cartKey || item.id?.toString() || item.id;
+          return itemKey === cartKey
             ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
+            : item;
+        });
       } else {
         return prevItems
-          .map(item =>
-            item.id === itemId
+          .map(item => {
+            const itemKey = item.cartKey || item.id?.toString() || item.id;
+            return itemKey === cartKey
               ? { ...item, quantity: item.quantity - 1 }
-              : item
-          )
+              : item;
+          })
           .filter(item => item.quantity > 0);
       }
     });
@@ -110,11 +115,11 @@ function TakeoutCartPage() {
       alert("購物車是空的。");
       return;
     }
-    
+
     // 決定使用的聯絡資訊
     let finalName = contactName;
     let finalPhone = contactPhone;
-    
+
     if (user) {
       // 已登入：使用使用者資料
       finalName = user.username || user.email || "會員";
@@ -126,23 +131,23 @@ function TakeoutCartPage() {
         return;
       }
     }
-    
+
     // 如果選擇信用卡付款且已登入，先顯示卡片選擇器
     if (paymentMethod === 'credit_card' && user) {
       setShowCardSelector(true);
       return;
     }
-    
+
     // 其他付款方式或未登入直接執行訂單
     await executeOrder(finalName, finalPhone);
   };
-  
+
   const executeOrder = async (finalName, finalPhone) => {
-    
+
     try {
       setSubmitting(true);
       const orderResults = [];
-      
+
       // 1. 如果有一般商品，創建一般外帶訂單
       if (regularItems.length > 0) {
         const regularPayload = {
@@ -157,6 +162,8 @@ function TakeoutCartPage() {
           items: regularItems.map((item) => ({
             product: item.id,
             quantity: item.quantity,
+            unit_price: item.finalPrice || item.price,
+            specifications: item.selectedSpecs || [],
           })),
         };
 
@@ -167,7 +174,7 @@ function TakeoutCartPage() {
           pickupNumber: regularResponse.data?.pickup_number
         });
       }
-      
+
       // 2. 如果有惜福品，合併成一張訂單
       if (surplusItems.length > 0) {
         const surplusPayload = {
@@ -183,7 +190,7 @@ function TakeoutCartPage() {
           use_utensils: useUtensils === "yes",
           notes: notes,
         };
-        
+
         const surplusResponse = await api.post('/surplus/orders/', surplusPayload);
         orderResults.push({
           type: 'surplus',
@@ -192,16 +199,16 @@ function TakeoutCartPage() {
           orderId: surplusResponse.data?.id
         });
       }
-      
+
       // 清空購物車
       setCartItems([]);
-      
+
       const paymentLabel = paymentOptionsList.find((o) => o.value === paymentMethod)?.label;
-      
+
       const regularOrder = orderResults.find(r => r.type === 'regular');
       const surplusOrder = orderResults.find(r => r.type === 'surplus');
 
-      // 如果有一般訂單，導向確認頁；否則返回店家頁面
+      // 如果有一般訂單，導向確認頁
       if (regularOrder && regularOrder.orderId) {
         navigate(`/confirmation/${regularOrder.orderId}`, {
           state: {
@@ -210,6 +217,17 @@ function TakeoutCartPage() {
             hasSurplusOrders: surplusOrder ? true : false,
             surplusOrderNumbers: surplusOrder ? [surplusOrder.code] : [],
             surplusPickupNumbers: surplusOrder ? [surplusOrder.pickupNumber] : []
+          },
+        });
+      } else if (surplusOrder) {
+        // 只有惜福品訂單，導向惜福品確認頁
+        navigate(`/confirmation/surplus/${surplusOrder.orderId || 'success'}`, {
+          state: {
+            pickupNumber: surplusOrder.pickupNumber || null,
+            orderNumber: surplusOrder.code || null,
+            paymentMethod: paymentLabel || paymentMethod,
+            isSurplusOnly: true,
+            isDineIn: false
           },
         });
       } else {
@@ -222,14 +240,14 @@ function TakeoutCartPage() {
       setSubmitting(false);
     }
   };
-  
+
   const handleCardSelected = async (card) => {
     setSelectedCard(card);
-    
+
     // 決定使用的聯絡資訊
     let finalName = contactName;
     let finalPhone = contactPhone;
-    
+
     if (user) {
       finalName = user.username || user.email || "會員";
       finalPhone = user.phone_number || "未提供";
@@ -239,7 +257,7 @@ function TakeoutCartPage() {
         return;
       }
     }
-    
+
     // 執行訂單
     await executeOrder(finalName, finalPhone);
   };
@@ -248,10 +266,10 @@ function TakeoutCartPage() {
     <div className="takeout-cart-page container" style={{ marginTop: "70px", marginBottom: "40px" }}>
       <div className="row mb-4">
         <div className="col-12">
-          <button 
-            className="btn btn-link ps-0" 
-            onClick={() => navigate(`/store/${storeId}/takeout`, { 
-              state: { 
+          <button
+            className="btn btn-link ps-0"
+            onClick={() => navigate(`/store/${storeId}/takeout`, {
+              state: {
                 cart: {
                   items: cartItems,
                   notes: notes,
@@ -296,47 +314,64 @@ function TakeoutCartPage() {
                       <h6 className="text-muted mb-3">
                         <i className="bi bi-bag me-2"></i>一般外帶商品
                       </h6>
-                      {regularItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
-                        >
-                          <div className="flex-grow-1">
-                            <h5 className="mb-1">{item.name}</h5>
-                            <p className="text-muted mb-1">{item.description}</p>
-                            <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
-                          </div>
-                          <div className="d-flex align-items-center gap-3">
-                            <div className="quantity-controls d-flex align-items-center gap-2">
-                              <button
-                                className="btn rounded-circle quantity-btn"
-                                onClick={() => handleQuantityChange(item.id, -1)}
-                              >
-                                <FaMinus />
-                              </button>
-                              <span className="quantity-display">
-                                {item.quantity}
-                              </span>
-                              <button
-                                className="btn rounded-circle quantity-btn"
-                                onClick={() => handleQuantityChange(item.id, 1)}
-                              >
-                                <FaPlus />
-                              </button>
+                      {regularItems.map((item) => {
+                        const displayPrice = item.finalPrice || item.price;
+                        return (
+                          <div
+                            key={item.cartKey || item.id}
+                            className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
+                          >
+                            <div className="flex-grow-1">
+                              <h5 className="mb-1">{item.name}</h5>
+                              {/* 顯示已選規格 */}
+                              {item.selectedSpecs && item.selectedSpecs.length > 0 && (
+                                <div className="selected-specs mb-1">
+                                  {item.selectedSpecs.map((spec, idx) => (
+                                    <span key={idx} className="badge bg-light text-dark me-1" style={{ fontSize: '0.75rem' }}>
+                                      {spec.groupName}: {spec.optionName}
+                                      {spec.priceAdjustment !== 0 && (
+                                        <span className={spec.priceAdjustment > 0 ? 'text-danger' : 'text-success'}>
+                                          {spec.priceAdjustment > 0 ? ` +$${spec.priceAdjustment}` : ` -$${Math.abs(spec.priceAdjustment)}`}
+                                        </span>
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              <strong className="text-dark">NT$ {formatPrice(displayPrice)}</strong>
                             </div>
-                            <div className="text-end" style={{ minWidth: '80px' }}>
-                              <strong className="text-dark">NT$ {formatPrice(item.price * item.quantity)}</strong>
+                            <div className="d-flex align-items-center gap-3">
+                              <div className="quantity-controls d-flex align-items-center gap-2">
+                                <button
+                                  className="btn rounded-circle quantity-btn"
+                                  onClick={() => handleQuantityChange(item.cartKey, -1)}
+                                >
+                                  <FaMinus />
+                                </button>
+                                <span className="quantity-display">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  className="btn rounded-circle quantity-btn"
+                                  onClick={() => handleQuantityChange(item.cartKey, 1)}
+                                >
+                                  <FaPlus />
+                                </button>
+                              </div>
+                              <div className="text-end" style={{ minWidth: '80px' }}>
+                                <strong className="text-dark">NT$ {formatPrice(displayPrice * item.quantity)}</strong>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                       <div className="pt-2 text-end">
                         <span className="text-muted">小計：</span>
                         <strong className="text-dark ms-2">NT$ {formatPrice(regularTotal)}</strong>
                       </div>
                     </div>
                   )}
-                  
+
                   {/* 惜福品區塊 */}
                   {surplusItems.length > 0 && (
                     <div className="mb-4">
@@ -345,7 +380,7 @@ function TakeoutCartPage() {
                       </h6>
                       {surplusItems.map((item) => (
                         <div
-                          key={item.id}
+                          key={item.cartKey || item.id}
                           className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
                           style={{ backgroundColor: '#f0fff4' }}
                         >
@@ -372,7 +407,7 @@ function TakeoutCartPage() {
                             <div className="quantity-controls d-flex align-items-center gap-2">
                               <button
                                 className="btn rounded-circle quantity-btn"
-                                onClick={() => handleQuantityChange(item.id, -1)}
+                                onClick={() => handleQuantityChange(item.cartKey || item.id.toString(), -1)}
                               >
                                 <FaMinus />
                               </button>
@@ -381,7 +416,7 @@ function TakeoutCartPage() {
                               </span>
                               <button
                                 className="btn rounded-circle quantity-btn"
-                                onClick={() => handleQuantityChange(item.id, 1)}
+                                onClick={() => handleQuantityChange(item.cartKey || item.id.toString(), 1)}
                                 disabled={item.remaining_quantity && item.quantity >= item.remaining_quantity}
                               >
                                 <FaPlus />
@@ -399,7 +434,7 @@ function TakeoutCartPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* 總計 */}
                   <div className="pt-3 mt-3 border-top">
                     <div className="d-flex justify-content-between align-items-center">
@@ -427,28 +462,28 @@ function TakeoutCartPage() {
                 <strong>聯絡資訊</strong>
               </div>
               <div className="card-body">
-              <div className="mb-3">
-                <label className="form-label">姓名 *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={contactName}
-                  onChange={(e) => setContactName(e.target.value)}
-                  placeholder="請輸入姓名"
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">電話 *</label>
-                <input
-                  type="tel"
-                  className="form-control"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="請輸入電話號碼"
-                />
+                <div className="mb-3">
+                  <label className="form-label">姓名 *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    placeholder="請輸入姓名"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">電話 *</label>
+                  <input
+                    type="tel"
+                    className="form-control"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="請輸入電話號碼"
+                  />
+                </div>
               </div>
             </div>
-          </div>
           )}
 
           {/* 取餐時間 */}
@@ -471,7 +506,7 @@ function TakeoutCartPage() {
                   const minutes = String(date.getMinutes()).padStart(2, '0');
                   const period = hours >= 12 ? '下午' : '上午';
                   const displayHours = hours % 12 || 12;
-                  
+
                   return (
                     <option key={slot} value={slot}>
                       {`${year}/${month}/${day} ${period}${displayHours}:${minutes}`}
@@ -513,9 +548,9 @@ function TakeoutCartPage() {
                 value={useUtensils}
                 onChange={(e) => setUseUtensils(e.target.value)}
               >
-              <option value="yes">需要</option>
-              <option value="no">不需要</option>
-                
+                <option value="yes">需要</option>
+                <option value="no">不需要</option>
+
               </select>
             </div>
           </div>
@@ -553,8 +588,8 @@ function TakeoutCartPage() {
           <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>確認訂單</h3>
-              <button 
-                className="btn-close" 
+              <button
+                className="btn-close"
                 onClick={() => setShowCheckoutModal(false)}
                 disabled={submitting}
               >
@@ -595,7 +630,7 @@ function TakeoutCartPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {surplusItems.length > 0 && (
                     <div className="items-group surplus-group">
                       <div className="group-label">
@@ -613,7 +648,7 @@ function TakeoutCartPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="total-section">
                     <div className="total-row">
                       <span className="total-label">總計</span>
@@ -682,7 +717,7 @@ function TakeoutCartPage() {
             </div>
 
             <div className="modal-footer">
-              <button 
+              <button
                 className="btn btn-secondary"
                 onClick={() => setShowCheckoutModal(false)}
                 disabled={submitting}
@@ -696,18 +731,18 @@ function TakeoutCartPage() {
                 }}
                 disabled={submitting}
               >
-                {submitting 
-                  ? "處理中..." 
+                {submitting
+                  ? "處理中..."
                   : paymentMethod === "cash"
-                  ? `確認送出`
-                  : `前往付款`
+                    ? `確認送出`
+                    : `前往付款`
                 }
               </button>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* 信用卡選擇器 */}
       <CreditCardSelector
         show={showCardSelector}

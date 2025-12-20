@@ -260,29 +260,11 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             return queryset.order_by('-created_at')
         return SurplusFoodOrder.objects.none()
     
-    def generate_pickup_number(self, store_id):
-        """生成惜福品取餐號碼（S001, S002...）"""
-        today = timezone.now().date()
-        
-        # 獲取今天該店家的最後一個取餐號碼
-        last_order = SurplusFoodOrder.objects.filter(
-            store_id=store_id,
-            created_at__date=today,
-            pickup_number__isnull=False
-        ).order_by('-pickup_number').first()
-        
-        if last_order and last_order.pickup_number:
-            # 從 S001 提取數字部分
-            try:
-                last_number = int(last_order.pickup_number[1:])
-                new_number = last_number + 1
-            except (ValueError, IndexError):
-                new_number = 1
-        else:
-            new_number = 1
-        
-        # 格式化為 S001, S002...（S 代表 Surplus）
-        return f"S{new_number:03d}"
+    def generate_pickup_number(self, order_number):
+        """生成惜福品取餐號碼（S + 訂單號後三碼）"""
+        # 取訂單號碼後三碼
+        last_three = order_number[-3:] if len(order_number) >= 3 else order_number
+        return f"S{last_three}"
     
     def create(self, request, *args, **kwargs):
         """創建訂單時生成取餐號碼並寫入 Firestore"""
@@ -340,14 +322,11 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             print(f"序列化驗證失敗：{e}")
             raise
         
-        # 生成取餐號碼
-        pickup_number = self.generate_pickup_number(store.id)
-        print(f"生成取餐號碼：{pickup_number}")
-        
+
         # 保存訂單（serializer.save 會調用 create 方法處理品項）
+        # 注意：先不設定 pickup_number，等訂單創建後再更新
         save_kwargs = {
             'store': store,
-            'pickup_number': pickup_number
         }
         
         # 如果用戶已登入且不是商家（或者是商家但想記錄），關聯用戶
@@ -356,6 +335,12 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             save_kwargs['user'] = request.user
             
         order = serializer.save(**save_kwargs)
+        
+        # 生成取餐號碼（基於訂單號後三碼）
+        pickup_number = self.generate_pickup_number(order.order_number)
+        order.pickup_number = pickup_number
+        order.save(update_fields=['pickup_number'])
+        print(f"生成取餐號碼：{pickup_number}（訂單號: {order.order_number}）")
         
         # 寫入 Firestore（惜福品專用 collection）
         try:

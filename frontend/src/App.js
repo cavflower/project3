@@ -16,6 +16,7 @@ import MerchantLoginPage from './features/authentication/MerchantLoginPage';
 import CustomerRegisterPage from './features/authentication/CustomerRegisterPage';
 import MerchantRegisterPage from './features/authentication/MerchantRegisterPage';
 import RestaurantMemberLoginPage from './features/authentication/RestaurantMemberLoginPage';
+import ForgotPasswordPage from './features/authentication/ForgotPasswordPage';
 import AdminLoginPage from './features/admin/AdminLoginPage';
 import AdminDashboard from './features/admin/AdminDashboard';
 import CustomerHomePage from './features/home/CustomerHomePage';
@@ -36,6 +37,7 @@ import ScheduleManagementPage from './features/merchant_dashboard/schedule_manag
 import StoreBrowse from './features/home/StoreBrowse';
 import StorePage from './features/home/StorePage';
 import ConfirmationPage from './features/checkout/ConfirmationPage';
+import SurplusConfirmationPage from './features/checkout/SurplusConfirmationPage';
 import ReviewPage from './features/checkout/ReviewPage';
 import LoyaltyManagement from './features/loyalty_management/LoyaltyManagement';
 import CustomerLoyalty from './features/customer_loyalty/CustomerLoyalty';
@@ -61,7 +63,7 @@ import ErrorBoundary from './features/layout_application/ErrorBoundary';
 
 
 // Context
-import { useAuth } from './store/AuthContext'; 
+import { useAuth } from './store/AuthContext';
 
 /**
  * 受保護路由元件
@@ -73,10 +75,10 @@ function ProtectedRoute({ children }) {
   if (loading) {
     // 在驗證還在載入時顯示載入中，不要重定向
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '50vh',
         fontSize: '1.2rem',
         color: '#666'
@@ -90,7 +92,7 @@ function ProtectedRoute({ children }) {
     // 根據當前路徑判斷應該導向哪個登入頁
     const path = window.location.pathname;
     let loginPath = '/login/customer';
-    
+
     // 店家相關路徑導向店家登入
     if (path.includes('/merchant/') || path.includes('/dashboard') || path.includes('/select-plan')) {
       loginPath = '/login/merchant';
@@ -99,7 +101,7 @@ function ProtectedRoute({ children }) {
     else if (path.includes('/layout-application')) {
       loginPath = '/login/customer';
     }
-    
+
     return <Navigate to={loginPath} replace />;
   }
   return children;
@@ -115,305 +117,310 @@ function App() {
 
   return (
     // 2. 必須用 <BrowserRouter> 包裹整個應用程式
-    
-      <div className="App">
-        <Navbar toggleSidebar={toggleSidebar} />
-        <Sidebar isOpen={isSidebarOpen} />
-        <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-          <main>
-            {/* 3. 路由配置 */}
-            <Routes>
-              
-              {/* 首頁 (/)：公開 */}
-              <Route path="/" element={<HomePage />} />
-              
-              {/* 登入頁 */}
-              <Route path="/login/customer" element={<CustomerLoginPage />} />
-              <Route path="/login/merchant" element={<MerchantLoginPage />} />
-              <Route path="/login/restaurant-member" element={<RestaurantMemberLoginPage />} />
-              <Route path="/login/admin" element={<AdminLoginPage />} />
-              {/* 為了向後相容，將 /login 導向顧客登入 */}
-              <Route path="/login" element={<Navigate to="/login/customer" />} />
+
+    <div className="App">
+      <Navbar toggleSidebar={toggleSidebar} />
+      <Sidebar isOpen={isSidebarOpen} />
+      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+        <main>
+          {/* 3. 路由配置 */}
+          <Routes>
+
+            {/* 首頁 (/)：公開 */}
+            <Route path="/" element={<HomePage />} />
+
+            {/* 登入頁 */}
+            <Route path="/login/customer" element={<CustomerLoginPage />} />
+            <Route path="/login/merchant" element={<MerchantLoginPage />} />
+            <Route path="/login/restaurant-member" element={<RestaurantMemberLoginPage />} />
+            <Route path="/login/admin" element={<AdminLoginPage />} />
+            {/* 為了向後相容，將 /login 導向顧客登入 */}
+            <Route path="/login" element={<Navigate to="/login/customer" />} />
+
+            {/* 忘記密碼頁 */}
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+            {/* 註冊頁 */}
+            <Route path="/register/customer" element={<CustomerRegisterPage />} />
+            <Route path="/register/merchant" element={<MerchantRegisterPage />} />
+            <Route path="/register" element={<Navigate to="/register/customer" />} />
+
+            {/* 管理員儀表板 */}
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
+            {/* 顧客首頁 (/customer-home)：受保護 */}
+            <Route
+              path="/customer-home"
+              element={
+                <CustomerHomePage />
+              }
+            />
+
+            <Route
+              path="/store/:storeId/options"
+              element={<StoreBrowse />}
+            />
+            {/* 點入特定店家 頁面 */}
+            <Route path="/store/:storeId" element={<StorePage />} />
+
+            {/* 外帶點餐 頁面 */}
+            <Route path="/store/:storeId/takeout" element={<TakeoutOrderPage />} />
+            {/* 惜福專區 頁面 */}
+            <Route path="/store/:storeId/surplus" element={<SurplusZonePage />} />
+            {/* 外帶購物車結帳 頁面 */}
+            <Route path="/takeout/:storeId/cart" element={<TakeoutCartPage />} />
+            {/* 內用菜單（QR code 導向） */}
+            <Route path="/store/:storeId/dine-in/menu" element={<DineInOrderPage />} />
+            {/* 內用購物車結帳 頁面 */}
+            <Route path="/dinein/:storeId/cart" element={<DineInCartPage />} />
+
+            {/* 訂單確認 頁面 */}
+            <Route path="/confirmation/:orderId" element={<ConfirmationPage />} />
+
+            {/* 惜福品訂單確認 頁面 */}
+            <Route path="/confirmation/surplus/:orderId" element={<SurplusConfirmationPage />} />
+
+            {/* 評價頁面 */}
+            <Route path="/review/:orderId" element={<ReviewPage />} />
+
+            {/* 顧客訂位流程 */}
+            <Route path="/reservation/new/:storeId" element={<ReservationPage />} />
+            <Route path="/reservation/success" element={<ReservationSuccessPage />} />
+            <Route path="/reservation/edit/:reservationId" element={<EditReservationPage />} />
+
+            {/* 訪客查詢訂位 */}
+            <Route path="/guest-lookup" element={<GuestReservationLookup />} />
+
+            {/* 我的訂位頁面（訪客也可查看）*/}
+            <Route path="/my-reservations" element={<MyReservationsPage />} />
+
+            {/* 內用設定 */}
+            <Route path="/merchant/dine-in" element={<ProtectedRoute><DineInSettingsPage /></ProtectedRoute>}
+            />
+
+            {/* 商家評論管理 */}
+            <Route
+              path="/merchant/reviews"
+              element={
+                <ProtectedRoute>
+                  <MerchantReviews />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 店家儀表板 (/dashboard)：受保護 */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <MerchantDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/merchant/products"
+              element={
+                <ProtectedRoute>
+                  <ProductManagementPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 訂位管理頁面路由 */}
+            <Route
+              path="/merchant/reservations"
+              element={
+                <ProtectedRoute>
+                  <ReservationManagementPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 原物料管理頁面路由 */}
+            <Route
+              path="/merchant/inventory"
+              element={
+                <ProtectedRoute>
+                  <InventoryManagementPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 財務報表頁面路由 */}
+            <Route
+              path="/merchant/reports"
+              element={
+                <ProtectedRoute>
+                  <FinancialReportPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/merchant/orders"
+              element={
+                <ProtectedRoute>
+                  <OrderManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* 餐廳設定頁面路由 */}
+            <Route
+              path="/merchant/settings"
+              element={
+                <ProtectedRoute>
+                  <StoreSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/merchant/schedule"
+              element={
+                <ProtectedRoute>
+                  <ScheduleManagementPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* LINE BOT FAQ 管理 */}
+            <Route
+              path="/merchant/line-bot/faq"
+              element={
+                <ProtectedRoute>
+                  <LineBotFAQManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* LINE BOT 設定頁面 */}
+            <Route
+              path="/merchant/line-bot"
+              element={
+                <ProtectedRoute>
+                  <LineBotSettings />
+                </ProtectedRoute>
+              }
+            />
 
 
-              {/* 註冊頁 */}
-              <Route path="/register/customer" element={<CustomerRegisterPage />} />
-              <Route path="/register/merchant" element={<MerchantRegisterPage />} />
-              <Route path="/register" element={<Navigate to="/register/customer" />} />
+            {/* 新增方案選擇頁面路由 */}
+            <Route
+              path="/select-plan"
+              element={
+                <ProtectedRoute>
+                  <PlanSelectionPage />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* 管理員儀表板 */}
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            {/* 個人資料頁 (/profile)：受保護 */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* 顧客首頁 (/customer-home)：受保護 */}
-              <Route 
-                path="/customer-home"
-                element={
-                    <CustomerHomePage />  
-                }
-              />
+            {/* 會員制度管理頁面路由（商家端） */}
+            <Route
+              path="/merchant/loyalty"
+              element={
+                <ProtectedRoute>
+                  <LoyaltyManagement />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/store/:storeId/options"
-                element={<StoreBrowse />}
-              />
-          {/* 點入特定店家 頁面 */}
-              <Route path="/store/:storeId" element={<StorePage />} />
+            {/* 惜福食品管理頁面路由（商家端） */}
+            <Route
+              path="/merchant/surplus-food"
+              element={
+                <ProtectedRoute>
+                  <SurplusFoodManagement />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* 外帶點餐 頁面 */}
-              <Route path="/store/:storeId/takeout" element={<TakeoutOrderPage />} />
-          {/* 惜福專區 頁面 */}
-              <Route path="/store/:storeId/surplus" element={<SurplusZonePage />} />
-          {/* 外帶購物車結帳 頁面 */}
-              <Route path="/takeout/:storeId/cart" element={<TakeoutCartPage />} />
-          {/* 內用菜單（QR code 導向） */}
-              <Route path="/store/:storeId/dine-in/menu" element={<DineInOrderPage />} />
-          {/* 內用購物車結帳 頁面 */}
-              <Route path="/dinein/:storeId/cart" element={<DineInCartPage />} />
-          
-          {/* 訂單確認 頁面 */}
-              <Route path="/confirmation/:orderId" element={<ConfirmationPage />} />
-          
-          {/* 評價頁面 */}
-              <Route path="/review/:orderId" element={<ReviewPage />} />
-          
-          {/* 顧客訂位流程 */}
-              <Route path="/reservation/new/:storeId" element={<ReservationPage />} />
-              <Route path="/reservation/success" element={<ReservationSuccessPage />} />
-              <Route path="/reservation/edit/:reservationId" element={<EditReservationPage />} />
-              
-              {/* 訪客查詢訂位 */}
-              <Route path="/guest-lookup" element={<GuestReservationLookup />} />
-              
-              {/* 我的訂位頁面（訪客也可查看）*/}
-              <Route path="/my-reservations" element={<MyReservationsPage />} />
-              
-              {/* 內用設定 */}
-              <Route path="/merchant/dine-in" element={<ProtectedRoute><DineInSettingsPage /></ProtectedRoute>}
-/>
+            {/* 顧客會員中心路由 */}
 
-              {/* 商家評論管理 */}
-              <Route 
-                path="/merchant/reviews" 
-                element={
-                  <ProtectedRoute>
-                    <MerchantReviews />
-                  </ProtectedRoute>
-                }
-              />
+            {/* 綜合會員中心 - 所有商家 */}
 
-              {/* 店家儀表板 (/dashboard)：受保護 */}
-              <Route 
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <MerchantDashboard />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/customer/loyalty"
+              element={
+                <ProtectedRoute>
+                  <CustomerLoyalty />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route 
-                path="/merchant/products"
-                element={
-                  <ProtectedRoute>
-                    <ProductManagementPage />
-                  </ProtectedRoute>
-                }
-              />
+            {/* 店家專屬會員中心 */}
+            <Route
+              path="/customer/loyalty/:storeId"
+              element={
+                <ProtectedRoute>
+                  <CustomerLoyalty />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* 訂位管理頁面路由 */}
-              <Route
-                path="/merchant/reservations"
-                element={
-                  <ProtectedRoute>
-                    <ReservationManagementPage />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* 原物料管理頁面路由 */}
-              <Route
-                path="/merchant/inventory"
-                element={
-                  <ProtectedRoute>
-                    <InventoryManagementPage />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* 財務報表頁面路由 */}
-              <Route
-                path="/merchant/reports"
-                element={
-                  <ProtectedRoute>
-                    <FinancialReportPage />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route
-                path="/merchant/orders"
-                element={
-                  <ProtectedRoute>
-                    <OrderManagementPage />
-                  </ProtectedRoute>
-                }
-              />
-              {/* 餐廳設定頁面路由 */}
-              <Route
-                path="/merchant/settings"
-                element={
-                  <ProtectedRoute>
-                    <StoreSettingsPage />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/customer/loyalty/redemptions"
+              element={
+                <ProtectedRoute>
+                  <RedemptionCatalog />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/customer/loyalty/my-redemptions"
+              element={
+                <ProtectedRoute>
+                  <MyRedemptions />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/customer/loyalty/history"
+              element={
+                <ProtectedRoute>
+                  <PointsHistory />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/merchant/schedule"
-                element={
-                  <ProtectedRoute>
-                    <ScheduleManagementPage />
-                  </ProtectedRoute>
-                }
-              />
+            {/* 顧客訂單頁面 */}
+            <Route
+              path="/customer/orders"
+              element={
+                <ProtectedRoute>
+                  <CustomerOrdersPage />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* LINE BOT FAQ 管理 */}
-              <Route
-                path="/merchant/line-bot/faq"
-                element={
-                  <ProtectedRoute>
-                    <LineBotFAQManagement />
-                  </ProtectedRoute>
-                }
-              />
+            {/* 排版申請頁面 */}
+            <Route
+              path="/layout-application"
+              element={
+                <ProtectedRoute>
+                  <ErrorBoundary>
+                    <LayoutApplicationPage />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              }
+            />
 
-              {/* LINE BOT 設定頁面 */}
-              <Route
-                path="/merchant/line-bot"
-                element={
-                  <ProtectedRoute>
-                    <LineBotSettings />
-                  </ProtectedRoute>
-                }
-              />
-
-
-              {/* 新增方案選擇頁面路由 */}
-              <Route
-                path="/select-plan"
-                element={
-                  <ProtectedRoute>
-                    <PlanSelectionPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 個人資料頁 (/profile)：受保護 */}
-              <Route 
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 會員制度管理頁面路由（商家端） */}
-              <Route
-                path="/merchant/loyalty"
-                element={
-                  <ProtectedRoute>
-                    <LoyaltyManagement />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 惜福食品管理頁面路由（商家端） */}
-              <Route
-                path="/merchant/surplus-food"
-                element={
-                  <ProtectedRoute>
-                    <SurplusFoodManagement />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 顧客會員中心路由 */}
-
-              {/* 綜合會員中心 - 所有商家 */}
-
-              <Route
-                path="/customer/loyalty"
-                element={
-                  <ProtectedRoute>
-                    <CustomerLoyalty />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 店家專屬會員中心 */}
-              <Route
-                path="/customer/loyalty/:storeId"
-                element={
-                  <ProtectedRoute>
-                    <CustomerLoyalty />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/customer/loyalty/redemptions"
-                element={
-                  <ProtectedRoute>
-                    <RedemptionCatalog />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/customer/loyalty/my-redemptions"
-                element={
-                  <ProtectedRoute>
-                    <MyRedemptions />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/customer/loyalty/history"
-                element={
-                  <ProtectedRoute>
-                    <PointsHistory />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 顧客訂單頁面 */}
-              <Route
-                path="/customer/orders"
-                element={
-                  <ProtectedRoute>
-                    <CustomerOrdersPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 排版申請頁面 */}
-              <Route
-                path="/layout-application"
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary>
-                      <LayoutApplicationPage />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                }
-              />
-
-            </Routes>
-          </main>
-          <Footer />
-        </div>
+          </Routes>
+        </main>
+        <Footer />
       </div>
-    
+    </div>
+
   );
 }
 
