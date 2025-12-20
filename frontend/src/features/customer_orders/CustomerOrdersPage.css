@@ -40,6 +40,7 @@
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0px;
+  margin-bottom: 0px;
 }
 
 .page-header {
@@ -151,11 +152,10 @@
 
 .order-type-badge {
   display: inline-block;
-  background: #e9ecef;
+  background: #ef8e72;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
-  margin-top: 5px;
 }
 
 .status-badge {

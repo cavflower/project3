@@ -26,3 +26,9 @@ export const deleteNotification = (id) => api.delete(`/orders/notifications/${id
 
 export const deleteAllNotifications = () => api.delete('/orders/notifications/delete_all/');
 
+// 獲取商家待確認訂單（外帶、內用、惜福品）
+export const getMerchantPendingOrders = () => api.get('/orders/merchant/pending/');
+
+// 訪客透過電話號碼查詢訂單
+export const lookupGuestOrders = (phoneNumber) =>
+  api.post('/orders/guest/lookup/', { phone_number: phoneNumber });

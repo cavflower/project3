@@ -374,6 +374,7 @@ class SurplusFoodOrder(models.Model):
         ('ready', '可取餐'),
         ('completed', '已完成'),
         ('cancelled', '已取消'),
+        ('rejected', '已拒絕'),
         ('expired', '已過期'),
     ]
     

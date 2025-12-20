@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 from django.db.models import Q
 from .models import StoreReview, ProductReview
@@ -17,7 +17,12 @@ from apps.products.models import Product
 class StoreReviewViewSet(viewsets.ModelViewSet):
     """店家評論ViewSet"""
     serializer_class = StoreReviewSerializer
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """列表和詳情可公開瀏覽，其他操作需認證"""
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
     
     def get_queryset(self):
         queryset = StoreReview.objects.all()
@@ -27,8 +32,8 @@ class StoreReviewViewSet(viewsets.ModelViewSet):
         if store_id:
             queryset = queryset.filter(store_id=store_id)
         
-        # 店家查看自己店的評論
-        if hasattr(self.request.user, 'user_type') and self.request.user.user_type == 'merchant':
+        # 店家查看自己店的評論（需要登入）
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'user_type') and self.request.user.user_type == 'merchant':
             # Store.merchant 指向 Merchant 模型，需要通過 merchant.user 來關聯
             queryset = queryset.filter(store__merchant__user=self.request.user)
         

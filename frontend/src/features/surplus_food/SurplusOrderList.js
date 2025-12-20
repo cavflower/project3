@@ -35,22 +35,34 @@ const SurplusOrderList = () => {
 
   // Firestore 即時監聽惜福品訂單
   useEffect(() => {
+    let isInitialLoad = true;
+    let reloadTimeout = null;
     const surplusOrdersRef = collection(db, 'surplus_orders');
 
     const unsubscribe = onSnapshot(surplusOrdersRef, (snapshot) => {
+      // 跳過初始載入的事件（避免重複載入）
+      if (isInitialLoad) {
+        isInitialLoad = false;
+        setRealtimeStatus('即時更新中');
+        return;
+      }
+
+      let needsReload = false;
+
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
           console.log('新惜福品訂單:', change.doc.data());
-          // 有新訂單時重新載入
-          loadOrders();
+          // 標記需要重新載入（用防抖避免多次呼叫）
+          needsReload = true;
         } else if (change.type === 'modified') {
           const updatedOrder = change.doc.data();
           console.log('惜福品訂單更新:', updatedOrder);
 
-          // 更新本地訂單狀態
+          // 更新本地訂單狀態（不重新載入整個列表）
           setOrders(prevOrders =>
             prevOrders.map(order => {
-              if (order.order_number === updatedOrder.order_number ||
+              if (String(order.id) === change.doc.id ||
+                order.order_number === updatedOrder.order_number ||
                 order.pickup_number === updatedOrder.pickup_number) {
                 return {
                   ...order,
@@ -62,18 +74,40 @@ const SurplusOrderList = () => {
             })
           );
         } else if (change.type === 'removed') {
-          console.log('惜福品訂單已刪除:', change.doc.data());
-          loadOrders();
+          const removedOrder = change.doc.data();
+          console.log('惜福品訂單已刪除:', removedOrder);
+          // 從本地列表移除（不重新載入整個列表）
+          setOrders(prevOrders =>
+            prevOrders.filter(order =>
+              String(order.id) !== change.doc.id &&
+              order.order_number !== removedOrder.order_number
+            )
+          );
         }
       });
-      setRealtimeStatus('即時更新中');
+
+      // 只有新增訂單時才重新載入，且使用防抖
+      if (needsReload) {
+        if (reloadTimeout) clearTimeout(reloadTimeout);
+        reloadTimeout = setTimeout(async () => {
+          try {
+            const data = await surplusFoodApi.getOrders({});
+            setOrders(data);
+          } catch (error) {
+            console.error('重新載入訂單失敗:', error);
+          }
+        }, 500); // 500ms 防抖
+      }
     }, (error) => {
       console.error('Firestore 監聯錯誤:', error);
       setRealtimeStatus('連線失敗');
     });
 
-    return () => unsubscribe();
-  }, [loadOrders]);
+    return () => {
+      unsubscribe();
+      if (reloadTimeout) clearTimeout(reloadTimeout);
+    };
+  }, []); // 不依賴任何外部變數
 
   const getStatusLabel = (status) => {
     const labels = {
@@ -81,7 +115,8 @@ const SurplusOrderList = () => {
       'confirmed': '已確認',
       'ready': '可取餐',
       'completed': '已完成',
-      'cancelled': '已取消'
+      'cancelled': '已取消',
+      'rejected': '已拒絕'
     };
     return labels[status] || status;
   };
@@ -93,7 +128,7 @@ const SurplusOrderList = () => {
       'ready': 'ready',
       'complete': 'completed',
       'cancel': 'cancelled',
-      'reject': 'cancelled'
+      'reject': 'rejected'
     };
 
     const newStatus = statusMap[action];
@@ -137,6 +172,7 @@ const SurplusOrderList = () => {
 
     try {
       await surplusFoodApi.deleteOrder(orderId);
+      alert('訂單已成功刪除');
     } catch (error) {
       console.error('刪除失敗:', error);
       alert('刪除失敗');
@@ -347,7 +383,7 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
             完成訂單
           </button>
         )}
-        {(order.status === 'completed' || order.status === 'cancelled') && (
+        {(order.status === 'completed' || order.status === 'cancelled' || order.status === 'rejected') && (
           <button
             className="surplus-btn-sm btn-danger"
             onClick={() => onDeleteOrder(order.id)}

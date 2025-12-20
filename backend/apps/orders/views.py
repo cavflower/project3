@@ -34,10 +34,14 @@ class OrderListView(generics.ListAPIView):
                 status=http_status.HTTP_404_NOT_FOUND
             )
         
-        # 查詢外帶訂單
-        takeout_orders = TakeoutOrder.objects.filter(store=store).select_related('store')
-        # 查詢內用訂單
-        dinein_orders = DineInOrder.objects.filter(store=store).select_related('store')
+        # 查詢外帶訂單 - 使用 prefetch_related 優化 items 查詢
+        takeout_orders = TakeoutOrder.objects.filter(store=store).select_related(
+            'store'
+        ).prefetch_related('items')
+        # 查詢內用訂單 - 使用 prefetch_related 優化 items 查詢
+        dinein_orders = DineInOrder.objects.filter(store=store).select_related(
+            'store'
+        ).prefetch_related('items')
         
         # 合併訂單資料
         orders = []
@@ -230,12 +234,18 @@ class CustomerOrderListView(APIView):
     def get(self, request, *args, **kwargs):
         user = request.user
         
-        # 查詢外帶訂單
-        takeout_orders = TakeoutOrder.objects.filter(user=user).select_related('store')
-        # 查詢內用訂單
-        dinein_orders = DineInOrder.objects.filter(user=user).select_related('store')
-        # 查詢惜福品訂單
-        surplus_orders = SurplusFoodOrder.objects.filter(user=user).select_related('store')
+        # 查詢外帶訂單 - 優化查詢效能
+        takeout_orders = TakeoutOrder.objects.filter(user=user).select_related(
+            'store'
+        ).prefetch_related('items', 'items__product')
+        # 查詢內用訂單 - 優化查詢效能
+        dinein_orders = DineInOrder.objects.filter(user=user).select_related(
+            'store'
+        ).prefetch_related('items', 'items__product')
+        # 查詢惜福品訂單 - 優化查詢效能
+        surplus_orders = SurplusFoodOrder.objects.filter(user=user).select_related(
+            'store'
+        ).prefetch_related('items', 'items__surplus_food')
         
         # 合併訂單資料
         orders = []
@@ -327,6 +337,82 @@ class CustomerOrderListView(APIView):
         return Response(orders)
 
 
+class MerchantPendingOrdersView(APIView):
+    """商家待確認訂單列表 API - 包含外帶、內用、惜福品訂單"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        
+        # 獲取商家的店家
+        try:
+            merchant = user.merchant_profile
+            store = merchant.store
+        except Exception:
+            return Response({'detail': '找不到店家資料'}, status=http_status.HTTP_404_NOT_FOUND)
+        
+        pending_orders = []
+        
+        # 查詢待確認外帶訂單
+        takeout_orders = TakeoutOrder.objects.filter(
+            store=store, status='pending'
+        ).select_related('store').order_by('-created_at')
+        
+        for order in takeout_orders:
+            pending_orders.append({
+                'id': order.id,
+                'order_number': order.pickup_number,
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+                'order_type': 'takeout',
+                'order_type_display': '外帶',
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+                'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
+            })
+        
+        # 查詢待確認內用訂單
+        dinein_orders = DineInOrder.objects.filter(
+            store=store, status='pending'
+        ).select_related('store').order_by('-created_at')
+        
+        for order in dinein_orders:
+            pending_orders.append({
+                'id': order.id,
+                'order_number': order.order_number,
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+                'order_type': 'dine_in',
+                'order_type_display': '內用',
+                'table_label': order.table_label,
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+            })
+        
+        # 查詢待確認惜福品訂單
+        surplus_orders = SurplusFoodOrder.objects.filter(
+            store=store, status='pending'
+        ).select_related('store').order_by('-created_at')
+        
+        for order in surplus_orders:
+            pending_orders.append({
+                'id': order.id,
+                'order_number': order.pickup_number,  # 使用 pickup_number 顯示取餐號碼
+                'customer_name': order.customer_name,
+                'customer_phone': order.customer_phone,
+                'order_type': 'surplus',
+                'order_type_display': '惜福品',
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+                'pickup_time': order.pickup_time.isoformat() if order.pickup_time else None,
+            })
+        
+        # 按建立時間排序（最新的在前）
+        pending_orders.sort(key=lambda x: x['created_at'] or '', reverse=True)
+        
+        return Response({
+            'pending_orders': pending_orders,
+            'total_count': len(pending_orders)
+        })
+
+
 class NotificationViewSet(viewsets.ModelViewSet):
     """通知 ViewSet"""
     serializer_class = NotificationSerializer
@@ -355,3 +441,115 @@ class NotificationViewSet(viewsets.ModelViewSet):
             return Response({'status': 'success'})
         except Notification.DoesNotExist:
             return Response({'error': '通知不存在'}, status=404)
+
+
+class GuestOrderLookupView(APIView):
+    """訪客訂單查詢 API - 透過電話號碼查詢訂單"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        phone_number = request.data.get('phone_number')
+        
+        if not phone_number:
+            return Response(
+                {'error': '請提供手機號碼'},
+                status=http_status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 驗證手機號碼格式
+        import re
+        if not re.match(r'^09\d{8}$', phone_number):
+            return Response(
+                {'error': '請輸入正確的手機號碼格式 (09xxxxxxxx)'},
+                status=http_status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 查詢最近 30 天的訂單
+        from datetime import timedelta
+        from django.utils import timezone
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        
+        orders = []
+        
+        # 查詢外帶訂單
+        takeout_orders = TakeoutOrder.objects.filter(
+            customer_phone=phone_number,
+            created_at__gte=thirty_days_ago
+        ).select_related('store').order_by('-created_at')
+        
+        for order in takeout_orders:
+            orders.append({
+                'id': order.id,
+                'order_type': 'takeout',
+                'order_type_display': '外帶',
+                'store_name': order.store.name if order.store else '未知店家',
+                'store_id': order.store.id if order.store else None,
+                'order_number': order.pickup_number,
+                'customer_name': order.customer_name,
+                'status': order.status,
+                'status_display': order.get_status_display(),
+                'payment_method': order.get_payment_method_display(),
+                'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+                'notes': order.notes,
+            })
+        
+        # 查詢內用訂單
+        dinein_orders = DineInOrder.objects.filter(
+            customer_phone=phone_number,
+            created_at__gte=thirty_days_ago
+        ).select_related('store').order_by('-created_at')
+        
+        for order in dinein_orders:
+            orders.append({
+                'id': order.id,
+                'order_type': 'dine_in',
+                'order_type_display': '內用',
+                'store_name': order.store.name if order.store else '未知店家',
+                'store_id': order.store.id if order.store else None,
+                'order_number': order.order_number,
+                'customer_name': order.customer_name,
+                'table_label': order.table_label,
+                'status': order.status,
+                'status_display': order.get_status_display(),
+                'payment_method': order.get_payment_method_display(),
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+                'notes': order.notes,
+            })
+        
+        # 查詢惜福品訂單
+        surplus_orders = SurplusFoodOrder.objects.filter(
+            customer_phone=phone_number,
+            created_at__gte=thirty_days_ago
+        ).select_related('store').order_by('-created_at')
+        
+        for order in surplus_orders:
+            orders.append({
+                'id': order.id,
+                'order_type': 'surplus',
+                'order_type_display': '惜福品',
+                'store_name': order.store.name if order.store else '未知店家',
+                'store_id': order.store.id if order.store else None,
+                'order_number': order.pickup_number,
+                'customer_name': order.customer_name,
+                'status': order.status,
+                'status_display': order.get_status_display(),
+                'payment_method': order.get_payment_method_display(),
+                'pickup_time': order.pickup_time.isoformat() if order.pickup_time else None,
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+                'notes': order.notes,
+            })
+        
+        # 按建立時間排序
+        orders.sort(key=lambda x: x['created_at'] or '', reverse=True)
+        
+        if not orders:
+            return Response(
+                {'error': '找不到訂單記錄，請確認手機號碼是否正確'},
+                status=http_status.HTTP_404_NOT_FOUND
+            )
+        
+        return Response({
+            'orders': orders,
+            'count': len(orders)
+        })

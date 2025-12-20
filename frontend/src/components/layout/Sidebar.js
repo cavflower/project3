@@ -49,6 +49,14 @@ const Sidebar = ({ isOpen }) => {
     }
   };
 
+  // 訪客點擊「我的訂單」導向查詢頁面，會員導向訂單頁面
+  const handleOrderClick = (e) => {
+    if (!user) {
+      e.preventDefault();
+      window.location.href = '/order-lookup';
+    }
+  };
+
   // 顧客端 Sidebar
   if (!user || user.user_type === 'customer') {
     return (
@@ -60,14 +68,21 @@ const Sidebar = ({ isOpen }) => {
 
           <li><Link to="/customer-home">🔍 搜尋店家</Link></li>
           <li>
-            <Link 
-              to="/my-reservations" 
+            <Link
+              to="/my-reservations"
               onClick={handleReservationClick}
             >
               📅 我的訂位
             </Link>
           </li>
-          <li><Link to="/orders">🛒 我的訂單</Link></li>
+          <li>
+            <Link
+              to="/customer/orders"
+              onClick={handleOrderClick}
+            >
+              🛒 我的訂單
+            </Link>
+          </li>
           <hr />
           <p className="sidebar-section-title">會員中心</p>
           <li><Link to="/profile">👤 個人資料</Link></li>
@@ -95,9 +110,9 @@ const Sidebar = ({ isOpen }) => {
         <li><Link to="/merchant/dine-in">🪑 內用設定</Link></li>
         <li><Link to="/merchant/settings">🏪 餐廳設定</Link></li>
 
-        
+
         <hr />
-        
+
         {/* 營運管理 */}
         <p className="sidebar-section-title">營運管理</p>
 
@@ -105,9 +120,9 @@ const Sidebar = ({ isOpen }) => {
         <li><Link to="/merchant/inventory">🧊 原物料管理</Link></li>
         <li><Link to="/merchant/reports">📊 營運報表</Link></li>
 
-        
+
         <hr />
-        
+
         {/* 行銷管理 */}
         <p className="sidebar-section-title">行銷管理</p>
 
@@ -115,9 +130,9 @@ const Sidebar = ({ isOpen }) => {
         <li><Link to="/merchant/promotions">📢 行銷活動</Link></li>
         <li><Link to="/merchant/line-bot">🤖 餐廳助手</Link></li>
 
-        
+
         <hr />
-        
+
         {/* 額外功能 */}
         <p className="sidebar-section-title">額外功能</p>
         <li className={!storeSettings.enable_reservation ? 'disabled' : ''}>

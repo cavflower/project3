@@ -4,16 +4,18 @@ import { useAuth } from '../../store/AuthContext';
 import FeatureCard from './components/FeatureCard';
 import { getMyStore } from '../../api/storeApi';
 import { getIngredients } from '../../api/inventoryApi';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getMerchantPendingOrders } from '../../api/orderApi';
+import { db } from '../../lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import './MerchantDashboard.css';
 
 
-import { 
-  FaStore, 
-  FaClipboardList, 
-  FaUsers, 
-  FaChartLine, 
-  FaUtensils, 
+import {
+  FaStore,
+  FaClipboardList,
+  FaUsers,
+  FaChartLine,
+  FaUtensils,
   FaBullhorn,
   FaGift,
   FaBoxes,
@@ -32,24 +34,28 @@ const MerchantDashboard = () => {
     enable_surplus_food: true,
   });
   const [loading, setLoading] = useState(true);
-  const [inventoryStats, setInventoryStats] = useState([]);
   const [lowStockItems, setLowStockItems] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [storeId, setStoreId] = useState(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
+  // 初始載入資料
   useEffect(() => {
     const loadDashboardData = async () => {
       if (hasLoadedOnce) {
         setLoading(false);
         return;
       }
-      
+
       try {
-        const [storeResponse, ingredientsData] = await Promise.all([
-            getMyStore(),
-            getIngredients()
+        const [storeResponse, ingredientsData, pendingOrdersResponse] = await Promise.all([
+          getMyStore(),
+          getIngredients(),
+          getMerchantPendingOrders()
         ]);
-        
+
         const store = storeResponse.data;
+        setStoreId(store.id);
         setStoreSettings({
           enable_reservation: store.enable_reservation !== undefined ? store.enable_reservation : true,
           enable_loyalty: store.enable_loyalty !== undefined ? store.enable_loyalty : true,
@@ -58,13 +64,13 @@ const MerchantDashboard = () => {
 
         // Process inventory data
         const lowStock = ingredientsData.filter(i => i.is_low_stock);
-        const normalStock = ingredientsData.filter(i => !i.is_low_stock);
-        
-        setInventoryStats([
-            { name: '庫存充足', value: normalStock.length },
-            { name: '庫存不足', value: lowStock.length }
-        ]);
         setLowStockItems(lowStock);
+
+        // Process pending orders data
+        if (pendingOrdersResponse?.data?.pending_orders) {
+          setPendingOrders(pendingOrdersResponse.data.pending_orders);
+        }
+
         setHasLoadedOnce(true);
 
       } catch (error) {
@@ -84,13 +90,81 @@ const MerchantDashboard = () => {
 
     loadDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLoadedOnce]); // 只有在hasLoadedOnce改變時才重新執行
+  }, [hasLoadedOnce]);
+
+  // Firestore 即時監聽訂單變更（包含一般訂單和惜福品訂單）
+  useEffect(() => {
+    if (!storeId) return;
+
+    let isInitialLoad = true;
+
+    // 刷新待確認訂單
+    const refreshPendingOrders = async () => {
+      try {
+        const pendingOrdersResponse = await getMerchantPendingOrders();
+        if (pendingOrdersResponse?.data?.pending_orders) {
+          setPendingOrders(pendingOrdersResponse.data.pending_orders);
+        }
+      } catch (error) {
+        console.error('[Dashboard] Error refreshing pending orders:', error);
+      }
+    };
+
+    // 監聽一般訂單（外帶、內用）
+    const ordersRef = collection(db, 'orders');
+    const ordersQuery = query(ordersRef, where('store_id', '==', storeId));
+
+    const unsubscribeOrders = onSnapshot(ordersQuery, () => {
+      if (isInitialLoad) return;
+      refreshPendingOrders();
+    }, (error) => {
+      console.error('[Dashboard] Orders Firestore listener error:', error);
+    });
+
+    // 監聽惜福品訂單
+    const surplusOrdersRef = collection(db, 'surplus_orders');
+    const surplusQuery = query(surplusOrdersRef, where('store_id', '==', String(storeId)));
+
+    const unsubscribeSurplus = onSnapshot(surplusQuery, () => {
+      if (isInitialLoad) {
+        isInitialLoad = false;
+        return;
+      }
+      refreshPendingOrders();
+    }, (error) => {
+      console.error('[Dashboard] Surplus orders Firestore listener error:', error);
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeSurplus();
+    };
+  }, [storeId]);
 
   const handleCardClick = (path, isDisabled) => {
     if (isDisabled) {
       return; // 如果功能被禁用，不執行導航
     }
     navigate(path);
+  };
+
+  const getOrderTypeBadgeClass = (orderType) => {
+    switch (orderType) {
+      case 'takeout':
+        return 'badge-takeout';
+      case 'dine_in':
+        return 'badge-dinein';
+      case 'surplus':
+        return 'badge-surplus';
+      default:
+        return '';
+    }
+  };
+
+  const formatTime = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
   };
 
   const features = [
@@ -159,7 +233,7 @@ const MerchantDashboard = () => {
     },
 
 
-    
+
     {
       id: 'line-bot-settings',
       name: '餐廳助手 (LINE BOT)',
@@ -217,49 +291,54 @@ const MerchantDashboard = () => {
 
       <div className="dashboard-stats-container">
         <div className="stats-card chart-card">
-            <h3>庫存狀態概覽</h3>
-            <div style={{ width: '100%', height: 300 }}>
-                <ResponsiveContainer>
-                    <PieChart>
-                        <Pie
-                            data={inventoryStats}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                        >
-                            <Cell fill="#4caf50" />
-                            <Cell fill="#f44336" />
-                        </Pie>
-                        <Tooltip />
-                        <Legend verticalAlign="bottom" height={36}/>
-                    </PieChart>
-                </ResponsiveContainer>
+          <h3>🔔 待確認訂單 ({pendingOrders.length})</h3>
+          {pendingOrders.length > 0 ? (
+            <div className="pending-orders-list">
+              <div className="pending-orders-scroll">
+                {pendingOrders.map((order, index) => (
+                  <div key={`${order.order_type}-${order.id}-${index}`} className="pending-order-item">
+                    <div className="order-info">
+                      <span className={`order-type-badge ${getOrderTypeBadgeClass(order.order_type)}`}>
+                        {order.order_type_display}
+                      </span>
+                      <span className="order-number">#{order.order_number}</span>
+                      {order.table_label && <span className="table-label">桌號: {order.table_label}</span>}
+                    </div>
+                    <span className="order-time">{formatTime(order.created_at)}</span>
+                  </div>
+                ))}
+              </div>
+              <button className="view-orders-btn" onClick={() => navigate('/merchant/orders')}>
+                前往訂單管理
+              </button>
             </div>
+          ) : (
+            <div className="all-good">
+              <p>目前沒有待確認訂單！</p>
+            </div>
+          )}
         </div>
-        
+
         <div className="stats-card alert-card">
-            <h3>⚠️ 庫存不足提醒 ({lowStockItems.length})</h3>
-            {lowStockItems.length > 0 ? (
-                <div className="low-stock-list">
-                    {lowStockItems.slice(0, 5).map(item => (
-                        <div key={item.id} className="low-stock-item">
-                            <span className="item-name">{item.name}</span>
-                            <span className="item-qty">剩餘: {item.quantity} {item.unit_display}</span>
-                        </div>
-                    ))}
-                    {lowStockItems.length > 5 && <div className="more-items">還有 {lowStockItems.length - 5} 項...</div>}
-                    <button className="restock-btn" onClick={() => navigate('/merchant/inventory')}>
-                        前往補貨
-                    </button>
+          <h3>⚠️ 庫存不足提醒 ({lowStockItems.length})</h3>
+          {lowStockItems.length > 0 ? (
+            <div className="low-stock-list">
+              {lowStockItems.slice(0, 5).map(item => (
+                <div key={item.id} className="low-stock-item">
+                  <span className="item-name">{item.name}</span>
+                  <span className="item-qty">剩餘: {item.quantity} {item.unit_display}</span>
                 </div>
-            ) : (
-                <div className="all-good">
-                    <p>目前庫存狀況良好！</p>
-                </div>
-            )}
+              ))}
+              {lowStockItems.length > 5 && <div className="more-items">還有 {lowStockItems.length - 5} 項...</div>}
+              <button className="restock-btn" onClick={() => navigate('/merchant/inventory')}>
+                前往補貨
+              </button>
+            </div>
+          ) : (
+            <div className="all-good">
+              <p>目前庫存狀況良好！</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -267,7 +346,7 @@ const MerchantDashboard = () => {
         {features.map((feature) => {
           // 檢查此功能是否需要特定的功能開關
           const isDisabled = feature.requiresFeature && !storeSettings[feature.requiresFeature];
-          
+
           return (
             <FeatureCard
               key={feature.id}

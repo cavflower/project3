@@ -45,6 +45,7 @@ import RedemptionCatalog from './features/customer_loyalty/RedemptionCatalog';
 import MyRedemptions from './features/customer_loyalty/MyRedemptions';
 import PointsHistory from './features/customer_loyalty/PointsHistory';
 import CustomerOrdersPage from './features/customer_orders/CustomerOrdersPage';
+import GuestOrderLookup from './features/customer_orders/GuestOrderLookup';
 import TakeoutOrderPage from './features/takeout/TakeoutOrderPage';
 import TakeoutCartPage from './features/takeout/TakeoutCartPage';
 import SurplusZonePage from './features/takeout/SurplusZonePage';
@@ -190,6 +191,9 @@ function App() {
 
             {/* 訪客查詢訂位 */}
             <Route path="/guest-lookup" element={<GuestReservationLookup />} />
+
+            {/* 訪客查詢訂單 */}
+            <Route path="/order-lookup" element={<GuestOrderLookup />} />
 
             {/* 我的訂位頁面（訪客也可查看）*/}
             <Route path="/my-reservations" element={<MyReservationsPage />} />

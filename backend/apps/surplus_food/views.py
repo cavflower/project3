@@ -242,10 +242,16 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
     
     def get_queryset(self):
-        """只返回當前商家的訂單"""
+        """只返回當前商家的訂單，優化查詢效能"""
         user = self.request.user
         if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
-            queryset = SurplusFoodOrder.objects.filter(store=user.merchant_profile.store)
+            queryset = SurplusFoodOrder.objects.filter(
+                store=user.merchant_profile.store
+            ).select_related(
+                'store', 'user'
+            ).prefetch_related(
+                'items', 'items__surplus_food'
+            )
             
             # 支援狀態篩選
             status_filter = self.request.query_params.get('status', None)
@@ -414,18 +420,19 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
-        """完成訂單並從 Firestore 刪除"""
+        """完成訂單並更新 Firestore 狀態"""
         order = self.get_object()
         order.status = 'completed'
         order.completed_at = timezone.now()
         order.save()
         
-        # 從 Firestore 刪除（已完成的訂單不需要實時通知）
+        # 更新 Firestore 狀態為 completed（讓顧客端即時收到通知）
+        # 不直接刪除，讓顧客端有時間看到狀態變更
         try:
             surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
-            surplus_orders_ref.delete()
+            surplus_orders_ref.update({'status': 'completed'})
         except Exception as e:
-            print(f"刪除 Firestore 文件失敗: {e}")
+            print(f"更新 Firestore 失敗: {e}")
         
         serializer = self.get_serializer(order)
         return Response(serializer.data)
@@ -457,7 +464,7 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
-        """拒絕訂單並恢復庫存，從 Firestore 刪除"""
+        """拒絕訂單並恢復庫存，更新 Firestore 狀態"""
         order = self.get_object()
         
         # 恢復所有品項的庫存
@@ -467,15 +474,16 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             surplus_food.orders_count -= 1
             surplus_food.save()
         
-        order.status = 'cancelled'  # 使用 cancelled 狀態表示拒絕
+        order.status = 'rejected'  # 使用 rejected 狀態表示拒絕
         order.save()
         
-        # 從 Firestore 刪除
+        # 更新 Firestore 狀態為 rejected（讓顧客端即時收到通知）
+        # 不直接刪除，讓顧客端有時間看到狀態變更
         try:
             surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
-            surplus_orders_ref.delete()
+            surplus_orders_ref.update({'status': 'rejected'})
         except Exception as e:
-            print(f"刪除 Firestore 文件失敗: {e}")
+            print(f"更新 Firestore 失敗: {e}")
         
         serializer = self.get_serializer(order)
         return Response(serializer.data)
@@ -485,8 +493,8 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
         """刪除已完成或已取消的訂單（只刪除 PostgreSQL）"""
         order = self.get_object()
         
-        # 檢查狀態，只允許刪除已完成或已取消的訂單
-        if order.status not in ['completed', 'cancelled']:
+        # 檢查狀態，只允許刪除已完成、已取消或已拒絕的訂單
+        if order.status not in ['completed', 'cancelled', 'rejected']:
             return Response(
                 {'error': '只能刪除已完成或已取消的訂單'},
                 status=status.HTTP_400_BAD_REQUEST

@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import api from '../../../api/api';
 import { getMyStore } from '../../../api/storeApi';
+import { db } from '../../../lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import './OrderManagementPage.css';
 
 const statusLabels = {
@@ -75,6 +77,48 @@ function OrderManagementPage() {
     }
     load();
   }, []);
+
+  // Firestore 即時監聽訂單狀態更新
+  useEffect(() => {
+    if (!storeId) return;
+
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('store_id', '==', storeId));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'modified') {
+          const updatedOrder = change.doc.data();
+          // 即時更新本地訂單狀態
+          setOrders(prevOrders =>
+            prevOrders.map(order => {
+              if (String(order.id) === change.doc.id ||
+                order.pickup_number === updatedOrder.pickup_number ||
+                order.order_number === updatedOrder.order_number) {
+                return {
+                  ...order,
+                  status: updatedOrder.status
+                };
+              }
+              return order;
+            })
+          );
+        } else if (change.type === 'removed') {
+          const removedOrder = change.doc.data();
+          setOrders(prevOrders =>
+            prevOrders.filter(order =>
+              String(order.id) !== change.doc.id &&
+              order.pickup_number !== removedOrder.pickup_number
+            )
+          );
+        }
+      });
+    }, (error) => {
+      console.error('Firestore 監聽錯誤:', error);
+    });
+
+    return () => unsubscribe();
+  }, [storeId]);
 
   const handleUpdateStatus = async (pickupNumber, status) => {
     // 樂觀更新：先保存舊狀態
