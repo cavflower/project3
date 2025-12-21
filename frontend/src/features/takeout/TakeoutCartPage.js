@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from "react";
+﻿import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaArrowLeft, FaTrash, FaPlus, FaMinus } from "react-icons/fa";
+import { FaArrowLeft, FaTrash, FaPlus, FaMinus, FaCoins } from "react-icons/fa";
 import { createTakeoutOrder } from "../../api/orderApi";
 import api from "../../api/api";
+import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
 import CreditCardSelector from "../checkout/CreditCardSelector";
 import "./TakeoutCartPage.css";
@@ -62,6 +63,12 @@ function TakeoutCartPage() {
     [cartItems]
   );
 
+  // 兌換項目（折扣）
+  const redemptionItems = useMemo(
+    () => cartItems.filter(item => item.itemType === 'redemption'),
+    [cartItems]
+  );
+
   const regularTotal = useMemo(
     () => regularItems.reduce((sum, item) => {
       const itemPrice = item.finalPrice || item.price;
@@ -75,7 +82,21 @@ function TakeoutCartPage() {
     [surplusItems]
   );
 
-  const total = regularTotal + surplusTotal;
+  // 計算折扣金額
+  const discountTotal = useMemo(
+    () => redemptionItems.reduce((sum, item) => {
+      if (item.redemptionRule?.redemption_type === 'discount') {
+        return sum + Number(item.redemptionRule.discount_value) * (item.quantity || 1);
+      }
+      return sum;
+    }, 0) || 0,
+    [redemptionItems]
+  );
+
+  const subtotal = regularTotal + surplusTotal;
+  // 折扣金額不能超過小計
+  const actualDiscount = Math.min(discountTotal, subtotal);
+  const total = Math.max(0, subtotal - actualDiscount);
 
   if (!initialCart || !store) {
     return (
@@ -116,6 +137,12 @@ function TakeoutCartPage() {
       return;
     }
 
+    // 驗證折扣是否超過商品小計
+    if (discountTotal > subtotal) {
+      alert(`折扣金額 (NT$ ${discountTotal}) 不能超過商品小計 (NT$ ${subtotal})，請移除部分兌換項目。`);
+      return;
+    }
+
     // 決定使用的聯絡資訊
     let finalName = contactName;
     let finalPhone = contactPhone;
@@ -148,23 +175,84 @@ function TakeoutCartPage() {
       setSubmitting(true);
       const orderResults = [];
 
-      // 1. 如果有一般商品，創建一般外帶訂單
-      if (regularItems.length > 0) {
+      // 0. 如果有兌換項目，先扣除點數
+      if (redemptionItems.length > 0 && user) {
+        const totalPointsToUse = redemptionItems.reduce((sum, item) => {
+          const rule = item.redemptionRule;
+          return sum + (rule?.required_points || 0) * (item.quantity || 1);
+        }, 0);
+
+        if (totalPointsToUse > 0) {
+          const redemptionReasons = redemptionItems.map(item =>
+            `${item.name} ×${item.quantity}`
+          ).join(', ');
+
+          try {
+            await surplusFoodApi.useGreenPoints(
+              storeId,
+              totalPointsToUse,
+              `兌換使用: ${redemptionReasons}`
+            );
+          } catch (pointsError) {
+            console.error('扣除點數失敗:', pointsError);
+            alert('扣除點數失敗，請稍後再試。');
+            setSubmitting(false);
+            return;
+          }
+        }
+      }
+
+      // 取得 product 類型的兌換項目（免費商品）
+      const productRedemptionItems = redemptionItems.filter(
+        item => item.redemptionRule?.redemption_type === 'product'
+      );
+
+      // 1. 如果有一般商品 或 有兌換商品（product類型），創建一般外帶訂單
+      if (regularItems.length > 0 || productRedemptionItems.length > 0) {
+        // 構建備註內容（包含兌換項目）
+        let orderNotes = notes || '';
+        if (redemptionItems.length > 0) {
+          const redemptionInfo = redemptionItems.map(item => {
+            const rule = item.redemptionRule;
+            if (rule?.redemption_type === 'discount') {
+              return `【綠色點數折扣】${item.name} -NT$${rule.discount_value} (消耗${rule.required_points}點×${item.quantity})`;
+            } else {
+              return `【綠色點數兌換】${item.name} ×${item.quantity} (消耗${rule?.required_points}點×${item.quantity})`;
+            }
+          }).join('\n');
+          orderNotes = orderNotes ? `${orderNotes}\n\n${redemptionInfo}` : redemptionInfo;
+        }
+
+        // 組合訂單品項
+        // 注意：兌換商品無法作為品項加入（沒有 product_id），所以只包含一般商品
+        // 兌換商品資訊已在備註中顯示
+        const orderItems = regularItems.map((item) => ({
+          product: item.id,
+          quantity: item.quantity,
+          unit_price: item.finalPrice || item.price,
+          specifications: item.selectedSpecs || [],
+        }));
+
+        // 如果只有兌換商品沒有一般商品，需要至少提供空的 items 陣列
+        // 後端需要處理這種情況
         const regularPayload = {
           store: storeId,
           service_channel: "takeout",
           pickup_at: pickupAt,
           customer_name: finalName,
           customer_phone: finalPhone,
-          notes: notes,
+          notes: orderNotes,
           payment_method: paymentMethod,
           use_utensils: useUtensils === "yes",
-          items: regularItems.map((item) => ({
-            product: item.id,
-            quantity: item.quantity,
-            unit_price: item.finalPrice || item.price,
-            specifications: item.selectedSpecs || [],
-          })),
+          items: orderItems,
+          // 標記這是一個有兌換商品的訂單
+          has_product_redemption: productRedemptionItems.length > 0,
+          // 如果只有兌換商品，傳送兌換商品資訊給後端
+          product_redemptions: productRedemptionItems.map(item => ({
+            name: item.redemptionRule?.product_name || item.name,
+            quantity: item.quantity || 1,
+            required_points: item.redemptionRule?.required_points || 0
+          }))
         };
 
         const regularResponse = await createTakeoutOrder(regularPayload);
@@ -177,6 +265,21 @@ function TakeoutCartPage() {
 
       // 2. 如果有惜福品，合併成一張訂單
       if (surplusItems.length > 0) {
+        // 構建備註內容（包含兌換項目）
+        let surplusNotes = notes || '';
+        if (redemptionItems.length > 0) {
+          // 惜福品訂單也要顯示兌換資訊
+          const redemptionInfo = redemptionItems.map(item => {
+            const rule = item.redemptionRule;
+            if (rule?.redemption_type === 'discount') {
+              return `【綠色點數折扣】${item.name} -NT$${rule.discount_value} (消耗${rule.required_points}點×${item.quantity})`;
+            } else {
+              return `【綠色點數兌換】${item.name} ×${item.quantity} (消耗${rule?.required_points}點×${item.quantity})`;
+            }
+          }).join('\n');
+          surplusNotes = surplusNotes ? `${surplusNotes}\n\n${redemptionInfo}` : redemptionInfo;
+        }
+
         const surplusPayload = {
           items: surplusItems.map(item => ({
             surplus_food: item.id,
@@ -188,7 +291,7 @@ function TakeoutCartPage() {
           payment_method: paymentMethod,
           order_type: 'takeout',
           use_utensils: useUtensils === "yes",
-          notes: notes,
+          notes: surplusNotes,
         };
 
         const surplusResponse = await api.post('/surplus/orders/', surplusPayload);
@@ -435,8 +538,80 @@ function TakeoutCartPage() {
                     </div>
                   )}
 
+                  {/* 綠色點數兌換區塊 */}
+                  {redemptionItems.length > 0 && (
+                    <div className="mb-4">
+                      <h6 className="text-success mb-3">
+                        <FaCoins className="me-2" />綠色點數兌換
+                      </h6>
+                      {redemptionItems.map((item) => {
+                        const maxQty = item.redemptionRule?.redemption_type === 'discount'
+                          ? 1
+                          : (item.redemptionRule?.max_quantity_per_order || 1);
+                        const quantity = item.quantity || 1;
+
+                        return (
+                          <div
+                            key={item.cartKey || item.id}
+                            className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
+                            style={{ backgroundColor: '#e8f5e9' }}
+                          >
+                            <div className="flex-grow-1">
+                              <h5 className="mb-1">
+                                {item.name}
+                                <span className={`badge ms-2 ${item.redemptionRule?.redemption_type === 'discount' ? 'bg-warning text-dark' : 'bg-info'}`}>
+                                  {item.redemptionRule?.redemption_type === 'discount' ? '折扣' : '商品'}
+                                </span>
+                              </h5>
+                              <p className="text-muted mb-1">
+                                消耗點數：{item.redemptionRule?.required_points} 點
+                                {item.redemptionRule?.redemption_type === 'product' && quantity > 1 && (
+                                  <span> × {quantity} = {item.redemptionRule?.required_points * quantity} 點</span>
+                                )}
+                              </p>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                              <div className="quantity-control d-flex align-items-center gap-2">
+                                <button
+                                  className="quantity-btn rounded-circle"
+                                  onClick={() => handleQuantityChange(item.cartKey || item.id, -1)}
+                                >
+                                  <FaMinus size={12} />
+                                </button>
+                                <span className="quantity-display">{quantity}</span>
+                                <button
+                                  className="quantity-btn rounded-circle"
+                                  onClick={() => handleQuantityChange(item.cartKey || item.id, 1)}
+                                  disabled={quantity >= maxQty}
+                                  style={quantity >= maxQty ? { opacity: 0.5 } : {}}
+                                >
+                                  <FaPlus size={12} />
+                                </button>
+                              </div>
+                              {item.redemptionRule?.redemption_type === 'discount' && (
+                                <div className="text-end" style={{ minWidth: '80px' }}>
+                                  <strong className="text-success">-NT$ {item.redemptionRule.discount_value}</strong>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* 總計 */}
                   <div className="pt-3 mt-3 border-top">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <span className="text-muted">小計</span>
+                      <span className="text-dark">NT$ {formatPrice(subtotal)}</span>
+                    </div>
+                    {actualDiscount > 0 && (
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="text-success"><FaCoins className="me-1" />綠色點數折扣</span>
+                        <span className="text-success">-NT$ {formatPrice(actualDiscount)}</span>
+                      </div>
+                    )}
                     <div className="d-flex justify-content-between align-items-center">
                       <h4 className="mb-0">總計</h4>
                       <h4 className="mb-0 text-primary">NT$ {formatPrice(total)}</h4>

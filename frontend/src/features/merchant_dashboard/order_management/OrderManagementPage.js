@@ -22,8 +22,22 @@ function OrderManagementPage() {
   const [productMap, setProductMap] = useState({});
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all'); // 'all', 'dine_in', 'takeout'
+  const [monthFilter, setMonthFilter] = useState('all'); // 月份篩選
   const [page, setPage] = useState(1);
-  const pageSize = 8;
+  const pageSize = 9;
+
+  // 產生月份選項（過去12個月）
+  const monthOptions = useMemo(() => {
+    const options = [{ value: 'all', label: '全部月份' }];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const label = `${date.getFullYear()}年${date.getMonth() + 1}月`;
+      options.push({ value, label });
+    }
+    return options;
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -78,7 +92,7 @@ function OrderManagementPage() {
     load();
   }, []);
 
-  // Firestore 即時監聽訂單狀態更新
+  // Firestore 即時監聽訂單更新
   useEffect(() => {
     if (!storeId) return;
 
@@ -86,8 +100,32 @@ function OrderManagementPage() {
     const q = query(ordersRef, where('store_id', '==', storeId));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'modified') {
+      snapshot.docChanges().forEach(async (change) => {
+        if (change.type === 'added') {
+          // 新訂單：從後端載入完整訂單資料
+          const newOrderData = change.doc.data();
+          const pickupNumber = newOrderData.pickup_number || newOrderData.order_number;
+
+          // 檢查是否已存在（避免初始載入時重複）
+          const alreadyExists = orders.some(
+            order => order.pickup_number === pickupNumber || order.order_number === pickupNumber
+          );
+
+          if (!alreadyExists && pickupNumber) {
+            // 載入完整訂單資料
+            try {
+              const response = await api.get('/orders/list/', { params: { store_id: storeId } });
+              const newOrders = (response.data || []).map((data) => ({
+                ...data,
+                created_at: data.created_at ? new Date(data.created_at) : null,
+                pickup_at: data.pickup_at ? new Date(data.pickup_at) : null,
+              }));
+              setOrders(newOrders);
+            } catch (err) {
+              console.error('載入新訂單失敗:', err);
+            }
+          }
+        } else if (change.type === 'modified') {
           const updatedOrder = change.doc.data();
           // 即時更新本地訂單狀態
           setOrders(prevOrders =>
@@ -114,7 +152,7 @@ function OrderManagementPage() {
         }
       });
     }, (error) => {
-      console.error('Firestore 監聽錯誤:', error);
+      console.error('Firestore 監聯錯誤:', error);
     });
 
     return () => unsubscribe();
@@ -197,8 +235,17 @@ function OrderManagementPage() {
       filtered = filtered.filter((o) => o.channel === channelFilter);
     }
 
+    // 月份篩選
+    if (monthFilter !== 'all') {
+      filtered = filtered.filter((o) => {
+        if (!o.created_at) return false;
+        const orderMonth = `${o.created_at.getFullYear()}-${String(o.created_at.getMonth() + 1).padStart(2, '0')}`;
+        return orderMonth === monthFilter;
+      });
+    }
+
     return filtered;
-  }, [sortedOrders, statusFilter, channelFilter]);
+  }, [sortedOrders, statusFilter, channelFilter, monthFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -299,6 +346,22 @@ function OrderManagementPage() {
             {opt.label}
           </button>
         ))}
+        {/* 月份篩選 */}
+        <select
+          className="form-select form-select-sm"
+          style={{ width: 'auto', marginLeft: 'auto' }}
+          value={monthFilter}
+          onChange={(e) => {
+            setMonthFilter(e.target.value);
+            setPage(1);
+          }}
+        >
+          {monthOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {sortedOrders.length === 0 ? (
@@ -384,46 +447,52 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
             <div className="mt-2">
               <strong>品項：</strong>
               <ul className="mb-0">
-                {order.items.map((it, idx) => (
-                  <li key={idx}>
-                    {productMap[it.product_id || it.product] ||
-                      `商品ID: ${it.product_id || it.product}`}{' '}
-                    × {it.quantity}
-                    {it.unit_price && (
-                      <span className="text-muted ms-1">
-                        (NT$ {Math.round(it.unit_price)})
-                      </span>
-                    )}
-                    {/* 顯示規格 - 按類別分組 */}
-                    {it.specifications && it.specifications.length > 0 && (
-                      <div className="ms-3 small text-secondary">
-                        {/* 按 groupName 分組 */}
-                        {Object.entries(
-                          it.specifications.reduce((groups, spec) => {
-                            const group = spec.groupName || '其他';
-                            if (!groups[group]) groups[group] = [];
-                            groups[group].push(spec);
-                            return groups;
-                          }, {})
-                        ).map(([groupName, specs], groupIdx) => (
-                          <span key={groupIdx} className="me-2">
-                            {groupName}: {specs.map((spec, specIdx) => (
-                              <span key={specIdx}>
-                                {specIdx > 0 && '、'}
-                                {spec.optionName}
-                                {spec.priceAdjustment !== 0 && (
-                                  <span className={spec.priceAdjustment > 0 ? 'text-danger' : 'text-success'}>
-                                    {spec.priceAdjustment > 0 ? ` +$${spec.priceAdjustment}` : ` -$${Math.abs(spec.priceAdjustment)}`}
-                                  </span>
-                                )}
-                              </span>
-                            ))}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </li>
-                ))}
+                {order.items.map((it, idx) => {
+                  // 優先使用 product_name（兌換商品會有此欄位）
+                  const itemName = it.product_name ||
+                    productMap[it.product_id || it.product] ||
+                    `商品ID: ${it.product_id || it.product}`;
+                  const isRedemption = it.is_redemption || itemName.startsWith('【兌換】');
+
+                  return (
+                    <li key={idx} style={isRedemption ? { color: '#4CAF50' } : {}}>
+                      {itemName} × {it.quantity}
+                      {it.unit_price !== undefined && it.unit_price !== null && (
+                        <span className="text-muted ms-1">
+                          (NT$ {Math.round(it.unit_price)})
+                        </span>
+                      )}
+                      {/* 顯示規格 - 按類別分組 */}
+                      {it.specifications && it.specifications.length > 0 && (
+                        <div className="ms-3 small text-secondary">
+                          {/* 按 groupName 分組 */}
+                          {Object.entries(
+                            it.specifications.reduce((groups, spec) => {
+                              const group = spec.groupName || '其他';
+                              if (!groups[group]) groups[group] = [];
+                              groups[group].push(spec);
+                              return groups;
+                            }, {})
+                          ).map(([groupName, specs], groupIdx) => (
+                            <span key={groupIdx} className="me-2">
+                              {groupName}: {specs.map((spec, specIdx) => (
+                                <span key={specIdx}>
+                                  {specIdx > 0 && '、'}
+                                  {spec.optionName}
+                                  {spec.priceAdjustment !== 0 && (
+                                    <span className={spec.priceAdjustment > 0 ? 'text-danger' : 'text-success'}>
+                                      {spec.priceAdjustment > 0 ? ` +$${spec.priceAdjustment}` : ` -$${Math.abs(spec.priceAdjustment)}`}
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}

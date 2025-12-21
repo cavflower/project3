@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory, SurplusFoodOrderItem
+from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory, SurplusFoodOrderItem, GreenPointRule, PointRedemptionRule
 from datetime import time
 from decimal import Decimal
 
@@ -436,3 +436,77 @@ class SurplusFoodOrderSerializer(serializers.ModelSerializer):
             })
         
         return data
+
+
+class GreenPointRuleSerializer(serializers.ModelSerializer):
+    """綠色點數回饋設定序列化器"""
+    action_type_display = serializers.CharField(source='get_action_type_display', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
+    
+    class Meta:
+        model = GreenPointRule
+        fields = [
+            'id', 'store', 'store_name', 
+            'action_type', 'action_type_display',
+            'name', 'description', 'points_reward',
+            'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'store', 'created_at', 'updated_at']
+    
+    def validate(self, data):
+        """驗證回饋設定"""
+        points_reward = data.get('points_reward')
+        if points_reward is not None and points_reward <= 0:
+            raise serializers.ValidationError({
+                'points_reward': '獎勵點數必須大於 0'
+            })
+        return data
+
+
+class PointRedemptionRuleSerializer(serializers.ModelSerializer):
+    """點數兌換規則序列化器"""
+    redemption_type_display = serializers.CharField(source='get_redemption_type_display', read_only=True)
+    discount_type_display = serializers.CharField(source='get_discount_type_display', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
+    
+    class Meta:
+        model = PointRedemptionRule
+        fields = [
+            'id', 'store', 'store_name', 'name', 'description',
+            'redemption_type', 'redemption_type_display', 'required_points',
+            'discount_type', 'discount_type_display', 'discount_value',
+            'product_name', 'product_description', 'max_quantity_per_order',
+            'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'store', 'created_at', 'updated_at']
+    
+    def validate(self, data):
+        """驗證兌換規則"""
+        redemption_type = data.get('redemption_type')
+        
+        if redemption_type == 'discount':
+            if not data.get('discount_type'):
+                raise serializers.ValidationError({
+                    'discount_type': '折扣兌換必須選擇折扣類型'
+                })
+            if not data.get('discount_value') or data.get('discount_value') <= 0:
+                raise serializers.ValidationError({
+                    'discount_value': '請設定有效的折扣值'
+                })
+            # 折扣兌換強制設為1份
+            data['max_quantity_per_order'] = 1
+        elif redemption_type == 'product':
+            if not data.get('product_name'):
+                raise serializers.ValidationError({
+                    'product_name': '商品兌換必須設定商品名稱'
+                })
+        
+        if data.get('required_points') is not None and data.get('required_points') <= 0:
+            raise serializers.ValidationError({
+                'required_points': '所需點數必須大於 0'
+            })
+        
+        return data
+
+
+

@@ -44,6 +44,12 @@ class TakeoutOrder(models.Model):
     pickup_number = models.CharField(max_length=10, unique=True, verbose_name='取單號碼')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='訂單狀態')
     use_utensils = models.BooleanField(default=False, verbose_name='需要餐具')
+    product_redemptions = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='兌換商品',
+        help_text='儲存綠色點數兌換的免費商品資訊'
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
 
@@ -134,6 +140,12 @@ class DineInOrder(models.Model):
     order_number = models.CharField(max_length=10, unique=True, verbose_name='訂單號碼')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='訂單狀態')
     use_eco_tableware = models.BooleanField(default=False, verbose_name='使用環保餐具')
+    product_redemptions = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='兌換商品',
+        help_text='儲存綠色點數兌換的免費商品資訊'
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name='完成時間')

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
 import { db } from '../../lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
@@ -10,7 +10,34 @@ const SurplusOrderList = () => {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all'); // 'all', 'dine_in', 'takeout'
+  const [monthFilter, setMonthFilter] = useState('all'); // 月份篩選
   const [realtimeStatus, setRealtimeStatus] = useState('連線中...');
+  const [page, setPage] = useState(1);
+  const pageSize = 9;
+
+  // 產生月份選項（過去12個月）
+  const monthOptions = useMemo(() => {
+    const options = [{ value: 'all', label: '全部月份' }];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const label = `${date.getFullYear()}年${date.getMonth() + 1}月`;
+      options.push({ value, label });
+    }
+    return options;
+  }, []);
+
+  // 計算篩選後的訂單
+  const filteredOrders = useMemo(() => {
+    if (monthFilter === 'all') return orders;
+    return orders.filter(order => {
+      if (!order.created_at) return false;
+      const date = new Date(order.created_at);
+      const orderMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      return orderMonth === monthFilter;
+    });
+  }, [orders, monthFilter]);
 
   const loadOrders = useCallback(async () => {
     try {
@@ -251,25 +278,70 @@ const SurplusOrderList = () => {
         >
           外帶
         </button>
+
+        {/* 月份篩選 */}
+        <select
+          className="form-select form-select-sm"
+          style={{ width: 'auto', marginLeft: '16px' }}
+          value={monthFilter}
+          onChange={(e) => {
+            setMonthFilter(e.target.value);
+            setPage(1);
+          }}
+        >
+          {monthOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {loading ? (
         <div className="loading">載入中...</div>
       ) : (
-        <div className="orders-list">
-          {orders.length === 0 ? (
-            <div className="empty-state">目前沒有訂單</div>
-          ) : (
-            orders.map(order => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                onUpdateStatus={handleUpdateStatus}
-                onDeleteOrder={handleDeleteOrder}
-              />
-            ))
+        <>
+          <div className="orders-list">
+            {filteredOrders.length === 0 ? (
+              <div className="empty-state">目前沒有訂單</div>
+            ) : (
+              filteredOrders
+                .slice((page - 1) * pageSize, page * pageSize)
+                .map(order => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onUpdateStatus={handleUpdateStatus}
+                    onDeleteOrder={handleDeleteOrder}
+                  />
+                ))
+            )}
+          </div>
+          {/* 分頁控制 */}
+          {filteredOrders.length > pageSize && (
+            <div className="d-flex justify-content-between align-items-center mt-3" style={{ padding: '0 10px' }}>
+              <div className="text-muted">
+                第 {page} / {Math.ceil(filteredOrders.length / pageSize)} 頁（共 {filteredOrders.length} 筆）
+              </div>
+              <div className="d-flex gap-2">
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  上一頁
+                </button>
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  disabled={page >= Math.ceil(filteredOrders.length / pageSize)}
+                  onClick={() => setPage((p) => Math.min(Math.ceil(filteredOrders.length / pageSize), p + 1))}
+                >
+                  下一頁
+                </button>
+              </div>
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
@@ -327,15 +399,25 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
             <strong>品項：</strong>
             <ul className="mb-0">
               {order.items && order.items.length > 0 ? (
-                order.items.map((item, index) => (
-                  <li key={index}>
-                    {item.surplus_food_title || item.surplus_food_detail?.title} × {item.quantity}
-                  </li>
-                ))
+                order.items.map((item, index) => {
+                  const itemPrice = item.unit_price || item.surplus_food_detail?.surplus_price || 0;
+                  const subtotal = Math.round(itemPrice * item.quantity);
+                  return (
+                    <li key={index}>
+                      {item.surplus_food_title || item.surplus_food_detail?.title} × {item.quantity}
+                      {itemPrice > 0 && <span style={{ color: '#666' }}> (NT$ {subtotal})</span>}
+                    </li>
+                  );
+                })
               ) : (
                 // 向後兼容：舊格式單一品項
                 order.surplus_food_detail && (
-                  <li>{order.surplus_food_detail.title} × {order.quantity || 1}</li>
+                  <li>
+                    {order.surplus_food_detail.title} × {order.quantity || 1}
+                    {order.surplus_food_detail.surplus_price && (
+                      <span style={{ color: '#666' }}> (NT$ {Math.round(order.surplus_food_detail.surplus_price * (order.quantity || 1))})</span>
+                    )}
+                  </li>
                 )
               )}
             </ul>

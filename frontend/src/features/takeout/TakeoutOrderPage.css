@@ -1,11 +1,11 @@
-
 .takeout-page .takeout-card {
   border: none;
   background: #fff;
 }
 
 .takeout-page .takeout-card-header {
-  background: linear-gradient(135deg, #ff8c61); /* DineVerse 深橘系 */
+  background: linear-gradient(135deg, #ff8c61);
+  /* DineVerse 深橘系 */
   color: #fff;
   border-bottom: none;
   border-radius: 8px 8px 0 0;
@@ -109,7 +109,6 @@
   align-items: center;
   gap: 6px;
   white-space: nowrap;
-  margin-left: auto;
 }
 
 .surplus-zone-nav-btn:hover {
@@ -128,7 +127,7 @@
 /* 購物車導航按鈕 */
 .cart-nav-btn {
   flex-shrink: 0;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border: 2px solid #e0e0e0;
   background: #fff;
   color: #666;
@@ -138,9 +137,10 @@
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   position: relative;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-left: auto;
 }
 
 .cart-nav-btn:hover {
@@ -269,11 +269,11 @@
   border-radius: 50%;
 }
 
-input:checked + .slider {
+input:checked+.slider {
   background-color: #00c853;
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
   transform: translateX(24px);
 }
 
@@ -283,4 +283,46 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+/* 綠色點數標籤 */
+.green-points-badge {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  color: #2e7d32;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid #a5d6a7;
+}
+
+/* 綠色點數導航按鈕 */
+.green-points-nav-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  color: #666;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.green-points-nav-btn:hover {
+  border-color: #ffb07a;
+  color: #e86b2c;
+  background: #fff5f0;
+}
+
+.green-points-nav-btn.active {
+  background: linear-gradient(135deg, #ffb07a, #e86b2c);
+  color: #fff;
+  border-color: #fff;
 }

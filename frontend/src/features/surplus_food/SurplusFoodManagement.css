@@ -79,6 +79,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -679,4 +680,491 @@
   .filter-section {
     width: 100%;
   }
+}
+
+/* ============ 綠色點數標籤樣式 ============ */
+.tab-button.green-points {
+  color: #4CAF50;
+}
+
+.tab-button.green-points:hover {
+  color: #2E7D32;
+  background: rgba(76, 175, 80, 0.05);
+}
+
+.tab-button.green-points.active {
+  color: #4CAF50;
+  border-bottom-color: #4CAF50;
+}
+
+/* 綠色按鈕 */
+.green-btn {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
+}
+
+.green-btn:hover {
+  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%) !important;
+}
+
+/* 綠色點數內容區 */
+.green-points-content {
+  animation: fadeIn 0.3s;
+}
+
+/* 規則網格 */
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+/* 規則卡片 */
+.rule-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  border-left: 4px solid #4CAF50;
+}
+
+.rule-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.rule-card.inactive {
+  opacity: 0.6;
+  border-left-color: #9e9e9e;
+}
+
+.rule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+.rule-type-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: white;
+  color: #4CAF50;
+}
+
+.rule-type-badge[data-type="product"] {
+  color: #FF9800;
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: #9e9e9e;
+  transition: color 0.3s;
+}
+
+.toggle-btn svg.active {
+  color: #4CAF50;
+}
+
+.rule-body {
+  padding: 1.25rem;
+}
+
+.rule-body h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.rule-points {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #4CAF50;
+  margin-bottom: 0.5rem;
+}
+
+.points-icon {
+  color: #FFC107;
+}
+
+.rule-detail {
+  font-size: 0.95rem;
+  color: #666;
+  padding: 0.5rem 0;
+  border-top: 1px dashed #e0e0e0;
+  border-bottom: 1px dashed #e0e0e0;
+  margin: 0.5rem 0;
+}
+
+.rule-description {
+  font-size: 0.85rem;
+  color: #999;
+  margin: 0.5rem 0 0 0;
+}
+
+.rule-quota {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.rule-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid #eee;
+  background: #fafafa;
+}
+
+/* 綠色 Modal */
+.green-modal .modal-header {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+}
+
+.green-modal .modal-header h2 {
+  color: white;
+}
+
+.green-modal .close-btn {
+  color: white;
+}
+
+/* 規則類型選擇器 */
+.rule-type-selector {
+  display: flex;
+  gap: 1rem;
+}
+
+.type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 1rem;
+}
+
+.type-btn:hover {
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.type-btn.active {
+  border-color: #4CAF50;
+  background: #E8F5E9;
+  color: #4CAF50;
+}
+
+/* 折扣類型選擇器 */
+.discount-type-selector {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+  accent-color: #4CAF50;
+}
+
+/* 表單樣式 */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  accent-color: #4CAF50;
+}
+
+/* Modal Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  margin-top: 1rem;
+}
+
+.btn-cancel {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancel:hover {
+  background: #f5f5f5;
+}
+
+/* 響應式 */
+@media (max-width: 768px) {
+  .rules-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-type-selector {
+    flex-direction: column;
+  }
+
+  .form-row {
+    flex-direction: column;
+  }
+
+  .discount-type-selector {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* ============ 設定回饋專用樣式 ============ */
+.reward-description {
+  color: #666;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.reward-points {
+  color: #4CAF50 !important;
+  font-size: 1.5rem !important;
+}
+
+.reward-points .points-icon {
+  color: #FFC107;
+}
+
+/* 環保行為類型選擇器 */
+.action-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.action-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.85rem;
+  min-height: 80px;
+}
+
+.action-type-btn svg {
+  font-size: 1.5rem;
+}
+
+.action-type-btn:hover {
+  border-color: var(--action-color);
+  transform: translateY(-2px);
+}
+
+.action-type-btn.active {
+  border-color: var(--action-color);
+  background: linear-gradient(135deg, var(--action-color)10 0%, var(--action-color)05 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 點數輸入包裝 */
+.points-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.points-input-wrapper input {
+  width: 100px !important;
+}
+
+.points-suffix {
+  font-weight: 600;
+  color: #4CAF50;
+}
+
+@media (max-width: 768px) {
+  .action-type-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============ 子標籤導覽列樣式 ============ */
+.sub-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem;
+  background: #f5f5f5;
+  border-radius: 10px;
+}
+
+.sub-tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s;
+}
+
+.sub-tab-button:hover {
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.sub-tab-button.active {
+  background: white;
+  color: #4CAF50;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sub-tab-button svg {
+  font-size: 1.1rem;
+}
+
+.sub-tab-content {
+  animation: fadeIn 0.3s;
+}
+
+@media (max-width: 768px) {
+  .sub-tabs {
+    flex-direction: column;
+  }
+}
+
+/* ============ 內嵌表單樣式 ============ */
+.rule-form-inline {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8f5e9;
+}
+
+.form-actions {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+/* 已設定標籤 */
+.action-type-btn.configured {
+  position: relative;
+}
+
+.configured-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #4CAF50;
+  color: white;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.action-type-btn.configured:not(.active) {
+  background: #f5f5f5;
+}
+
+/* 已設定規則區塊 */
+.configured-rules-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px dashed #e0e0e0;
+}
+
+.configured-rules-section h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
 }

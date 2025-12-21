@@ -64,9 +64,12 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
@@ -74,8 +77,6 @@
 
 /* 類別計數徽章 */
 .surplus-zone-page .category-count {
-  background-color: #ff6b6b;
-  color: white;
   font-size: 0.7rem;
   padding: 0.15rem 0.4rem;
   border-radius: 10px;
@@ -94,6 +95,7 @@
   border-radius: 10px;
   min-width: 18px;
   text-align: center;
+  margin-left: auto;
 }
 
 /* 惜福商品卡片 */
@@ -147,7 +149,6 @@
   align-items: center;
   gap: 6px;
   white-space: nowrap;
-  margin-left: auto;
 }
 
 .surplus-zone-page .category-nav-btn:hover,

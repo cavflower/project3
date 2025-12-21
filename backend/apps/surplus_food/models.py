@@ -558,3 +558,284 @@ class SurplusFoodOrderItem(models.Model):
         # 計算小計
         self.subtotal = self.quantity * self.unit_price
         super().save(*args, **kwargs)
+
+
+class GreenPointRule(models.Model):
+    """
+    綠色點數回饋設定模型
+    商家設定顧客透過環保行為可以獲得的點數量
+    """
+    ACTION_TYPE_CHOICES = [
+        ('no_utensils', '外帶不要餐具'),
+        ('own_container', '自備環保容器'),
+        ('own_cup', '自備環保杯'),
+        ('own_bag', '自備購物袋'),
+        ('dine_in_eco', '內用自備環保餐具'),
+    ]
+    
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='green_point_rules',
+        verbose_name='所屬店家'
+    )
+    action_type = models.CharField(
+        max_length=30,
+        choices=ACTION_TYPE_CHOICES,
+        verbose_name='環保行為類型'
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name='回饋名稱',
+        help_text='例如：外帶不要餐具回饋'
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name='回饋說明'
+    )
+    points_reward = models.PositiveIntegerField(
+        default=1,
+        verbose_name='獎勵點數',
+        help_text='完成此環保行為可獲得的點數'
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='啟用狀態'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+    
+    class Meta:
+        db_table = 'green_point_rules'
+        verbose_name = '綠色點數回饋設定'
+        verbose_name_plural = '綠色點數回饋設定'
+        ordering = ['action_type']
+        unique_together = ['store', 'action_type']  # 每個店家每種行為只能一個規則
+    
+    def __str__(self):
+        return f"{self.store.name} - {self.get_action_type_display()} ({self.points_reward}點)"
+
+
+class PointRedemptionRule(models.Model):
+    """
+    點數兌換規則模型
+    商家設定顧客可以用點數兌換的折扣或商品
+    """
+    REDEMPTION_TYPE_CHOICES = [
+        ('discount', '折扣兌換'),
+        ('product', '商品兌換'),
+    ]
+    
+    DISCOUNT_TYPE_CHOICES = [
+        ('percent', '百分比折扣'),
+        ('amount', '固定金額折扣'),
+    ]
+    
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='point_redemption_rules',
+        verbose_name='所屬店家'
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name='規則名稱',
+        help_text='例如：100點換9折'
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name='規則描述'
+    )
+    redemption_type = models.CharField(
+        max_length=20,
+        choices=REDEMPTION_TYPE_CHOICES,
+        default='discount',
+        verbose_name='兌換類型'
+    )
+    required_points = models.PositiveIntegerField(
+        verbose_name='所需點數',
+        help_text='兌換所需的綠色點數'
+    )
+    
+    # 折扣兌換相關
+    discount_type = models.CharField(
+        max_length=20,
+        choices=DISCOUNT_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='折扣類型'
+    )
+    discount_value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='折扣值',
+        help_text='百分比或金額'
+    )
+    
+    # 商品兌換相關
+    product_name = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='兌換商品名稱'
+    )
+    product_description = models.TextField(
+        blank=True,
+        verbose_name='商品描述'
+    )
+    max_quantity_per_order = models.PositiveIntegerField(
+        default=1,
+        verbose_name='單筆訂單可兌換份數',
+        help_text='商品兌換時，單筆訂單最多可兌換的份數（折扣兌換固定為1）'
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='啟用狀態'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+    
+    class Meta:
+        db_table = 'point_redemption_rules'
+        verbose_name = '點數兌換規則'
+        verbose_name_plural = '點數兌換規則'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.store.name} - {self.name} ({self.required_points}點)"
+
+
+class UserGreenPoints(models.Model):
+    """
+    用戶綠色點數餘額
+    每個用戶在每間店家有獨立的點數餘額
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='green_points',
+        verbose_name='用戶'
+    )
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='user_green_points',
+        verbose_name='店家'
+    )
+    points = models.PositiveIntegerField(
+        default=0,
+        verbose_name='點數餘額'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+    
+    class Meta:
+        db_table = 'user_green_points'
+        verbose_name = '用戶綠色點數'
+        verbose_name_plural = '用戶綠色點數'
+        unique_together = ['user', 'store']  # 每個用戶在每間店只有一筆餘額記錄
+    
+    def __str__(self):
+        return f"{self.user.email} @ {self.store.name}: {self.points}點"
+    
+    @classmethod
+    def get_or_create_balance(cls, user, store):
+        """獲取或創建用戶在某店家的點數餘額"""
+        balance, created = cls.objects.get_or_create(
+            user=user,
+            store=store,
+            defaults={'points': 0}
+        )
+        return balance
+    
+    def add_points(self, amount, reason='', order=None):
+        """增加點數"""
+        if amount <= 0:
+            return
+        self.points += amount
+        self.save()
+        # 記錄交易
+        GreenPointTransaction.objects.create(
+            user=self.user,
+            store=self.store,
+            amount=amount,
+            transaction_type='earn',
+            reason=reason,
+            order_id=order.id if order else None
+        )
+    
+    def use_points(self, amount, reason='', order=None):
+        """使用點數"""
+        if amount <= 0 or self.points < amount:
+            return False
+        self.points -= amount
+        self.save()
+        # 記錄交易
+        GreenPointTransaction.objects.create(
+            user=self.user,
+            store=self.store,
+            amount=amount,
+            transaction_type='redeem',
+            reason=reason,
+            order_id=order.id if order else None
+        )
+        return True
+
+
+class GreenPointTransaction(models.Model):
+    """
+    綠色點數交易記錄
+    """
+    TRANSACTION_TYPE_CHOICES = [
+        ('earn', '獲得'),
+        ('redeem', '兌換'),
+    ]
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='green_point_transactions',
+        verbose_name='用戶'
+    )
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='green_point_transactions',
+        verbose_name='店家'
+    )
+    amount = models.PositiveIntegerField(
+        verbose_name='點數'
+    )
+    transaction_type = models.CharField(
+        max_length=20,
+        choices=TRANSACTION_TYPE_CHOICES,
+        verbose_name='交易類型'
+    )
+    reason = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='原因說明'
+    )
+    order_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='關聯訂單ID'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='交易時間')
+    
+    class Meta:
+        db_table = 'green_point_transactions'
+        verbose_name = '綠色點數交易記錄'
+        verbose_name_plural = '綠色點數交易記錄'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        type_str = '獲得' if self.transaction_type == 'earn' else '兌換'
+        return f"{self.user.email} {type_str} {self.amount}點 @ {self.store.name}"
+
+
+
+

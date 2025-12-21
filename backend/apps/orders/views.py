@@ -48,6 +48,29 @@ class OrderListView(generics.ListAPIView):
         
         # 處理外帶訂單
         for order in takeout_orders:
+            # 組合 items：一般商品 + 兌換商品
+            items = [
+                {
+                    'product_id': item.product_id,
+                    'product_name': item.product.name if item.product else None,
+                    'quantity': item.quantity,
+                    'unit_price': float(item.unit_price) if item.unit_price else None,
+                    'specifications': item.specifications or []
+                }
+                for item in order.items.all()
+            ]
+            # 加入兌換商品（如果有）
+            if order.product_redemptions:
+                for redemption in order.product_redemptions:
+                    items.append({
+                        'product_id': None,
+                        'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
+                        'quantity': redemption.get('quantity', 1),
+                        'unit_price': 0,
+                        'is_redemption': True,
+                        'specifications': []
+                    })
+            
             orders.append({
                 'id': order.pickup_number,
                 'pickup_number': order.pickup_number,
@@ -64,19 +87,34 @@ class OrderListView(generics.ListAPIView):
                 'table_label': '',
                 'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
-                'items': [
-                    {
-                        'product_id': item.product_id,
-                        'quantity': item.quantity,
-                        'unit_price': float(item.unit_price) if item.unit_price else None,
-                        'specifications': item.specifications or []
-                    }
-                    for item in order.items.all()
-                ]
+                'items': items
             })
         
         # 處理內用訂單
         for order in dinein_orders:
+            # 組合 items：一般商品 + 兌換商品
+            items = [
+                {
+                    'product_id': item.product_id,
+                    'product_name': item.product.name if item.product else None,
+                    'quantity': item.quantity,
+                    'unit_price': float(item.unit_price) if item.unit_price else None,
+                    'specifications': item.specifications or []
+                }
+                for item in order.items.all()
+            ]
+            # 加入兌換商品（如果有）
+            if order.product_redemptions:
+                for redemption in order.product_redemptions:
+                    items.append({
+                        'product_id': None,
+                        'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
+                        'quantity': redemption.get('quantity', 1),
+                        'unit_price': 0,
+                        'is_redemption': True,
+                        'specifications': []
+                    })
+            
             orders.append({
                 'id': order.order_number,
                 'pickup_number': order.order_number,
@@ -92,15 +130,7 @@ class OrderListView(generics.ListAPIView):
                 'channel': 'dine_in',
                 'table_label': order.table_label,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
-                'items': [
-                    {
-                        'product_id': item.product_id,
-                        'quantity': item.quantity,
-                        'unit_price': float(item.unit_price) if item.unit_price else None,
-                        'specifications': item.specifications or []
-                    }
-                    for item in order.items.all()
-                ]
+                'items': items
             })
         
         # 按建立時間排序（最新的在前）

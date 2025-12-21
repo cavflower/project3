@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaArrowLeft, FaPlus, FaMinus } from "react-icons/fa";
+import { FaArrowLeft, FaPlus, FaMinus, FaCoins } from "react-icons/fa";
 import { createDineInOrder } from "../../api/orderApi";
 import api from "../../api/api";
+import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
 import CreditCardSelector from "../checkout/CreditCardSelector";
 import "../takeout/TakeoutCartPage.css";
@@ -56,7 +57,27 @@ function DineInCartPage() {
     [surplusItems]
   );
 
-  const total = regularTotal + surplusTotal;
+  // 兌換項目（折扣）
+  const redemptionItems = useMemo(
+    () => cartItems.filter(item => item.itemType === 'redemption'),
+    [cartItems]
+  );
+
+  // 計算折扣總額
+  const discountTotal = useMemo(
+    () => redemptionItems.reduce((sum, item) => {
+      if (item.redemptionRule?.redemption_type === 'discount') {
+        return sum + Number(item.redemptionRule.discount_value) * (item.quantity || 1);
+      }
+      return sum;
+    }, 0) || 0,
+    [redemptionItems]
+  );
+
+  const subtotal = regularTotal + surplusTotal;
+  // 折扣金額不能超過小計
+  const actualDiscount = Math.min(discountTotal, subtotal);
+  const total = Math.max(0, subtotal - actualDiscount);
 
   if (!initialCart || !store) {
     return (
@@ -97,6 +118,12 @@ function DineInCartPage() {
       return;
     }
 
+    // 驗證折扣是否超過商品小計
+    if (discountTotal > subtotal) {
+      alert(`折扣金額 (NT$ ${discountTotal}) 不能超過商品小計 (NT$ ${subtotal})，請移除部分兌換項目。`);
+      return;
+    }
+
     // 決定使用的聯絡資訊
     let finalName = '訪客';
     let finalPhone = '訪客';
@@ -123,22 +150,81 @@ function DineInCartPage() {
       setSubmitting(true);
       const orderResults = [];
 
-      // 1. 如果有一般商品，創建一般內用訂單
-      if (regularItems.length > 0) {
+      // 0. 如果有兌換項目，先扣除點數
+      if (redemptionItems.length > 0 && user) {
+        const totalPointsToUse = redemptionItems.reduce((sum, item) => {
+          const rule = item.redemptionRule;
+          return sum + (rule?.required_points || 0) * (item.quantity || 1);
+        }, 0);
+
+        if (totalPointsToUse > 0) {
+          const redemptionReasons = redemptionItems.map(item =>
+            `${item.name} ×${item.quantity}`
+          ).join(', ');
+
+          try {
+            await surplusFoodApi.useGreenPoints(
+              storeId,
+              totalPointsToUse,
+              `兌換使用: ${redemptionReasons}`
+            );
+          } catch (pointsError) {
+            console.error('扣除點數失敗:', pointsError);
+            alert('扣除點數失敗，請稍後再試。');
+            setSubmitting(false);
+            return;
+          }
+        }
+      }
+
+      // 取得 product 類型的兌換項目（免費商品）
+      const productRedemptionItems = redemptionItems.filter(
+        item => item.redemptionRule?.redemption_type === 'product'
+      );
+
+      // 1. 如果有一般商品 或 有兌換商品（product類型），創建一般內用訂單
+      if (regularItems.length > 0 || productRedemptionItems.length > 0) {
+        // 構建備註內容（包含兌換項目）
+        let orderNotes = notes || '';
+        if (redemptionItems.length > 0) {
+          const redemptionInfo = redemptionItems.map(item => {
+            const rule = item.redemptionRule;
+            if (rule?.redemption_type === 'discount') {
+              return `【綠色點數折扣】${item.name} -NT$${rule.discount_value} (消耗${rule.required_points}點×${item.quantity})`;
+            } else {
+              return `【綠色點數兌換】${item.name} ×${item.quantity} (消耗${rule?.required_points}點×${item.quantity})`;
+            }
+          }).join('\n');
+          orderNotes = orderNotes ? `${orderNotes}\n\n${redemptionInfo}` : redemptionInfo;
+        }
+
+        // 組合訂單品項
+        // 注意：兌換商品無法作為品項加入（沒有 product_id），所以只包含一般商品
+        // 兌換商品資訊已在備註中顯示
+        const orderItems = regularItems.map((item) => ({
+          product: item.id,
+          quantity: item.quantity,
+          unit_price: item.finalPrice || item.price,
+          specifications: item.selectedSpecs || [],
+        }));
+
         const regularPayload = {
           store: storeId,
           customer_name: finalName,
           customer_phone: finalPhone,
           table_label: tableLabel || '',
-          notes: notes,  // 備註欄位預設為空，不包含桌號
+          notes: orderNotes,
           payment_method: paymentMethod,
           use_eco_tableware: useEcoTableware === "yes",
-          items: regularItems.map((item) => ({
-            product: item.id,
-            quantity: item.quantity,
-            unit_price: item.finalPrice || item.price,
-            specifications: item.selectedSpecs || [],
-          })),
+          items: orderItems,
+          // 標記這是一個有兌換商品的訂單
+          has_product_redemption: productRedemptionItems.length > 0,
+          // 如果有兌換商品，傳送兌換商品資訊給後端
+          product_redemptions: productRedemptionItems.map(item => ({
+            name: item.redemptionRule?.product_name || item.name,
+            quantity: item.quantity || 1,
+            required_points: item.redemptionRule?.required_points || 0
+          }))
         };
 
         const regularResponse = await createDineInOrder(regularPayload);
@@ -151,6 +237,21 @@ function DineInCartPage() {
 
       // 2. 如果有惜福品，合併成一張訂單
       if (surplusItems.length > 0) {
+        // 構建備註內容（包含兌換項目）
+        let surplusNotes = notes || '';
+        if (redemptionItems.length > 0) {
+          // 惜福品訂單也要顯示兌換資訊
+          const redemptionInfo = redemptionItems.map(item => {
+            const rule = item.redemptionRule;
+            if (rule?.redemption_type === 'discount') {
+              return `【綠色點數折扣】${item.name} -NT$${rule.discount_value} (消耗${rule.required_points}點×${item.quantity})`;
+            } else {
+              return `【綠色點數兌換】${item.name} ×${item.quantity} (消耗${rule?.required_points}點×${item.quantity})`;
+            }
+          }).join('\n');
+          surplusNotes = surplusNotes ? `${surplusNotes}\n\n${redemptionInfo}` : redemptionInfo;
+        }
+
         const surplusPayload = {
           items: surplusItems.map(item => ({
             surplus_food: item.id,
@@ -163,7 +264,7 @@ function DineInCartPage() {
           payment_method: paymentMethod,
           order_type: 'dine_in',  // 訂單類型為內用
           use_utensils: useEcoTableware === "yes",
-          notes: notes,  // 備註不包含桌號
+          notes: surplusNotes,
         };
 
         const surplusResponse = await api.post('/surplus/orders/', surplusPayload);

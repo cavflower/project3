@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useReducer, useState, useRef } from "react";
+﻿import React, { useEffect, useMemo, useReducer, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { FaPlus, FaMinus, FaShoppingCart, FaArrowLeft } from "react-icons/fa";
+import { FaPlus, FaMinus, FaShoppingCart, FaArrowLeft, FaCoins } from "react-icons/fa";
 import { getStore } from "../../api/storeApi";
 import api from "../../api/api";
+import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
 import "./TakeoutOrderPage.css";
 import "./SurplusZonePage.css";
@@ -22,10 +23,10 @@ function cartReducer(state, action) {
       const existing = state.items.find((item) => item.id === action.payload.id);
       const items = existing
         ? state.items.map((item) =>
-            item.id === action.payload.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          )
+          item.id === action.payload.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
         : [...state.items, { ...action.payload, quantity: 1 }];
       return { ...state, items };
     }
@@ -64,7 +65,11 @@ function SurplusZonePage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [error, setError] = useState("");
   const categoryRefs = useRef({});
-  
+  const [greenPoints, setGreenPoints] = useState(null);
+  const [redemptionRules, setRedemptionRules] = useState([]);
+  const [showGreenPointSection, setShowGreenPointSection] = useState(false);
+  const greenPointRef = useRef(null);
+
   const initialCartState = location.state?.cart || initialCart;
   const tableLabel = location.state?.tableLabel; // 從內用菜單來的桌號
   const [cart, dispatch] = useReducer(cartReducer, initialCartState);
@@ -79,11 +84,11 @@ function SurplusZonePage() {
           api.get('/surplus/foods/', { params: { store: storeId } }),
           api.get('/surplus/foods/categories/', { params: { store: storeId } })
         ]);
-        
+
         setStore(storeRes.data);
         setSurplusItems(surplusRes.data || []);
         setCategories(categoriesRes.data || []);
-        
+
         // 預設選中第一個類別
         if (categoriesRes.data && categoriesRes.data.length > 0) {
           setSelectedCategory(categoriesRes.data[0].id);
@@ -98,6 +103,55 @@ function SurplusZonePage() {
     load();
   }, [storeId]);
 
+  // 綠色點數查詢（登入用戶）
+  useEffect(() => {
+    async function loadGreenPoints() {
+      if (user && storeId) {
+        try {
+          const data = await surplusFoodApi.getUserGreenPoints(storeId);
+          setGreenPoints(data.points);
+        } catch (err) {
+          console.log('綠色點數查詢失敗:', err);
+        }
+      }
+    }
+    loadGreenPoints();
+  }, [user, storeId]);
+
+  // 載入兌換規則
+  useEffect(() => {
+    async function loadRedemptionRules() {
+      if (storeId) {
+        try {
+          const data = await surplusFoodApi.getPublicRedemptionRules(storeId);
+          setRedemptionRules(data);
+        } catch (err) {
+          console.log('兌換規則載入失敗:', err);
+        }
+      }
+    }
+    loadRedemptionRules();
+  }, [storeId]);
+
+  // 選擇兌換規則
+  const handleSelectRedemption = (rule) => {
+    if (greenPoints === null || greenPoints < rule.required_points) {
+      alert(`您的點數不足，需要 ${rule.required_points} 點`);
+      return;
+    }
+    dispatch({
+      type: 'ADD_ITEM',
+      payload: {
+        id: `redemption_${rule.id}`,
+        name: rule.name,
+        price: rule.redemption_type === 'discount' ? -rule.discount_value : 0,
+        itemType: 'redemption',
+        redemptionRule: rule
+      }
+    });
+    // 不彈窗提示，直接加入購物車
+  };
+
   const total = useMemo(
     () => cart.items.reduce((sum, item) => sum + Number(item.price || item.discounted_price) * item.quantity, 0),
     [cart.items]
@@ -108,7 +162,7 @@ function SurplusZonePage() {
     if (tableLabel) {
       // 從內用進來，導向內用購物車
       navigate(`/dinein/${storeId}/cart`, {
-        state: { 
+        state: {
           cart: cart,
           store: store,
           storeId: storeId,
@@ -118,10 +172,10 @@ function SurplusZonePage() {
     } else {
       // 從外帶進來，導向外帶購物車
       navigate(`/takeout/${storeId}/cart`, {
-        state: { 
+        state: {
           cart: cart,
           store: store,
-          storeId: storeId 
+          storeId: storeId
         }
       });
     }
@@ -132,14 +186,14 @@ function SurplusZonePage() {
     if (tableLabel) {
       // 返回內用菜單
       navigate(`/store/${storeId}/dine-in/menu?table=${tableLabel}`, {
-        state: { 
+        state: {
           cart: cart
         }
       });
     } else {
       // 返回外帶菜單
       navigate(`/store/${storeId}/takeout`, {
-        state: { 
+        state: {
           cart: cart,
           returnFromSurplus: true
         }
@@ -172,11 +226,17 @@ function SurplusZonePage() {
             <div className="card-body">
               <h2 className="mb-1">{store?.name} - 惜福專區</h2>
               <p className="text-muted mb-2">{store?.address}</p>
-              <div className="d-flex flex-wrap gap-3">
+              <div className="d-flex flex-wrap gap-3 align-items-center">
                 <span>
                   <i className="bi bi-telephone me-1" />
                   {store?.phone}
                 </span>
+                {user && greenPoints !== null && (
+                  <span className="green-points-badge">
+                    <FaCoins style={{ color: '#4CAF50', marginRight: '4px' }} />
+                    綠色點數：{greenPoints} 點
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -189,7 +249,7 @@ function SurplusZonePage() {
           <div className="category-nav-tabs mb-3">
             <div className="nav-tabs-scroll">
 
-              
+
               {/* 類別標籤 */}
               {categories.length > 0 && categories.map((category) => {
                 const categoryProducts = surplusItems.filter(item => item.category === category.id);
@@ -209,7 +269,7 @@ function SurplusZonePage() {
                   </button>
                 );
               })}
-              
+
               {/* 購物車按鈕 */}
               <button
                 className="cart-nav-btn"
@@ -220,7 +280,24 @@ function SurplusZonePage() {
                   <span className="cart-badge">{cart.items.length}</span>
                 )}
               </button>
-             {/* 返回菜單按鈕 */}
+
+              {/* 綠色點數按鈕 */}
+              {redemptionRules.length > 0 && (
+                <button
+                  className={`category-nav-btn green-points-nav-btn ${showGreenPointSection ? 'active' : ''}`}
+                  onClick={() => {
+                    setShowGreenPointSection(!showGreenPointSection);
+                    setSelectedCategory(null);
+                    setTimeout(() => {
+                      greenPointRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                  }}
+                >
+                  綠色點數
+                </button>
+              )}
+
+              {/* 返回菜單按鈕 */}
               <button
                 className="back-to-menu-btn"
                 onClick={handleBackToMenu}
@@ -229,6 +306,85 @@ function SurplusZonePage() {
               </button>
             </div>
           </div>
+
+          {/* 綠色點數兌換區 */}
+          {showGreenPointSection && redemptionRules.length > 0 && (
+            <div ref={greenPointRef} className="card shadow-sm mb-4 takeout-card category-section">
+              <div className="card-header takeout-card-header" style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)' }}>
+                <strong>綠色點數兌換</strong>
+                <small className="d-block mt-1" style={{ opacity: 0.9 }}>
+                  您的點數：{greenPoints !== null ? greenPoints : '請登入查看'} 點
+                </small>
+              </div>
+              <div className="card-body">
+                {redemptionRules.map((rule) => {
+                  const canRedeem = greenPoints !== null && greenPoints >= rule.required_points;
+                  const cartItem = cart.items.find(item => item.id === `redemption_${rule.id}`);
+                  const quantity = cartItem ? cartItem.quantity : 0;
+                  const maxQty = rule.redemption_type === 'discount' ? 1 : (rule.max_quantity_per_order || 1);
+
+                  return (
+                    <div
+                      key={rule.id}
+                      className="d-flex justify-content-between align-items-center border-bottom py-3"
+                    >
+                      <div className="flex-grow-1">
+                        <h5 className="mb-1">
+                          {rule.name}
+                          <span className={`badge ms-2 ${rule.redemption_type === 'discount' ? 'bg-warning text-dark' : 'bg-info'}`}>
+                            {rule.redemption_type === 'discount' ? '折扣' : '商品'}
+                          </span>
+                        </h5>
+                        <p className="text-muted mb-1">
+                          需要點數：<strong className="text-success">{rule.required_points} 點</strong>
+                          {rule.redemption_type === 'product' && maxQty > 1 && (
+                            <span className="ms-2 text-muted">（單筆最多 {maxQty} 份）</span>
+                          )}
+                        </p>
+                        {rule.redemption_type === 'discount' && (
+                          <p className="text-success mb-0">折抵 NT$ {rule.discount_value}</p>
+                        )}
+                        {rule.redemption_type === 'product' && rule.product_name && (
+                          <p className="text-success mb-0">免費商品：{rule.product_name}</p>
+                        )}
+                      </div>
+                      <div className="d-flex align-items-center gap-2">
+                        {quantity > 0 ? (
+                          <div className="quantity-control d-flex align-items-center gap-2">
+                            <button
+                              className="quantity-btn rounded-circle"
+                              onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: `redemption_${rule.id}` })}
+                            >
+                              <FaMinus size={12} />
+                            </button>
+                            <span className="quantity-display">{quantity}</span>
+                            <button
+                              className="quantity-btn rounded-circle"
+                              onClick={() => handleSelectRedemption(rule)}
+                              disabled={quantity >= maxQty || !canRedeem}
+                              style={(quantity >= maxQty || !canRedeem) ? { opacity: 0.5 } : {}}
+                            >
+                              <FaPlus size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="add-btn rounded-circle"
+                            onClick={() => handleSelectRedemption(rule)}
+                            disabled={!canRedeem}
+                            style={!canRedeem ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            title={!canRedeem ? '點數不足' : '添加兌換'}
+                          >
+                            <FaPlus size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* 按類別分組顯示惜福品 */}
           {categories.length === 0 ? (
@@ -247,7 +403,7 @@ function SurplusZonePage() {
                   const surplusPrice = Number(item.surplus_price) || 0;
                   const originalPrice = Number(item.original_price) || 0;
                   const hasDiscount = originalPrice > 0 && surplusPrice > 0 && originalPrice > surplusPrice;
-                  
+
                   return (
                     <div
                       key={item.id}
@@ -255,7 +411,7 @@ function SurplusZonePage() {
                     >
                       {item.image && (
                         <div className="me-3">
-                          <img 
+                          <img
                             src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
                             alt={item.title}
                             style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
@@ -302,8 +458,8 @@ function SurplusZonePage() {
                               onClick={() =>
                                 dispatch({
                                   type: "ADD_ITEM",
-                                  payload: { 
-                                    ...item, 
+                                  payload: {
+                                    ...item,
                                     price: surplusPrice,
                                     itemType: 'surplus', // 標記為惜福品
                                     original_price: originalPrice // 保留原價資訊
@@ -321,8 +477,8 @@ function SurplusZonePage() {
                             onClick={() =>
                               dispatch({
                                 type: "ADD_ITEM",
-                                payload: { 
-                                  ...item, 
+                                payload: {
+                                  ...item,
                                   price: surplusPrice,
                                   itemType: 'surplus', // 標記為惜福品
                                   original_price: originalPrice // 保留原價資訊
@@ -344,7 +500,7 @@ function SurplusZonePage() {
             categories.map((category) => {
               const categoryItems = surplusItems.filter(item => item.category === category.id);
               if (categoryItems.length === 0) return null;
-              
+
               return (
                 <div
                   key={category.id}
@@ -365,7 +521,7 @@ function SurplusZonePage() {
                       const surplusPrice = Number(item.surplus_price) || 0;
                       const originalPrice = Number(item.original_price) || 0;
                       const hasDiscount = originalPrice > 0 && surplusPrice > 0 && originalPrice > surplusPrice;
-                      
+
                       return (
                         <div
                           key={item.id}
@@ -373,7 +529,7 @@ function SurplusZonePage() {
                         >
                           {item.image && (
                             <div className="me-3">
-                              <img 
+                              <img
                                 src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
                                 alt={item.title}
                                 style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
@@ -420,8 +576,8 @@ function SurplusZonePage() {
                                   onClick={() =>
                                     dispatch({
                                       type: "ADD_ITEM",
-                                      payload: { 
-                                        ...item, 
+                                      payload: {
+                                        ...item,
                                         price: surplusPrice,
                                         itemType: 'surplus', // 標記為惜福品
                                         original_price: originalPrice // 保留原價資訊
@@ -439,8 +595,8 @@ function SurplusZonePage() {
                                 onClick={() =>
                                   dispatch({
                                     type: "ADD_ITEM",
-                                    payload: { 
-                                      ...item, 
+                                    payload: {
+                                      ...item,
                                       price: surplusPrice,
                                       itemType: 'surplus', // 標記為惜福品
                                       original_price: originalPrice // 保留原價資訊

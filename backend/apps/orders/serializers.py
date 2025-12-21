@@ -4,6 +4,7 @@ from firebase_admin import credentials, firestore, initialize_app
 import firebase_admin
 from .models import TakeoutOrder, TakeoutOrderItem, DineInOrder, DineInOrderItem, Notification
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +33,25 @@ class TakeoutOrderItemSerializer(serializers.ModelSerializer):
 
 
 class TakeoutOrderSerializer(serializers.ModelSerializer):
-    items = TakeoutOrderItemSerializer(many=True)
+    items = TakeoutOrderItemSerializer(many=True, required=False, allow_empty=True)
+    product_redemptions = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        write_only=True
+    )
 
     class Meta:
         model = TakeoutOrder
         fields = [
             'id', 'store', 'user', 'customer_name', 'customer_phone',
             'pickup_at', 'payment_method', 'notes', 'pickup_number',
-            'use_utensils', 'items'
+            'use_utensils', 'items', 'product_redemptions'
         ]
         read_only_fields = ['pickup_number', 'user']
 
     def create(self, validated_data):
-        items_data = validated_data.pop('items')
+        items_data = validated_data.pop('items', [])
+        product_redemptions = validated_data.pop('product_redemptions', [])
         store = validated_data['store']
         pickup_number = self.generate_pickup_number(store)
         
@@ -56,9 +63,10 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
             user = request.user
 
         
-        # 1. 寫入 PostgreSQL - 完整訂單資料
+        # 1. 寫入 PostgreSQL - 完整訂單資料（包含兌換商品）
         order = TakeoutOrder.objects.create(
             pickup_number=pickup_number,
+            product_redemptions=product_redemptions,
             **validated_data
         )
         
@@ -83,9 +91,21 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
             # 準備 Firestore 資料
             firestore_items.append({
                 'product_id': product.id,
+                'product_name': product.name,
                 'quantity': quantity,
                 'unit_price': float(unit_price),
                 'specifications': specifications
+            })
+        
+        # 處理兌換商品 - 加入 Firestore items 顯示
+        for redemption in product_redemptions:
+            firestore_items.append({
+                'product_id': None,
+                'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
+                'quantity': redemption.get('quantity', 1),
+                'unit_price': 0,
+                'is_redemption': True,
+                'required_points': redemption.get('required_points', 0)
             })
         
         # 2. 自動建立或更新會員帳戶（如果用戶已登入）
@@ -135,24 +155,51 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
             except Exception as e:
                 logger.error(f"計算點數時發生錯誤: {e}")
         
-        # 3. 寫入 Firestore - 即時訂單通知
-
-        try:
-            db.collection('orders').document(pickup_number).set({
-                'store_id': store.id,
-                'pickup_number': pickup_number,
-                'customer_name': validated_data.get('customer_name', ''),
-                'customer_phone': validated_data.get('customer_phone', ''),
-                'payment_method': validated_data.get('payment_method', ''),
-                'notes': validated_data.get('notes', ''),
-                'channel': 'takeout',
-                'use_utensils': validated_data.get('use_utensils', False),
-                'items': firestore_items,
-                'status': 'pending',
-                'created_at': firestore.SERVER_TIMESTAMP,
-            })
-        except Exception as exc:
-            logger.exception("Failed to write order to Firestore")
+        # 綠色點數獎勵：外帶不需餐具
+        if user and not validated_data.get('use_utensils', True):
+            try:
+                from apps.surplus_food.models import GreenPointRule, UserGreenPoints
+                
+                # 查找該店家的「外帶不要餐具」規則
+                rule = GreenPointRule.objects.filter(
+                    store=store,
+                    action_type='no_utensils',
+                    is_active=True
+                ).first()
+                
+                if rule:
+                    # 獲取或創建用戶點數餘額
+                    balance = UserGreenPoints.get_or_create_balance(user, store)
+                    balance.add_points(
+                        amount=rule.points_reward,
+                        reason='外帶不需餐具',
+                        order=order
+                    )
+                    logger.info(f"用戶 {user.email} 獲得綠色點數 {rule.points_reward} 點（外帶不需餐具）")
+            except Exception as e:
+                logger.error(f"綠色點數獎勵發放失敗: {e}")
+        
+        # 3. 寫入 Firestore - 即時訂單通知（非同步執行以加快回應速度）
+        def write_to_firestore():
+            try:
+                db.collection('orders').document(pickup_number).set({
+                    'store_id': store.id,
+                    'pickup_number': pickup_number,
+                    'customer_name': validated_data.get('customer_name', ''),
+                    'customer_phone': validated_data.get('customer_phone', ''),
+                    'payment_method': validated_data.get('payment_method', ''),
+                    'notes': validated_data.get('notes', ''),
+                    'channel': 'takeout',
+                    'use_utensils': validated_data.get('use_utensils', False),
+                    'items': firestore_items,
+                    'status': 'pending',
+                    'created_at': firestore.SERVER_TIMESTAMP,
+                })
+            except Exception as exc:
+                logger.exception("Failed to write order to Firestore")
+        
+        # 背景執行 Firestore 寫入
+        threading.Thread(target=write_to_firestore, daemon=True).start()
         
         return order
 
@@ -189,19 +236,25 @@ class DineInOrderItemSerializer(serializers.ModelSerializer):
 
 
 class DineInOrderSerializer(serializers.ModelSerializer):
-    items = DineInOrderItemSerializer(many=True)
+    items = DineInOrderItemSerializer(many=True, required=False, allow_empty=True)
+    product_redemptions = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        write_only=True
+    )
 
     class Meta:
         model = DineInOrder
         fields = [
             'id', 'store', 'user', 'customer_name', 'customer_phone',
             'table_label', 'payment_method', 'notes', 'order_number',
-            'use_eco_tableware', 'items'
+            'use_eco_tableware', 'items', 'product_redemptions'
         ]
         read_only_fields = ['order_number', 'user']
 
     def create(self, validated_data):
-        items_data = validated_data.pop('items')
+        items_data = validated_data.pop('items', [])
+        product_redemptions = validated_data.pop('product_redemptions', [])
         store = validated_data['store']
         order_number = self.generate_order_number(store)
         
@@ -214,9 +267,10 @@ class DineInOrderSerializer(serializers.ModelSerializer):
             user = request.user
 
         
-        # 1. 寫入 PostgreSQL - 完整訂單資料
+        # 1. 寫入 PostgreSQL - 完整訂單資料（包含兌換商品）
         order = DineInOrder.objects.create(
             order_number=order_number,
+            product_redemptions=product_redemptions,
             **validated_data
         )
         
@@ -241,9 +295,21 @@ class DineInOrderSerializer(serializers.ModelSerializer):
             # 準備 Firestore 資料
             firestore_items.append({
                 'product_id': product.id,
+                'product_name': product.name,
                 'quantity': quantity,
                 'unit_price': float(unit_price),
                 'specifications': specifications
+            })
+        
+        # 處理兌換商品 - 加入 Firestore items 顯示
+        for redemption in product_redemptions:
+            firestore_items.append({
+                'product_id': None,
+                'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
+                'quantity': redemption.get('quantity', 1),
+                'unit_price': 0,
+                'is_redemption': True,
+                'required_points': redemption.get('required_points', 0)
             })
         
         # 2. 自動建立或更新會員帳戶（如果用戶已登入）
@@ -292,26 +358,53 @@ class DineInOrderSerializer(serializers.ModelSerializer):
             except Exception as e:
                 logger.error(f"計算點數時發生錯誤: {e}")
         
-        # 3. 寫入 Firestore - 即時訂單通知
-
-        try:
-            db.collection('orders').document(order_number).set({
-                'store_id': store.id,
-                'order_number': order_number,
-                'pickup_number': order_number,
-                'customer_name': validated_data.get('customer_name', ''),
-                'customer_phone': validated_data.get('customer_phone', ''),
-                'table_label': validated_data.get('table_label', ''),
-                'payment_method': validated_data.get('payment_method', ''),
-                'notes': validated_data.get('notes', ''),
-                'channel': 'dine_in',
-                'use_eco_tableware': validated_data.get('use_eco_tableware', False),
-                'items': firestore_items,
-                'status': 'pending',
-                'created_at': firestore.SERVER_TIMESTAMP,
-            })
-        except Exception as exc:
-            logger.exception("Failed to write dinein order to Firestore")
+        # 綠色點數獎勵：內用使用環保餐具
+        if user and validated_data.get('use_eco_tableware', False):
+            try:
+                from apps.surplus_food.models import GreenPointRule, UserGreenPoints
+                
+                # 查找該店家的「內用自備環保餐具」規則
+                rule = GreenPointRule.objects.filter(
+                    store=store,
+                    action_type='dine_in_eco',
+                    is_active=True
+                ).first()
+                
+                if rule:
+                    # 獲取或創建用戶點數餘額
+                    balance = UserGreenPoints.get_or_create_balance(user, store)
+                    balance.add_points(
+                        amount=rule.points_reward,
+                        reason='內用使用環保餐具',
+                        order=order
+                    )
+                    logger.info(f"用戶 {user.email} 獲得綠色點數 {rule.points_reward} 點（內用使用環保餐具）")
+            except Exception as e:
+                logger.error(f"綠色點數獎勵發放失敗: {e}")
+        
+        # 3. 寫入 Firestore - 即時訂單通知（非同步執行以加快回應速度）
+        def write_to_firestore():
+            try:
+                db.collection('orders').document(order_number).set({
+                    'store_id': store.id,
+                    'order_number': order_number,
+                    'pickup_number': order_number,
+                    'customer_name': validated_data.get('customer_name', ''),
+                    'customer_phone': validated_data.get('customer_phone', ''),
+                    'table_label': validated_data.get('table_label', ''),
+                    'payment_method': validated_data.get('payment_method', ''),
+                    'notes': validated_data.get('notes', ''),
+                    'channel': 'dine_in',
+                    'use_eco_tableware': validated_data.get('use_eco_tableware', False),
+                    'items': firestore_items,
+                    'status': 'pending',
+                    'created_at': firestore.SERVER_TIMESTAMP,
+                })
+            except Exception as exc:
+                logger.exception("Failed to write dinein order to Firestore")
+        
+        # 背景執行 Firestore 寫入
+        threading.Thread(target=write_to_firestore, daemon=True).start()
         
         return order
 

@@ -7,13 +7,15 @@ from django.db.models import Q
 from datetime import datetime
 import firebase_admin
 from firebase_admin import firestore
-from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory
+from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory, GreenPointRule, PointRedemptionRule, UserGreenPoints
 from .serializers import (
     SurplusTimeSlotSerializer,
     SurplusFoodSerializer,
     SurplusFoodListSerializer,
     SurplusFoodOrderSerializer,
-    SurplusFoodCategorySerializer
+    SurplusFoodCategorySerializer,
+    GreenPointRuleSerializer,
+    PointRedemptionRuleSerializer
 )
 
 # Firestore 初始化
@@ -516,3 +518,180 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             {'message': '訂單已刪除'},
             status=status.HTTP_204_NO_CONTENT
         )
+
+
+class GreenPointRuleViewSet(viewsets.ModelViewSet):
+    """
+    綠色點數兌換規則 ViewSet（商家端）
+    """
+    serializer_class = GreenPointRuleSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """只返回當前商家的綠色點數規則"""
+        user = self.request.user
+        if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
+            queryset = GreenPointRule.objects.filter(store=user.merchant_profile.store)
+            
+            # 支援狀態篩選
+            is_active = self.request.query_params.get('is_active', None)
+            if is_active is not None:
+                queryset = queryset.filter(is_active=is_active.lower() == 'true')
+            
+            # 支援行為類型篩選
+            action_type = self.request.query_params.get('action_type', None)
+            if action_type:
+                queryset = queryset.filter(action_type=action_type)
+            
+            return queryset
+        return GreenPointRule.objects.none()
+    
+    def perform_create(self, serializer):
+        """創建時自動關聯到商家的店鋪"""
+        user = self.request.user
+        if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
+            serializer.save(store=user.merchant_profile.store)
+        else:
+            raise ValueError("使用者沒有關聯的店鋪")
+    
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """切換規則啟用狀態"""
+        rule = self.get_object()
+        rule.is_active = not rule.is_active
+        rule.save()
+        
+        serializer = self.get_serializer(rule)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """獲取綠色點數規則統計"""
+        user = request.user
+        if not hasattr(user, 'merchant_profile') or not hasattr(user.merchant_profile, 'store'):
+            return Response({'error': '無權限'}, status=status.HTTP_403_FORBIDDEN)
+        
+        store = user.merchant_profile.store
+        queryset = GreenPointRule.objects.filter(store=store)
+        
+        stats = {
+            'total': queryset.count(),
+            'active': queryset.filter(is_active=True).count(),
+            'inactive': queryset.filter(is_active=False).count(),
+        }
+        
+        return Response(stats)
+
+
+class PointRedemptionRuleViewSet(viewsets.ModelViewSet):
+    """點數兌換規則 ViewSet"""
+    serializer_class = PointRedemptionRuleSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """只返回當前商家的兌換規則"""
+        user = self.request.user
+        if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
+            return PointRedemptionRule.objects.filter(store=user.merchant_profile.store)
+        return PointRedemptionRule.objects.none()
+    
+    def perform_create(self, serializer):
+        """創建時自動關聯到商家的店鋪"""
+        user = self.request.user
+        if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
+            serializer.save(store=user.merchant_profile.store)
+        else:
+            raise ValueError("使用者沒有關聯的店鋪")
+    
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """切換規則啟用狀態"""
+        rule = self.get_object()
+        rule.is_active = not rule.is_active
+        rule.save()
+        
+        serializer = self.get_serializer(rule)
+        return Response(serializer.data)
+
+
+from rest_framework.views import APIView
+from apps.stores.models import Store
+
+
+class UserGreenPointsView(APIView):
+    """獲取用戶在指定店家的綠色點數餘額"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, store_id):
+        try:
+            store = Store.objects.get(pk=store_id)
+        except Store.DoesNotExist:
+            return Response({'error': '店家不存在'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 獲取或創建用戶點數餘額
+        balance = UserGreenPoints.get_or_create_balance(request.user, store)
+        
+        return Response({
+            'store_id': store.id,
+            'store_name': store.name,
+            'points': balance.points
+        })
+    
+    def post(self, request, store_id):
+        """扣除用戶點數（兌換使用）"""
+        try:
+            store = Store.objects.get(pk=store_id)
+        except Store.DoesNotExist:
+            return Response({'error': '店家不存在'}, status=status.HTTP_404_NOT_FOUND)
+        
+        amount = request.data.get('amount', 0)
+        reason = request.data.get('reason', '兌換使用')
+        
+        if amount <= 0:
+            return Response({'error': '扣除金額必須大於 0'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        balance = UserGreenPoints.get_or_create_balance(request.user, store)
+        
+        if balance.points < amount:
+            return Response({
+                'error': '點數不足',
+                'current_points': balance.points,
+                'required_points': amount
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 執行扣除
+        success = balance.use_points(amount, reason=reason)
+        
+        if success:
+            return Response({
+                'success': True,
+                'points_used': amount,
+                'remaining_points': balance.points,
+                'message': f'成功扣除 {amount} 點'
+            })
+        else:
+            return Response({'error': '扣除點數失敗'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PublicRedemptionRulesView(APIView):
+    """公開獲取店家的兌換規則（不需登入）"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request, store_id):
+        from .models import PointRedemptionRule
+        from .serializers import PointRedemptionRuleSerializer
+        
+        try:
+            store = Store.objects.get(pk=store_id)
+        except Store.DoesNotExist:
+            return Response({'error': '店家不存在'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 獲取該店家的啟用中兌換規則
+        rules = PointRedemptionRule.objects.filter(store=store, is_active=True)
+        serializer = PointRedemptionRuleSerializer(rules, many=True)
+        
+        return Response(serializer.data)
+
+
+
+

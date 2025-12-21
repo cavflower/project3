@@ -1,9 +1,10 @@
 ﻿import React, { useEffect, useMemo, useReducer, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { FaPlus, FaMinus, FaShoppingCart } from "react-icons/fa";
+import { FaPlus, FaMinus, FaShoppingCart, FaCoins } from "react-icons/fa";
 import { getStore } from "../../api/storeApi";
 import { getTakeoutProducts } from "../../api/orderApi";
 import { getPublicProductCategories, getPublicSpecificationGroups } from "../../api/productApi";
+import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
 import ProductSpecificationModal from "../../components/common/ProductSpecificationModal";
 import "./TakeoutOrderPage.css";
@@ -79,6 +80,10 @@ function TakeoutOrderPage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [error, setError] = useState("");
   const categoryRefs = useRef({});
+  const [greenPoints, setGreenPoints] = useState(null);
+  const [redemptionRules, setRedemptionRules] = useState([]);
+  const [showGreenPointSection, setShowGreenPointSection] = useState(false);
+  const greenPointRef = useRef(null);
 
   // 規格選擇 Modal 狀態
   const [showSpecModal, setShowSpecModal] = useState(false);
@@ -144,6 +149,36 @@ function TakeoutOrderPage() {
     load();
   }, [storeId]);
 
+  // 綠色點數查詢（登入用戶）
+  useEffect(() => {
+    async function loadGreenPoints() {
+      if (user && storeId) {
+        try {
+          const data = await surplusFoodApi.getUserGreenPoints(storeId);
+          setGreenPoints(data.points);
+        } catch (err) {
+          console.log('線色點數查詢失敗:', err);
+        }
+      }
+    }
+    loadGreenPoints();
+  }, [user, storeId]);
+
+  // 載入兌換規則
+  useEffect(() => {
+    async function loadRedemptionRules() {
+      if (storeId) {
+        try {
+          const data = await surplusFoodApi.getPublicRedemptionRules(storeId);
+          setRedemptionRules(data);
+        } catch (err) {
+          console.log('兌換規則載入失敗:', err);
+        }
+      }
+    }
+    loadRedemptionRules();
+  }, [storeId]);
+
   const total = useMemo(
     () => cart.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0),
     [cart.items]
@@ -155,9 +190,30 @@ function TakeoutOrderPage() {
       state: {
         cart: cart,
         store: store,
-        storeId: storeId
+        storeId: storeId,
+        greenPoints: greenPoints
       }
     });
+  };
+
+  // 選擇兌換規則
+  const handleSelectRedemption = (rule) => {
+    if (greenPoints === null || greenPoints < rule.required_points) {
+      alert(`您的點數不足，需要 ${rule.required_points} 點`);
+      return;
+    }
+    // 將兌換規則加入購物車
+    dispatch({
+      type: "ADD_ITEM",
+      payload: {
+        id: `redemption_${rule.id}`,
+        name: rule.name,
+        price: rule.redemption_type === 'discount' ? -rule.discount_value : 0,
+        itemType: 'redemption',
+        redemptionRule: rule
+      }
+    });
+    // 不彈窗提示，直接加入購物車
   };
 
   if (loading) {
@@ -185,11 +241,17 @@ function TakeoutOrderPage() {
             <div className="card-body">
               <h2 className="mb-1">{store?.name}</h2>
               <p className="text-muted mb-2">{store?.address}</p>
-              <div className="d-flex flex-wrap gap-3">
+              <div className="d-flex flex-wrap gap-3 align-items-center">
                 <span>
                   <i className="bi bi-telephone me-1" />
                   {store?.phone}
                 </span>
+                {user && greenPoints !== null && (
+                  <span className="green-points-badge">
+                    <FaCoins style={{ color: '#4CAF50', marginRight: '4px' }} />
+                    線色點數：{greenPoints} 點
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -233,6 +295,22 @@ function TakeoutOrderPage() {
                   )}
                 </button>
 
+                {/* 綠色點數按鈕 */}
+                {redemptionRules.length > 0 && (
+                  <button
+                    className={`category-nav-btn green-points-nav-btn ${showGreenPointSection ? 'active' : ''}`}
+                    onClick={() => {
+                      setShowGreenPointSection(!showGreenPointSection);
+                      setSelectedCategory(null);
+                      setTimeout(() => {
+                        greenPointRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 100);
+                    }}
+                  >
+                    綠色點數
+                  </button>
+                )}
+
                 {/* 惜福專區按鈕 */}
                 <button
                   className={`surplus-zone-nav-btn ${!store?.enable_surplus_food ? 'disabled' : ''}`}
@@ -244,6 +322,82 @@ function TakeoutOrderPage() {
                 >
                   惜福專區
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* 綠色點數兌換區 */}
+          {showGreenPointSection && redemptionRules.length > 0 && (
+            <div ref={greenPointRef} className="card shadow-sm mb-4 takeout-card category-section">
+              <div className="card-header takeout-card-header" style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)' }}>
+                <strong>綠色點數兌換</strong>
+              </div>
+              <div className="card-body">
+                {redemptionRules.map((rule) => {
+                  const canRedeem = greenPoints !== null && greenPoints >= rule.required_points;
+                  const cartItem = cart.items.find(item => item.id === `redemption_${rule.id}`);
+                  const quantity = cartItem ? cartItem.quantity : 0;
+                  const maxQty = rule.redemption_type === 'discount' ? 1 : (rule.max_quantity_per_order || 1);
+
+                  return (
+                    <div
+                      key={rule.id}
+                      className="d-flex justify-content-between align-items-center border-bottom py-3"
+                    >
+                      <div className="flex-grow-1">
+                        <h5 className="mb-1">
+                          {rule.name}
+                          <span className={`badge ms-2 ${rule.redemption_type === 'discount' ? 'bg-warning text-dark' : 'bg-info'}`}>
+                            {rule.redemption_type === 'discount' ? '折扣' : '商品'}
+                          </span>
+                        </h5>
+                        <p className="text-muted mb-1">
+                          需要點數：<strong className="text-success">{rule.required_points} 點</strong>
+                          {rule.redemption_type === 'product' && maxQty > 1 && (
+                            <span className="ms-2 text-muted">（單筆最多 {maxQty} 份）</span>
+                          )}
+                        </p>
+                        {rule.redemption_type === 'discount' && (
+                          <p className="text-success mb-0">折抵 NT$ {rule.discount_value}</p>
+                        )}
+                        {rule.redemption_type === 'product' && rule.product_name && (
+                          <p className="text-success mb-0">免費商品：{rule.product_name}</p>
+                        )}
+                      </div>
+                      <div className="d-flex align-items-center gap-2">
+                        {quantity > 0 ? (
+                          <div className="quantity-control d-flex align-items-center gap-2">
+                            <button
+                              className="quantity-btn rounded-circle"
+                              onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: `redemption_${rule.id}` })}
+                            >
+                              <FaMinus size={12} />
+                            </button>
+                            <span className="quantity-display">{quantity}</span>
+                            <button
+                              className="quantity-btn rounded-circle"
+                              onClick={() => handleSelectRedemption(rule)}
+                              disabled={quantity >= maxQty || !canRedeem}
+                              style={(quantity >= maxQty || !canRedeem) ? { opacity: 0.5 } : {}}
+                            >
+                              <FaPlus size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="add-btn rounded-circle"
+                            onClick={() => handleSelectRedemption(rule)}
+                            disabled={!canRedeem}
+                            style={!canRedeem ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            title={!canRedeem ? '點數不足' : '添加兌換'}
+                          >
+                            <FaPlus size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
