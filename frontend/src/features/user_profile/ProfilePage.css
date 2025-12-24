@@ -3,7 +3,7 @@
 .profile-page {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 2rem;
   background-color: #f0f2f5;
   min-height: calc(100vh - 60px);
@@ -11,34 +11,38 @@
 
 .profile-wrapper {
   display: flex;
+  flex-wrap: wrap;
   gap: 1.5rem;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
+  align-items: flex-start;
 }
 
 .profile-container {
-  height: 100%;
-  width: 100%;
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  flex: 1;
-  overflow: hidden;
+  flex: 1 1 450px;
+  min-width: 450px;
+  max-width: 600px;
+  overflow: visible;
 }
 
 .profile-form {
   display: flex;
+  flex-wrap: wrap;
 }
 
 /* --- 左側邊欄 --- */
 .profile-sidebar {
   background-color: #f8f9fa;
-  padding: 2.5rem 2rem;
+  padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 40%;
+  width: 35%;
+  min-width: 150px;
   border-right: 1px solid #e9ecef;
 }
 
@@ -95,8 +99,9 @@
 
 /* --- 右側主內容 --- */
 .profile-main {
-  padding: 2.5rem 3rem;
-  width: 60%;
+  padding: 2rem 2rem;
+  width: 65%;
+  min-width: 250px;
 }
 
 .form-group {
@@ -419,6 +424,218 @@
   }
 
   .profile-main {
+    width: 100%;
+  }
+}
+
+/* --- 加入公司區塊 --- */
+.join-company-section {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.join-company-section h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #343a40;
+  margin-bottom: 0.8rem;
+  text-align: center;
+}
+
+.join-company-section .section-description {
+  font-size: 0.9rem;
+  color: #6c757d;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.join-company-section .company-info {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.join-company-section .company-status {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.join-company-section .status-badge {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.join-company-section .status-badge.success {
+  background: linear-gradient(135deg, #d3f9d8 0%, #b2f2bb 100%);
+  color: #2f9e44;
+}
+
+.join-company-section .company-detail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+  margin: 1rem 0;
+}
+
+.join-company-section .company-detail label {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.join-company-section .company-tax-id {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #343a40;
+  letter-spacing: 1px;
+}
+
+.join-company-section .company-actions {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.join-company-section .btn-schedule,
+.join-company-section .btn-edit,
+.join-company-section .btn-leave {
+  flex: 1;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.join-company-section .btn-schedule {
+  background: linear-gradient(90deg, #51cf66, #37b24d);
+  color: white;
+}
+
+.join-company-section .btn-schedule:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(55, 178, 77, 0.3);
+}
+
+.join-company-section .btn-edit {
+  background: linear-gradient(90deg, #4dabf7, #364fc7);
+  color: white;
+}
+
+.join-company-section .btn-edit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(54, 79, 199, 0.3);
+}
+
+.join-company-section .btn-leave {
+  background: #f1f3f5;
+  color: #868e96;
+  border: 1px solid #dee2e6;
+}
+
+.join-company-section .btn-leave:hover {
+  background: #fff5f5;
+  color: #e03131;
+  border-color: #e03131;
+}
+
+/* 表單樣式 */
+.join-company-section .company-form {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.join-company-section .company-form .form-group {
+  margin-bottom: 1.2rem;
+}
+
+.join-company-section .company-form .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #495057;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.join-company-section .company-form .form-group input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  text-align: center;
+  letter-spacing: 2px;
+  font-weight: 600;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.join-company-section .company-form .form-group input:focus {
+  outline: none;
+  border-color: #4dabf7;
+  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.2);
+}
+
+.join-company-section .form-actions {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.join-company-section .btn-save,
+.join-company-section .btn-cancel {
+  flex: 1;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.join-company-section .btn-save {
+  background: linear-gradient(90deg, #4dabf7, #364fc7);
+  color: white;
+  box-shadow: 0 4px 12px rgba(54, 79, 199, 0.2);
+}
+
+.join-company-section .btn-save:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(54, 79, 199, 0.3);
+}
+
+.join-company-section .btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.join-company-section .btn-cancel {
+  background: white;
+  color: #868e96;
+  border: 1px solid #dee2e6;
+}
+
+.join-company-section .btn-cancel:hover {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+/* 響應式 */
+@media (max-width: 968px) {
+  .join-company-section {
     width: 100%;
   }
 }

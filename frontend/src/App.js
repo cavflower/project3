@@ -58,6 +58,7 @@ import FinancialReportPage from './features/merchant_dashboard/financial_report/
 import LineBotFAQManagement from './features/line_bot/LineBotFAQManagement';
 import LineBotSettings from './components/merchant/linebot/LineBotSettings';
 import LayoutApplicationPage from './features/layout_application/LayoutApplicationPage';
+import MyReviewsPage from './features/reviews/MyReviewsPage';
 import ErrorBoundary from './features/layout_application/ErrorBoundary';
 
 
@@ -208,6 +209,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MerchantReviews />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 顧客評論 - 我的評論 */}
+            <Route
+              path="/reviews"
+              element={
+                <ProtectedRoute>
+                  <MyReviewsPage />
                 </ProtectedRoute>
               }
             />

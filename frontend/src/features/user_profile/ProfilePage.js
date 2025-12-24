@@ -33,7 +33,7 @@ const ProfilePage = () => {
       });
       // 如果使用者有頭像 URL，則使用它，否則使用預設圖片
       setAvatarPreview(user.avatar_url || 'https://via.placeholder.com/150');
-      
+
       // 如果是商家，設定方案並載入折扣資訊
       if (user.user_type === 'merchant' && user.merchant_profile) {
         const plan = user.merchant_profile.plan || '';
@@ -272,12 +272,12 @@ const ProfilePage = () => {
                 {platformFeeDiscount > 0 ? (
                   <>
                     <div className="discount-badge-large">
-                      折抵{platformFeeDiscount}%費用 
+                      折抵{platformFeeDiscount}%費用
                     </div>
                     <div className="discount-details">
                       <p className="discount-label">目前折扣：</p>
                       <p className="discount-value">{platformFeeDiscount}%</p>
-                      
+
                       <p className="discount-label">折扣後方案費用：</p>
                       <p className="discount-value">
                         {currentPlan === 'basic' && `NT$ ${(499 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
@@ -285,7 +285,7 @@ const ProfilePage = () => {
                         {currentPlan === 'enterprise' && `NT$ ${(2499 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
                         {!currentPlan && 'N/A'}
                       </p>
-                      
+
                       {discountReason && (
                         <>
                           <p className="discount-label">折扣原因：</p>
@@ -306,7 +306,137 @@ const ProfilePage = () => {
 
         {/* 信用卡管理區域 - 僅顧客端顯示 */}
         {user.user_type === 'customer' && <PaymentCards />}
+
+        {/* 加入公司區塊 - 僅顧客端顯示 */}
+        {user.user_type === 'customer' && (
+          <JoinCompanySection user={user} updateUser={updateUser} />
+        )}
       </div>
+    </div>
+  );
+};
+
+// 加入公司區塊元件
+const JoinCompanySection = ({ user, updateUser }) => {
+  const navigate = useNavigate();
+  const [companyTaxId, setCompanyTaxId] = useState(user.company_tax_id || '');
+  const [saving, setSaving] = useState(false);
+
+  // 判斷是否已加入公司
+  const hasJoinedCompany = !!user.company_tax_id;
+
+  // 當 user.company_tax_id 變化時同步更新本地狀態
+  useEffect(() => {
+    setCompanyTaxId(user.company_tax_id || '');
+  }, [user.company_tax_id]);
+
+  const handleJoinCompany = async () => {
+    if (!companyTaxId.trim()) {
+      alert('請輸入公司統編');
+      return;
+    }
+
+    if (companyTaxId.length !== 8 || !/^\d+$/.test(companyTaxId)) {
+      alert('公司統編必須為8位數字');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateUser({ company_tax_id: companyTaxId.trim() });
+      alert('加入公司成功！現在可以前往「排班申請」頁面申請排班。');
+    } catch (error) {
+      console.error('更新失敗:', error);
+      alert(`加入失敗：${error.response?.data?.detail || error.message || '請稍後再試。'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLeaveCompany = async () => {
+    if (!window.confirm('確定要離開公司嗎？離開後將無法申請排班。')) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateUser({ company_tax_id: null });
+      setCompanyTaxId('');
+      alert('已離開公司');
+    } catch (error) {
+      console.error('更新失敗:', error);
+      alert(`操作失敗：${error.response?.data?.detail || error.message || '請稍後再試。'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const goToScheduleApplication = () => {
+    navigate('/layout-application');
+  };
+
+  return (
+    <div className="join-company-section">
+      <h2>🏢 {hasJoinedCompany ? '公司資訊' : '加入公司'}</h2>
+      <p className="section-description">
+        {hasJoinedCompany
+          ? '您已加入公司，可以前往「排班申請」頁面申請排班。'
+          : '輸入公司統編後，即可前往「排班申請」頁面向該公司的店家申請排班。'
+        }
+      </p>
+
+      {hasJoinedCompany ? (
+        // 已加入公司狀態 - 顯示統編和退出按鈕
+        <div className="company-info">
+          <div className="company-status">
+            <span className="status-badge success">✓ 已加入公司</span>
+          </div>
+          <div className="company-detail">
+            <label>公司統編：</label>
+            <span className="company-tax-id">{user.company_tax_id}</span>
+          </div>
+          <div className="company-actions">
+            <button
+              className="btn-schedule"
+              onClick={goToScheduleApplication}
+            >
+              前往排班申請
+            </button>
+            <button
+              className="btn-leave"
+              onClick={handleLeaveCompany}
+              disabled={saving}
+            >
+              {saving ? '處理中...' : '退出公司'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        // 尚未加入公司 - 顯示輸入框
+        <div className="company-form">
+          <div className="form-group">
+            <label htmlFor="companyTaxId">公司統編</label>
+            <input
+              type="text"
+              id="companyTaxId"
+              value={companyTaxId}
+              onChange={(e) => setCompanyTaxId(e.target.value)}
+              placeholder="請輸入8位數公司統編"
+              maxLength={8}
+              disabled={saving}
+            />
+          </div>
+          <div className="form-actions">
+            <button
+              className="btn-save"
+              onClick={handleJoinCompany}
+              disabled={saving || !companyTaxId.trim()}
+            >
+              {saving ? '儲存中...' : '加入公司'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

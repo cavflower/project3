@@ -1,0 +1,328 @@
+/* 我的評論頁面樣式 */
+.my-reviews-page {
+    min-height: calc(100vh - 60px);
+    background: #f8f9fa;
+    padding: 2rem;
+}
+
+.my-reviews-page .container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.my-reviews-page .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+/* 統計區 */
+.my-reviews-page .stats-section {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.my-reviews-page .stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem 2.5rem;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    min-width: 140px;
+}
+
+.my-reviews-page .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ff6b35;
+}
+
+.my-reviews-page .stat-label {
+    font-size: 0.95rem;
+    color: #666;
+    margin-top: 0.3rem;
+}
+
+/* 分頁標籤 */
+.my-reviews-page .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    background: white;
+    padding: 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.my-reviews-page .tab {
+    flex: 1;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.my-reviews-page .tab:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.my-reviews-page .tab.active {
+    background: linear-gradient(135deg, #ff6b35 0%, #e85a2a 100%);
+    color: white;
+}
+
+/* 評論列表 */
+.my-reviews-page .reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* 評論卡片 */
+.my-reviews-page .review-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.my-reviews-page .review-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.my-reviews-page .review-card.product-review {
+    border-left: 4px solid #4dabf7;
+}
+
+.my-reviews-page .review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.my-reviews-page .store-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #333;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.my-reviews-page .store-name:hover {
+    color: #ff6b35;
+}
+
+.my-reviews-page .product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.my-reviews-page .product-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.my-reviews-page .store-link {
+    font-size: 0.9rem;
+    color: #666;
+    text-decoration: none;
+}
+
+.my-reviews-page .store-link:hover {
+    color: #ff6b35;
+}
+
+.my-reviews-page .review-date {
+    font-size: 0.85rem;
+    color: #999;
+}
+
+/* 星星評分 */
+.my-reviews-page .review-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.my-reviews-page .stars {
+    display: flex;
+    gap: 0.1rem;
+}
+
+.my-reviews-page .star {
+    font-size: 1.3rem;
+    color: #ddd;
+}
+
+.my-reviews-page .star.filled {
+    color: #ffc107;
+}
+
+.my-reviews-page .rating-text {
+    font-size: 0.95rem;
+    color: #666;
+    font-weight: 600;
+}
+
+/* 評論標籤 */
+.my-reviews-page .review-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.my-reviews-page .tag {
+    padding: 0.3rem 0.8rem;
+    background: #f0f7ff;
+    color: #4dabf7;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* 評論內容 */
+.my-reviews-page .review-content {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.my-reviews-page .review-content p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.6;
+}
+
+/* 商家回覆 */
+.my-reviews-page .merchant-reply {
+    background: linear-gradient(135deg, #fff8f5 0%, #fff0eb 100%);
+    border-left: 3px solid #ff6b35;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.my-reviews-page .reply-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.my-reviews-page .reply-label {
+    font-weight: 600;
+    color: #ff6b35;
+    font-size: 0.9rem;
+}
+
+.my-reviews-page .reply-date {
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.my-reviews-page .reply-content {
+    margin: 0;
+    color: #495057;
+    line-height: 1.5;
+}
+
+/* 空狀態 */
+.my-reviews-page .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.my-reviews-page .empty-state p {
+    font-size: 1.1rem;
+    color: #666;
+    margin: 0.5rem 0;
+}
+
+.my-reviews-page .empty-state .hint {
+    font-size: 0.95rem;
+    color: #999;
+}
+
+/* 載入中 */
+.my-reviews-page .loading {
+    text-align: center;
+    padding: 4rem;
+    font-size: 1.1rem;
+    color: #666;
+}
+
+/* 登入提示 */
+.my-reviews-page .login-prompt {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.my-reviews-page .login-prompt h2 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.my-reviews-page .login-prompt p {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.my-reviews-page .btn-login {
+    display: inline-block;
+    padding: 0.8rem 2rem;
+    background: linear-gradient(135deg, #ff6b35 0%, #e85a2a 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: transform 0.2s ease;
+}
+
+.my-reviews-page .btn-login:hover {
+    transform: translateY(-2px);
+}
+
+/* 響應式 */
+@media (max-width: 768px) {
+    .my-reviews-page {
+        padding: 1rem;
+    }
+
+    .my-reviews-page .stats-section {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .my-reviews-page .stat-card {
+        padding: 1rem 1.5rem;
+    }
+
+    .my-reviews-page .review-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}

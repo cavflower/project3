@@ -103,6 +103,25 @@ class UserSerializer(serializers.ModelSerializer):
         instance.gender = validated_data.get('gender', instance.gender)
         instance.address = validated_data.get('address', instance.address)
         instance.avatar_url = validated_data.get('avatar_url', instance.avatar_url)
+        
+        # 處理 company_tax_id 更新
+        if 'company_tax_id' in validated_data:
+            company_tax_id = validated_data.get('company_tax_id')
+            if company_tax_id:
+                # 統一格式（去除空格、轉為大寫）
+                company_tax_id = company_tax_id.strip().upper()
+                instance.company_tax_id = company_tax_id
+                # 自動創建對應的 Company 記錄
+                company, created = Company.objects.get_or_create(
+                    tax_id=company_tax_id,
+                    defaults={'name': f"公司 {company_tax_id}"}
+                )
+                if created:
+                    print(f"[DEBUG] 自動創建公司記錄（更新用戶）: {company.name} ({company.tax_id})")
+            else:
+                # 如果傳入 null 或空字串，清除統編
+                instance.company_tax_id = None
+        
         instance.save()
 
         # Update nested Merchant profile if data is provided

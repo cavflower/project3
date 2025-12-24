@@ -73,6 +73,15 @@ class StoreReviewViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(review)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my_reviews(self, request):
+        """取得當前用戶的店家評論"""
+        queryset = StoreReview.objects.filter(user=request.user).select_related(
+            'store', 'takeout_order', 'dinein_order'
+        ).order_by('-created_at')
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class ProductReviewViewSet(viewsets.ModelViewSet):
@@ -101,6 +110,15 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my_reviews(self, request):
+        """取得當前用戶的菜品評論"""
+        queryset = ProductReview.objects.filter(user=request.user).select_related(
+            'product', 'store', 'takeout_order', 'dinein_order'
+        ).order_by('-created_at')
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class ReviewSubmissionViewSet(viewsets.ViewSet):
