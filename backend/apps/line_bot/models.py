@@ -118,6 +118,20 @@ class LineUserBinding(models.Model):
         default=True,
         verbose_name='啟用狀態'
     )
+    
+    # LINE BOT 模式切換（用於同時綁定顧客和店家的用戶）
+    LINE_MODE_CHOICES = [
+        ('customer', '顧客模式'),
+        ('merchant', '店家模式'),
+    ]
+    current_mode = models.CharField(
+        max_length=20,
+        choices=LINE_MODE_CHOICES,
+        default='customer',
+        verbose_name='當前模式',
+        help_text='用於 LINE BOT 切換顯示顧客或店家資訊'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='綁定時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
 
@@ -363,3 +377,68 @@ class BroadcastMessage(models.Model):
 
     def __str__(self):
         return f"{self.store.name} - {self.title}"
+
+
+class MerchantLineBinding(models.Model):
+    """
+    店家 LINE 綁定模型
+    將 LINE User ID 與店家綁定，用於接收業務通知
+    """
+    merchant = models.OneToOneField(
+        'users.Merchant',
+        on_delete=models.CASCADE,
+        related_name='line_binding',
+        verbose_name='店家'
+    )
+    line_user_id = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name='LINE User ID'
+    )
+    display_name = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='LINE 顯示名稱'
+    )
+    picture_url = models.URLField(
+        blank=True,
+        verbose_name='LINE 頭像'
+    )
+    
+    # 通知偏好設定
+    notify_schedule = models.BooleanField(
+        default=True,
+        verbose_name='排班通知',
+        help_text='是否接收排班相關通知'
+    )
+    notify_analytics = models.BooleanField(
+        default=True,
+        verbose_name='營運分析',
+        help_text='是否接收營運分析報告'
+    )
+    notify_inventory = models.BooleanField(
+        default=True,
+        verbose_name='原物料不足',
+        help_text='是否接收原物料不足提醒'
+    )
+    notify_order_alert = models.BooleanField(
+        default=True,
+        verbose_name='訂單異常',
+        help_text='是否接收訂單異常警報'
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='啟用狀態'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='綁定時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    class Meta:
+        db_table = 'merchant_line_bindings'
+        verbose_name = '店家 LINE 綁定'
+        verbose_name_plural = '店家 LINE 綁定'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.merchant.user.username} - {self.line_user_id}"

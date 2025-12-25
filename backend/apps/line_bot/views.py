@@ -11,14 +11,18 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from apps.stores.models import Store
-from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage, StoreLineBotConfig
+from apps.products.models import Product, ProductCategory, SpecificationGroup, ProductSpecification
+from apps.users.models import Merchant
+from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage, StoreLineBotConfig, MerchantLineBinding
 from .serializers import (
     LineUserBindingSerializer,
     StoreFAQSerializer,
     ConversationLogSerializer,
     BroadcastMessageSerializer,
     BroadcastMessageCreateSerializer,
-    StoreLineBotConfigSerializer
+    StoreLineBotConfigSerializer,
+    MerchantLineBindingSerializer,
+    MerchantLineBindingPreferencesSerializer
 )
 from .services.line_api import LineMessagingAPI
 from .services.message_handler import MessageHandler
@@ -170,6 +174,75 @@ def handle_message_event(event: dict, store_id: int = None):
             if settings.DEBUG:
                 print(f"[LINE Webhook] Platform webhook - Message: {user_message}")
             
+            # 初始化平台 LINE API
+            temp_line_api = LineMessagingAPI()
+            temp_line_api.channel_access_token = platform_settings.line_bot_channel_access_token
+            
+            # 處理「切換」指令
+            if user_message.strip() in ['切換', '切換模式', 'switch', 'Switch']:
+                # 查詢用戶綁定狀態
+                user_binding = LineUserBinding.objects.filter(line_user_id=line_user_id).first()
+                merchant_binding = MerchantLineBinding.objects.filter(line_user_id=line_user_id).first()
+                
+                if user_binding and merchant_binding:
+                    # 用戶同時綁定顧客和店家，執行切換
+                    if user_binding.current_mode == 'customer':
+                        user_binding.current_mode = 'merchant'
+                        mode_name = '店家模式 🏪'
+                        mode_desc = '現在您可以查看營業資訊、訂單統計等店家功能。'
+                    else:
+                        user_binding.current_mode = 'customer'
+                        mode_name = '顧客模式 🍽️'
+                        mode_desc = '現在您可以查看個人化推薦、優惠資訊等顧客功能。'
+                    
+                    user_binding.save()
+                    
+                    switch_reply = f"""✅ 模式已切換！
+
+你現在是【{mode_name}】
+
+{mode_desc}
+
+💡 輸入「切換」可隨時切換模式"""
+                    
+                    messages = [temp_line_api.create_text_message(switch_reply)]
+                    temp_line_api.reply_message(reply_token, messages)
+                    
+                    if settings.DEBUG:
+                        print(f"[LINE Webhook] Mode switched to: {user_binding.current_mode}")
+                    return
+                    
+                elif user_binding:
+                    # 只有顧客綁定
+                    no_switch_reply = """⚠️ 無法切換模式
+
+您目前只有綁定顧客帳號。
+
+如需使用店家模式，請先以店家身份登入平台並綁定 LINE 帳號。"""
+                    messages = [temp_line_api.create_text_message(no_switch_reply)]
+                    temp_line_api.reply_message(reply_token, messages)
+                    return
+                    
+                elif merchant_binding:
+                    # 只有店家綁定
+                    no_switch_reply = """⚠️ 無法切換模式
+
+您目前只有綁定店家帳號。
+
+如需使用顧客模式，請先以顧客身份登入平台並綁定 LINE 帳號。"""
+                    messages = [temp_line_api.create_text_message(no_switch_reply)]
+                    temp_line_api.reply_message(reply_token, messages)
+                    return
+                    
+                else:
+                    # 沒有任何綁定
+                    no_binding_reply = """⚠️ 您尚未綁定帳號
+
+請先登入 DineVerse 平台並綁定您的 LINE 帳號。"""
+                    messages = [temp_line_api.create_text_message(no_binding_reply)]
+                    temp_line_api.reply_message(reply_token, messages)
+                    return
+            
             # 使用平台自訂的歡迎訊息或預設回覆
             if platform_settings.line_bot_welcome_message:
                 platform_reply = platform_settings.line_bot_welcome_message
@@ -182,9 +255,6 @@ def handle_message_event(event: dict, store_id: int = None):
 
 祝您用餐愉快！"""
             
-            # 使用平台設定的 LINE API
-            temp_line_api = LineMessagingAPI()
-            temp_line_api.channel_access_token = platform_settings.line_bot_channel_access_token
             messages = [temp_line_api.create_text_message(platform_reply)]
             temp_line_api.reply_message(reply_token, messages)
             
@@ -211,6 +281,72 @@ def handle_message_event(event: dict, store_id: int = None):
             'opening_hours': store.opening_hours,
             'description': store.description,
         }
+        
+        # 取得菜單資料
+        menu_data = []
+        try:
+            categories = ProductCategory.objects.filter(store=store, is_active=True).order_by('display_order')
+            for category in categories:
+                products = Product.objects.filter(
+                    store=store, 
+                    category=category, 
+                    is_available=True
+                ).prefetch_related('specification_groups__options')
+                
+                category_products = []
+                for product in products:
+                    product_info = {
+                        'name': product.name,
+                        'price': float(product.price),
+                        'description': product.description,
+                    }
+                    # 加入規格資訊
+                    specs = []
+                    for group in product.specification_groups.filter(is_active=True):
+                        options = [
+                            f"{opt.name}(+${opt.price_adjustment})" if opt.price_adjustment > 0 
+                            else f"{opt.name}(-${abs(opt.price_adjustment)})" if opt.price_adjustment < 0 
+                            else opt.name
+                            for opt in group.options.filter(is_active=True)
+                        ]
+                        if options:
+                            specs.append(f"{group.name}: {', '.join(options)}")
+                    if specs:
+                        product_info['specifications'] = specs
+                    category_products.append(product_info)
+                
+                if category_products:
+                    menu_data.append({
+                        'category': category.name,
+                        'products': category_products
+                    })
+            
+            # 也加入沒有分類的產品
+            uncategorized = Product.objects.filter(
+                store=store, 
+                category__isnull=True, 
+                is_available=True
+            ).prefetch_related('specification_groups__options')
+            
+            if uncategorized.exists():
+                uncategorized_products = []
+                for product in uncategorized:
+                    product_info = {
+                        'name': product.name,
+                        'price': float(product.price),
+                        'description': product.description,
+                    }
+                    uncategorized_products.append(product_info)
+                menu_data.append({
+                    'category': '其他',
+                    'products': uncategorized_products
+                })
+                
+        except Exception as e:
+            if settings.DEBUG:
+                print(f"[LINE Webhook] Error fetching menu data: {e}")
+        
+        store_info['menu'] = menu_data
         
         # 處理訊息並取得回覆
         result = message_handler.handle_text_message(
@@ -711,3 +847,167 @@ def webhook_by_store(request, store_id):
         print(f"[LINE BOT] Error handling webhook for store {store_id}: {e}")
         # 即使有錯誤也回傳 200，避免 LINE 重試
         return JsonResponse({'status': 'ok'})
+
+
+class MerchantLineBindingViewSet(viewsets.ViewSet):
+    """
+    店家 LINE 綁定 ViewSet
+    處理店家 LINE 綁定、解綁及通知偏好設定
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def _get_merchant(self, user):
+        """取得當前用戶的 Merchant 資料"""
+        try:
+            return Merchant.objects.get(user=user)
+        except Merchant.DoesNotExist:
+            return None
+    
+    @action(detail=False, methods=['get'], url_path='status')
+    def binding_status(self, request):
+        """
+        取得店家 LINE 綁定狀態
+        GET /api/line-bot/merchant-binding/status/
+        """
+        merchant = self._get_merchant(request.user)
+        if not merchant:
+            return Response(
+                {'detail': '您不是店家用戶'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            binding = MerchantLineBinding.objects.get(merchant=merchant)
+            serializer = MerchantLineBindingSerializer(binding)
+            return Response({
+                'is_bound': True,
+                **serializer.data
+            })
+        except MerchantLineBinding.DoesNotExist:
+            return Response({
+                'is_bound': False
+            })
+    
+    @action(detail=False, methods=['post'], url_path='bind')
+    def bind(self, request):
+        """
+        綁定店家 LINE 帳號
+        POST /api/line-bot/merchant-binding/bind/
+        
+        Body:
+            line_user_id: LINE User ID
+            display_name: LINE 顯示名稱
+            picture_url: LINE 頭像 URL
+        """
+        merchant = self._get_merchant(request.user)
+        if not merchant:
+            return Response(
+                {'detail': '您不是店家用戶'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        line_user_id = request.data.get('line_user_id')
+        display_name = request.data.get('display_name', '')
+        picture_url = request.data.get('picture_url', '')
+        
+        if not line_user_id:
+            return Response(
+                {'detail': '缺少 LINE User ID'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 檢查是否已有其他店家綁定此 LINE ID
+        existing = MerchantLineBinding.objects.filter(line_user_id=line_user_id).first()
+        if existing and existing.merchant_id != merchant.user_id:
+            return Response(
+                {'detail': '此 LINE 帳號已被其他店家綁定'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 建立或更新綁定
+        binding, created = MerchantLineBinding.objects.update_or_create(
+            merchant=merchant,
+            defaults={
+                'line_user_id': line_user_id,
+                'display_name': display_name,
+                'picture_url': picture_url,
+                'is_active': True,
+            }
+        )
+        
+        serializer = MerchantLineBindingSerializer(binding)
+        return Response({
+            'success': True,
+            'message': 'LINE 帳號綁定成功',
+            **serializer.data
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], url_path='unbind')
+    def unbind(self, request):
+        """
+        解除店家 LINE 綁定
+        POST /api/line-bot/merchant-binding/unbind/
+        """
+        merchant = self._get_merchant(request.user)
+        if not merchant:
+            return Response(
+                {'detail': '您不是店家用戶'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            binding = MerchantLineBinding.objects.get(merchant=merchant)
+            binding.delete()
+            return Response({
+                'success': True,
+                'message': 'LINE 帳號已解除綁定'
+            })
+        except MerchantLineBinding.DoesNotExist:
+            return Response(
+                {'detail': '您尚未綁定 LINE 帳號'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @action(detail=False, methods=['patch'], url_path='preferences')
+    def update_preferences(self, request):
+        """
+        更新店家 LINE 通知偏好
+        PATCH /api/line-bot/merchant-binding/preferences/
+        
+        Body (任一或多個):
+            notify_schedule: boolean
+            notify_analytics: boolean
+            notify_inventory: boolean
+            notify_order_alert: boolean
+        """
+        merchant = self._get_merchant(request.user)
+        if not merchant:
+            return Response(
+                {'detail': '您不是店家用戶'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            binding = MerchantLineBinding.objects.get(merchant=merchant)
+        except MerchantLineBinding.DoesNotExist:
+            return Response(
+                {'detail': '請先綁定 LINE 帳號'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = MerchantLineBindingPreferencesSerializer(
+            binding,
+            data=request.data,
+            partial=True
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            full_serializer = MerchantLineBindingSerializer(binding)
+            return Response({
+                'success': True,
+                'message': '通知偏好已更新',
+                **full_serializer.data
+            })
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

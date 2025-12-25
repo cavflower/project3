@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage, StoreLineBotConfig
+from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage, StoreLineBotConfig, MerchantLineBinding
 
 
 class StoreLineBotConfigSerializer(serializers.ModelSerializer):
@@ -108,3 +108,30 @@ class BroadcastMessageCreateSerializer(serializers.ModelSerializer):
         if len(value) == 0:
             raise serializers.ValidationError("至少需要一個目標用戶")
         return value
+
+
+class MerchantLineBindingSerializer(serializers.ModelSerializer):
+    """店家 LINE 綁定序列化器"""
+    merchant_name = serializers.CharField(source='merchant.user.username', read_only=True)
+    
+    class Meta:
+        model = MerchantLineBinding
+        fields = [
+            'id', 'merchant', 'merchant_name', 'line_user_id',
+            'display_name', 'picture_url',
+            'notify_schedule', 'notify_analytics', 
+            'notify_inventory', 'notify_order_alert',
+            'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['merchant', 'line_user_id', 'display_name', 'picture_url', 'created_at', 'updated_at']
+
+
+class MerchantLineBindingPreferencesSerializer(serializers.ModelSerializer):
+    """店家 LINE 綁定通知偏好序列化器"""
+    
+    class Meta:
+        model = MerchantLineBinding
+        fields = [
+            'notify_schedule', 'notify_analytics', 
+            'notify_inventory', 'notify_order_alert'
+        ]

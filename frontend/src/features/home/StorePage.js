@@ -29,7 +29,7 @@ function StorePage() {
   useEffect(() => {
     loadStoreData();
   }, [storeId]);
-  
+
   // 當切換到菜單頁籤時才載入商品
   useEffect(() => {
     if (activeTab === 'menu' && menuItems.length === 0 && !productsLoading) {
@@ -78,24 +78,24 @@ function StorePage() {
       setProductsLoading(false);
     }
   };
-  
+
   // 載入更多商品
   const loadMoreProducts = useCallback(() => {
     setDisplayedProducts(prev => prev + PRODUCTS_PER_PAGE);
   }, []);
-  
+
   // 顯示的商品列表（分頁）
   const visibleProducts = useMemo(() => {
     return menuItems.slice(0, displayedProducts);
   }, [menuItems, displayedProducts]);
-  
+
   // 是否還有更多商品
   const hasMoreProducts = displayedProducts < menuItems.length;
 
 
   const formatOpeningHours = (hours) => {
     if (!hours || typeof hours !== 'object') return null;
-    
+
     const dayNames = {
       monday: '星期一',
       tuesday: '星期二',
@@ -107,7 +107,7 @@ function StorePage() {
     };
 
     const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    
+
     return dayOrder.map(day => {
       if (!hours[day]) return null;
       const info = hours[day];
@@ -152,7 +152,7 @@ function StorePage() {
   if (store.budget_lunch) budgets.push(parseFloat(store.budget_lunch));
   if (store.budget_dinner) budgets.push(parseFloat(store.budget_dinner));
   if (store.budget_banquet) budgets.push(parseFloat(store.budget_banquet));
-  const avgBudget = budgets.length > 0 
+  const avgBudget = budgets.length > 0
     ? Math.round(budgets.reduce((a, b) => a + b, 0) / budgets.length)
     : null;
 
@@ -161,7 +161,7 @@ function StorePage() {
       <div className="container">
         {/* 返回按鈕和會員中心 */}
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <button 
+          <button
             className="btn-back-store"
             onClick={() => navigate('/customer-home')}
           >
@@ -169,7 +169,7 @@ function StorePage() {
             返回店家列表
           </button>
 
-          <Link 
+          <Link
             to={`/customer/loyalty/${storeId}`}
             className="btn btn-outline-primary"
             style={{
@@ -196,7 +196,7 @@ function StorePage() {
         {/* 餐廳標題和基本資訊 */}
         <div className="store-header-section mb-4">
           <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
-    <div>
+            <div>
               <h1 className="store-main-title">{store.name}</h1>
               <div className="store-basic-info mt-2">
                 {store.address && (
@@ -238,19 +238,19 @@ function StorePage() {
               <div className="store-gallery mb-4">
                 <div className="row g-2">
                   <div className="col-8">
-                    <div 
+                    <div
                       className="store-main-image"
                       onClick={() => {
-                        setSelectedImage(store.images[0].image.startsWith('http') 
-                          ? store.images[0].image 
+                        setSelectedImage(store.images[0].image.startsWith('http')
+                          ? store.images[0].image
                           : `http://127.0.0.1:8000${store.images[0].image}`);
                         setImageType('store');
                       }}
                       style={{ cursor: 'pointer' }}
                     >
                       <img
-                        src={store.images[0].image.startsWith('http') 
-                          ? store.images[0].image 
+                        src={store.images[0].image.startsWith('http')
+                          ? store.images[0].image
                           : `http://127.0.0.1:8000${store.images[0].image}`}
                         alt={store.name}
                       />
@@ -263,20 +263,20 @@ function StorePage() {
                   <div className="col-4">
                     <div className="store-thumbnail-grid">
                       {store.images.slice(1, 5).map((image, index) => (
-                        <div 
-                          key={image.id} 
+                        <div
+                          key={image.id}
                           className="store-thumbnail"
                           onClick={() => {
-                            setSelectedImage(image.image.startsWith('http') 
-                              ? image.image 
+                            setSelectedImage(image.image.startsWith('http')
+                              ? image.image
                               : `http://127.0.0.1:8000${image.image}`);
                             setImageType('store');
                           }}
                           style={{ cursor: 'pointer' }}
                         >
                           <img
-                            src={image.image.startsWith('http') 
-                              ? image.image 
+                            src={image.image.startsWith('http')
+                              ? image.image
                               : `http://127.0.0.1:8000${image.image}`}
                             alt={`${store.name} - ${index + 2}`}
                           />
@@ -300,19 +300,19 @@ function StorePage() {
 
             {/* 標籤頁導航 */}
             <div className="store-tabs mb-4">
-              <button 
+              <button
                 className={`store-tab ${activeTab === 'about' ? 'active' : ''}`}
                 onClick={() => setActiveTab('about')}
               >
                 關於
               </button>
-              <button 
+              <button
                 className={`store-tab ${activeTab === 'menu' ? 'active' : ''}`}
                 onClick={() => setActiveTab('menu')}
               >
                 菜單
               </button>
-              <button 
+              <button
                 className={`store-tab ${activeTab === 'reviews' ? 'active' : ''}`}
                 onClick={() => setActiveTab('reviews')}
               >
@@ -439,8 +439,8 @@ function StorePage() {
                         <strong>吸菸政策：</strong>
                         <span className="smoking-policy-badge">
                           {store.smoking_policy === 'no_smoking' ? '完全禁煙' :
-                           store.smoking_policy === 'smoking_allowed' ? '可吸菸' :
-                           store.smoking_policy === 'separate_room' ? '有專用吸菸室' : store.smoking_policy}
+                            store.smoking_policy === 'smoking_allowed' ? '可吸菸' :
+                              store.smoking_policy === 'separate_room' ? '有專用吸菸室' : store.smoking_policy}
                         </span>
                       </div>
                     )}
@@ -472,8 +472,16 @@ function StorePage() {
                           </a>
                         </div>
                       )}
+                      {store.line_friend_url && (
+                        <div className="contact-info-item">
+                          <i className="bi bi-line" style={{ color: '#00B900' }}></i>
+                          <a href={store.line_friend_url} target="_blank" rel="noopener noreferrer">
+                            加入 LINE 好友
+                          </a>
+                        </div>
+                      )}
                     </div>
-      </div>
+                  </div>
 
                   {/* 備註 */}
                   {store.remarks && (
@@ -507,47 +515,47 @@ function StorePage() {
                         <span className="menu-count-badge">共 {menuItems.length} 項商品</span>
                       </div>
                       <div className="menu-text-content">
-                          {visibleProducts.length > 0 ? (
-                            <>
-                              {visibleProducts.map(item => (
-                                  <div key={item.id} className="menu-item-card">
-                                    <div className="menu-item-header">
-                                      <div>
-                                        <h4 className="menu-item-title">{item.name}</h4>
-                                        {item.category_name && (
-                                          <span className="menu-item-category-badge">{item.category_name}</span>
-                                        )}
-                                      </div>
-                                      <span className="menu-item-price">NT$ {Number(item.price).toFixed(0)}</span>
-                                    </div>
-                                    {item.description && (
-                                      <p className="menu-item-description">{item.description}</p>
+                        {visibleProducts.length > 0 ? (
+                          <>
+                            {visibleProducts.map(item => (
+                              <div key={item.id} className="menu-item-card">
+                                <div className="menu-item-header">
+                                  <div>
+                                    <h4 className="menu-item-title">{item.name}</h4>
+                                    {item.category_name && (
+                                      <span className="menu-item-category-badge">{item.category_name}</span>
                                     )}
                                   </div>
-                                ))}
-                              
-                              {/* 載入更多按鈕 */}
-                              {hasMoreProducts && (
-                                <div className="text-center mt-4">
-                                  <button 
-                                    className="btn btn-outline-primary"
-                                    onClick={loadMoreProducts}
-                                    style={{
-                                      padding: '0.75rem 2rem',
-                                      borderRadius: '25px',
-                                      fontSize: '1rem'
-                                    }}
-                                  >
-                                    <i className="bi bi-arrow-down-circle me-2"></i>
-                                    載入更多 ({menuItems.length - displayedProducts} 項商品)
-                                  </button>
+                                  <span className="menu-item-price">NT$ {Number(item.price).toFixed(0)}</span>
                                 </div>
-                              )}
-                            </>
+                                {item.description && (
+                                  <p className="menu-item-description">{item.description}</p>
+                                )}
+                              </div>
+                            ))}
 
-                          ) : (
-                            <p className="text-muted">目前尚無菜單資料</p>
-                          )}
+                            {/* 載入更多按鈕 */}
+                            {hasMoreProducts && (
+                              <div className="text-center mt-4">
+                                <button
+                                  className="btn btn-outline-primary"
+                                  onClick={loadMoreProducts}
+                                  style={{
+                                    padding: '0.75rem 2rem',
+                                    borderRadius: '25px',
+                                    fontSize: '1rem'
+                                  }}
+                                >
+                                  <i className="bi bi-arrow-down-circle me-2"></i>
+                                  載入更多 ({menuItems.length - displayedProducts} 項商品)
+                                </button>
+                              </div>
+                            )}
+                          </>
+
+                        ) : (
+                          <p className="text-muted">目前尚無菜單資料</p>
+                        )}
 
                       </div>
                     </div>
@@ -556,8 +564,8 @@ function StorePage() {
                       <h3 className="store-section-title">菜單</h3>
                       <div className="menu-images-grid">
                         {store.menu_images.map((image, index) => (
-                          <div 
-                            key={image.id} 
+                          <div
+                            key={image.id}
                             className="menu-image-item"
                             onClick={() => {
                               setSelectedImage(image.image.startsWith('http') ? image.image : `http://127.0.0.1:8000${image.image}`);
@@ -565,8 +573,8 @@ function StorePage() {
                             }}
                           >
                             <img
-                              src={image.image.startsWith('http') 
-                                ? image.image 
+                              src={image.image.startsWith('http')
+                                ? image.image
                                 : `http://127.0.0.1:8000${image.image}`}
                               alt={`菜單 ${index + 1}`}
                             />
@@ -601,13 +609,13 @@ function StorePage() {
                 <span className="booking-free-badge">免費</span>
               </div>
               <div className="booking-card-body">
-                <Link 
+                <Link
                   to={`/store/${storeId}/options`}
                   className="store-action-btn w-100 text-center"
                 >
                   <i className="bi bi-cart me-2"></i>
                   立即點餐
-      </Link>
+                </Link>
                 <div className="booking-info mt-3">
                   <div className="booking-info-item">
                     <i className="bi bi-clock"></i>
@@ -619,6 +627,14 @@ function StorePage() {
                       <a href={`tel:${store.phone}`}>{store.phone}</a>
                     </div>
                   )}
+                  {store.line_friend_url && (
+                    <div className="booking-info-item">
+                      <i className="bi bi-line" style={{ color: '#00B900' }}></i>
+                      <a href={store.line_friend_url} target="_blank" rel="noopener noreferrer">
+                        加入 LINE 好友
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -628,7 +644,7 @@ function StorePage() {
 
       {/* 圖片放大 Modal */}
       {selectedImage && (
-        <div 
+        <div
           className="image-modal"
           onClick={() => {
             setSelectedImage(null);
@@ -636,7 +652,7 @@ function StorePage() {
           }}
         >
           <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button 
+            <button
               className="image-modal-close"
               onClick={() => {
                 setSelectedImage(null);
@@ -673,24 +689,24 @@ function StoreReviews({ storeId }) {
   const loadReviews = async () => {
     try {
       setLoading(true);
-      
+
       // 載入店家評論
       const storeRes = await api.get(`/reviews/store-reviews/?store_id=${storeId}`);
       setStoreReviews(storeRes.data);
-      
+
       // 載入菜品評論
       const productRes = await api.get(`/reviews/product-reviews/?store_id=${storeId}`);
       setProductReviews(productRes.data);
-      
+
       // 計算統計數據
       const avgStoreRating = storeRes.data.length > 0
         ? (storeRes.data.reduce((sum, r) => sum + r.rating, 0) / storeRes.data.length).toFixed(1)
         : 0;
-      
+
       const avgProductRating = productRes.data.length > 0
         ? (productRes.data.reduce((sum, r) => sum + r.rating, 0) / productRes.data.length).toFixed(1)
         : 0;
-      
+
       setStats({
         avgStoreRating,
         totalStoreReviews: storeRes.data.length,
@@ -789,8 +805,8 @@ function StoreReviews({ storeId }) {
                 <div className="review-header">
                   <div className="reviewer-info">
                     {review.user_avatar ? (
-                      <img 
-                        src={review.user_avatar} 
+                      <img
+                        src={review.user_avatar}
                         alt={review.user_name}
                         className="reviewer-avatar"
                       />
@@ -844,8 +860,8 @@ function StoreReviews({ storeId }) {
               <div key={review.id} className="review-item product-review-item">
                 <div className="product-review-header">
                   {review.product_image && (
-                    <img 
-                      src={review.product_image} 
+                    <img
+                      src={review.product_image}
                       alt={review.product_name}
                       className="product-thumb"
                     />
@@ -859,8 +875,8 @@ function StoreReviews({ storeId }) {
                 <div className="review-header">
                   <div className="reviewer-info">
                     {review.user_avatar ? (
-                      <img 
-                        src={review.user_avatar} 
+                      <img
+                        src={review.user_avatar}
                         alt={review.user_name}
                         className="reviewer-avatar"
                       />

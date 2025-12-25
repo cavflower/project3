@@ -645,18 +645,6 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 <div className="form-group mt-3">
-                  <label htmlFor="default_system_prompt">自訂系統提示詞（選填）</label>
-                  <textarea
-                    id="default_system_prompt"
-                    className="form-control"
-                    rows="3"
-                    value={aiForm.default_system_prompt || ''}
-                    onChange={(e) => setAIForm({ ...aiForm, default_system_prompt: e.target.value })}
-                    placeholder="自訂 AI 回覆的角色和風格（選填）"
-                  />
-                  <small className="form-text text-muted">自訂 AI 回覆的角色和風格</small>
-                </div>
-                <div className="form-group mt-3">
                   <label>
                     <input
                       type="checkbox"

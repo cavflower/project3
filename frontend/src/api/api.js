@@ -44,9 +44,23 @@ const getUserTypeFromUrl = (url, method = 'get') => {
 
   // 推薦系統相關 API，使用 customer token
   // 財務分析相關 API，使用 merchant token
+  // LINE Login 相關 API，根據當前頁面判斷
   if (url.includes('/intelligence/')) {
     if (url.includes('/financial/')) {
       return 'merchant';
+    }
+    // LINE Login API：根據當前頁面路徑判斷
+    if (url.includes('/line-login/')) {
+      const path = window.location.pathname;
+      if (path.includes('/merchant/') || path.includes('/dashboard') || path.includes('/store-settings')) {
+        return 'merchant';
+      }
+      // 在 /profile 頁面，根據是否有 merchant token 判斷
+      if (path.includes('/profile')) {
+        const hasMerchantToken = !!localStorage.getItem('merchant_accessToken');
+        return hasMerchantToken ? 'merchant' : 'customer';
+      }
+      return 'customer';
     }
     return 'customer';
   }

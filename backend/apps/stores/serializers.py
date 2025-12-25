@@ -72,6 +72,7 @@ class StoreSerializer(serializers.ModelSerializer):
             'address',
             'phone',
             'email',
+            'line_friend_url',
             'website',
             'transportation',
             'opening_hours',

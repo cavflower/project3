@@ -38,7 +38,13 @@ const LineCallbackPage = () => {
 
         try {
             // 取得當前 callback 頁面的 URL 作為 redirect_uri（必須與授權時相同）
-            const redirectUri = encodeURIComponent(`${window.location.origin}/line-callback`);
+            // 包含 mode 參數以確保完全匹配
+            const mode = searchParams.get('mode');
+            let callbackUrl = `${window.location.origin}/line-callback`;
+            if (mode) {
+                callbackUrl += `?mode=${mode}`;
+            }
+            const redirectUri = encodeURIComponent(callbackUrl);
 
             // 呼叫後端處理回調
             const response = await fetch(
@@ -58,11 +64,20 @@ const LineCallbackPage = () => {
                 setStatus('success');
                 setMessage('LINE 授權成功！正在完成綁定...');
 
-                // 將 LINE 資料帶回個人資料頁面完成綁定
-                const profileUrl = `/profile?line_user_id=${encodeURIComponent(data.line_user_id)}&display_name=${encodeURIComponent(data.display_name || '')}&picture_url=${encodeURIComponent(data.picture_url || '')}`;
+                // 檢查是否為店家綁定模式
+                const mode = searchParams.get('mode');
+
+                let redirectUrl;
+                if (mode === 'merchant') {
+                    // 店家綁定：跳轉到個人資料頁面
+                    redirectUrl = `/profile?merchant_line_user_id=${encodeURIComponent(data.line_user_id)}&display_name=${encodeURIComponent(data.display_name || '')}&picture_url=${encodeURIComponent(data.picture_url || '')}`;
+                } else {
+                    // 一般用戶綁定：跳轉到個人資料頁面
+                    redirectUrl = `/profile?line_user_id=${encodeURIComponent(data.line_user_id)}&display_name=${encodeURIComponent(data.display_name || '')}&picture_url=${encodeURIComponent(data.picture_url || '')}`;
+                }
 
                 setTimeout(() => {
-                    navigate(profileUrl, { replace: true });
+                    navigate(redirectUrl, { replace: true });
                 }, 1500);
             } else {
                 setStatus('error');

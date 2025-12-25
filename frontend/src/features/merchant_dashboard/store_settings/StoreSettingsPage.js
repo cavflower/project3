@@ -13,6 +13,7 @@ const StoreSettingsPage = () => {
     address: '',
     phone: '',
     email: '',
+    line_friend_url: '',
     website: '',
     transportation: '',
     fixed_holidays: '',
@@ -59,9 +60,9 @@ const StoreSettingsPage = () => {
   const parseCreditCards = (value) =>
     value
       ? value
-          .split(/[\/,]/)
-          .map((item) => item.trim())
-          .filter(Boolean)
+        .split(/[\/,]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
       : [];
 
   const dayNames = {
@@ -93,6 +94,7 @@ const StoreSettingsPage = () => {
         address: store.address || '',
         phone: store.phone || '',
         email: store.email || '',
+        line_friend_url: store.line_friend_url || '',
         website: store.website || '',
         transportation: store.transportation || '',
         fixed_holidays: store.fixed_holidays || '',
@@ -176,7 +178,7 @@ const StoreSettingsPage = () => {
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     setNewImages([...newImages, ...files]);
-    
+
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -210,7 +212,7 @@ const StoreSettingsPage = () => {
   const handleMenuImageUpload = (e) => {
     const files = Array.from(e.target.files);
     setNewMenuImages([...newMenuImages, ...files]);
-    
+
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -267,6 +269,9 @@ const StoreSettingsPage = () => {
     if (formData.email) {
       dataToSend.append('email', formData.email);
     }
+    if (formData.line_friend_url) {
+      dataToSend.append('line_friend_url', formData.line_friend_url);
+    }
     if (formData.website) {
       dataToSend.append('website', formData.website);
     }
@@ -278,7 +283,7 @@ const StoreSettingsPage = () => {
     }
     dataToSend.append('is_open', formData.is_open ? 'true' : 'false');
     dataToSend.append('opening_hours', JSON.stringify(openingHours));
-    
+
     if (formData.budget_lunch) {
       dataToSend.append('budget_lunch', formData.budget_lunch);
     }
@@ -314,7 +319,7 @@ const StoreSettingsPage = () => {
     try {
       let currentStoreId = storeId;
       let needsReload = false;
-      
+
       if (storeId) {
         await updateStore(storeId, dataToSend);
         setSuccess('店家資訊已成功更新！');
@@ -358,13 +363,13 @@ const StoreSettingsPage = () => {
       console.error('Failed to save store:', err);
       console.error('Error response:', err.response?.data);
       console.error('Error status:', err.response?.status);
-      
+
       // 顯示更詳細的錯誤訊息
       let errorMessage = '儲存店家資訊失敗，請檢查所有欄位是否正確。';
-      
+
       if (err.response?.data) {
         const errorData = err.response.data;
-        
+
         // 如果是驗證錯誤，顯示具體的欄位錯誤
         if (errorData.detail) {
           errorMessage = errorData.detail;
@@ -387,7 +392,7 @@ const StoreSettingsPage = () => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -558,6 +563,18 @@ const StoreSettingsPage = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="請輸入 Email（選填）"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="line_friend_url">LINE 好友網址</label>
+                <input
+                  type="url"
+                  id="line_friend_url"
+                  name="line_friend_url"
+                  value={formData.line_friend_url}
+                  onChange={handleChange}
+                  placeholder="https://line.me/R/ti/p/...（選填）"
                 />
               </div>
 
@@ -961,7 +978,7 @@ const StoreSettingsPage = () => {
           <div className="form-section">
             <h2>功能開關</h2>
             <p className="section-description">控制哪些功能在您的餐廳中啟用</p>
-            
+
             <div className="feature-toggles">
               <div className="feature-toggle-item">
                 <div className="toggle-info">

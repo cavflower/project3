@@ -6,6 +6,7 @@ import { getMyStore } from '../../api/storeApi';
 import { bindLine } from '../../api/lineLoginApi';
 import PaymentCards from './PaymentCards';
 import LineBinding from '../../components/user/LineBinding';
+import MerchantLineBinding from '../../components/merchant/MerchantLineBinding';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -336,8 +337,9 @@ const ProfilePage = () => {
         {/* 信用卡管理區域 - 僅顧客端顯示 */}
         {user.user_type === 'customer' && <PaymentCards />}
 
-        {/* LINE 綁定區塊 - 僅顧客端顯示 */}
+        {/* LINE 綁定區塊 */}
         {user.user_type === 'customer' && <LineBinding />}
+        {user.user_type === 'merchant' && <MerchantLineBinding />}
 
         {/* 加入公司區塊 - 僅顧客端顯示 */}
         {user.user_type === 'customer' && (

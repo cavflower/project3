@@ -53,6 +53,11 @@ class Store(models.Model):
         verbose_name='Email',
         help_text="The email address of the restaurant."
     )
+    line_friend_url = models.URLField(
+        blank=True,
+        verbose_name='LINE 好友網址',
+        help_text="LINE official account friend URL for customers to add."
+    )
     website = models.URLField(
         blank=True,
         verbose_name='餐廳網站',

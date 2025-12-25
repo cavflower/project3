@@ -86,7 +86,6 @@ class AIReplyService:
                 self.model = platform_settings.ai_model
                 self.temperature = platform_settings.ai_temperature
                 self.max_tokens = platform_settings.ai_max_tokens
-                self.default_system_prompt = platform_settings.default_system_prompt
                 self.using_platform_ai = True
                 return
         except Exception as e:
@@ -98,7 +97,6 @@ class AIReplyService:
         self.model = None
         self.temperature = 0.7
         self.max_tokens = 500
-        self.default_system_prompt = ''
         self.using_platform_ai = False
     
     def is_available(self):
@@ -309,30 +307,66 @@ class AIReplyService:
         建立系統提示詞
         
         Args:
-            store_info: 店家資訊
+            store_info: 店家資訊（包含菜單資料）
             
         Returns:
             str: 系統提示詞
         """
-        # 如果店家有自訂提示詞，優先使用
-        if self.store_config and self.store_config.custom_system_prompt:
-            return self.store_config.custom_system_prompt
+        store_name = store_info.get('name', '餐廳')
         
-        # 如果平台有預設提示詞，使用平台設定
-        if self.default_system_prompt:
-            return self.default_system_prompt
+        # 建立菜單文字
+        menu_text = ""
+        menu_data = store_info.get('menu', [])
+        if menu_data:
+            menu_lines = []
+            for category_data in menu_data:
+                category_name = category_data.get('category', '未分類')
+                menu_lines.append(f"\n【{category_name}】")
+                for product in category_data.get('products', []):
+                    product_line = f"- {product['name']} ${product['price']}"
+                    if product.get('description'):
+                        product_line += f" ({product['description']})"
+                    menu_lines.append(product_line)
+                    # 加入規格資訊
+                    if product.get('specifications'):
+                        for spec in product['specifications']:
+                            menu_lines.append(f"  └ {spec}")
+            menu_text = "\n".join(menu_lines)
         
-        # 簡化版提示詞，減少 token 用量
-        prompt = f"""你是 {store_info.get('name', '餐廳')} 的智能客服。
+        # 建立基本提示詞（包含菜單資料）
+        base_prompt = f"""你是 {store_name} 的智能客服助手。
 
 基本資訊：
-- 類型：{store_info.get('cuisine_type', '未提供')}
+- 餐廳類型：{store_info.get('cuisine_type', '未提供')}
 - 地址：{store_info.get('address', '未提供')}
 - 電話：{store_info.get('phone', '未提供')}
 - 營業時間：{store_info.get('opening_hours', '未提供')}
+- 餐廳介紹：{store_info.get('description', '未提供')}"""
 
-任務：友善回答問題，保持簡潔，使用繁體中文。不確定時建議聯繫店家。"""
-        return prompt
+        # 如果有菜單資料，加入提示詞
+        if menu_text:
+            base_prompt += f"""
+
+菜單資訊：{menu_text}"""
+        
+        base_prompt += """
+
+任務指示：
+1. 以親切友善的態度回答顧客問題
+2. 使用繁體中文回覆
+3. 保持回覆簡潔明瞭
+4. 當顧客詢問菜單時，根據上方菜單資訊回答
+5. 可以推薦餐點並說明價格和規格
+6. 如果問題超出你的知識範圍，建議顧客直接聯繫店家"""
+
+        # 如果店家有自訂提示詞，附加在後面
+        if self.store_config and self.store_config.custom_system_prompt:
+            base_prompt += f"""
+
+店家額外指示：
+{self.store_config.custom_system_prompt}"""
+        
+        return base_prompt
 
 
 class MessageHandler:
