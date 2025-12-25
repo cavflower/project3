@@ -61,22 +61,49 @@ class FAQMatcher:
 class AIReplyService:
     """
     AI 智能回覆服務
-    支援 Google Gemini 和 OpenAI GPT
+    支援 Google Gemini、OpenAI GPT 和 Groq
+    優先使用平台 AI 設定，若無則使用店家設定（保持向後相容）
     """
     
-    def __init__(self, config):
+    def __init__(self, store_config=None):
         """
         初始化 AI 服務
         
         Args:
-            config: StoreLineBotConfig 實例
+            store_config: StoreLineBotConfig 實例（可選，用於自訂系統提示詞）
         """
-        self.config = config
-        self.api_key = config.ai_api_key
-        self.model = config.ai_model
-        self.provider = config.ai_provider
-        self.temperature = config.ai_temperature
-        self.max_tokens = config.ai_max_tokens
+        self.store_config = store_config
+        
+        # 使用平台 AI 設定
+        try:
+            from apps.intelligence.models import PlatformSettings
+            platform_settings = PlatformSettings.get_settings()
+            
+            if platform_settings.has_ai_config():
+                # 使用平台設定
+                self.api_key = platform_settings.ai_api_key
+                self.provider = platform_settings.ai_provider
+                self.model = platform_settings.ai_model
+                self.temperature = platform_settings.ai_temperature
+                self.max_tokens = platform_settings.ai_max_tokens
+                self.default_system_prompt = platform_settings.default_system_prompt
+                self.using_platform_ai = True
+                return
+        except Exception as e:
+            print(f"[AIReplyService] Error loading platform settings: {e}")
+        
+        # 平台未設定 AI，服務不可用
+        self.api_key = None
+        self.provider = None
+        self.model = None
+        self.temperature = 0.7
+        self.max_tokens = 500
+        self.default_system_prompt = ''
+        self.using_platform_ai = False
+    
+    def is_available(self):
+        """檢查 AI 服務是否可用"""
+        return bool(self.api_key)
     
     def generate_reply(
         self,
@@ -119,7 +146,8 @@ class AIReplyService:
             full_prompt = f"{system_prompt}\n\n"
             
             # 加入對話歷史（最多 3 則，減少 token 用量）
-            if conversation_history and self.config.enable_conversation_history:
+            enable_history = getattr(self.store_config, 'enable_conversation_history', True) if self.store_config else True
+            if conversation_history and enable_history:
                 for msg in conversation_history[-3:]:  # 從 5 則改為 3 則
                     role = "顧客" if msg.get("role") == "user" else "助手"
                     full_prompt += f"{role}: {msg.get('content', '')}\n"
@@ -193,7 +221,8 @@ class AIReplyService:
             ]
             
             # 加入對話歷史（最多 5 則）
-            if conversation_history and self.config.enable_conversation_history:
+            enable_history = getattr(self.store_config, 'enable_conversation_history', True) if self.store_config else True
+            if conversation_history and enable_history:
                 for msg in conversation_history[-5:]:
                     messages.append({
                         "role": msg.get("role", "user"),
@@ -243,7 +272,8 @@ class AIReplyService:
             ]
             
             # 加入對話歷史（最多 3 則）
-            if conversation_history and self.config.enable_conversation_history:
+            enable_history = getattr(self.store_config, 'enable_conversation_history', True) if self.store_config else True
+            if conversation_history and enable_history:
                 for msg in conversation_history[-3:]:
                     messages.append({
                         "role": msg.get("role", "user"),
@@ -285,8 +315,12 @@ class AIReplyService:
             str: 系統提示詞
         """
         # 如果店家有自訂提示詞，優先使用
-        if self.config.custom_system_prompt:
-            return self.config.custom_system_prompt
+        if self.store_config and self.store_config.custom_system_prompt:
+            return self.store_config.custom_system_prompt
+        
+        # 如果平台有預設提示詞，使用平台設定
+        if self.default_system_prompt:
+            return self.default_system_prompt
         
         # 簡化版提示詞，減少 token 用量
         prompt = f"""你是 {store_info.get('name', '餐廳')} 的智能客服。
@@ -316,8 +350,11 @@ class MessageHandler:
         """
         self.config = store_config
         self.faq_matcher = FAQMatcher()
-        if store_config.enable_ai_reply and store_config.has_ai_config():
-            self.ai_service = AIReplyService(store_config)
+        
+        # 嘗試初始化 AI 服務（優先使用平台設定）
+        ai_service = AIReplyService(store_config)
+        if ai_service.is_available():
+            self.ai_service = ai_service
         else:
             self.ai_service = None
     
@@ -378,7 +415,7 @@ class MessageHandler:
                     'reply': ai_reply,
                     'used_ai': True,
                     'matched_faq_id': None,
-                    'ai_model': self.config.ai_model
+                    'ai_model': self.ai_service.model if self.ai_service else None
                 }
             else:
                 # AI 未啟用，返回預設訊息

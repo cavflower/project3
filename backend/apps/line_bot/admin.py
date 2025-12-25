@@ -4,8 +4,8 @@ from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage
 
 @admin.register(StoreLineBotConfig)
 class StoreLineBotConfigAdmin(admin.ModelAdmin):
-    list_display = ['store', 'ai_provider', 'enable_ai_reply', 'is_active', 'created_at']
-    list_filter = ['ai_provider', 'enable_ai_reply', 'is_active', 'created_at']
+    list_display = ['store', 'enable_ai_reply', 'is_active', 'created_at']
+    list_filter = ['enable_ai_reply', 'is_active', 'created_at']
     search_fields = ['store__name']
     readonly_fields = ['created_at', 'updated_at']
     fieldsets = (
@@ -13,13 +13,10 @@ class StoreLineBotConfigAdmin(admin.ModelAdmin):
             'fields': ('store', 'is_active')
         }),
         ('LINE 設定', {
-            'fields': ('line_channel_access_token', 'line_channel_secret')
+            'fields': ('line_channel_access_token', 'line_channel_secret', 'invitation_url')
         }),
-        ('AI 設定', {
-            'fields': ('ai_provider', 'ai_api_key', 'ai_model', 'ai_temperature', 'ai_max_tokens')
-        }),
-        ('進階設定', {
-            'fields': ('custom_system_prompt', 'enable_ai_reply', 'enable_conversation_history')
+        ('店家設定', {
+            'fields': ('custom_system_prompt', 'welcome_message', 'enable_ai_reply', 'enable_conversation_history')
         }),
         ('時間戳記', {
             'fields': ('created_at', 'updated_at')

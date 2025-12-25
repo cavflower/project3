@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { updateMerchantPlan } from '../../api/authApi';
 import { getMyStore } from '../../api/storeApi';
+import { bindLine } from '../../api/lineLoginApi';
 import PaymentCards from './PaymentCards';
+import LineBinding from '../../components/user/LineBinding';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
   const { user, updateUser, login, loading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -45,6 +48,32 @@ const ProfilePage = () => {
       }
     }
   }, [user]);
+
+  // 處理 LINE 綁定回調
+  useEffect(() => {
+    const lineUserId = searchParams.get('line_user_id');
+    const displayName = searchParams.get('display_name');
+    const pictureUrl = searchParams.get('picture_url');
+
+    if (lineUserId && user) {
+      // 有 LINE 資料，執行綁定
+      const doBind = async () => {
+        try {
+          await bindLine({
+            line_user_id: lineUserId,
+            display_name: displayName || '',
+            picture_url: pictureUrl || '',
+          });
+          // 清除 URL 參數
+          window.history.replaceState({}, '', window.location.pathname);
+          alert('LINE 帳號綁定成功！');
+        } catch (err) {
+          alert(err.response?.data?.detail || 'LINE 綁定失敗');
+        }
+      };
+      doBind();
+    }
+  }, [searchParams, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -306,6 +335,9 @@ const ProfilePage = () => {
 
         {/* 信用卡管理區域 - 僅顧客端顯示 */}
         {user.user_type === 'customer' && <PaymentCards />}
+
+        {/* LINE 綁定區塊 - 僅顧客端顯示 */}
+        {user.user_type === 'customer' && <LineBinding />}
 
         {/* 加入公司區塊 - 僅顧客端顯示 */}
         {user.user_type === 'customer' && (

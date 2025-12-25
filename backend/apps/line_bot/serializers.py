@@ -5,25 +5,22 @@ from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage
 class StoreLineBotConfigSerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.name', read_only=True)
     has_line_config = serializers.BooleanField(read_only=True)
-    has_ai_config = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = StoreLineBotConfig
         fields = [
             'id', 'store', 'store_name',
             'line_channel_access_token', 'line_channel_secret',
-            'ai_provider', 'ai_api_key', 'ai_model',
-            'ai_temperature', 'ai_max_tokens',
+            'invitation_url',
             'custom_system_prompt', 'welcome_message',
             'enable_ai_reply', 'enable_conversation_history',
-            'is_active', 'has_line_config', 'has_ai_config',
+            'is_active', 'has_line_config',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at', 'invitation_url']
         extra_kwargs = {
             'line_channel_access_token': {'write_only': True},
             'line_channel_secret': {'write_only': True},
-            'ai_api_key': {'write_only': True},
         }
 
 

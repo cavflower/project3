@@ -25,28 +25,32 @@ const processQueue = (error, token = null) => {
 // 根據 URL 路徑和 HTTP 方法判斷使用哪個用戶類型的 token
 const getUserTypeFromUrl = (url, method = 'get') => {
   if (!url) return null;
-  
+
   // 登入和註冊相關的 API 不需要 token
   if (url.includes('/users/token/') || url.includes('/users/register/')) {
     return null; // 返回 null 表示不需要 token
   }
-  
+
   // 商家端 API 路徑 (/api/merchant/...)，使用 merchant token
   if (url.includes('/merchant/')) {
     return 'merchant';
   }
-  
+
 
   // LINE BOT 相關 API，使用 merchant token
   if (url.includes('/line-bot/')) {
     return 'merchant';
   }
-  
+
   // 推薦系統相關 API，使用 customer token
+  // 財務分析相關 API，使用 merchant token
   if (url.includes('/intelligence/')) {
+    if (url.includes('/financial/')) {
+      return 'merchant';
+    }
     return 'customer';
   }
-  
+
 
   // /users/me/ 需要根據當前頁面路徑判斷
   if (url.includes('/users/me/')) {
@@ -56,12 +60,12 @@ const getUserTypeFromUrl = (url, method = 'get') => {
     }
     return 'customer';
   }
-  
+
   // 信用卡管理相關 API，使用 customer token（僅顧客端使用）
   if (url.includes('/users/payment-cards')) {
     return 'customer';
   }
-  
+
   // 評論相關 API，根據當前頁面路徑判斷
   if (url.includes('/reviews/')) {
     const path = window.location.pathname;
@@ -79,7 +83,7 @@ const getUserTypeFromUrl = (url, method = 'get') => {
   if (url.includes('/inventory/')) {
     return 'merchant';
   }
-  
+
   // 排班管理相關的 API
   if (url.includes('/schedules/')) {
     // 員工排班申請相關 API
@@ -104,7 +108,7 @@ const getUserTypeFromUrl = (url, method = 'get') => {
     // 其他排班管理 API 使用 merchant token（店家管理用）
     return 'merchant';
   }
-  
+
   // 如果是店家相關的 API，使用 merchant token（除了 published 和 retrieve API）
   // retrieve API 是 GET /stores/{id}/，用於查看已上架店家的詳細資訊，不需要 token
   if (url.includes('/stores/') && !url.includes('/stores/published/')) {
@@ -125,7 +129,7 @@ const getUserTypeFromUrl = (url, method = 'get') => {
     return 'merchant';
   }
 
-  
+
   // 其他情況使用 customer token
   return 'customer';
 };
@@ -210,25 +214,25 @@ api.interceptors.response.use(
 
       // 根據請求 URL 和 HTTP 方法判斷使用哪個用戶類型的 token
       const userType = getUserTypeFromUrl(originalRequest.url, originalRequest.method);
-      
+
       console.log('[api] 401 error, attempting token refresh for userType:', userType);
       console.log('[api] Original request URL:', originalRequest.url);
-      
+
       // 如果這個 API 不需要 token，直接返回錯誤
       if (userType === null) {
         console.log('[api] This API does not require token, rejecting');
         isRefreshing = false;
         return Promise.reject(error);
       }
-      
+
       const finalUserType = userType || 'customer';
       const refreshTokenKey = `${finalUserType}_refreshToken`;
       const accessTokenKey = `${finalUserType}_accessToken`;
       const refreshToken = localStorage.getItem(refreshTokenKey);
-      
+
       console.log('[api] Refresh token key:', refreshTokenKey);
       console.log('[api] Refresh token exists:', !!refreshToken);
-      
+
       if (!refreshToken) {
         // 沒有 refresh token，清除該用戶類型的 token 並導向登入
         console.error('[api] No refresh token found, redirecting to login');
@@ -247,27 +251,27 @@ api.interceptors.response.use(
         const refreshAxios = axios.create({
           baseURL: 'http://127.0.0.1:8000/api',
         });
-        
+
         const response = await refreshAxios.post('/users/token/refresh/', {
           refresh: refreshToken
         });
 
         const { access } = response.data;
-        
+
         if (!access) {
           throw new Error('No access token in refresh response');
         }
-        
+
         // 更新對應用戶類型的 localStorage
         localStorage.setItem(accessTokenKey, access);
-        
+
         // 更新原始請求的 header
         originalRequest.headers['Authorization'] = `Bearer ${access}`;
-        
+
         // 處理等待隊列
         processQueue(null, access);
         isRefreshing = false;
-        
+
         // 重新發送原始請求
         return api(originalRequest);
       } catch (refreshError) {

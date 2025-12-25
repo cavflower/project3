@@ -58,27 +58,31 @@ def webhook(request):
     if request.method in ['GET', 'HEAD']:
         return HttpResponse(status=200)
     
-    # 從資料庫取得第一個啟用的店家配置（用於簽名驗證）
+    # 優先從 platform_settings 取得 Channel Secret
     try:
-        bot_config = StoreLineBotConfig.objects.filter(is_active=True).first()
-        if not bot_config:
-            if settings.DEBUG:
-                print("[LINE Webhook] No active StoreLineBotConfig found!")
-            return HttpResponse(status=403)
+        from apps.intelligence.models import PlatformSettings
+        platform_settings = PlatformSettings.get_settings()
+        channel_secret = platform_settings.line_bot_channel_secret
         
-        channel_secret = bot_config.line_channel_secret
         if not channel_secret:
+            # Fallback: 從第一個啟用的店家配置取得
+            bot_config = StoreLineBotConfig.objects.filter(is_active=True).first()
+            if bot_config and bot_config.line_channel_secret:
+                channel_secret = bot_config.line_channel_secret
+                if settings.DEBUG:
+                    print(f"[LINE Webhook] Using channel secret from store config (length: {len(channel_secret)})")
+            else:
+                if settings.DEBUG:
+                    print("[LINE Webhook] No channel secret found in platform_settings or store_config!")
+                return HttpResponse(status=200)  # Return 200 for LINE verification
+        else:
             if settings.DEBUG:
-                print("[LINE Webhook] Channel Secret is empty in database!")
-            return HttpResponse(status=403)
-            
-        if settings.DEBUG:
-            print(f"[LINE Webhook] Using channel secret from database (length: {len(channel_secret)})")
+                print(f"[LINE Webhook] Using channel secret from platform_settings (length: {len(channel_secret)})")
             
     except Exception as e:
         if settings.DEBUG:
             print(f"[LINE Webhook] Error getting config: {e}")
-        return HttpResponse(status=403)
+        return HttpResponse(status=200)  # Return 200 for LINE verification
     
     # 驗證簽名
     signature = request.headers.get('X-Line-Signature', '')
@@ -113,31 +117,33 @@ def webhook(request):
         return HttpResponse(status=500)
 
 
-def handle_event(event: dict):
+def handle_event(event: dict, store_id: int = None):
     """
     處理單一 LINE 事件
     
     Args:
         event: LINE 事件物件
+        store_id: 店家 ID（如果是店家專屬 webhook 會傳入）
     """
     event_type = event.get('type')
     
     if event_type == 'message':
-        handle_message_event(event)
+        handle_message_event(event, store_id)
     elif event_type == 'follow':
-        handle_follow_event(event)
+        handle_follow_event(event, store_id)
     elif event_type == 'unfollow':
         handle_unfollow_event(event)
     elif event_type == 'postback':
         handle_postback_event(event)
 
 
-def handle_message_event(event: dict):
+def handle_message_event(event: dict, store_id: int = None):
     """
     處理訊息事件
     
     Args:
         event: LINE 訊息事件
+        store_id: 店家 ID（如果是店家專屬 webhook 會傳入）
     """
     message = event.get('message', {})
     message_type = message.get('type')
@@ -150,14 +156,41 @@ def handle_message_event(event: dict):
     user_message = message.get('text', '')
     reply_token = event.get('replyToken')
     
-    # 簡化版：使用第一個啟用的店家配置
-    # 未來可以透過 Channel ID 或其他方式識別多店家
     try:
-        # 取得第一個啟用的店家配置
-        bot_config = StoreLineBotConfig.objects.filter(is_active=True).first()
-        
-        if not bot_config:
-            raise StoreLineBotConfig.DoesNotExist
+        if store_id:
+            # 店家專屬 webhook：使用指定店家的設定
+            bot_config = StoreLineBotConfig.objects.filter(store_id=store_id, is_active=True).first()
+            if not bot_config:
+                raise StoreLineBotConfig.DoesNotExist
+        else:
+            # 平台級 webhook：使用平台設定發送通用回覆
+            from apps.intelligence.models import PlatformSettings
+            platform_settings = PlatformSettings.get_settings()
+            
+            if settings.DEBUG:
+                print(f"[LINE Webhook] Platform webhook - Message: {user_message}")
+            
+            # 使用平台自訂的歡迎訊息或預設回覆
+            if platform_settings.line_bot_welcome_message:
+                platform_reply = platform_settings.line_bot_welcome_message
+            else:
+                platform_reply = """歡迎使用 DineVerse！🍽️
+
+感謝您的訊息！
+
+如需更多協助，請直接加入各餐廳的官方帳號，即可獲得專屬服務。
+
+祝您用餐愉快！"""
+            
+            # 使用平台設定的 LINE API
+            temp_line_api = LineMessagingAPI()
+            temp_line_api.channel_access_token = platform_settings.line_bot_channel_access_token
+            messages = [temp_line_api.create_text_message(platform_reply)]
+            temp_line_api.reply_message(reply_token, messages)
+            
+            if settings.DEBUG:
+                print(f"[LINE Webhook] Platform reply: {platform_reply[:50]}...")
+            return
         
         store = bot_config.store
         
@@ -236,48 +269,69 @@ def handle_message_event(event: dict):
         temp_line_api.reply_message(reply_token, messages)
 
 
-def handle_follow_event(event: dict):
+def handle_follow_event(event: dict, store_id: int = None):
     """
     處理用戶加入好友事件
     
     Args:
         event: LINE follow 事件
+        store_id: 店家 ID（如果是店家專屬 webhook 會傳入）
     """
     line_user_id = event['source']['userId']
     reply_token = event.get('replyToken')
     
-    # 取得第一個啟用的店家配置
     try:
-        bot_config = StoreLineBotConfig.objects.filter(is_active=True).first()
-        
-        if bot_config and bot_config.line_channel_access_token:
-            # 使用店家專屬的 LINE API
-            line_api = LineMessagingAPI(bot_config)
+        if store_id:
+            # 店家專屬 webhook：使用指定店家的設定
+            bot_config = StoreLineBotConfig.objects.filter(store_id=store_id, is_active=True).first()
             
-            # 使用店家自訂的歡迎訊息，若無則使用預設訊息
-            if bot_config.welcome_message:
-                welcome_text = bot_config.welcome_message
-            else:
-                welcome_text = f"""歡迎加入 {bot_config.store.name}！👋
+            if bot_config and bot_config.line_channel_access_token:
+                line_api = LineMessagingAPI(bot_config)
+                
+                if bot_config.welcome_message:
+                    welcome_text = bot_config.welcome_message
+                else:
+                    welcome_text = f"""歡迎加入 {bot_config.store.name}！👋
 
 感謝您成為我們的好友！
 
 有任何問題都可以直接詢問我，我會盡力為您解答。"""
-            
-            if settings.DEBUG:
-                print(f"[LINE Follow] Store: {bot_config.store.name}")
-                print(f"[LINE Follow] Welcome message: {welcome_text[:50]}...")
-        else:
-            # 沒有啟用的店家配置，使用全域配置
-            line_api = LineMessagingAPI()
-            welcome_text = """歡迎加入 DineVerse！👋
+                
+                if settings.DEBUG:
+                    print(f"[LINE Follow] Store: {bot_config.store.name}")
+                    print(f"[LINE Follow] Welcome message: {welcome_text[:50]}...")
+            else:
+                # 店家未設定，使用預設訊息
+                line_api = LineMessagingAPI()
+                welcome_text = """歡迎加入！👋
 
 感謝您成為我們的好友！"""
+        else:
+            # 平台級 webhook：使用平台設定
+            from apps.intelligence.models import PlatformSettings
+            platform_settings = PlatformSettings.get_settings()
+            
+            line_api = LineMessagingAPI()
+            line_api.channel_access_token = platform_settings.line_bot_channel_access_token
+            
+            # 使用平台自訂的歡迎訊息
+            if platform_settings.line_bot_welcome_message:
+                welcome_text = platform_settings.line_bot_welcome_message
+            else:
+                welcome_text = """歡迎加入 DineVerse！🍽️
+
+我是 DineVerse 平台助手。
+
+如需餐廳相關服務，請直接加入各餐廳的官方帳號，即可獲得專屬服務。
+
+祝您用餐愉快！"""
+            
+            if settings.DEBUG:
+                print(f"[LINE Follow] Platform welcome message: {welcome_text[:50]}...")
             
     except Exception as e:
         if settings.DEBUG:
             print(f"[LINE Follow] Error: {e}")
-        # 發生錯誤時使用全域配置
         line_api = LineMessagingAPI()
         welcome_text = """歡迎加入 DineVerse！👋
 
@@ -557,3 +611,103 @@ class StoreLineBotConfigViewSet(viewsets.ModelViewSet):
             raise PermissionError('您沒有權限修改此店家的 LINE BOT 設定')
         serializer.save()
 
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def admin_store_line_config(request, store_id):
+    """
+    管理員設定店家 LINE BOT（GET 取得設定，POST 更新設定）
+    """
+    # 驗證管理員權限
+    is_admin = request.headers.get('X-Admin-Auth') == 'true'
+    if not is_admin:
+        return JsonResponse({'detail': '需要管理員權限'}, status=403)
+    
+    # 取得店家
+    try:
+        store = Store.objects.get(pk=store_id)
+    except Store.DoesNotExist:
+        return JsonResponse({'detail': '店家不存在'}, status=404)
+    
+    # 取得或建立 LINE BOT 設定
+    config, created = StoreLineBotConfig.objects.get_or_create(store=store)
+    
+    if request.method == 'GET':
+        return JsonResponse({
+            'store_id': store.id,
+            'store_name': store.name,
+            'line_channel_access_token_set': bool(config.line_channel_access_token),
+            'line_channel_secret_set': bool(config.line_channel_secret),
+            'invitation_url': config.invitation_url,
+            'is_active': config.is_active,
+            'welcome_message': config.welcome_message,
+            'webhook_url': f'/api/line-bot/webhook/{store.id}/',
+        })
+    
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'detail': '無效的 JSON'}, status=400)
+        
+        # 更新設定（管理員可設定的欄位）
+        if 'line_channel_access_token' in data and data['line_channel_access_token']:
+            config.line_channel_access_token = data['line_channel_access_token']
+        if 'line_channel_secret' in data and data['line_channel_secret']:
+            config.line_channel_secret = data['line_channel_secret']
+        if 'invitation_url' in data:
+            config.invitation_url = data.get('invitation_url', '')
+        
+        config.save()
+        
+        return JsonResponse({
+            'message': 'LINE BOT 設定已更新',
+            'store_id': store.id,
+            'has_line_config': config.has_line_config(),
+        })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def webhook_by_store(request, store_id):
+    """
+    指定店家的 LINE Webhook 端點
+    用於接收來自特定店家 LINE Channel 的事件
+    """
+    try:
+        store = Store.objects.get(pk=store_id)
+        config = StoreLineBotConfig.objects.get(store=store)
+    except (Store.DoesNotExist, StoreLineBotConfig.DoesNotExist):
+        # 即使沒有設定，也回傳 200 給 LINE 驗證
+        return JsonResponse({'status': 'ok'})
+    
+    # 如果沒有設定 channel secret，直接回傳 200（用於 LINE 驗證）
+    if not config.line_channel_secret:
+        return JsonResponse({'status': 'ok'})
+    
+    # 驗證簽名
+    signature = request.headers.get('X-Line-Signature', '')
+    if signature and not verify_signature(request.body, signature, config.line_channel_secret):
+        return HttpResponse('Invalid signature', status=403)
+    
+    # 處理事件
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        events = body.get('events', [])
+        
+        # 如果沒有事件（LINE 驗證請求），直接回傳 200
+        if not events:
+            return JsonResponse({'status': 'ok'})
+        
+        # 檢查是否啟用
+        if not config.is_active:
+            return JsonResponse({'status': 'ok', 'message': 'Bot is disabled'})
+        
+        for event in events:
+            handle_event(event, store_id)
+        
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        print(f"[LINE BOT] Error handling webhook for store {store_id}: {e}")
+        # 即使有錯誤也回傳 200，避免 LINE 重試
+        return JsonResponse({'status': 'ok'})

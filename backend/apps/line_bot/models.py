@@ -6,13 +6,9 @@ from apps.stores.models import Store
 class StoreLineBotConfig(models.Model):
     """
     店家 LINE BOT 配置模型
-    每個店家可以有自己的 LINE Channel 和 AI 設定
+    每個店家可以有自己的 LINE Channel（由平台管理員設定）
+    AI 服務使用平台統一設定
     """
-    AI_PROVIDER_CHOICES = [
-        ('gemini', 'Google Gemini'),
-        ('openai', 'OpenAI GPT'),
-        ('groq', 'Groq'),
-    ]
     
     store = models.OneToOneField(
         Store,
@@ -21,7 +17,7 @@ class StoreLineBotConfig(models.Model):
         verbose_name='所屬店家'
     )
     
-    # LINE Messaging API 設定
+    # LINE Messaging API 設定（由管理員設定）
     line_channel_access_token = models.CharField(
         max_length=500,
         blank=True,
@@ -35,44 +31,22 @@ class StoreLineBotConfig(models.Model):
         help_text='從 LINE Developers Console 取得'
     )
     
-    # AI 設定
-    ai_provider = models.CharField(
-        max_length=20,
-        choices=AI_PROVIDER_CHOICES,
-        default='gemini',
-        verbose_name='AI 服務提供商'
-    )
-    ai_api_key = models.CharField(
+    # LINE 官方帳號操作權限邀請網址（由管理員設定）
+    invitation_url = models.URLField(
         max_length=500,
         blank=True,
-        verbose_name='AI API Key',
-        help_text='Google AI Studio、OpenAI 或 Groq API Key'
-    )
-    ai_model = models.CharField(
-        max_length=100,
-        default='gemini-1.5-flash',
-        verbose_name='AI 模型',
-        help_text='例如: gemini-1.5-flash, gemini-1.5-pro, gpt-4o-mini'
-    )
-    ai_temperature = models.FloatField(
-        default=0.7,
-        verbose_name='AI 溫度參數',
-        help_text='控制回覆的隨機性，0-1之間，越高越隨機'
-    )
-    ai_max_tokens = models.IntegerField(
-        default=500,
-        verbose_name='最大 Token 數',
-        help_text='限制 AI 回覆的長度'
+        verbose_name='操作權限邀請網址',
+        help_text='從 LINE Official Account Manager 取得的操作權限邀請網址'
     )
     
-    # 系統提示詞自訂
+    # 系統提示詞自訂（店家設定）
     custom_system_prompt = models.TextField(
         blank=True,
         verbose_name='自訂系統提示詞',
         help_text='留空則使用預設提示詞'
     )
     
-    # 歡迎訊息設定
+    # 歡迎訊息設定（店家設定）
     welcome_message = models.TextField(
         blank=True,
         default='',
@@ -80,7 +54,7 @@ class StoreLineBotConfig(models.Model):
         help_text='用戶加入好友時自動發送的歡迎訊息，留空則使用預設訊息'
     )
     
-    # 功能開關
+    # 功能開關（店家設定）
     enable_ai_reply = models.BooleanField(
         default=True,
         verbose_name='啟用 AI 智能回覆',
@@ -92,7 +66,7 @@ class StoreLineBotConfig(models.Model):
         help_text='AI 是否參考先前的對話內容'
     )
     
-    # 狀態
+    # 狀態（店家設定）
     is_active = models.BooleanField(
         default=False,
         verbose_name='啟用 LINE BOT',
@@ -113,10 +87,6 @@ class StoreLineBotConfig(models.Model):
     def has_line_config(self):
         """檢查是否已設定 LINE Channel"""
         return bool(self.line_channel_access_token and self.line_channel_secret)
-    
-    def has_ai_config(self):
-        """檢查是否已設定 AI"""
-        return bool(self.ai_api_key)
 
 
 class LineUserBinding(models.Model):

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FaChartLine, 
-  FaCalendarAlt, 
-  FaFileExport, 
+import {
+  FaChartLine,
+  FaCalendarAlt,
+  FaFileExport,
   FaShoppingCart,
   FaDollarSign,
   FaUtensils,
@@ -10,6 +10,7 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaDownload,
+  FaRobot,
 } from 'react-icons/fa';
 import {
   BarChart,
@@ -32,6 +33,7 @@ import autoTable from 'jspdf-autotable';
 import api from '../../../api/api';
 import { getMyStore } from '../../../api/storeApi';
 import { getProducts } from '../../../api/productApi';
+import { getAIReport } from '../../../api/financialApi';
 import './FinancialReportPage.css';
 
 const FinancialReportPage = () => {
@@ -55,6 +57,26 @@ const FinancialReportPage = () => {
   });
 
   const [loading, setLoading] = useState(false);
+
+  // AI 分析狀態
+  const [aiLoading, setAILoading] = useState(false);
+  const [aiReport, setAIReport] = useState(null);
+  const [aiError, setAIError] = useState(null);
+
+  // 生成 AI 報告
+  const handleGenerateAIReport = async () => {
+    try {
+      setAILoading(true);
+      setAIError(null);
+      const data = await getAIReport({ period: 'week' });
+      setAIReport(data.ai_analysis);
+    } catch (err) {
+      console.error('AI 分析失敗:', err);
+      setAIError('無法生成 AI 分析報告，請稍後再試');
+    } finally {
+      setAILoading(false);
+    }
+  };
 
   // 模擬載入報表資料
   useEffect(() => {
@@ -103,12 +125,12 @@ const FinancialReportPage = () => {
         try {
           const ordersRes = await api.get('/orders/list/', { params: { store_id: storeId } });
           orders = ordersRes.data || [];
-          
+
           // 過濾日期範圍內的訂單
           const startDate = new Date(dateRange.startDate);
           const endDate = new Date(dateRange.endDate);
           endDate.setHours(23, 59, 59, 999); // 包含結束日期全天
-          
+
           orders = orders.filter(order => {
             const createdAt = new Date(order.created_at);
             return createdAt >= startDate && createdAt <= endDate;
@@ -132,7 +154,7 @@ const FinancialReportPage = () => {
         const dailyStats = {};
         const start = new Date(dateRange.startDate);
         const end = new Date(dateRange.endDate);
-        
+
         // 初始化所有日期
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
           const month = d.getMonth() + 1;
@@ -140,14 +162,14 @@ const FinancialReportPage = () => {
           const weekday = d.toLocaleDateString('zh-TW', { weekday: 'short' });
           const dayName = `${month}/${day} ${weekday}`;
           const dateKey = d.toISOString().split('T')[0];
-          
+
           dailyStats[dateKey] = {
             date: dayName,
             revenue: 0,
             orders: 0,
           };
         }
-        
+
         // 計算商品銷售統計
         const productStats = {};
         const channelStats = {
@@ -159,30 +181,34 @@ const FinancialReportPage = () => {
 
         orders.forEach(order => {
           let orderTotal = 0;
-          
+
           // 計算每個訂單的商品統計
           if (order.items && Array.isArray(order.items)) {
             order.items.forEach(item => {
               const productId = item.product_id || item.product;
               const quantity = item.quantity || 0;
-              const price = productPriceMap[productId] || 120;
+              // 優先使用訂單項目的 unit_price，其次使用商品價格對照表
+              const price = item.unit_price || productPriceMap[productId] || 120;
               const itemRevenue = price * quantity;
-              
-              if (!productStats[productId]) {
+
+              // 用商品名稱作為 key（如果沒有 productId）
+              const statKey = productId || item.product_name || '未知商品';
+
+              if (!productStats[statKey]) {
                 const product = products.find(p => p.id === productId);
-                productStats[productId] = {
-                  name: product?.name || product?.title || `商品 ${productId}`,
+                productStats[statKey] = {
+                  name: item.product_name || product?.name || product?.title || `商品 ${productId}`,
                   quantity: 0,
                   revenue: 0,
                 };
               }
-              
-              productStats[productId].quantity += quantity;
-              productStats[productId].revenue += itemRevenue;
+
+              productStats[statKey].quantity += quantity;
+              productStats[statKey].revenue += itemRevenue;
               orderTotal += itemRevenue;
             });
           }
-          
+
           // 累計通路統計
           const channel = order.service_channel || order.channel || 'takeout';
           if (channelStats[channel]) {
@@ -193,7 +219,7 @@ const FinancialReportPage = () => {
             channelStats['takeout'].value += orderTotal;
             channelStats['takeout'].orders += 1;
           }
-          
+
           // 累計每日營收
           const orderDate = new Date(order.created_at);
           const dateKey = orderDate.toISOString().split('T')[0];
@@ -201,7 +227,7 @@ const FinancialReportPage = () => {
             dailyStats[dateKey].revenue += orderTotal;
             dailyStats[dateKey].orders += 1;
           }
-          
+
           totalRevenue += orderTotal;
         });
 
@@ -219,7 +245,7 @@ const FinancialReportPage = () => {
         channelRevenue.forEach(c => {
           c.percentage = Math.round((c.value / channelTotalRevenue) * 100);
         });
-        
+
         // 轉換每日營收為陣列
         dailyRevenue = Object.values(dailyStats).sort((a, b) => {
           // 依日期排序
@@ -248,7 +274,7 @@ const FinancialReportPage = () => {
         productSales,
         channelRevenue,
       });
-      
+
       setLoading(false);
     } catch (error) {
       console.error('載入報表資料失敗', error);
@@ -335,24 +361,24 @@ const FinancialReportPage = () => {
   // 匯出 PDF
   const exportToPDF = () => {
     const doc = new jsPDF();
-    
+
     // 設定中文字型（使用內建字型）
     doc.setFont('helvetica');
-    
+
     // 標題
     doc.setFontSize(20);
     doc.text('Financial Report', 105, 15, { align: 'center' });
-    
+
     doc.setFontSize(12);
     doc.text(`Period: ${dateRange.startDate} - ${dateRange.endDate}`, 105, 25, { align: 'center' });
-    
+
     let yPos = 35;
 
     // 1. 營收摘要
     doc.setFontSize(14);
     doc.text('Revenue Summary', 14, yPos);
     yPos += 10;
-    
+
     autoTable(doc, {
       startY: yPos,
       head: [['Metric', 'Value']],
@@ -366,14 +392,14 @@ const FinancialReportPage = () => {
       headStyles: { fillColor: [232, 107, 44] },
       margin: { left: 14 },
     });
-    
+
     yPos = doc.lastAutoTable.finalY + 15;
 
     // 2. 商品銷售分析
     doc.setFontSize(14);
     doc.text('Product Sales Analysis', 14, yPos);
     yPos += 10;
-    
+
     autoTable(doc, {
       startY: yPos,
       head: [['Product', 'Quantity', 'Revenue (NT$)', 'Share (%)']],
@@ -387,7 +413,7 @@ const FinancialReportPage = () => {
       headStyles: { fillColor: [232, 107, 44] },
       margin: { left: 14 },
     });
-    
+
     yPos = doc.lastAutoTable.finalY + 15;
 
     // 如果需要換頁
@@ -400,7 +426,7 @@ const FinancialReportPage = () => {
     doc.setFontSize(14);
     doc.text('Channel Revenue Analysis', 14, yPos);
     yPos += 10;
-    
+
     autoTable(doc, {
       startY: yPos,
       head: [['Channel', 'Revenue (NT$)', 'Orders', 'Share (%)']],
@@ -470,14 +496,14 @@ const FinancialReportPage = () => {
         </div>
 
         <div className="export-buttons">
-          <button 
+          <button
             className="export-btn excel-btn"
             onClick={() => handleExportReport('excel')}
           >
             <FaFileExport />
             匯出 Excel
           </button>
-          <button 
+          <button
             className="export-btn pdf-btn"
             onClick={() => handleExportReport('pdf')}
           >
@@ -550,37 +576,37 @@ const FinancialReportPage = () => {
                 <ResponsiveContainer width="100%" height={350}>
                   <LineChart data={reportData.dailyRevenue}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="date" 
+                    <XAxis
+                      dataKey="date"
                       stroke="#6c757d"
                       style={{ fontSize: '0.85rem' }}
                     />
-                    <YAxis 
-                    stroke="#6c757d"
-                    style={{ fontSize: '0.85rem' }}
-                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'white',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                    }}
-                    formatter={(value) => [`${formatCurrency(value)}`, '營收']}
-                  />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    name="營收"
-                    stroke="#e86b2c" 
-                    strokeWidth={3}
-                    dot={{ fill: '#e86b2c', r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+                    <YAxis
+                      stroke="#6c757d"
+                      style={{ fontSize: '0.85rem' }}
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'white',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                      formatter={(value) => [`${formatCurrency(value)}`, '營收']}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      name="營收"
+                      stroke="#e86b2c"
+                      strokeWidth={3}
+                      dot={{ fill: '#e86b2c', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               ) : (
                 <div className="empty-state">
                   <FaChartLine style={{ fontSize: '3rem', color: '#ccc', marginBottom: '1rem' }} />
@@ -602,70 +628,70 @@ const FinancialReportPage = () => {
                 <div className="chart-container">
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={reportData.productSales}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#6c757d"
-                      style={{ fontSize: '0.85rem' }}
-                      angle={-15}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis 
-                      stroke="#6c757d"
-                      style={{ fontSize: '0.85rem' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'white',
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                      }}
-                      formatter={(value, name) => {
-                        if (name === '營收') return [formatCurrency(value), name];
-                        return [value, name];
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="quantity" name="銷售數量" fill="#ffb07a" />
-                    <Bar dataKey="revenue" name="營收" fill="#e86b2c" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#6c757d"
+                        style={{ fontSize: '0.85rem' }}
+                        angle={-15}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis
+                        stroke="#6c757d"
+                        style={{ fontSize: '0.85rem' }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: 'white',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                        formatter={(value, name) => {
+                          if (name === '營收') return [formatCurrency(value), name];
+                          return [value, name];
+                        }}
+                      />
+                      <Legend />
+                      <Bar dataKey="quantity" name="銷售數量" fill="#ffb07a" />
+                      <Bar dataKey="revenue" name="營收" fill="#e86b2c" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
 
-              <div className="product-table">
-                <h3>銷售明細</h3>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>商品名稱</th>
-                      <th>銷售數量</th>
-                      <th>營收</th>
-                      <th>佔比</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.productSales.map((product, index) => (
-                      <tr key={index}>
-                        <td className="product-name">{product.name}</td>
-                        <td>{product.quantity}</td>
-                        <td className="revenue-value">{formatCurrency(product.revenue)}</td>
-                        <td>
-                          <div className="percentage-bar">
-                            <div 
-                              className="percentage-fill" 
-                              style={{ width: `${product.percentage}%` }}
-                            ></div>
-                            <span>{product.percentage}%</span>
-                          </div>
-                        </td>
+                <div className="product-table">
+                  <h3>銷售明細</h3>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>商品名稱</th>
+                        <th>銷售數量</th>
+                        <th>營收</th>
+                        <th>佔比</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {reportData.productSales.map((product, index) => (
+                        <tr key={index}>
+                          <td className="product-name">{product.name}</td>
+                          <td>{product.quantity}</td>
+                          <td className="revenue-value">{formatCurrency(product.revenue)}</td>
+                          <td>
+                            <div className="percentage-bar">
+                              <div
+                                className="percentage-fill"
+                                style={{ width: `${product.percentage}%` }}
+                              ></div>
+                              <span>{product.percentage}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
             ) : (
               <div className="empty-state">
                 <FaShoppingCart style={{ fontSize: '3rem', color: '#ccc', marginBottom: '1rem' }} />
@@ -700,8 +726,8 @@ const FinancialReportPage = () => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
+                      <Tooltip
+                        contentStyle={{
                           background: 'white',
                           border: '1px solid #e0e0e0',
                           borderRadius: '8px',
@@ -716,8 +742,8 @@ const FinancialReportPage = () => {
                 <div className="channel-cards">
                   {reportData.channelRevenue.map((channel, index) => (
                     <div key={index} className="channel-card">
-                      <div 
-                        className="channel-indicator" 
+                      <div
+                        className="channel-indicator"
                         style={{ background: COLORS[index % COLORS.length] }}
                       ></div>
                       <div className="channel-info">
@@ -739,6 +765,49 @@ const FinancialReportPage = () => {
                 <p style={{ fontSize: '0.9rem', color: '#888' }}>開始接受訂單後，這裡將顯示各通路營收分析</p>
               </div>
             )}
+          </div>
+
+          {/* AI 智能分析區塊 */}
+          <div className="chart-section ai-section">
+            <div className="section-header">
+              <h2><FaRobot style={{ marginRight: '8px' }} /> AI 智能分析</h2>
+              <p>讓 AI 為您分析銷售數據並提供經營建議</p>
+            </div>
+            <div className="ai-analysis-content">
+              {aiError && (
+                <div className="ai-error">
+                  {aiError}
+                </div>
+              )}
+              {aiReport ? (
+                <div className="ai-report-result">
+                  <div className="ai-report-text">
+                    {aiReport}
+                  </div>
+                  <button
+                    className="ai-regenerate-btn"
+                    onClick={handleGenerateAIReport}
+                    disabled={aiLoading}
+                  >
+                    <FaRobot />
+                    {aiLoading ? '分析中...' : '重新分析'}
+                  </button>
+                </div>
+              ) : (
+                <div className="ai-placeholder">
+                  <FaRobot className="ai-icon" />
+                  <p>點擊下方按鈕，讓 AI 為您分析近期的營業數據</p>
+                  <button
+                    className="ai-generate-btn"
+                    onClick={handleGenerateAIReport}
+                    disabled={aiLoading}
+                  >
+                    <FaRobot />
+                    {aiLoading ? '分析中...' : '生成 AI 分析報告'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}

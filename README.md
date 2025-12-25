@@ -9,7 +9,7 @@ npm install react-icons
 npm install qrcode.react
 npm install recharts
 npm install xlsx jspdf jspdf-autotable
-npm install @mui/material @emotion/react @emotion/styled
+npm install @mui/material @emotion/react @emotion/styled @mui/icons-material
 
 
 步驟 3：設定環境變數
@@ -37,11 +37,6 @@ pip install groq(可選)
 步驟 5：設定環境變數
 在 backend 資料夾中，手動建立一個名為 .env 的檔案。
 在 backend 資料夾手動建立serviceAccountKey.json檔案然後複製那一長串(在DC)
-
-**重要提示：LINE BOT 設定**
-- LINE BOT 的所有設定（Channel Access Token、Channel Secret、AI API Key）都從前端網頁設定
-- 不需要在 .env 檔案中設定 LINE 相關參數
-- 前往 `/merchant/line-bot` 頁面完成設定
 
 步驟 6：執行資料庫遷移 (Database Migrations)
 python manage.py migrate

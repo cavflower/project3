@@ -89,7 +89,7 @@ const Sidebar = ({ isOpen }) => {
           <li><Link to="/customer/loyalty">🌟 我的會員</Link></li>
           <li><Link to="/reviews">💬 我的評論</Link></li>
           {user?.company_tax_id && (
-            <li><Link to="/layout-application">📐 排版申請</Link></li>
+            <li><Link to="/layout-application">👨‍🍳 排班申請</Link></li>
           )}
         </ul>
       </aside>

@@ -55,11 +55,13 @@ import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSett
 import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
 import OrderManagementPage from './features/merchant_dashboard/order_management/OrderManagementPage';
 import FinancialReportPage from './features/merchant_dashboard/financial_report/FinancialReportPage';
+import AIFinancialReport from './features/merchant_dashboard/AIFinancialReport';
 import LineBotFAQManagement from './features/line_bot/LineBotFAQManagement';
 import LineBotSettings from './components/merchant/linebot/LineBotSettings';
 import LayoutApplicationPage from './features/layout_application/LayoutApplicationPage';
 import MyReviewsPage from './features/reviews/MyReviewsPage';
 import ErrorBoundary from './features/layout_application/ErrorBoundary';
+import LineCallbackPage from './features/line_callback/LineCallbackPage';
 
 
 
@@ -196,6 +198,9 @@ function App() {
             {/* 訪客查詢訂單 */}
             <Route path="/order-lookup" element={<GuestOrderLookup />} />
 
+            {/* LINE Login 回調頁面 */}
+            <Route path="/line-callback" element={<LineCallbackPage />} />
+
             {/* 我的訂位頁面（訪客也可查看）*/}
             <Route path="/my-reservations" element={<MyReservationsPage />} />
 
@@ -238,6 +243,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProductManagementPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* AI 財務報表分析頁面路由 */}
+            <Route
+              path="/merchant/ai-report"
+              element={
+                <ProtectedRoute>
+                  <AIFinancialReport />
                 </ProtectedRoute>
               }
             />

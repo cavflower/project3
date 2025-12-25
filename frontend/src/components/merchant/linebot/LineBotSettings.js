@@ -10,13 +10,8 @@ import {
   Grid,
   Switch,
   FormControlLabel,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Divider,
   CircularProgress,
-  Stack,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../store/AuthContext';
@@ -41,11 +36,6 @@ const LineBotSettings = () => {
     store: null,
     line_channel_access_token: '',
     line_channel_secret: '',
-    ai_provider: 'gemini',
-    ai_api_key: '',
-    ai_model: 'gemini-1.5-flash',
-    ai_temperature: 0.7,
-    ai_max_tokens: 500,
     custom_system_prompt: '',
     welcome_message: '',
     enable_ai_reply: true,
@@ -62,7 +52,7 @@ const LineBotSettings = () => {
           setLoading(false);
           return;
         }
-        
+
         const response = await getMyStore();
         if (response && response.data && response.data.id) {
           setStoreId(response.data.id);
@@ -207,130 +197,49 @@ const LineBotSettings = () => {
           </Typography>
           <Divider sx={{ mb: 2 }} />
 
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="LINE Channel Access Token"
-                name="line_channel_access_token"
-                type="password"
-                value={formData.line_channel_access_token}
-                onChange={handleChange}
-                placeholder={config ? '已設定（留空則不更改）' : '請輸入'}
-                helperText="從 LINE Developers Console 取得"
-              />
-            </Grid>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            LINE Channel 憑證由平台管理員統一設定。如需修改，請聯繫平台管理員。
+          </Alert>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="LINE Channel Secret"
-                name="line_channel_secret"
-                type="password"
-                value={formData.line_channel_secret}
-                onChange={handleChange}
-                placeholder={config ? '已設定（留空則不更改）' : '請輸入'}
-                helperText="從 LINE Developers Console 取得"
-              />
-            </Grid>
-          </Grid>
+          {config?.invitation_url && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              <strong>操作權限邀請網址：</strong>
+              <br />
+              <a
+                href={config.invitation_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ wordBreak: 'break-all' }}
+              >
+                {config.invitation_url}
+              </a>
+              <br />
+              <small>點擊上方連結加入 LINE 官方帳號的操作人員</small>
+            </Alert>
+          )}
 
-          {/* AI 設定區塊 */}
+          {/* AI 設定提示 */}
           <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
-            AI 智能回覆設定
+            AI 智能回覆
           </Typography>
           <Divider sx={{ mb: 2 }} />
 
+          <Alert severity="info" sx={{ mb: 2 }}>
+            AI 服務由平台統一提供，已自動配置完成。您可以在下方「功能設定」中選擇是否啟用 AI 回覆。
+          </Alert>
+
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>AI 提供商</InputLabel>
-                <Select
-                  name="ai_provider"
-                  value={formData.ai_provider}
-                  onChange={handleChange}
-                  label="AI 提供商"
-                >
-                  <MenuItem value="gemini">Google Gemini</MenuItem>
-                  <MenuItem value="openai">OpenAI GPT</MenuItem>
-                  <MenuItem value="groq">Groq</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="AI 模型"
-                name="ai_model"
-                value={formData.ai_model}
-                onChange={handleChange}
-                helperText={
-                  formData.ai_provider === 'gemini'
-                    ? '例如: gemini-2.5-flash'
-                    : formData.ai_provider === 'groq'
-                    ? '例如: llama-3.1-8b-instant, llama-3.3-70b-versatile'
-                    : '例如: gpt-4o-mini'
-                }
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="AI API Key"
-                name="ai_api_key"
-                type="password"
-                value={formData.ai_api_key}
-                onChange={handleChange}
-                placeholder={config ? '已設定（留空則不更改）' : '請輸入'}
-                helperText={
-                  formData.ai_provider === 'gemini'
-                    ? '從 Google AI Studio 取得'
-                    : formData.ai_provider === 'groq'
-                    ? '從 Groq Console 取得'
-                    : '從 OpenAI 取得'
-                }
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Temperature"
-                name="ai_temperature"
-                type="number"
-                inputProps={{ min: 0, max: 2, step: 0.1 }}
-                value={formData.ai_temperature}
-                onChange={handleChange}
-                helperText="0-2，數值越高回覆越有創意"
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Max Tokens"
-                name="ai_max_tokens"
-                type="number"
-                inputProps={{ min: 100, max: 4000 }}
-                value={formData.ai_max_tokens}
-                onChange={handleChange}
-                helperText="回覆的最大字數限制"
-              />
-            </Grid>
-
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 multiline
-                rows={4}
-                label="自訂系統提示詞"
+                rows={3}
+                label="自訂系統提示詞（選填）"
                 name="custom_system_prompt"
                 value={formData.custom_system_prompt}
                 onChange={handleChange}
-                placeholder="例如：你是一位專業的餐廳客服，請以親切、專業的態度回答顧客問題..."
-                helperText="自訂 AI 回覆的角色和風格（選填）"
+                placeholder="例如：你是一位專機的餐廳客服，請以親切、專業的態度回答顧客問題..."
+                helperText="自訂您店家 AI 回覆的語氣和風格"
               />
             </Grid>
           </Grid>

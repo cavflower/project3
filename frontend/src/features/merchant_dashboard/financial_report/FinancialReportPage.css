@@ -23,8 +23,8 @@
 }
 
 .header-icon {
-    font-size: 3rem;
-    color: white;
+  font-size: 3rem;
+  color: white;
 }
 
 .report-header h1 {
@@ -171,8 +171,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-state p {
@@ -468,6 +473,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -478,6 +484,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -486,6 +493,7 @@
 
 /* 響應式設計 */
 @media (max-width: 1200px) {
+
   .product-sales-grid,
   .channel-revenue-grid {
     grid-template-columns: 1fr;
@@ -607,4 +615,106 @@
 .empty-state p:first-of-type {
   font-weight: 600;
   margin-bottom: 8px;
+}
+
+/* AI 分析區塊樣式 */
+.ai-section {
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+  border: 2px solid #e0e7ff;
+}
+
+.ai-section .section-header h2 {
+  display: flex;
+  align-items: center;
+  color: #4f46e5;
+}
+
+.ai-analysis-content {
+  min-height: 200px;
+}
+
+.ai-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.ai-placeholder .ai-icon {
+  font-size: 4rem;
+  color: #a5b4fc;
+  margin-bottom: 16px;
+}
+
+.ai-placeholder p {
+  color: #6b7280;
+  font-size: 1.1rem;
+  margin-bottom: 24px;
+}
+
+.ai-generate-btn,
+.ai-regenerate-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+}
+
+.ai-generate-btn:hover,
+.ai-regenerate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+}
+
+.ai-generate-btn:disabled,
+.ai-regenerate-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ai-report-result {
+  padding: 24px;
+}
+
+.ai-report-text {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  white-space: pre-wrap;
+  line-height: 1.8;
+  font-size: 1rem;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.ai-regenerate-btn {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  box-shadow: 0 4px 14px rgba(107, 114, 128, 0.3);
+}
+
+.ai-regenerate-btn:hover {
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
+}
+
+.ai-error {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #fecaca;
 }
