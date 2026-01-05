@@ -622,8 +622,9 @@ class BroadcastMessageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # 準備訊息
-        messages = [temp_line_api.create_text_message(broadcast.message_content)]
+        # 準備訊息（包含標題和內容）
+        full_message = f"📢 {broadcast.title}\n\n{broadcast.message_content}"
+        messages = [temp_line_api.create_text_message(full_message)]
         
         if broadcast.image_url:
             messages.insert(0, temp_line_api.create_image_message(broadcast.image_url))
