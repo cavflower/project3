@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext'; // 1. 引入 useAuth
 import { FaBell } from 'react-icons/fa';
 import './Navbar.css';
+import logo from '../../assets/logo.png';
 
 const Navbar = ({ toggleSidebar }) => {
   const { isLoggedIn, user, logout } = useAuth(); // 2. 取得認證狀態、使用者資料和登出函式
@@ -14,10 +15,10 @@ const Navbar = ({ toggleSidebar }) => {
   if (isLoggedIn && user) {
     homePath = user.user_type === 'merchant' ? '/dashboard' : '/customer-home';
   }
-  
+
   // 檢查是否在內用菜單頁面
   const isDineInPage = location.pathname.includes('/dine-in/menu') || location.pathname.includes('/dine-in/order');
-  
+
   // 如果在內用菜單頁面，首頁應該是當前的內用菜單
   if (isDineInPage) {
     const pathParts = location.pathname.split('/');
@@ -28,7 +29,7 @@ const Navbar = ({ toggleSidebar }) => {
 
   const handleLogout = () => {
     setDropdownOpen(false); // 關閉選單
-    
+
     // 如果在內用菜單頁面，登出後返回內用菜單
     if (isDineInPage) {
       const pathParts = location.pathname.split('/');
@@ -48,9 +49,9 @@ const Navbar = ({ toggleSidebar }) => {
         <div className="profile-section">
 
           {user?.user_type === 'customer' && (
-            <Link 
-              to="/customer/orders" 
-              state={{ activeTab: 'notifications' }} 
+            <Link
+              to="/customer/orders"
+              state={{ activeTab: 'notifications' }}
               className="notification-btn"
               title="訂單通知"
             >
@@ -79,13 +80,13 @@ const Navbar = ({ toggleSidebar }) => {
       // 如果使用者未登入，顯示登入和註冊按鈕
       // 構建登入 URL，如果在特定頁面則帶上 redirect 參數
       const currentPath = location.pathname + location.search;
-      const shouldRedirect = location.pathname.includes('/store/') || 
-                            location.pathname.includes('/dine-in/') ||
-                            location.pathname.includes('/takeout/');
-      const loginPath = shouldRedirect 
+      const shouldRedirect = location.pathname.includes('/store/') ||
+        location.pathname.includes('/dine-in/') ||
+        location.pathname.includes('/takeout/');
+      const loginPath = shouldRedirect
         ? `/login/customer?redirect=${encodeURIComponent(currentPath)}`
         : '/login/customer';
-      
+
       return (
         <ul className="navbar-links">
           <li><Link to={loginPath}>登入</Link></li>
@@ -102,7 +103,7 @@ const Navbar = ({ toggleSidebar }) => {
           ☰
         </button>
         <div className="navbar-logo">
-          <Link to={homePath}>DineVerse</Link>
+          <Link to={homePath}><img src={logo} alt="Dineverse" className="navbar-logo img"></img></Link>
         </div>
       </div>
       {renderUserSection()}

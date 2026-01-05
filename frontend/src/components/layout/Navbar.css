@@ -29,10 +29,13 @@
 }
 
 .navbar-logo a {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--primary-color);
-  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-logo img {
+  width: auto;
+  height: 40px;
 }
 
 .navbar-links {
@@ -106,8 +109,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0; /* 移除內邊距，確保圖片能填滿 */
-  overflow: hidden; /* 隱藏超出的部分 */
+  padding: 0;
+  /* 移除內邊距，確保圖片能填滿 */
+  overflow: hidden;
+  /* 隱藏超出的部分 */
 }
 
 .avatar-img {

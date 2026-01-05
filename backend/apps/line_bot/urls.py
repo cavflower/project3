@@ -6,6 +6,7 @@ router = DefaultRouter()
 router.register(r'faqs', views.StoreFAQViewSet, basename='faq')
 router.register(r'conversations', views.ConversationLogViewSet, basename='conversation')
 router.register(r'broadcasts', views.BroadcastMessageViewSet, basename='broadcast')
+router.register(r'platform-broadcasts', views.PlatformBroadcastViewSet, basename='platform-broadcast')
 router.register(r'config', views.StoreLineBotConfigViewSet, basename='linebot-config')
 router.register(r'merchant-binding', views.MerchantLineBindingViewSet, basename='merchant-line-binding')
 

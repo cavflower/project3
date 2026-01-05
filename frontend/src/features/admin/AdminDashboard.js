@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { getAISettings, updateAISettings, getLineSettings, updateLineSettings } from '../../api/adminApi';
+import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getAvailableStores, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast } from '../../api/adminApi';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -50,6 +50,18 @@ const AdminDashboard = () => {
     invitation_url: '',
   });
   const [storeLineSaving, setStoreLineSaving] = useState(false);
+
+  // 平台推播狀態
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [availableStoresForBroadcast, setAvailableStoresForBroadcast] = useState([]);
+  const [targetUserCount, setTargetUserCount] = useState(0);
+  const [broadcastForm, setBroadcastForm] = useState({
+    broadcast_type: 'store_recommendation',
+    title: '',
+    message_content: '',
+    recommended_store_ids: [],
+  });
+  const [broadcastSending, setBroadcastSending] = useState(false);
 
   useEffect(() => {
     // 檢查是否已登入
@@ -236,6 +248,51 @@ const AdminDashboard = () => {
     }
   };
 
+  // 平台推播功能
+  const handleOpenBroadcastModal = async () => {
+    setShowBroadcastModal(true);
+    try {
+      // 載入可用店家
+      const storeData = await getAvailableStores();
+      setAvailableStoresForBroadcast(storeData.stores || []);
+      // 載入目標用戶數
+      const targetData = await getTargetPreview();
+      setTargetUserCount(targetData.total_users || 0);
+    } catch (err) {
+      console.error('載入推播資料失敗:', err);
+    }
+  };
+
+  const handleCloseBroadcastModal = () => {
+    setShowBroadcastModal(false);
+    setBroadcastForm({
+      broadcast_type: 'store_recommendation',
+      title: '',
+      message_content: '',
+      recommended_store_ids: [],
+    });
+  };
+
+  const handleSendBroadcast = async (e) => {
+    e.preventDefault();
+    if (!broadcastForm.title || !broadcastForm.message_content) {
+      alert('請填寫標題和內容');
+      return;
+    }
+    try {
+      setBroadcastSending(true);
+      const created = await createPlatformBroadcast(broadcastForm);
+      const result = await sendPlatformBroadcast(created.id);
+      alert(`推播發送成功！成功: ${result.success_count}, 失敗: ${result.failure_count}`);
+      handleCloseBroadcastModal();
+    } catch (err) {
+      console.error('發送推播失敗:', err);
+      alert('發送推播失敗：' + (err.response?.data?.error || err.message));
+    } finally {
+      setBroadcastSending(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('admin_logged_in');
     navigate('/login/admin');
@@ -383,6 +440,11 @@ const AdminDashboard = () => {
             <h3 style={{ color: 'white' }}>{lineSettings?.has_line_login_config ? '✅' : '❌'}</h3>
             <p style={{ color: 'white' }}>LINE Login {lineSettings?.has_line_login_config ? '已設定' : '未設定'}</p>
             <small style={{ color: 'rgba(255,255,255,0.8)' }}>點擊設定</small>
+          </div>
+          <div className="stat-card" onClick={handleOpenBroadcastModal} style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)' }}>
+            <h3 style={{ color: 'white' }}>📢</h3>
+            <p style={{ color: 'white' }}>平台推播</p>
+            <small style={{ color: 'rgba(255,255,255,0.8)' }}>推薦店家</small>
           </div>
         </div>
 
@@ -848,6 +910,100 @@ const AdminDashboard = () => {
                   </button>
                   <button type="submit" className="btn-primary" disabled={storeLineSaving} style={{ background: '#00B900' }}>
                     {storeLineSaving ? '儲存中...' : '儲存設定'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 平台推播 Modal */}
+      {showBroadcastModal && (
+        <div className="modal-overlay" onClick={handleCloseBroadcastModal}>
+          <div className="modal-content ai-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header" style={{ background: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)' }}>
+              <h2 style={{ color: 'white' }}>📢 平台推播 - 店家推薦</h2>
+              <button className="close-btn" onClick={handleCloseBroadcastModal}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '16px', padding: '12px', background: '#fff3cd', borderRadius: '8px' }}>
+                <p style={{ margin: 0, fontSize: '14px' }}>
+                  <strong>目標用戶：</strong>{targetUserCount} 位已綁定 LINE 的用戶
+                </p>
+              </div>
+
+              <form onSubmit={handleSendBroadcast}>
+                <div className="form-group">
+                  <label htmlFor="broadcast_type">推播類型</label>
+                  <select
+                    id="broadcast_type"
+                    className="form-control"
+                    value={broadcastForm.broadcast_type}
+                    onChange={(e) => setBroadcastForm({ ...broadcastForm, broadcast_type: e.target.value })}
+                  >
+                    <option value="store_recommendation">店家推薦</option>
+                    <option value="new_store">新店上架</option>
+                    <option value="platform_announcement">平台公告</option>
+                  </select>
+                </div>
+
+                <div className="form-group mt-3">
+                  <label htmlFor="broadcast_title">推播標題</label>
+                  <input
+                    type="text"
+                    id="broadcast_title"
+                    className="form-control"
+                    value={broadcastForm.title}
+                    onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
+                    placeholder="例如：本週推薦店家"
+                    required
+                  />
+                </div>
+
+                <div className="form-group mt-3">
+                  <label htmlFor="broadcast_content">訊息內容</label>
+                  <textarea
+                    id="broadcast_content"
+                    className="form-control"
+                    rows="3"
+                    value={broadcastForm.message_content}
+                    onChange={(e) => setBroadcastForm({ ...broadcastForm, message_content: e.target.value })}
+                    placeholder="請輸入推播訊息內容..."
+                    required
+                  />
+                </div>
+
+                <div className="form-group mt-3">
+                  <label>選擇推薦店家</label>
+                  <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '4px', padding: '8px' }}>
+                    {availableStoresForBroadcast.map((store) => (
+                      <label key={store.id} style={{ display: 'block', marginBottom: '4px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={broadcastForm.recommended_store_ids.includes(store.id)}
+                          onChange={(e) => {
+                            const ids = broadcastForm.recommended_store_ids;
+                            if (e.target.checked) {
+                              setBroadcastForm({ ...broadcastForm, recommended_store_ids: [...ids, store.id] });
+                            } else {
+                              setBroadcastForm({ ...broadcastForm, recommended_store_ids: ids.filter(id => id !== store.id) });
+                            }
+                          }}
+                        />{' '}
+                        {store.name} ({store.cuisine_type})
+                      </label>
+                    ))}
+                  </div>
+                  <small className="form-text text-muted">已選擇 {broadcastForm.recommended_store_ids.length} 間店家</small>
+                </div>
+
+                <div className="modal-footer mt-4">
+                  <button type="button" className="btn-secondary" onClick={handleCloseBroadcastModal}>
+                    取消
+                  </button>
+                  <button type="submit" className="btn-primary" disabled={broadcastSending} style={{ background: '#FF6B6B' }}>
+                    {broadcastSending ? '發送中...' : `發送推播 (${targetUserCount} 人)`}
                   </button>
                 </div>
               </form>

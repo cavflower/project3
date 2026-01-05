@@ -9,11 +9,11 @@ from django.conf import settings
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from apps.stores.models import Store
 from apps.products.models import Product, ProductCategory, SpecificationGroup, ProductSpecification
 from apps.users.models import Merchant
-from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage, StoreLineBotConfig, MerchantLineBinding
+from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage, StoreLineBotConfig, MerchantLineBinding, PlatformBroadcast
 from .serializers import (
     LineUserBindingSerializer,
     StoreFAQSerializer,
@@ -22,7 +22,9 @@ from .serializers import (
     BroadcastMessageCreateSerializer,
     StoreLineBotConfigSerializer,
     MerchantLineBindingSerializer,
-    MerchantLineBindingPreferencesSerializer
+    MerchantLineBindingPreferencesSerializer,
+    PersonalizedTargetFilterSerializer,
+    PlatformBroadcastSerializer
 )
 from .services.line_api import LineMessagingAPI
 from .services.message_handler import MessageHandler
@@ -657,6 +659,152 @@ class BroadcastMessageViewSet(viewsets.ModelViewSet):
             'success_count': success_count,
             'failure_count': failure_count
         })
+    
+    @action(detail=False, methods=['get'])
+    def get_personalized_targets(self, request):
+        """
+        根據篩選條件取得個人化推播的目標用戶
+        
+        Query Parameters:
+            food_tags: 食物標籤列表（逗號分隔）
+            days_inactive: 閒置天數（超過此天數未下單的用戶）
+        """
+        from apps.orders.models import TakeoutOrder, DineInOrder
+        from apps.loyalty.models import CustomerLoyaltyAccount
+        from django.utils import timezone
+        from datetime import timedelta
+        from collections import Counter
+        
+        user = request.user
+        if not hasattr(user, 'merchant_profile') or not hasattr(user.merchant_profile, 'store'):
+            return Response(
+                {'error': '您沒有店家權限'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        store = user.merchant_profile.store
+        
+        # 解析篩選條件
+        food_tags_param = request.query_params.get('food_tags', '')
+        food_tags = [tag.strip() for tag in food_tags_param.split(',') if tag.strip()]
+        days_inactive = int(request.query_params.get('days_inactive', 0))
+        
+        # 取得此店家的所有已綁定 LINE 的顧客
+        # 透過 CustomerLoyaltyAccount 找到在此店家有消費記錄的用戶
+        customer_accounts = CustomerLoyaltyAccount.objects.filter(store=store)
+        
+        target_users = []
+        user_details = []
+        
+        for account in customer_accounts:
+            customer = account.user
+            
+            # 檢查是否有綁定 LINE
+            try:
+                line_binding = LineUserBinding.objects.get(user=customer, is_active=True)
+            except LineUserBinding.DoesNotExist:
+                continue
+            
+            # 檢查閒置天數篩選
+            if days_inactive > 0:
+                # 取得最近訂單時間
+                last_order_date = None
+                
+                takeout = TakeoutOrder.objects.filter(
+                    user=customer, store=store
+                ).order_by('-created_at').first()
+                
+                dinein = DineInOrder.objects.filter(
+                    user=customer, store=store
+                ).order_by('-created_at').first()
+                
+                if takeout:
+                    last_order_date = takeout.created_at
+                if dinein and (not last_order_date or dinein.created_at > last_order_date):
+                    last_order_date = dinein.created_at
+                
+                if last_order_date:
+                    days_since_order = (timezone.now() - last_order_date).days
+                    if days_since_order < days_inactive:
+                        continue  # 用戶還不夠閒置
+            
+            # 檢查食物標籤偏好篩選
+            if food_tags:
+                # 分析用戶的食物偏好（從訂單歷史）
+                from apps.orders.models import TakeoutOrderItem, DineInOrderItem
+                
+                user_tags = Counter()
+                
+                # 外帶訂單項目
+                takeout_items = TakeoutOrderItem.objects.filter(
+                    order__user=customer,
+                    order__store=store
+                ).select_related('product')
+                
+                for item in takeout_items:
+                    if item.product and item.product.food_tags:
+                        for tag in item.product.food_tags:
+                            user_tags[tag] += 1
+                
+                # 內用訂單項目
+                dinein_items = DineInOrderItem.objects.filter(
+                    order__user=customer,
+                    order__store=store
+                ).select_related('product')
+                
+                for item in dinein_items:
+                    if item.product and item.product.food_tags:
+                        for tag in item.product.food_tags:
+                            user_tags[tag] += 1
+                
+                # 檢查是否有匹配的標籤
+                if not any(tag in user_tags for tag in food_tags):
+                    continue  # 沒有匹配的標籤偏好
+            
+            # 通過所有篩選，加入目標用戶
+            target_users.append(line_binding.line_user_id)
+            user_details.append({
+                'line_user_id': line_binding.line_user_id,
+                'display_name': line_binding.display_name,
+                'username': customer.username,
+                'total_points': account.total_points,
+            })
+        
+        return Response({
+            'target_count': len(target_users),
+            'target_users': target_users,
+            'user_details': user_details[:20],  # 只返回前 20 個用戶詳情作為預覽
+            'filters_applied': {
+                'food_tags': food_tags,
+                'days_inactive': days_inactive,
+            }
+        })
+    
+    @action(detail=False, methods=['get'])
+    def available_food_tags(self, request):
+        """取得店家商品的所有食物標籤"""
+        user = request.user
+        if not hasattr(user, 'merchant_profile') or not hasattr(user.merchant_profile, 'store'):
+            return Response(
+                {'error': '您沒有店家權限'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        store = user.merchant_profile.store
+        
+        # 從店家商品收集所有食物標籤
+        products = Product.objects.filter(store=store, is_available=True)
+        all_tags = set()
+        
+        for product in products:
+            if product.food_tags:
+                for tag in product.food_tags:
+                    all_tags.add(tag)
+        
+        return Response({
+            'tags': sorted(list(all_tags)),
+            'count': len(all_tags)
+        })
 
 
 @api_view(['POST'])
@@ -1011,3 +1159,152 @@ class MerchantLineBindingViewSet(viewsets.ViewSet):
             })
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PlatformBroadcastViewSet(viewsets.ModelViewSet):
+    """
+    平台推播 ViewSet
+    提供平台管理員發送店家推薦、新店上架等推播訊息
+    使用 X-Admin-Auth 標頭進行認證
+    """
+    queryset = PlatformBroadcast.objects.all()
+    serializer_class = PlatformBroadcastSerializer
+    permission_classes = [AllowAny]  # 使用 X-Admin-Auth 標頭認證
+    
+    def _is_admin(self, request):
+        """檢查是否為管理員（X-Admin-Auth 標頭）"""
+        is_admin_header = request.headers.get('X-Admin-Auth') == 'true'
+        is_staff = hasattr(request, 'user') and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+        return is_admin_header or is_staff
+    
+    def get_queryset(self):
+        """只有管理員可以看到平台推播"""
+        if not self._is_admin(self.request):
+            return PlatformBroadcast.objects.none()
+        return PlatformBroadcast.objects.all()
+    
+    def perform_create(self, serializer):
+        """建立推播時記錄建立者"""
+        user = self.request.user
+        if user.is_authenticated:
+            serializer.save(created_by=user)
+        else:
+            serializer.save(created_by=None)
+    
+    @action(detail=False, methods=['get'])
+    def available_stores(self, request):
+        """取得可推薦的店家列表"""
+        stores = Store.objects.filter(is_published=True)
+        store_list = [
+            {
+                'id': store.id,
+                'name': store.name,
+                'cuisine_type': store.get_cuisine_type_display() if hasattr(store, 'get_cuisine_type_display') else store.cuisine_type,
+            }
+            for store in stores
+        ]
+        return Response({'stores': store_list, 'count': len(store_list)})
+    
+    @action(detail=False, methods=['get'])
+    def target_preview(self, request):
+        """預覽推播目標用戶數量"""
+        # 取得所有已綁定 LINE 的用戶
+        bindings = LineUserBinding.objects.filter(is_active=True)
+        return Response({
+            'total_users': bindings.count(),
+            'sample_users': [
+                {
+                    'line_user_id': b.line_user_id,
+                    'display_name': b.display_name,
+                }
+                for b in bindings[:10]
+            ]
+        })
+    
+    @action(detail=True, methods=['post'])
+    def send(self, request, pk=None):
+        """發送平台推播"""
+        from apps.intelligence.models import PlatformSettings
+        from django.utils import timezone
+        
+        broadcast = self.get_object()
+        
+        if broadcast.status == 'sent':
+            return Response(
+                {'error': '此推播已發送'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 取得平台 LINE BOT 設定
+        platform_settings = PlatformSettings.get_settings()
+        if not platform_settings.has_line_bot_config():
+            return Response(
+                {'error': '平台 LINE BOT 尚未設定'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not platform_settings.is_line_bot_enabled:
+            return Response(
+                {'error': '平台 LINE BOT 未啟用'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 取得目標用戶
+        if broadcast.target_all:
+            bindings = LineUserBinding.objects.filter(is_active=True)
+            target_users = [b.line_user_id for b in bindings]
+        else:
+            target_users = broadcast.target_users
+        
+        if not target_users:
+            return Response(
+                {'error': '沒有目標用戶'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 建立訊息
+        message = f"📢 {broadcast.title}\n\n{broadcast.message_content}"
+        
+        # 如果有推薦店家，加入店家資訊
+        recommended_stores = broadcast.recommended_stores.all()
+        if recommended_stores:
+            message += "\n\n🏪 推薦店家："
+            for store in recommended_stores[:5]:  # 最多顯示 5 家
+                message += f"\n• {store.name}"
+        
+        # 使用平台 LINE API 發送
+        line_api = LineMessagingAPI()
+        line_api.channel_access_token = platform_settings.line_bot_channel_access_token
+        
+        # 建立 LINE 訊息物件列表
+        messages = [line_api.create_text_message(message)]
+        
+        success_count = 0
+        failure_count = 0
+        
+        for user_id in target_users:
+            try:
+                result = line_api.push_message(user_id, messages)
+                if result:
+                    success_count += 1
+                else:
+                    print(f"[Platform Broadcast] Failed to send to {user_id}: push_message returned False")
+                    failure_count += 1
+            except Exception as e:
+                print(f"[Platform Broadcast] Failed to send to {user_id}: {e}")
+                failure_count += 1
+        
+        # 更新推播狀態
+        broadcast.status = 'sent'
+        broadcast.sent_at = timezone.now()
+        broadcast.recipient_count = len(target_users)
+        broadcast.success_count = success_count
+        broadcast.failure_count = failure_count
+        broadcast.save()
+        
+        return Response({
+            'message': '推播已發送',
+            'recipient_count': len(target_users),
+            'success_count': success_count,
+            'failure_count': failure_count
+        })

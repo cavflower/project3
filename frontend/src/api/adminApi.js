@@ -58,10 +58,64 @@ export const updateLineSettings = async (data) => {
     return response.data;
 };
 
+/**
+ * 取得平台推播列表
+ */
+export const getPlatformBroadcasts = async () => {
+    const response = await axios.get(`${baseURL}/line-bot/platform-broadcasts/`, {
+        headers: { 'X-Admin-Auth': 'true' }
+    });
+    return response.data;
+};
+
+/**
+ * 建立平台推播
+ */
+export const createPlatformBroadcast = async (data) => {
+    const response = await axios.post(`${baseURL}/line-bot/platform-broadcasts/`, data, {
+        headers: { 'X-Admin-Auth': 'true' }
+    });
+    return response.data;
+};
+
+/**
+ * 發送平台推播
+ */
+export const sendPlatformBroadcast = async (id) => {
+    const response = await axios.post(`${baseURL}/line-bot/platform-broadcasts/${id}/send/`, {}, {
+        headers: { 'X-Admin-Auth': 'true' }
+    });
+    return response.data;
+};
+
+/**
+ * 取得可推薦的店家列表
+ */
+export const getAvailableStores = async () => {
+    const response = await axios.get(`${baseURL}/line-bot/platform-broadcasts/available_stores/`, {
+        headers: { 'X-Admin-Auth': 'true' }
+    });
+    return response.data;
+};
+
+/**
+ * 預覽推播目標用戶
+ */
+export const getTargetPreview = async () => {
+    const response = await axios.get(`${baseURL}/line-bot/platform-broadcasts/target_preview/`, {
+        headers: { 'X-Admin-Auth': 'true' }
+    });
+    return response.data;
+};
+
 export default {
     getAISettings,
     updateAISettings,
     getLineSettings,
     updateLineSettings,
+    getPlatformBroadcasts,
+    createPlatformBroadcast,
+    sendPlatformBroadcast,
+    getAvailableStores,
+    getTargetPreview,
 };
-

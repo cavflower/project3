@@ -12,6 +12,11 @@ import {
   FormControlLabel,
   Divider,
   CircularProgress,
+  Chip,
+  Autocomplete,
+  Snackbar,
+  Card,
+  CardContent,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../store/AuthContext';
@@ -20,6 +25,10 @@ import {
   getLineBotConfig,
   createLineBotConfig,
   updateLineBotConfig,
+  getAvailableFoodTags,
+  getPersonalizedTargets,
+  createBroadcastMessage,
+  sendBroadcastMessage,
 } from '../../../api/lineBotApi';
 
 const LineBotSettings = () => {
@@ -41,7 +50,22 @@ const LineBotSettings = () => {
     enable_ai_reply: true,
     enable_conversation_history: true,
     is_active: true,
+    // 個人化推播預設設定
+    broadcast_default_tags: [],
+    broadcast_default_days_inactive: 0,
+    broadcast_default_message: '',
   });
+
+  // 個人化推播相關 state
+  const [availableTags, setAvailableTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [daysInactive, setDaysInactive] = useState(0);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [targetCount, setTargetCount] = useState(0);
+  const [targetUsers, setTargetUsers] = useState([]);
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
+  const [broadcastResult, setBroadcastResult] = useState(null);
 
   // 先獲取店家 ID
   useEffect(() => {
@@ -97,6 +121,16 @@ const LineBotSettings = () => {
           line_channel_secret: '',
           ai_api_key: '',
         });
+        // 載入推播預設設定到推播 UI state
+        if (data.broadcast_default_tags) {
+          setSelectedTags(data.broadcast_default_tags);
+        }
+        if (data.broadcast_default_days_inactive) {
+          setDaysInactive(data.broadcast_default_days_inactive);
+        }
+        if (data.broadcast_default_message) {
+          setBroadcastMessage(data.broadcast_default_message);
+        }
       }
     } catch (err) {
       console.error('載入設定失敗:', err);
@@ -122,7 +156,13 @@ const LineBotSettings = () => {
       setSuccess(null);
 
       // 過濾掉空的敏感欄位（避免清空已設定的值）
-      const submitData = { ...formData };
+      const submitData = {
+        ...formData,
+        // 同步推播 UI 的設定作為預設值
+        broadcast_default_tags: selectedTags,
+        broadcast_default_days_inactive: daysInactive,
+        broadcast_default_message: broadcastMessage,
+      };
       if (!submitData.line_channel_access_token) {
         delete submitData.line_channel_access_token;
       }
@@ -151,6 +191,90 @@ const LineBotSettings = () => {
       setError(err.response?.data?.detail || '儲存設定失敗');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // 載入可用的食物標籤
+  useEffect(() => {
+    const loadFoodTags = async () => {
+      if (storeId) {
+        try {
+          const data = await getAvailableFoodTags();
+          setAvailableTags(data.tags || []);
+        } catch (err) {
+          console.error('載入食物標籤失敗:', err);
+        }
+      }
+    };
+    loadFoodTags();
+  }, [storeId]);
+
+  // 當篩選條件變更時，更新目標用戶數量
+  useEffect(() => {
+    const fetchTargets = async () => {
+      if (storeId) {
+        try {
+          const data = await getPersonalizedTargets({
+            food_tags: selectedTags,
+            days_inactive: daysInactive,
+          });
+          setTargetCount(data.target_count);
+          setTargetUsers(data.target_users);
+        } catch (err) {
+          console.error('取得目標用戶失敗:', err);
+        }
+      }
+    };
+    fetchTargets();
+  }, [storeId, selectedTags, daysInactive]);
+
+  // 發送個人化推播
+  const handleSendBroadcast = async () => {
+    if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+      setError('請填寫推播標題和訊息內容');
+      return;
+    }
+    if (targetUsers.length === 0) {
+      setError('沒有符合條件的目標用戶');
+      return;
+    }
+
+    try {
+      setSendingBroadcast(true);
+      setError(null);
+      setBroadcastResult(null);
+
+      // 建立推播訊息
+      const broadcastData = {
+        broadcast_type: 'personalized',
+        title: broadcastTitle,
+        message_content: broadcastMessage,
+        target_users: targetUsers,
+      };
+
+      const created = await createBroadcastMessage(broadcastData);
+
+      // 發送推播
+      const result = await sendBroadcastMessage(created.id);
+
+      setBroadcastResult({
+        success: true,
+        message: `推播發送成功！成功: ${result.success_count}, 失敗: ${result.failure_count}`,
+      });
+
+      // 清空表單
+      setBroadcastTitle('');
+      setBroadcastMessage('');
+      setSelectedTags([]);
+      setDaysInactive(0);
+    } catch (err) {
+      console.error('發送推播失敗:', err);
+      setBroadcastResult({
+        success: false,
+        message: err.response?.data?.error || '發送推播失敗',
+      });
+    } finally {
+      setSendingBroadcast(false);
     }
   };
 
@@ -312,6 +436,124 @@ const LineBotSettings = () => {
               />
             </Grid>
           </Grid>
+
+          {/* 個人化推播區塊 */}
+          <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+            📢 個人化推播
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+
+          <Alert severity="info" sx={{ mb: 2 }}>
+            根據顧客的消費偏好，精準推送符合其喜好的訊息。
+          </Alert>
+
+          <Card variant="outlined" sx={{ mb: 2 }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                篩選目標用戶
+              </Typography>
+
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={8}>
+                  <Autocomplete
+                    multiple
+                    options={availableTags}
+                    value={selectedTags}
+                    onChange={(event, newValue) => setSelectedTags(newValue)}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => (
+                        <Chip
+                          label={option}
+                          {...getTagProps({ index })}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      ))
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="食物標籤偏好"
+                        placeholder="選擇標籤..."
+                        helperText="篩選曾購買含這些標籤商品的顧客"
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="閒置天數"
+                    value={daysInactive}
+                    onChange={(e) => setDaysInactive(parseInt(e.target.value) || 0)}
+                    inputProps={{ min: 0 }}
+                    helperText="超過此天數未下單（0=不限）"
+                  />
+                </Grid>
+              </Grid>
+
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  符合條件的顧客：<strong>{targetCount}</strong> 人
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined" sx={{ mb: 2 }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                推播內容
+              </Typography>
+
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="推播標題"
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                    placeholder="例如：專屬優惠來囉！"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={4}
+                    label="訊息內容"
+                    value={broadcastMessage}
+                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                    placeholder="親愛的顧客您好！我們為您準備了專屬優惠..."
+                  />
+                </Grid>
+              </Grid>
+
+              <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={handleSendBroadcast}
+                  disabled={sendingBroadcast || targetCount === 0}
+                  sx={{ minWidth: 150 }}
+                >
+                  {sendingBroadcast ? <CircularProgress size={24} /> : `發送推播 (${targetCount} 人)`}
+                </Button>
+              </Box>
+
+              {broadcastResult && (
+                <Alert
+                  severity={broadcastResult.success ? 'success' : 'error'}
+                  sx={{ mt: 2 }}
+                  onClose={() => setBroadcastResult(null)}
+                >
+                  {broadcastResult.message}
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
 
           {/* 儲存按鈕 */}
           <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>

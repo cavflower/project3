@@ -82,6 +82,25 @@ export const sendBroadcastMessage = async (id) => {
   return response.data;
 };
 
+// 取得個人化推播目標用戶
+export const getPersonalizedTargets = async (filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.food_tags && filters.food_tags.length > 0) {
+    params.append('food_tags', filters.food_tags.join(','));
+  }
+  if (filters.days_inactive) {
+    params.append('days_inactive', filters.days_inactive);
+  }
+  const response = await api.get(`/line-bot/broadcasts/get_personalized_targets/?${params.toString()}`);
+  return response.data;
+};
+
+// 取得店家可用的食物標籤
+export const getAvailableFoodTags = async () => {
+  const response = await api.get('/line-bot/broadcasts/available_food_tags/');
+  return response.data;
+};
+
 // 綁定 LINE 帳號
 export const bindLineAccount = async (lineUserId) => {
   const response = await api.post('/line-bot/bind/', { line_user_id: lineUserId });
@@ -134,6 +153,8 @@ export default {
   getBroadcastMessages,
   createBroadcastMessage,
   sendBroadcastMessage,
+  getPersonalizedTargets,
+  getAvailableFoodTags,
   bindLineAccount,
   getLineBinding,
   getLineBotConfig,

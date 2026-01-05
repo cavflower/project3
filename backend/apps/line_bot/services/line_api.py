@@ -83,11 +83,16 @@ class LineMessagingAPI:
         }
         
         try:
+            print(f"[LINE API] Sending push to {to}, token: {self.channel_access_token[:20]}...")
             response = requests.post(
                 url,
                 headers=self._get_headers(),
                 data=json.dumps(payload)
             )
+            if response.status_code != 200:
+                print(f"[LINE API] Push failed: status={response.status_code}, response={response.text}")
+            else:
+                print(f"[LINE API] Push success to {to}")
             return response.status_code == 200
         except Exception as e:
             print(f"Push message error: {e}")

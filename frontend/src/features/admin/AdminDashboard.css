@@ -300,8 +300,13 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -322,6 +327,7 @@
     transform: translateY(50px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -476,15 +482,15 @@
     gap: 1rem;
     text-align: center;
   }
-  
+
   .stats-row {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .stores-table {
     font-size: 0.9rem;
   }
-  
+
   .stores-table th,
   .stores-table td {
     padding: 0.75rem 0.5rem;

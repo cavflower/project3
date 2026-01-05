@@ -73,6 +73,25 @@ class StoreLineBotConfig(models.Model):
         help_text='設定完成後啟用'
     )
     
+    # 個人化推播預設設定
+    broadcast_default_tags = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='預設推播標籤',
+        help_text='個人化推播預設選擇的食物標籤'
+    )
+    broadcast_default_days_inactive = models.IntegerField(
+        default=0,
+        verbose_name='預設閒置天數',
+        help_text='個人化推播預設的閒置天數篩選'
+    )
+    broadcast_default_message = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='預設推播訊息',
+        help_text='個人化推播預設的訊息內容'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
     
@@ -442,3 +461,112 @@ class MerchantLineBinding(models.Model):
 
     def __str__(self):
         return f"{self.merchant.user.username} - {self.line_user_id}"
+
+
+class PlatformBroadcast(models.Model):
+    """
+    平台推播訊息模型
+    用於平台管理員發送店家推薦、新店上架等訊息給用戶
+    """
+    BROADCAST_TYPE_CHOICES = [
+        ('store_recommendation', '店家推薦'),
+        ('new_store', '新店上架'),
+        ('platform_announcement', '平台公告'),
+    ]
+
+    STATUS_CHOICES = [
+        ('draft', '草稿'),
+        ('scheduled', '已排程'),
+        ('sent', '已發送'),
+        ('failed', '發送失敗'),
+    ]
+
+    broadcast_type = models.CharField(
+        max_length=30,
+        choices=BROADCAST_TYPE_CHOICES,
+        default='store_recommendation',
+        verbose_name='推播類型'
+    )
+    title = models.CharField(
+        max_length=255,
+        verbose_name='推播標題'
+    )
+    message_content = models.TextField(
+        verbose_name='訊息內容'
+    )
+    image_url = models.URLField(
+        blank=True,
+        verbose_name='圖片網址'
+    )
+    
+    # 推薦店家（多對多關係）
+    recommended_stores = models.ManyToManyField(
+        Store,
+        blank=True,
+        related_name='platform_broadcasts',
+        verbose_name='推薦店家'
+    )
+    
+    # 目標用戶設定
+    target_all = models.BooleanField(
+        default=True,
+        verbose_name='發送給全體用戶',
+        help_text='啟用時發送給所有已綁定 LINE 的用戶'
+    )
+    target_users = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='目標用戶',
+        help_text='指定的 LINE User ID 列表（target_all 為 False 時使用）'
+    )
+    
+    # 發送狀態
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='draft',
+        verbose_name='狀態'
+    )
+    scheduled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='排程時間'
+    )
+    sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='發送時間'
+    )
+    
+    # 發送統計
+    recipient_count = models.IntegerField(
+        default=0,
+        verbose_name='接收人數'
+    )
+    success_count = models.IntegerField(
+        default=0,
+        verbose_name='成功發送數'
+    )
+    failure_count = models.IntegerField(
+        default=0,
+        verbose_name='失敗發送數'
+    )
+    
+    # 管理資訊
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name='建立者'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    class Meta:
+        db_table = 'platform_broadcasts'
+        verbose_name = '平台推播'
+        verbose_name_plural = '平台推播'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.get_broadcast_type_display()}] {self.title}"

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage, StoreLineBotConfig, MerchantLineBinding
+from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage, StoreLineBotConfig, MerchantLineBinding, PlatformBroadcast
 
 
 class StoreLineBotConfigSerializer(serializers.ModelSerializer):
@@ -15,6 +15,7 @@ class StoreLineBotConfigSerializer(serializers.ModelSerializer):
             'custom_system_prompt', 'welcome_message',
             'enable_ai_reply', 'enable_conversation_history',
             'is_active', 'has_line_config',
+            'broadcast_default_tags', 'broadcast_default_days_inactive', 'broadcast_default_message',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at', 'invitation_url']
@@ -97,9 +98,13 @@ class BroadcastMessageCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = BroadcastMessage
         fields = [
-            'store', 'broadcast_type', 'title', 'message_content',
+            'id', 'store', 'broadcast_type', 'title', 'message_content',
             'image_url', 'target_users', 'scheduled_at'
         ]
+        extra_kwargs = {
+            'store': {'required': False},  # perform_create 會自動設定
+        }
+        read_only_fields = ['id']
 
     def validate_target_users(self, value):
         """驗證目標用戶列表"""
@@ -134,4 +139,82 @@ class MerchantLineBindingPreferencesSerializer(serializers.ModelSerializer):
         fields = [
             'notify_schedule', 'notify_analytics', 
             'notify_inventory', 'notify_order_alert'
+        ]
+
+
+class PersonalizedTargetFilterSerializer(serializers.Serializer):
+    """個人化推播目標篩選條件序列化器"""
+    food_tags = serializers.ListField(
+        child=serializers.CharField(max_length=50),
+        required=False,
+        default=list,
+        help_text='篩選擁有這些食物標籤偏好的用戶'
+    )
+    days_inactive = serializers.IntegerField(
+        required=False,
+        min_value=0,
+        default=0,
+        help_text='篩選超過此天數未下單的用戶（0 表示不篩選）'
+    )
+
+
+class PlatformBroadcastSerializer(serializers.ModelSerializer):
+    """平台推播序列化器"""
+    broadcast_type_display = serializers.CharField(source='get_broadcast_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    recommended_store_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        default=list
+    )
+    recommended_stores_info = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PlatformBroadcast
+        fields = [
+            'id', 'broadcast_type', 'broadcast_type_display',
+            'title', 'message_content', 'image_url',
+            'recommended_store_ids', 'recommended_stores_info',
+            'target_all', 'target_users',
+            'status', 'status_display',
+            'scheduled_at', 'sent_at',
+            'recipient_count', 'success_count', 'failure_count',
+            'created_by', 'created_by_name',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'status', 'sent_at', 
+            'recipient_count', 'success_count', 'failure_count',
+            'created_by', 'created_at', 'updated_at'
+        ]
+    
+    def create(self, validated_data):
+        store_ids = validated_data.pop('recommended_store_ids', [])
+        instance = super().create(validated_data)
+        if store_ids:
+            from apps.stores.models import Store
+            stores = Store.objects.filter(id__in=store_ids, is_published=True)
+            instance.recommended_stores.set(stores)
+        return instance
+    
+    def update(self, instance, validated_data):
+        store_ids = validated_data.pop('recommended_store_ids', None)
+        instance = super().update(instance, validated_data)
+        if store_ids is not None:
+            from apps.stores.models import Store
+            stores = Store.objects.filter(id__in=store_ids, is_published=True)
+            instance.recommended_stores.set(stores)
+        return instance
+    
+    def get_recommended_stores_info(self, obj):
+        """取得推薦店家的基本資訊"""
+        return [
+            {
+                'id': store.id,
+                'name': store.name,
+                'cuisine_type': store.get_cuisine_type_display() if hasattr(store, 'get_cuisine_type_display') else store.cuisine_type,
+            }
+            for store in obj.recommended_stores.all()
         ]
