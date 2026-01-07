@@ -1,0 +1,420 @@
+/* 惜福食品管理樣式 - CSS Module */
+
+/* 類別區塊樣式 */
+.categoriesSections {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.categorySection {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.categoryHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 16px;
+}
+
+.categoryTitle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.categoryIcon {
+    color: #667eea;
+    font-size: 1.5rem;
+}
+
+.categoryTitle h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #333;
+}
+
+.categoryDescription {
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: normal;
+    margin-left: 8px;
+}
+
+.categoryActions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btnIcon {
+    padding: 8px 12px;
+    min-width: auto;
+}
+
+.btnCompact {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+}
+
+/* 惜福品列表樣式 */
+.foodsList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.foodItem {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.foodItem:hover {
+    background: #f0f0f0;
+    transform: translateX(4px);
+}
+
+.foodImageSmall {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #e0e0e0;
+}
+
+.foodImageSmall img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.noImageSmall {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 2rem;
+}
+
+.foodInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.foodHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.foodInfo h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.foodCode {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.foodPrice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.originalPrice {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.surplusPrice {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #e74c3c;
+}
+
+.discount {
+    background: #e74c3c;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.foodQuantity {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.foodActions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.foodActions button {
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+}
+
+.btnSuccess {
+    background: #27ae60;
+    color: white;
+}
+
+.btnSuccess:hover {
+    background: #229954;
+}
+
+.btnWarning {
+    background: #f39c12;
+    color: white;
+}
+
+.btnWarning:hover {
+    background: #d68910;
+}
+
+.btnSecondary {
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+}
+
+.btnSecondary:hover {
+    background: #7f8c8d;
+}
+
+.btnDanger {
+    background: #e74c3c;
+    color: white;
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+}
+
+.btnDanger:hover {
+    background: #c0392b;
+}
+
+.btnPrimary {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btnPrimary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 狀態徽章 */
+.statusBadge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.statusActive {
+    background: #27ae60;
+    color: white;
+}
+
+.statusInactive {
+    background: #95a5a6;
+    color: white;
+}
+
+.statusSoldOut {
+    background: #e74c3c;
+    color: white;
+}
+
+/* 空狀態 */
+.emptyMessage {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+    font-size: 0.95rem;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.emptyState p {
+    font-size: 1.1rem;
+}
+
+/* Header */
+.contentHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.contentHeader h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+/* 載入狀態 */
+.loading {
+    text-align: center;
+    padding: 3rem;
+    color: #999;
+}
+
+/* Tab Content */
+.tabContent {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 即時更新狀態指示器 */
+.realtimeStatus {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #999;
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border-radius: 20px;
+}
+
+.realtimeStatusConnected {
+    composes: realtimeStatus;
+    color: #28a745;
+    background: #e8f5e9;
+}
+
+.statusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #999;
+}
+
+.statusDotConnected {
+    composes: statusDot;
+    background: #28a745;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .foodItem {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .foodImageSmall {
+        width: 100%;
+        height: 150px;
+    }
+
+    .foodActions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .categoryHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .categoryActions {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

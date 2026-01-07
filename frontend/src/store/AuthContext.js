@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { updateUser as updateUserApi, authApi } from '../api/authApi'; // 引入 API 函數
@@ -6,54 +6,96 @@ import { updateUser as updateUserApi, authApi } from '../api/authApi'; // 引入
 // 1. 建立 Context
 const AuthContext = createContext(null);
 
+// localStorage 快取 key
+const USER_CACHE_KEY = 'cached_user_data';
+
+// 從 localStorage 讀取快取的用戶資料
+const getCachedUser = () => {
+  try {
+    const cached = localStorage.getItem(USER_CACHE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (e) {
+    console.error('Error parsing cached user:', e);
+    localStorage.removeItem(USER_CACHE_KEY);
+  }
+  return null;
+};
+
+// 儲存用戶資料到 localStorage
+const setCachedUser = (userData) => {
+  if (userData) {
+    localStorage.setItem(USER_CACHE_KEY, JSON.stringify(userData));
+  } else {
+    localStorage.removeItem(USER_CACHE_KEY);
+  }
+};
+
 // 2. 建立 Provider (提供者) 元件
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // 初始 loading 狀態為 true
+  // 優先使用快取的用戶資料，實現即時顯示
+  const [user, setUser] = useState(() => getCachedUser());
+  const [loading, setLoading] = useState(() => {
+    // 如果有快取的用戶資料，不需要顯示載入狀態
+    return !getCachedUser();
+  });
   const navigate = useNavigate();
+  const isVerifyingRef = useRef(false);
 
-  // 在應用程式載入時檢查現有 session
+  // 在應用程式載入時驗證 session（背景驗證）
   useEffect(() => {
-    const checkUserSession = async () => {
-      // 先嘗試 customer token，再嘗試 merchant token
+    const verifyUserSession = async () => {
+      // 避免重複驗證
+      if (isVerifyingRef.current) return;
+      isVerifyingRef.current = true;
+
       let userData = null;
-      
+      let tokenType = null;
+
       // 嘗試 customer token
       const customerToken = localStorage.getItem('customer_accessToken');
       if (customerToken) {
         try {
           userData = await authApi.getMe('customer');
-          setUser(userData);
-          setLoading(false);
-          return;
+          tokenType = 'customer';
         } catch (error) {
           console.log("Customer token 驗證失敗，嘗試 merchant token");
           localStorage.removeItem('customer_accessToken');
           localStorage.removeItem('customer_refreshToken');
         }
       }
-      
-      // 嘗試 merchant token
-      const merchantToken = localStorage.getItem('merchant_accessToken');
-      if (merchantToken) {
-        try {
-          userData = await authApi.getMe('merchant');
-          setUser(userData);
-          setLoading(false);
-          return;
-        } catch (error) {
-          console.log("Merchant token 驗證失敗");
-          localStorage.removeItem('merchant_accessToken');
-          localStorage.removeItem('merchant_refreshToken');
+
+      // 嘗試 merchant token（如果 customer token 失敗或不存在）
+      if (!userData) {
+        const merchantToken = localStorage.getItem('merchant_accessToken');
+        if (merchantToken) {
+          try {
+            userData = await authApi.getMe('merchant');
+            tokenType = 'merchant';
+          } catch (error) {
+            console.log("Merchant token 驗證失敗");
+            localStorage.removeItem('merchant_accessToken');
+            localStorage.removeItem('merchant_refreshToken');
+          }
         }
       }
-      
-      // 如果兩個 token 都失敗或不存在
-      setUser(null);
-      setLoading(false); // 檢查完成，設定 loading 為 false
+
+      // 更新用戶狀態和快取
+      if (userData) {
+        setUser(userData);
+        setCachedUser(userData);
+      } else {
+        // Token 驗證失敗，清除快取
+        setUser(null);
+        setCachedUser(null);
+      }
+
+      setLoading(false);
+      isVerifyingRef.current = false;
     };
 
-    checkUserSession();
+    verifyUserSession();
   }, []); // 空依賴陣列表示只在掛載時執行一次
 
   // 登入功能
@@ -61,6 +103,7 @@ export const AuthProvider = ({ children }) => {
     console.log("登入成功，使用者資料:", userData);
     console.log("Redirect path received in login:", redirectPath);
     setUser(userData); // 設定全域使用者狀態
+    setCachedUser(userData); // 快取用戶資料以供頁面刷新時使用
 
     // 檢查 user_type 是否存在
     if (!userData.user_type) {
@@ -120,11 +163,12 @@ export const AuthProvider = ({ children }) => {
     console.log("登出");
     const currentUserType = user?.user_type || 'customer';
     setUser(null);
-    
+    setCachedUser(null); // 清除快取的用戶資料
+
     // 清除對應用戶類型的 token
     localStorage.removeItem(`${currentUserType}_accessToken`);
     localStorage.removeItem(`${currentUserType}_refreshToken`);
-    
+
     // 如果有指定的 redirect 路徑，導向該路徑
     if (redirectPath) {
       navigate(redirectPath);
@@ -149,13 +193,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
-  const value = { 
-    user, 
-    login, 
-    logout, 
+  const value = {
+    user,
+    login,
+    logout,
     updateUser, // 提供 updateUser 函數
     loading,    // 提供 loading 狀態
-    isLoggedIn: !!user 
+    isLoggedIn: !!user
   };
 
   // 渲染子元件，讓 ProtectedRoute 自己處理 loading 狀態

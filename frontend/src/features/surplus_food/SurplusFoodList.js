@@ -4,7 +4,7 @@ import { surplusFoodApi } from '../../api/surplusFoodApi';
 import SurplusFoodForm from './SurplusFoodForm';
 import SurplusFoodCard from '../../components/surplusfood/SurplusFoodCard';
 import CategoryForm from './CategoryForm';
-import './SurplusFoodList.css';
+import styles from './SurplusFoodList.module.css';
 
 const SurplusFoodList = () => {
   const [surplusFoods, setSurplusFoods] = useState([]);
@@ -107,7 +107,7 @@ const SurplusFoodList = () => {
   const handleDeleteCategory = async (categoryId) => {
     // 檢查該類別下是否有惜福品
     const categoryFoods = surplusFoods.filter(food => food.category === categoryId);
-    
+
     if (categoryFoods.length > 0) {
       alert(`此類別下還有 ${categoryFoods.length} 個惜福品，無法刪除！\n請先刪除或移動該類別下的所有惜福品。`);
       return;
@@ -140,7 +140,7 @@ const SurplusFoodList = () => {
   // 按類別分組惜福品
   const groupFoodsByCategory = () => {
     const grouped = {};
-    
+
     // 初始化所有啟用的類別
     categories
       .filter(cat => cat.is_active)
@@ -163,11 +163,11 @@ const SurplusFoodList = () => {
   };
 
   return (
-    <div className="surplus-tab-content">
-      <div className="surplus-content-header">
+    <div className={styles.tabContent}>
+      <div className={styles.contentHeader}>
         <h2>惜福品管理</h2>
-        <button 
-          className="surplus-btn-primary"
+        <button
+          className={styles.btnPrimary}
           onClick={handleCreateCategory}
         >
           <FaPlus /> 新增類別
@@ -175,35 +175,35 @@ const SurplusFoodList = () => {
       </div>
 
       {loading ? (
-        <div className="loading">載入中...</div>
+        <div className={styles.loading}>載入中...</div>
       ) : (
-        <div className="categories-sections">
+        <div className={styles.categoriesSections}>
           {Object.values(groupFoodsByCategory()).map(({ category, foods }) => (
-            <div key={category.id} className="category-section">
-              <div className="category-header">
-                <div className="category-title">
-                  <FaFolder className="category-icon" />
+            <div key={category.id} className={styles.categorySection}>
+              <div className={styles.categoryHeader}>
+                <div className={styles.categoryTitle}>
+                  <FaFolder className={styles.categoryIcon} />
                   <h3>{category.name}</h3>
                   {category.description && (
-                    <span className="category-description">{category.description}</span>
+                    <span className={styles.categoryDescription}>{category.description}</span>
                   )}
                 </div>
-                <div className="category-actions">
-                  <button 
-                    className="surplus-btn-primary btn-compact"
+                <div className={styles.categoryActions}>
+                  <button
+                    className={`${styles.btnPrimary} ${styles.btnCompact}`}
                     onClick={() => handleCreateFood(category)}
                   >
                     <FaPlus /> 新增惜福品
                   </button>
-                  <button 
-                    className="surplus-btn-secondary btn-icon"
+                  <button
+                    className={`${styles.btnSecondary} ${styles.btnIcon}`}
                     onClick={() => handleEditCategory(category)}
                     title="編輯類別"
                   >
                     <FaEdit />
                   </button>
-                  <button 
-                    className="surplus-btn-danger btn-icon"
+                  <button
+                    className={`${styles.btnDanger} ${styles.btnIcon}`}
                     onClick={() => handleDeleteCategory(category.id)}
                     title="刪除類別"
                   >
@@ -212,9 +212,9 @@ const SurplusFoodList = () => {
                 </div>
               </div>
 
-              <div className="foods-list">
+              <div className={styles.foodsList}>
                 {foods.length === 0 ? (
-                  <div className="empty-message">此類別尚無惜福品</div>
+                  <div className={styles.emptyMessage}>此類別尚無惜福品</div>
                 ) : (
                   foods.map(food => (
                     <SurplusFoodCard
@@ -232,7 +232,7 @@ const SurplusFoodList = () => {
           ))}
 
           {categories.filter(cat => cat.is_active).length === 0 && (
-            <div className="empty-state">
+            <div className={styles.emptyState}>
               <p>尚未建立任何類別，請先新增類別</p>
             </div>
           )}

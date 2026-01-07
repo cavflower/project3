@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
-import './TimeSlotForm.css';
+import styles from './TimeSlotForm.module.css';
 
 const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -84,9 +84,9 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
     };
-    
+
     setFormData(newFormData);
-    
+
     // 當時間改變時，檢查是否在尖峰時段
     if (name === 'start_time' || name === 'end_time') {
       const warning = checkPeakHours(
@@ -95,7 +95,7 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
       );
       setPeakHourWarning(warning);
     }
-    
+
     // 清除該欄位的錯誤
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
@@ -122,13 +122,13 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setLoading(true);
-    
+
     try {
       // 準備提交的資料
       const submitData = {
@@ -144,8 +144,8 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
       onClose();
     } catch (error) {
       console.error('提交表單失敗:', error);
-      setErrors({ 
-        submit: error.response?.data?.message || '提交失敗，請稍後再試' 
+      setErrors({
+        submit: error.response?.data?.message || '提交失敗，請稍後再試'
       });
     } finally {
       setLoading(false);
@@ -166,51 +166,51 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
   const timeOptions = generateTimeOptions();
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content time-slot-form-modal">
-        <div className="modal-header">
+    <div className={styles.modalOverlay}>
+      <div className={`${styles.modalContent} ${styles.formModal}`}>
+        <div className={styles.modalHeader}>
           <h2>
             {type === 'createTimeSlot' && '新增惜福時段'}
             {type === 'editTimeSlot' && '編輯惜福時段'}
           </h2>
-          <button className="close-btn" onClick={onClose}>
+          <button className={styles.closeBtn} onClick={onClose}>
             <FaTimes />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body form-body">
+          <div className={styles.formBody}>
             {/* 操作標題提示 */}
-            <div className="form-operation-title">
+            <div className={styles.formOperationTitle}>
               {type === 'createTimeSlot' && (
                 <>
-                  <span className="operation-icon">➕</span>
+                  <span className={styles.operationIcon}>➕</span>
                   <span>新增惜福時段</span>
                 </>
               )}
               {type === 'editTimeSlot' && item && (
                 <>
-                  <span className="operation-icon">✏️</span>
+                  <span className={styles.operationIcon}>✏️</span>
                   <span>編輯時段：{item.name}</span>
                 </>
               )}
             </div>
 
             {errors.submit && (
-              <div className="error-banner">
+              <div className={styles.errorBanner}>
                 {errors.submit}
               </div>
             )}
 
             {/* 尖峰時段警告 */}
             {peakHourWarning && (
-              <div className="warning-banner">
+              <div className={styles.warningBanner}>
                 {peakHourWarning}
               </div>
             )}
 
             {/* 時段設定提示 */}
-            <div className="info-banner">
+            <div className={styles.infoBanner}>
               <strong>📌 惜福時段設定說明：</strong>
               <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
                 <li>惜福時段<strong>不能設在尖峰時段</strong>（08:00-13:00, 17:00-19:00）</li>
@@ -220,7 +220,7 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
               </ul>
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="name">時段名稱 *</label>
               <input
                 type="text"
@@ -229,18 +229,18 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="例如：午餐惜福、晚餐惜福"
-                className={errors.name ? 'error' : ''}
+                className={errors.name ? styles.inputError : ''}
                 required
               />
               {errors.name && (
-                <span className="error-message">{errors.name}</span>
+                <span className={styles.errorMessage}>{errors.name}</span>
               )}
-              <small className="form-hint">
+              <small className={styles.formHint}>
                 為此惜福時段設定一個易於識別的名稱
               </small>
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="day_of_week">星期 *</label>
               <select
                 id="day_of_week"
@@ -257,8 +257,8 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
               </select>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
                 <label htmlFor="start_time">開始時間 *</label>
                 <select
                   id="start_time"
@@ -275,14 +275,14 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="end_time">結束時間 *</label>
                 <select
                   id="end_time"
                   name="end_time"
                   value={formData.end_time}
                   onChange={handleChange}
-                  className={errors.end_time ? 'error' : ''}
+                  className={errors.end_time ? styles.inputError : ''}
                   required
                 >
                   {timeOptions.map((time) => (
@@ -292,13 +292,13 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
                   ))}
                 </select>
                 {errors.end_time && (
-                  <span className="error-message">{errors.end_time}</span>
+                  <span className={styles.errorMessage}>{errors.end_time}</span>
                 )}
               </div>
             </div>
 
-            <div className="form-group checkbox-group">
-              <label className="checkbox-label">
+            <div className={`${styles.formGroup} ${styles.checkboxGroup}`}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   name="is_active"
@@ -307,17 +307,17 @@ const TimeSlotForm = ({ type, item, onClose, onSuccess }) => {
                 />
                 <span>啟用此時段</span>
               </label>
-              <small className="form-hint">
+              <small className={styles.formHint}>
                 停用後將無法在此時段新增惜福食品
               </small>
             </div>
           </div>
 
-          <div className="modal-footer">
-            <button type="button" className="btn-cancel" onClick={onClose} disabled={loading}>
+          <div className={styles.modalFooter}>
+            <button type="button" className={styles.btnCancel} onClick={onClose} disabled={loading}>
               取消
             </button>
-            <button type="submit" className="btn-submit" disabled={loading}>
+            <button type="submit" className={styles.btnSubmit} disabled={loading}>
               {loading ? '處理中...' : (type === 'editTimeSlot' ? '更新' : '新增')}
             </button>
           </div>

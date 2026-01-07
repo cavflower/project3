@@ -1,45 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
-import { getMyStore } from '../../api/storeApi';
+import { useStore } from '../../store/StoreContext';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen }) => {
   const { user } = useAuth();
-  const [storeSettings, setStoreSettings] = useState({
-    enable_reservation: true,
-    enable_loyalty: true,
-    enable_surplus_food: true,
-  });
-
-  useEffect(() => {
-    // 如果是店家，載入店家設定
-    if (user?.user_type === 'merchant') {
-      loadStoreSettings();
-    }
-  }, [user]);
-
-  const loadStoreSettings = async () => {
-    try {
-      const response = await getMyStore();
-      const store = response.data;
-      setStoreSettings({
-        enable_reservation: store.enable_reservation !== undefined ? store.enable_reservation : true,
-        enable_loyalty: store.enable_loyalty !== undefined ? store.enable_loyalty : true,
-        enable_surplus_food: store.enable_surplus_food !== undefined ? store.enable_surplus_food : true,
-      });
-    } catch (error) {
-
-      // 404 錯誤表示商家尚未建立店家資料，這是正常情況
-      if (error.response?.status === 404) {
-        console.log('[Sidebar] Store not found - merchant needs to create store settings first');
-        // 保持預設值（全部啟用）
-      } else {
-        console.error('[Sidebar] Error loading store settings:', error);
-      }
-      console.error('載入店家設定失敗:', error);
-    }
-  };
+  // 使用共享的 StoreContext，避免重複 API 呼叫
+  const { storeSettings } = useStore();
 
   // 訪客點擊「我的訂位」導向查詢頁面，會員導向訂位清單
   const handleReservationClick = (e) => {

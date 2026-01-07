@@ -6,7 +6,7 @@ import './Navbar.css';
 import logo from '../../assets/logo.png';
 
 const Navbar = ({ toggleSidebar }) => {
-  const { isLoggedIn, user, logout } = useAuth(); // 2. 取得認證狀態、使用者資料和登出函式
+  const { isLoggedIn, user, logout, loading } = useAuth(); // 2. 取得認證狀態、使用者資料、登出函式和載入狀態
   const [dropdownOpen, setDropdownOpen] = useState(false); // 3. 管理下拉選單的狀態
   const location = useLocation(); // 取得當前位置
 
@@ -43,6 +43,11 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   const renderUserSection = () => {
+    // 認證載入中時，不顯示任何內容，避免閃爍
+    if (loading) {
+      return null;
+    }
+
     if (isLoggedIn) {
       // 如果使用者已登入，顯示頭像和下拉選單
       return (

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './store/AuthContext';
+import { StoreProvider } from './store/StoreContext';
 import './styles/index.css';
 import App from './App';
 import './lib/firebase'; // Initialize Firebase
@@ -13,7 +14,9 @@ root.render(
     <BrowserRouter>
       {/* */}
       <AuthProvider>
-        <App />
+        <StoreProvider>
+          <App />
+        </StoreProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

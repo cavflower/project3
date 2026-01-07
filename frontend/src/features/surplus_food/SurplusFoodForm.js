@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaTimes, FaUpload } from 'react-icons/fa';
 import { getProducts } from '../../api/productApi';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
-import './SurplusFoodForm.css';
+import styles from './SurplusFoodForm.module.css';
 
 const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -29,11 +29,6 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
 
   useEffect(() => {
     loadInitialData();
-    // 表單開啟時自動捲動到畫面正中間
-    const modalContent = document.querySelector('.modal-content');
-    if (modalContent) {
-      modalContent.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
   }, []);
 
   useEffect(() => {
@@ -63,12 +58,11 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
       const [productsData, timeSlotsData, surplusData] = await Promise.all([
         getProducts(),
         surplusFoodApi.getTimeSlots(),
-        surplusFoodApi.getSurplusFoods()  // 獲取現有惜福品
+        surplusFoodApi.getSurplusFoods()
       ]);
       setProducts(productsData.data || []);
       setTimeSlots(timeSlotsData || []);
 
-      // 提取已關聯商品的 ID（排除已售完和已下架的）
       const linkedIds = (surplusData || [])
         .filter(sf => sf.product && sf.status === 'active')
         .map(sf => sf.product);
@@ -76,12 +70,6 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
     } catch (error) {
       console.error('載入資料失敗:', error);
     }
-  };
-
-  const formatDateTimeForInput = (dateTimeString) => {
-    if (!dateTimeString) return '';
-    const date = new Date(dateTimeString);
-    return date.toISOString().slice(0, 16);
   };
 
   const conditionOptions = [
@@ -112,7 +100,6 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
     const selectedProduct = products.find(p => p.id === parseInt(productId));
 
     if (selectedProduct) {
-      // 將商品的 service_type 映射到 dining_option
       let diningOption = 'both';
       if (selectedProduct.service_type === 'dine_in') {
         diningOption = 'dine_in';
@@ -172,7 +159,6 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
       newErrors.surplus_price = '惜福價必須低於原價';
     }
 
-    // 檢查惜福價是否高於原價的80%
     const maxAllowedPrice = parseFloat(formData.original_price) * 0.8;
     if (parseFloat(formData.surplus_price) > maxAllowedPrice) {
       newErrors.surplus_price = '惜福價不能高於原價的80%';
@@ -206,7 +192,6 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
     try {
       const submitFormData = new FormData();
 
-      // 添加所有欄位
       if (initialCategory?.id) submitFormData.append('category', initialCategory.id);
       if (formData.product) submitFormData.append('product', formData.product);
       submitFormData.append('title', formData.title);
@@ -250,44 +235,44 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
     : 0;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content surplus-food-form-modal">
-        <div className="modal-header">
+    <div className={styles.modalOverlay}>
+      <div className={styles.modalContent}>
+        <div className={styles.modalHeader}>
           <h2>
             {type === 'createFood' && `新增惜福品 - ${initialCategory?.name || ''}`}
             {type === 'editFood' && '編輯惜福品'}
           </h2>
-          <button className="close-btn" onClick={onClose}>
+          <button className={styles.closeBtn} onClick={onClose}>
             <FaTimes />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body form-body">
+          <div className={styles.formBody}>
             {/* 操作標題提示 */}
-            <div className="form-operation-title">
+            <div className={styles.formOperationTitle}>
               {type === 'createFood' && (
                 <>
-                  <span className="operation-icon">➕</span>
+                  <span className={styles.operationIcon}>➕</span>
                   <span>新增惜福品</span>
                 </>
               )}
               {type === 'editFood' && item && (
                 <>
-                  <span className="operation-icon">✏️</span>
+                  <span className={styles.operationIcon}>✏️</span>
                   <span>編輯惜福品：{item.title}</span>
                 </>
               )}
             </div>
 
             {errors.submit && (
-              <div className="error-banner">
+              <div className={styles.errorBanner}>
                 {errors.submit}
               </div>
             )}
 
             {/* 上架規則說明 */}
-            <div className="info-banner">
+            <div className={styles.infoBanner}>
               <strong>📋 惜福品上架規則：</strong>
               <ul style={{ marginTop: '8px', paddingLeft: '20px', marginBottom: 0 }}>
                 <li>惜福價必須至少打8折（折扣20%以上）</li>
@@ -299,7 +284,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
 
             {/* 關聯商品（可選） */}
             {type !== 'editFood' && (
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="product">關聯商品（可選）</label>
                 <select
                   id="product"
@@ -316,7 +301,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                       </option>
                     ))}
                 </select>
-                <small className="form-hint">
+                <small className={styles.formHint}>
                   可從現有商品自動帶入資訊，或手動填寫
                 </small>
               </div>
@@ -324,7 +309,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
 
             {/* 編輯時顯示關聯商品資訊 */}
             {type === 'editFood' && formData.product && (
-              <div className="info-banner">
+              <div className={styles.infoBanner}>
                 <strong>🔗 此惜福品已關聯商品</strong>
                 <p style={{ marginTop: '8px', marginBottom: 0 }}>
                   編輯時僅能修改：惜福時段、商品圖片、取餐說明
@@ -333,7 +318,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
             )}
 
             {/* 惜福品名稱 */}
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="title">惜福品名稱 *</label>
               <input
                 type="text"
@@ -342,22 +327,22 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                 value={formData.title}
                 onChange={handleChange}
                 placeholder="例如：即期麵包組合"
-                className={errors.title ? 'error' : ''}
+                className={errors.title ? styles.inputError : ''}
                 disabled={!!formData.product || type === 'editFood'}
                 required
               />
               {errors.title && (
-                <span className="error-message">{errors.title}</span>
+                <span className={styles.errorMessage}>{errors.title}</span>
               )}
               {(formData.product || type === 'editFood') && (
-                <small className="form-hint" style={{ color: '#ff6b6b' }}>
+                <small className={styles.formHint} style={{ color: '#ff6b6b' }}>
                   {formData.product ? '已關聯商品，名稱自動帶入不可更改' : '編輯時不可修改惜福品名稱'}
                 </small>
               )}
             </div>
 
             {/* 商品描述 */}
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="description">商品描述</label>
               <textarea
                 id="description"
@@ -369,15 +354,15 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                 disabled={!!formData.product || type === 'editFood'}
               />
               {(formData.product || type === 'editFood') && (
-                <small className="form-hint" style={{ color: '#ff6b6b' }}>
+                <small className={styles.formHint} style={{ color: '#ff6b6b' }}>
                   {formData.product ? '已關聯商品，描述自動帶入不可更改' : '編輯時不可修改商品描述'}
                 </small>
               )}
             </div>
 
             {/* 價格設定 */}
-            <div className="form-row">
-              <div className="form-group">
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
                 <label htmlFor="original_price">原價 *</label>
                 <input
                   type="number"
@@ -388,21 +373,21 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   onWheel={(e) => e.target.blur()}
                   min="0"
                   step="1"
-                  className={errors.original_price ? 'error' : ''}
+                  className={errors.original_price ? styles.inputError : ''}
                   disabled={!!formData.product || type === 'editFood'}
                   required
                 />
                 {errors.original_price && (
-                  <span className="error-message">{errors.original_price}</span>
+                  <span className={styles.errorMessage}>{errors.original_price}</span>
                 )}
                 {(formData.product || type === 'editFood') && (
-                  <small className="form-hint" style={{ color: '#ff6b6b' }}>
+                  <small className={styles.formHint} style={{ color: '#ff6b6b' }}>
                     {formData.product ? '已關聯商品，原價自動帶入不可更改' : '編輯時不可修改原價'}
                   </small>
                 )}
               </div>
 
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="surplus_price">惜福價 *</label>
                 <input
                   type="number"
@@ -413,15 +398,15 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   onWheel={(e) => e.target.blur()}
                   min="0"
                   step="1"
-                  className={errors.surplus_price ? 'error' : ''}
+                  className={errors.surplus_price ? styles.inputError : ''}
                   disabled={type === 'editFood'}
                   required
                 />
                 {errors.surplus_price && (
-                  <span className="error-message">{errors.surplus_price}</span>
+                  <span className={styles.errorMessage}>{errors.surplus_price}</span>
                 )}
                 {type === 'editFood' && (
-                  <small className="form-hint" style={{ color: '#ff6b6b' }}>
+                  <small className={styles.formHint} style={{ color: '#ff6b6b' }}>
                     編輯時不可修改惜福價
                   </small>
                 )}
@@ -430,17 +415,17 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
 
             {/* 折扣顯示 */}
             {discountPercent > 0 && (
-              <div className="discount-display">
-                <span className="discount-badge">{discountPercent}% OFF</span>
-                <span className="discount-text">
+              <div className={styles.discountDisplay}>
+                <span className={styles.discountBadge}>{discountPercent}% OFF</span>
+                <span className={styles.discountText}>
                   顧客可節省 ${Math.floor(formData.original_price - formData.surplus_price)}
                 </span>
               </div>
             )}
 
             {/* 數量與狀況 */}
-            <div className="form-row">
-              <div className="form-group">
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
                 <label htmlFor="quantity">可售數量 *</label>
                 <input
                   type="number"
@@ -450,21 +435,21 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   onChange={handleChange}
                   onWheel={(e) => e.target.blur()}
                   min="1"
-                  className={errors.quantity ? 'error' : ''}
+                  className={errors.quantity ? styles.inputError : ''}
                   disabled={type === 'editFood'}
                   required
                 />
                 {errors.quantity && (
-                  <span className="error-message">{errors.quantity}</span>
+                  <span className={styles.errorMessage}>{errors.quantity}</span>
                 )}
                 {type === 'editFood' && (
-                  <small className="form-hint" style={{ color: '#ff6b6b' }}>
+                  <small className={styles.formHint} style={{ color: '#ff6b6b' }}>
                     編輯時不可修改可售數量
                   </small>
                 )}
               </div>
 
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="condition">商品狀況 *</label>
                 <select
                   id="condition"
@@ -481,7 +466,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   ))}
                 </select>
                 {type === 'editFood' && (
-                  <small className="form-hint" style={{ color: '#ff6b6b' }}>
+                  <small className={styles.formHint} style={{ color: '#ff6b6b' }}>
                     編輯時不可修改商品狀況
                   </small>
                 )}
@@ -489,7 +474,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
             </div>
 
             {/* 用餐方式 */}
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="dining_option">用餐方式 *</label>
               <select
                 id="dining_option"
@@ -505,7 +490,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   </option>
                 ))}
               </select>
-              <small className="form-hint">
+              <small className={styles.formHint}>
                 {formData.product
                   ? '已關聯商品，用餐方式自動帶入不可更改'
                   : type === 'editFood'
@@ -517,7 +502,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
 
             {/* 到期日（即期品必填） */}
             {formData.condition === 'near_expiry' && (
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="expiry_date">到期日 *</label>
                 <input
                   type="date"
@@ -525,15 +510,15 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   name="expiry_date"
                   value={formData.expiry_date}
                   onChange={handleChange}
-                  className={errors.expiry_date ? 'error' : ''}
+                  className={errors.expiry_date ? styles.inputError : ''}
                   disabled={type === 'editFood'}
                   required
                 />
                 {errors.expiry_date && (
-                  <span className="error-message">{errors.expiry_date}</span>
+                  <span className={styles.errorMessage}>{errors.expiry_date}</span>
                 )}
                 {type === 'editFood' && (
-                  <small className="form-hint" style={{ color: '#ff6b6b' }}>
+                  <small className={styles.formHint} style={{ color: '#ff6b6b' }}>
                     即期品編輯時不可修改到期日
                   </small>
                 )}
@@ -541,14 +526,14 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
             )}
 
             {/* 惜福時段 */}
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="time_slot">惜福時段 *</label>
               <select
                 id="time_slot"
                 name="time_slot"
                 value={formData.time_slot}
                 onChange={handleChange}
-                className={errors.time_slot ? 'error' : ''}
+                className={errors.time_slot ? styles.inputError : ''}
                 required
               >
                 <option value="">請選擇時段</option>
@@ -559,23 +544,23 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                 ))}
               </select>
               {errors.time_slot && (
-                <span className="error-message">{errors.time_slot}</span>
+                <span className={styles.errorMessage}>{errors.time_slot}</span>
               )}
-              <small className="form-hint">
+              <small className={styles.formHint}>
                 選擇對應的惜福時段，販售時間將依據時段設定
               </small>
             </div>
 
             {/* 商品圖片 */}
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label>商品圖片</label>
-              <div className="image-upload-area">
+              <div className={styles.imageUploadArea}>
                 {imagePreview ? (
-                  <div className="image-preview">
+                  <div className={styles.imagePreview}>
                     <img src={imagePreview} alt="預覽" />
                     <button
                       type="button"
-                      className="remove-image-btn"
+                      className={styles.removeImageBtn}
                       onClick={() => {
                         setFormData({ ...formData, image: null });
                         setImagePreview(null);
@@ -585,7 +570,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                     </button>
                   </div>
                 ) : (
-                  <label className="upload-label">
+                  <label className={styles.uploadLabel}>
                     <FaUpload />
                     <span>點擊上傳圖片</span>
                     <input
@@ -600,7 +585,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
             </div>
 
             {/* 取餐說明 */}
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="pickup_instructions">備註</label>
               <textarea
                 id="pickup_instructions"
@@ -613,11 +598,11 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
             </div>
           </div>
 
-          <div className="modal-footer">
-            <button type="button" className="btn-cancel" onClick={onClose} disabled={loading}>
+          <div className={styles.modalFooter}>
+            <button type="button" className={styles.btnCancel} onClick={onClose} disabled={loading}>
               取消
             </button>
-            <button type="submit" className="btn-submit" disabled={loading}>
+            <button type="submit" className={styles.btnSubmit} disabled={loading}>
               {loading ? '處理中...' : (type === 'editFood' ? '更新' : '新增')}
             </button>
           </div>

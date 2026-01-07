@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
+import { useStore } from '../../store/StoreContext';
 import FeatureCard from './components/FeatureCard';
-import { getMyStore } from '../../api/storeApi';
 import { getIngredients } from '../../api/inventoryApi';
 import { getMerchantPendingOrders } from '../../api/orderApi';
 import { db } from '../../lib/firebase';
@@ -27,40 +27,40 @@ import {
 
 const MerchantDashboard = () => {
   const { user } = useAuth();
+  // 使用共享的 StoreContext，避免重複 API 呼叫
+  const { store, storeSettings, storeId: contextStoreId, loading: storeLoading } = useStore();
   const navigate = useNavigate();
-  const [storeSettings, setStoreSettings] = useState({
-    enable_reservation: true,
-    enable_loyalty: true,
-    enable_surplus_food: true,
-  });
   const [loading, setLoading] = useState(true);
   const [lowStockItems, setLowStockItems] = useState([]);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [storeId, setStoreId] = useState(null);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const hasLoadedRef = useRef(false);
 
-  // 初始載入資料
+  // 當 store 資料從 context 載入完成時，更新本地 storeId
   useEffect(() => {
-    const loadDashboardData = async () => {
-      if (hasLoadedOnce) {
-        setLoading(false);
-        return;
-      }
+    if (contextStoreId) {
+      setStoreId(contextStoreId);
+    }
+  }, [contextStoreId]);
 
+  // 載入其他 Dashboard 資料（庫存、待確認訂單）
+  useEffect(() => {
+    // 等待 store 載入完成
+    if (storeLoading) return;
+
+    // 使用 ref 確保只載入一次
+    if (hasLoadedRef.current) {
+      setLoading(false);
+      return;
+    }
+    hasLoadedRef.current = true;
+
+    const loadDashboardData = async () => {
       try {
-        const [storeResponse, ingredientsData, pendingOrdersResponse] = await Promise.all([
-          getMyStore(),
+        const [ingredientsData, pendingOrdersResponse] = await Promise.all([
           getIngredients(),
           getMerchantPendingOrders()
         ]);
-
-        const store = storeResponse.data;
-        setStoreId(store.id);
-        setStoreSettings({
-          enable_reservation: store.enable_reservation !== undefined ? store.enable_reservation : true,
-          enable_loyalty: store.enable_loyalty !== undefined ? store.enable_loyalty : true,
-          enable_surplus_food: store.enable_surplus_food !== undefined ? store.enable_surplus_food : true,
-        });
 
         // Process inventory data
         const lowStock = ingredientsData.filter(i => i.is_low_stock);
@@ -71,26 +71,20 @@ const MerchantDashboard = () => {
           setPendingOrders(pendingOrdersResponse.data.pending_orders);
         }
 
-        setHasLoadedOnce(true);
-
       } catch (error) {
-
         // 404 錯誤表示商家尚未建立店家資料，這是正常情況
         if (error.response?.status === 404) {
           console.log('[Dashboard] Store not found - merchant needs to create store settings first');
-          // 保持預設值（全部啟用）
         } else {
           console.error('[Dashboard] Error loading dashboard data:', error);
         }
-
       } finally {
         setLoading(false);
       }
     };
 
     loadDashboardData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLoadedOnce]);
+  }, [storeLoading]);
 
   // Firestore 即時監聽訂單變更（包含一般訂單和惜福品訂單）
   useEffect(() => {
@@ -284,7 +278,8 @@ const MerchantDashboard = () => {
 
   ];
 
-  if (loading) {
+  // 只在 store 載入中時顯示完整載入畫面
+  if (storeLoading) {
     return (
       <div className="merchant-dashboard">
         <div className="loading-container">
@@ -303,8 +298,12 @@ const MerchantDashboard = () => {
 
       <div className="dashboard-stats-container">
         <div className="stats-card chart-card">
-          <h3>🔔 待確認訂單 ({pendingOrders.length})</h3>
-          {pendingOrders.length > 0 ? (
+          <h3>🔔 待確認訂單 {!loading && `(${pendingOrders.length})`}</h3>
+          {loading ? (
+            <div className="all-good">
+              <p>載入中...</p>
+            </div>
+          ) : pendingOrders.length > 0 ? (
             <div className="pending-orders-list">
               <div className="pending-orders-scroll">
                 {pendingOrders.map((order, index) => (
@@ -332,8 +331,12 @@ const MerchantDashboard = () => {
         </div>
 
         <div className="stats-card alert-card">
-          <h3>⚠️ 庫存不足提醒 ({lowStockItems.length})</h3>
-          {lowStockItems.length > 0 ? (
+          <h3>⚠️ 庫存不足提醒 {!loading && `(${lowStockItems.length})`}</h3>
+          {loading ? (
+            <div className="all-good">
+              <p>載入中...</p>
+            </div>
+          ) : lowStockItems.length > 0 ? (
             <div className="low-stock-list">
               {lowStockItems.slice(0, 5).map(item => (
                 <div key={item.id} className="low-stock-item">
