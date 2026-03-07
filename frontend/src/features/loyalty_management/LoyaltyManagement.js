@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './LoyaltyManagement.css';
+import styles from './LoyaltyManagement.module.css';
 import { FaArrowLeft, FaCoins, FaAward, FaGift, FaPlus, FaTrash } from 'react-icons/fa';
 import api from '../../api/api';
 
@@ -9,7 +9,7 @@ const LoyaltyManagement = () => {
   const [activeTab, setActiveTab] = useState('point-rules');
   const [loading, setLoading] = useState(false);
 
-  
+
   // 從 localStorage 恢復狀態
   const [levels, setLevels] = useState(() => {
     const saved = localStorage.getItem('membershipLevels');
@@ -54,42 +54,42 @@ const LoyaltyManagement = () => {
 
 
   return (
-    <div className="loyalty-management">
-      <header className="loyalty-header">
-        <button className="back-btn" onClick={() => navigate('/dashboard')}>
+    <div className={styles['loyalty-management']}>
+      <header className={styles['loyalty-header']}>
+        <button className={styles['back-btn']} onClick={() => navigate('/dashboard')}>
           <FaArrowLeft /> 返回
         </button>
         <h1>會員制度管理</h1>
         <p>設定您的點數規則、會員等級和兌換商品</p>
       </header>
 
-      <nav className="loyalty-nav">
+      <nav className={styles['loyalty-nav']}>
 
         <button
-          className={`nav-tab ${activeTab === 'point-rules' ? 'active' : ''}`}
+          className={activeTab === 'point-rules' ? `${styles['nav-tab']} ${styles['active']}` : styles['nav-tab']}
           onClick={() => setActiveTab('point-rules')}
         >
           <FaCoins /> 點數規則
         </button>
 
         <button
-          className={`nav-tab ${activeTab === 'membership-levels' ? 'active' : ''}`}
+          className={activeTab === 'membership-levels' ? `${styles['nav-tab']} ${styles['active']}` : styles['nav-tab']}
           onClick={() => setActiveTab('membership-levels')}
         >
           <FaAward /> 會員等級
         </button>
         <button
-          className={`nav-tab ${activeTab === 'redemptions' ? 'active' : ''}`}
+          className={activeTab === 'redemptions' ? `${styles['nav-tab']} ${styles['active']}` : styles['nav-tab']}
           onClick={() => setActiveTab('redemptions')}
         >
           <FaGift /> 兌換商品
         </button>
       </nav>
 
-      <main className="loyalty-content">
+      <main className={styles['loyalty-content']}>
 
         {activeTab === 'point-rules' && (
-          <PointRulesSection 
+          <PointRulesSection
             pointRules={pointRules}
             setPointRules={setPointRules}
 
@@ -101,14 +101,14 @@ const LoyaltyManagement = () => {
         )}
 
         {activeTab === 'membership-levels' && (
-          <MembershipLevelsSection 
+          <MembershipLevelsSection
             levels={levels}
             setLevels={setLevels}
           />
         )}
 
         {activeTab === 'redemptions' && (
-          <RedemptionsSection 
+          <RedemptionsSection
             redemptions={redemptions}
             setRedemptions={setRedemptions}
             loading={loading}
@@ -139,7 +139,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
       setLoading(true);
       // 轉換：每X元得1點 -> 每1元得Y點
       const points_per_currency = 1 / parseFloat(formData.currency_per_point);
-      
+
       const ruleData = {
         name: formData.name,
         points_per_currency: points_per_currency,
@@ -152,10 +152,10 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
 
       const response = await api.post('/loyalty/merchant/point-rules/', ruleData);
       console.log('API 回應:', response.data);
-      
+
       // 重新載入規則列表
       await loadPointRules();
-      
+
       setFormData({
         name: '',
         currency_per_point: 100,
@@ -166,7 +166,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
     } catch (error) {
       console.error('新增點數規則失敗:', error);
       console.error('錯誤詳情:', error.response?.data);
-      
+
       let errorMessage = '新增點數規則失敗';
       if (error.response?.data) {
         // 顯示後端返回的錯誤信息
@@ -181,7 +181,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
       } else if (error.message) {
         errorMessage += '：' + error.message;
       }
-      
+
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -208,11 +208,11 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
   };
 
   return (
-    <section className="loyalty-section">
-      <div className="section-header">
+    <section className={styles['loyalty-section']}>
+      <div className={styles['section-header']}>
         <div>
           {pointRules.length > 0 && (
-            <p className="section-subtitle">已設定 {pointRules.length} 個規則</p>
+            <p className={styles['section-subtitle']}>已設定 {pointRules.length} 個規則</p>
           )}
         </div>
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>
@@ -221,8 +221,8 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
       </div>
 
       {pointRules.length === 0 ? (
-        <div className="empty-state">
-          <FaCoins className="empty-icon" />
+        <div className={styles['empty-state']}>
+          <FaCoins className={styles['empty-icon']} />
           <h3>還沒有點數規則</h3>
           <p>建立第一個點數規則，定義顧客消費多少金額可獲得多少點數</p>
           <button className="btn btn-secondary" onClick={() => setShowForm(true)}>
@@ -230,7 +230,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
           </button>
         </div>
       ) : (
-        <div className="rules-table">
+        <div className={styles['rules-table']}>
           <table>
             <thead>
               <tr>
@@ -243,10 +243,10 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
             <tbody>
               {pointRules.map((rule) => {
                 // 計算每X元得1點
-                const currencyPerPoint = rule.points_per_currency > 0 
-                  ? Math.round(1 / rule.points_per_currency) 
+                const currencyPerPoint = rule.points_per_currency > 0
+                  ? Math.round(1 / rule.points_per_currency)
                   : 0;
-                
+
                 return (
                   <tr key={rule.id}>
                     <td>{rule.name}</td>
@@ -254,7 +254,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
                     <td>{rule.min_spend > 0 ? `$${rule.min_spend}` : '無限制'}</td>
                     <td>
                       <button
-                        className="delete-btn-small"
+                        className={styles['delete-btn-small']}
                         onClick={() => removeRule(rule.id)}
                       >
                         <FaTrash /> 刪除
@@ -269,20 +269,20 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
       )}
 
       {showForm && (
-        <div className="form-overlay">
-          <div className="form-modal">
-            <div className="modal-header">
+        <div className={styles['form-overlay']}>
+          <div className={styles['form-modal']}>
+            <div className={styles['modal-header']}>
               <h3>新增點數規則</h3>
               <button
-                className="modal-close"
+                className={styles['modal-close']}
                 onClick={() => setShowForm(false)}
               >
                 ✕
               </button>
             </div>
 
-            <div className="modal-body">
-              <div className="form-group">
+            <div className={styles['modal-body']}>
+              <div className={styles['form-group']}>
                 <label>規則名稱 *</label>
                 <input
                   type="text"
@@ -294,7 +294,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
                 />
               </div>
 
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label>每消費多少元可以累積 1 點 *</label>
                 <input
                   type="number"
@@ -314,7 +314,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
                 </small>
               </div>
 
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label>最低消費金額（可選）</label>
                 <input
                   type="number"
@@ -331,7 +331,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
               </div>
             </div>
 
-            <div className="modal-footer">
+            <div className={styles['modal-footer']}>
               <button
                 className="btn btn-secondary"
                 onClick={() => setShowForm(false)}
@@ -399,8 +399,8 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
   const maxPoints = Math.max(...levels.map((l) => l.threshold_points), 10000) || 10000;
 
   return (
-    <section className="loyalty-section">
-      <div className="section-header">
+    <section className={styles['loyalty-section']}>
+      <div className={styles['section-header']}>
         <div>
           <h2>會員等級設定</h2>
           <p className="section-subtitle">
@@ -409,9 +409,9 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
               : '使用表單輸入設定各級距'}
           </p>
         </div>
-        <div className="header-actions">
+        <div className={styles['header-actions']}>
           <button
-            className={`toggle-btn ${useSlider ? 'active' : ''}`}
+            className={useSlider ? `${styles['toggle-btn']} ${styles['active']}` : styles['toggle-btn']}
             onClick={() => setUseSlider(!useSlider)}
           >
             {useSlider ? '切換到表單模式' : '切換到滑條模式'}
@@ -426,35 +426,35 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
 
       {/* 滑條模式 */}
       {useSlider && (
-        <div className="slider-container">
-          <div className="slider-header">
+        <div className={styles['slider-container']}>
+          <div className={styles['slider-header']}>
             <h3>拖動滑塊設定會員等級</h3>
             <p>點數軸範圍：0 - {maxPoints.toLocaleString()}</p>
           </div>
 
           {levels.length === 0 ? (
-            <div className="empty-slider-state">
-              <FaAward className="empty-icon" />
+            <div className={styles['empty-slider-state']}>
+              <FaAward className={styles['empty-icon']} />
               <p>還沒有會員等級，請新增第一個等級</p>
             </div>
           ) : (
-            <div className="levels-slider-display">
+            <div className={styles['levels-slider-display']}>
               {/* 點數軸 */}
-              <div className="points-axis">
-                <div className="axis-track">
+              <div className={styles['points-axis']}>
+                <div className={styles['axis-track']}>
                   {levels.map((level) => (
                     <div
                       key={level.id}
-                      className="level-marker"
+                      className={styles['level-marker']}
                       style={{
                         left: `${(level.threshold_points / maxPoints) * 100}%`,
                       }}
                     >
-                      <div className="marker-dot" />
-                      <div className="marker-tooltip">
-                        <div className="tooltip-content">
-                          <div className="tooltip-name">{level.name}</div>
-                          <div className="tooltip-points">
+                      <div className={styles['marker-dot']} />
+                      <div className={styles['marker-tooltip']}>
+                        <div className={styles['tooltip-content']}>
+                          <div className={styles['tooltip-name']}>{level.name}</div>
+                          <div className={styles['tooltip-points']}>
                             {level.threshold_points.toLocaleString()} 點
                           </div>
                         </div>
@@ -462,29 +462,29 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
                     </div>
                   ))}
                 </div>
-                <div className="axis-labels">
-                  <span className="axis-label">0</span>
-                  <span className="axis-label">{(maxPoints / 2).toLocaleString()}</span>
-                  <span className="axis-label">{maxPoints.toLocaleString()}</span>
+                <div className={styles['axis-labels']}>
+                  <span className={styles['axis-label']}>0</span>
+                  <span className={styles['axis-label']}>{(maxPoints / 2).toLocaleString()}</span>
+                  <span className={styles['axis-label']}>{maxPoints.toLocaleString()}</span>
                 </div>
               </div>
 
               {/* 等級列表 */}
-              <div className="levels-list">
+              <div className={styles['levels-list']}>
                 {levels.map((level, index) => (
-                  <div key={level.id} className="level-item-slider">
-                    <div className="level-info">
-                      <div className="level-rank">LV.{index + 1}</div>
-                      <div className="level-details">
+                  <div key={level.id} className={styles['level-item-slider']}>
+                    <div className={styles['level-info']}>
+                      <div className={styles['level-rank']}>LV.{index + 1}</div>
+                      <div className={styles['level-details']}>
                         <h4>{level.name}</h4>
-                        <p className="level-points">
+                        <p className={styles['level-points']}>
                           {level.threshold_points.toLocaleString()} 點起
                         </p>
                       </div>
                     </div>
 
-                    <div className="level-controls">
-                      <div className="slider-wrapper">
+                    <div className={styles['level-controls']}>
+                      <div className={styles['slider-wrapper']}>
                         <input
                           type="range"
                           min="0"
@@ -493,15 +493,15 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
                           onChange={(e) =>
                             updateLevelPoints(level.id, parseInt(e.target.value))
                           }
-                          className="level-slider"
+                          className={styles['level-slider']}
                         />
-                        <div className="slider-value">
+                        <div className={styles['slider-value']}>
                           {level.threshold_points.toLocaleString()}
                         </div>
                       </div>
 
                       <button
-                        className="delete-btn"
+                        className={styles['delete-btn']}
                         onClick={() => removeLevel(level.id)}
                         title="刪除此等級"
                       >
@@ -509,14 +509,14 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
                       </button>
                     </div>
 
-                    <div className="level-benefits">
+                    <div className={styles['level-benefits']}>
                       {level.discount_percent > 0 && (
-                        <span className="benefit-badge">
+                        <span className={styles['benefit-badge']}>
                           折扣 {level.discount_percent}%
                         </span>
                       )}
                       {level.benefits && (
-                        <span className="benefit-badge benefits-text">
+                        <span className={`${styles['benefit-badge']} ${styles['benefits-text']}`}>
                           {level.benefits}
                         </span>
                       )}
@@ -537,16 +537,16 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
 
       {/* 表單模式 */}
       {useSlider === false && (
-        <div className="form-container">
-          <div className="form-header">
+        <div className={styles['form-container']}>
+          <div className={styles['form-header']}>
             <h3>會員等級列表</h3>
             {levels.length > 0 && (
-              <p className="form-subtitle">已設定 {levels.length} 個等級</p>
+              <p className={styles['form-subtitle']}>已設定 {levels.length} 個等級</p>
             )}
           </div>
 
           {levels.length > 0 && (
-            <div className="levels-table">
+            <div className={styles['levels-table']}>
               <table>
                 <thead>
                   <tr>
@@ -569,12 +569,12 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
                           ? `${level.discount_percent}%`
                           : '-'}
                       </td>
-                      <td className="benefits-cell">
+                      <td className={styles['benefits-cell']}>
                         {level.benefits || '-'}
                       </td>
                       <td>
                         <button
-                          className="delete-btn-small"
+                          className={styles['delete-btn-small']}
                           onClick={() => removeLevel(level.id)}
                         >
                           <FaTrash /> 刪除
@@ -588,8 +588,8 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
           )}
 
           {levels.length === 0 && (
-            <div className="empty-state">
-              <FaAward className="empty-icon" />
+            <div className={styles['empty-state']}>
+              <FaAward className={styles['empty-icon']} />
               <h3>還沒有會員等級</h3>
               <p>建立會員等級，為不同消費等級的顧客提供差異化的權益</p>
             </div>
@@ -599,20 +599,20 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
 
       {/* 新增表單 */}
       {showForm && (
-        <div className="form-overlay">
-          <div className="form-modal">
-            <div className="modal-header">
+        <div className={styles['form-overlay']}>
+          <div className={styles['form-modal']}>
+            <div className={styles['modal-header']}>
               <h3>新增會員等級</h3>
               <button
-                className="modal-close"
+                className={styles['modal-close']}
                 onClick={() => setShowForm(false)}
               >
                 ✕
               </button>
             </div>
 
-            <div className="modal-body">
-              <div className="form-group">
+            <div className={styles['modal-body']}>
+              <div className={styles['form-group']}>
                 <label>等級名稱 *</label>
                 <input
                   type="text"
@@ -624,7 +624,7 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label>門檻點數 *</label>
                 <input
                   type="number"
@@ -640,7 +640,7 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label>折扣百分比 (%)</label>
                 <input
                   type="number"
@@ -657,7 +657,7 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label>權益說明</label>
                 <textarea
                   placeholder="例如：享受額外折扣、優先預訂、生日禮物等"
@@ -670,7 +670,7 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
               </div>
             </div>
 
-            <div className="modal-footer">
+            <div className={styles['modal-footer']}>
               <button
                 className="btn btn-secondary"
                 onClick={() => setShowForm(false)}
@@ -734,10 +734,10 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
       };
 
       await api.post('/loyalty/merchant/redemptions/', redemptionData);
-      
+
       // 重新載入列表
       await loadRedemptions();
-      
+
       setFormData({
         title: '',
         description: '',
@@ -749,10 +749,10 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
     } catch (error) {
       console.error('新增兌換商品失敗:', error);
       console.error('錯誤詳情:', error.response?.data);
-      const errorMsg = error.response?.data?.detail || 
-                       error.response?.data?.error || 
-                       JSON.stringify(error.response?.data) || 
-                       '新增兌換商品失敗，請重試';
+      const errorMsg = error.response?.data?.detail ||
+        error.response?.data?.error ||
+        JSON.stringify(error.response?.data) ||
+        '新增兌換商品失敗，請重試';
       alert(`新增失敗：${errorMsg}`);
     } finally {
       setLoading(false);
@@ -797,12 +797,12 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
   };
 
   return (
-    <section className="loyalty-section">
-      <div className="section-header">
+    <section className={styles['loyalty-section']}>
+      <div className={styles['section-header']}>
         <div>
           <h2>兌換商品</h2>
           {redemptions.length > 0 && (
-            <p className="section-subtitle">
+            <p className={styles['section-subtitle']}>
               已設定 {redemptions.filter((r) => r.is_active).length} 個活躍商品
             </p>
           )}
@@ -813,39 +813,39 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
       </div>
 
       {redemptions.length === 0 ? (
-        <div className="empty-state">
-          <FaGift className="empty-icon" />
+        <div className={styles['empty-state']}>
+          <FaGift className={styles['empty-icon']} />
           <h3>還沒有兌換商品</h3>
           <p>建立兌換商品，讓會員用積累的點數兌換您提供的禮品或優惠</p>
         </div>
       ) : (
-        <div className="redemptions-grid">
+        <div className={styles['redemptions-grid']}>
           {redemptions.map((item) => (
             <div
               key={item.id}
-              className={`redemption-card ${item.is_active ? 'active' : 'inactive'}`}
+              className={item.is_active ? `${styles['redemption-card']} ${styles['active']}` : `${styles['redemption-card']} ${styles['inactive']}`}
             >
-              <div className="card-header">
+              <div className={styles['card-header']}>
                 <h3>{item.title}</h3>
                 <button
-                  className={`status-badge ${item.is_active ? 'active' : ''}`}
+                  className={item.is_active ? `${styles['status-badge']} ${styles['active']}` : styles['status-badge']}
                   onClick={() => toggleActive(item.id)}
                 >
                   {item.is_active ? '上架' : '下架'}
                 </button>
               </div>
 
-              <p className="card-description">{item.description}</p>
+              <p className={styles['card-description']}>{item.description}</p>
 
-              <div className="card-footer">
-                <div className="card-stats">
-                  <div className="stat">
-                    <span className="label">所需點數</span>
-                    <span className="value">{item.required_points}</span>
+              <div className={styles['card-footer']}>
+                <div className={styles['card-stats']}>
+                  <div className={styles['stat']}>
+                    <span className={styles['label']}>所需點數</span>
+                    <span className={styles['value']}>{item.required_points}</span>
                   </div>
-                  <div className="stat">
-                    <span className="label">庫存</span>
-                    <span className="value">
+                  <div className={styles['stat']}>
+                    <span className={styles['label']}>庫存</span>
+                    <span className={styles['value']}>
                       {item.inventory ? item.inventory : '不限量'}
                     </span>
                   </div>
@@ -869,15 +869,15 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
             <div className="modal-header">
               <h3>新增兌換商品</h3>
               <button
-                className="modal-close"
+                className={styles['modal-close']}
                 onClick={() => setShowForm(false)}
               >
                 ✕
               </button>
             </div>
 
-            <div className="modal-body">
-              <div className="form-group">
+            <div className={styles['modal-body']}>
+              <div className={styles['form-group']}>
                 <label>名稱 *</label>
                 <input
                   type="text"
@@ -889,8 +889,8 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
+              <div className={styles['form-row']}>
+                <div className={styles['form-group']}>
                   <label>所需點數 *</label>
                   <input
                     type="number"
@@ -906,7 +906,7 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
                   />
                 </div>
 
-                <div className="form-group">
+                <div className={styles['form-group']}>
                   <label>庫存</label>
                   <input
                     type="number"
@@ -923,7 +923,7 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
                 </div>
               </div>
 
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label>描述</label>
                 <textarea
                   placeholder="如：價值100元的任意飲料"
@@ -936,7 +936,7 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
               </div>
             </div>
 
-            <div className="modal-footer">
+            <div className={styles['modal-footer']}>
               <button
                 className="btn btn-secondary"
                 onClick={() => setShowForm(false)}

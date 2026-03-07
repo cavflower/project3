@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch, FaPhone } from 'react-icons/fa';
 import { verifyGuestReservation } from '../../api/reservationApi';
-import './GuestReservationLookup.css';
+import styles from './GuestReservationLookup.module.css';
 
 /**
  * 訪客查詢訂位頁面
@@ -79,17 +79,17 @@ const GuestReservationLookup = () => {
   };
 
   return (
-    <div className="guest-lookup-page">
-      <div className="lookup-container">
-        <div className="lookup-header">
-          <FaSearch className="header-icon" />
+    <div className={styles.guestLookupPage}>
+      <div className={styles.lookupContainer}>
+        <div className={styles.lookupHeader}>
+          <FaSearch className={styles.headerIcon} />
           <h1>查詢訂位</h1>
-          <p className="subtitle">請輸入訂位時填寫的手機號碼</p>
+          <p className={styles.subtitle}>請輸入訂位時填寫的手機號碼</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="lookup-form">
+        <form onSubmit={handleSubmit} className={styles.lookupForm}>
           {/* 手機號碼 */}
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>
               <FaPhone /> 手機號碼
             </label>
@@ -98,26 +98,26 @@ const GuestReservationLookup = () => {
               value={formData.phoneNumber}
               onChange={(e) => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, ''))}
               placeholder="請輸入手機號碼 (09xxxxxxxx)"
-              className="form-input"
+              className={styles.formInput}
               maxLength={10}
               pattern="09\d{8}"
               disabled={loading}
             />
-            <small className="input-hint">請輸入訂位時填寫的手機號碼</small>
+            <small className={styles.inputHint}>請輸入訂位時填寫的手機號碼</small>
           </div>
 
           {/* 錯誤訊息 */}
           {error && (
-            <div className="error-message">
+            <div className={styles.errorMessage}>
               {error}
             </div>
           )}
 
           {/* 操作按鈕 */}
-          <div className="form-actions">
+          <div className={styles.formActions}>
             <button
               type="button"
-              className="btn-secondary"
+              className={styles.btnSecondary}
               onClick={handleClear}
               disabled={loading}
             >
@@ -125,7 +125,7 @@ const GuestReservationLookup = () => {
             </button>
             <button
               type="submit"
-              className="btn-primary"
+              className={styles.btnPrimary}
               disabled={loading}
             >
               {loading ? '查詢中...' : '查詢訂位'}
@@ -134,7 +134,7 @@ const GuestReservationLookup = () => {
         </form>
 
         {/* 說明資訊 */}
-        <div className="info-box">
+        <div className={styles.infoBox}>
           <h3>找不到訂位資訊？</h3>
           <ul>
             <li>請確認手機號碼是否為訂位時填寫的號碼</li>

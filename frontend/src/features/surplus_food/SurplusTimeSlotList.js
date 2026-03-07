@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
 import TimeSlotForm from './TimeSlotForm';
+import styles from './SurplusFoodManagement.module.css';
 
 const SurplusTimeSlotList = () => {
   const [timeSlots, setTimeSlots] = useState([]);
@@ -42,7 +43,7 @@ const SurplusTimeSlotList = () => {
   // 按星期分組時段
   const groupSlotsByDay = () => {
     const grouped = {};
-    
+
     // 初始化所有星期
     dayOrder.forEach(day => {
       grouped[day] = [];
@@ -108,11 +109,11 @@ const SurplusTimeSlotList = () => {
   };
 
   return (
-    <div className="surplus-tab-content">
-      <div className="surplus-content-header">
+    <div className={styles.tabContent}>
+      <div className={styles.contentHeader}>
         <h2>時段設定</h2>
-        <button 
-          className="surplus-btn-primary"
+        <button
+          className={styles.btnPrimary}
           onClick={handleCreate}
         >
           <FaPlus /> 新增時段
@@ -120,46 +121,46 @@ const SurplusTimeSlotList = () => {
       </div>
 
       {loading ? (
-        <div className="loading">載入中...</div>
+        <div className={styles.loading}>載入中...</div>
       ) : (
-        <div className="timeslots-container">
+        <div className={styles.timeslotsContainer}>
           {dayOrder.map(day => {
             const daySlots = groupSlotsByDay()[day];
-            
+
             // 只顯示有時段的星期
             if (daySlots.length === 0) {
               return null;
             }
 
             return (
-              <div key={day} className="day-section">
-                <h3 className="day-header">{dayLabels[day]}</h3>
-                <div className="timeslots-list">
+              <div key={day} className={styles.daySection}>
+                <h3 className={styles.dayHeader}>{dayLabels[day]}</h3>
+                <div className={styles.timeslotsList}>
                   {daySlots.map(slot => (
-                    <div key={slot.id} className="timeslot-card">
-                      <div className="timeslot-info">
-                        <div className="timeslot-time">
+                    <div key={slot.id} className={styles.timeslotCard}>
+                      <div className={styles.timeslotInfo}>
+                        <div className={styles.timeslotTime}>
                           {slot.start_time} - {slot.end_time}
                         </div>
-                        <div className="timeslot-details">
-                          <span className="timeslot-name">{slot.name}</span>
-                          <span className={slot.is_active ? 'status-active' : 'status-inactive'}>
+                        <div className={styles.timeslotDetails}>
+                          <span className={styles.timeslotName}>{slot.name}</span>
+                          <span className={slot.is_active ? styles.statusActive : styles.statusInactive}>
                             {slot.is_active ? '啟用中' : '已停用'}
                           </span>
                         </div>
-                        <div className="timeslot-meta">
+                        <div className={styles.timeslotMeta}>
                         </div>
                       </div>
-                      <div className="timeslot-actions">
-                        <button 
-                          className="btn-icon btn-edit"
+                      <div className={styles.timeslotActions}>
+                        <button
+                          className={styles.btnEdit}
                           onClick={() => handleEdit(slot)}
                           title="編輯"
                         >
                           <FaEdit />
                         </button>
-                        <button 
-                          className="btn-icon btn-delete"
+                        <button
+                          className={styles.btnDelete}
                           onClick={() => handleDelete(slot.id)}
                           title="刪除"
                         >
@@ -174,10 +175,10 @@ const SurplusTimeSlotList = () => {
           })}
 
           {timeSlots.length === 0 && (
-            <div className="empty-state">
+            <div className={styles.emptyState}>
               <p>尚未設定任何時段</p>
-              <button 
-                className="surplus-btn-primary"
+              <button
+                className={styles.btnPrimary}
                 onClick={handleCreate}
               >
                 <FaPlus /> 新增第一個時段

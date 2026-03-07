@@ -1,0 +1,511 @@
+/* 管理後台 - CSS Module */
+
+.adminDashboard {
+    min-height: 100vh;
+    background-color: #f5f7fa;
+}
+
+.adminHeader {
+    background: #ef8e72;
+    color: white;
+    padding: 2rem 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.headerContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.adminHeader h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.textMuted {
+    color: rgba(255, 255, 255, 0.8) !important;
+    margin: 0.5rem 0 0 0;
+}
+
+.btnLogout {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid white;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btnLogout:hover {
+    background-color: white;
+    color: #667eea;
+    transform: translateY(-2px);
+}
+
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+}
+
+.statsRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.statCard {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.statCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.statCard h3 {
+    font-size: 2.5rem;
+    margin: 0;
+    color: #667eea;
+    font-weight: 700;
+}
+
+.statCard p {
+    margin: 0.5rem 0 0 0;
+    color: #666;
+    font-size: 1rem;
+}
+
+.storesSection {
+    width: 120%;
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.storesSection h2 {
+    color: #333;
+    font-weight: 600;
+}
+
+.tableResponsive {
+    overflow-x: auto;
+}
+
+.storesTable {
+    min-width: 1000px;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.storesTable thead {
+    background-color: #f8f9fa;
+}
+
+.storesTable th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    position: relative;
+}
+
+.sortBtn {
+    background: none;
+    border: none;
+    color: #667eea;
+    font-size: 1.2rem;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.sortBtn:hover {
+    background-color: #e7f3ff;
+    transform: scale(1.1);
+}
+
+.storesTable td {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+    color: #333;
+}
+
+.storesTable tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.addressCell {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.badgeFree {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.badgeBasic {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.badgePremium {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badgeEnterprise {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badgeNone {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.orderCountBadge {
+    display: inline-block;
+    background-color: #fff3e6;
+    color: #ff6b00;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.statusBadge {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.statusOpen {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.statusClosed {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.featureTags {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.featureTag {
+    background-color: #e7f3ff;
+    color: #0066cc;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* 折扣徽章樣式 */
+.discountBadge {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.discountHigh {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.discountMedium {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.discountLow {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.discountNone {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+/* 操作按鈕 */
+.btnAction {
+    background: linear-gradient(135deg, #667eea 0%, #ef8e72 100%);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btnAction:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Modal 樣式 */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.3s;
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modalContent {
+    background: white;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s;
+    position: relative;
+    margin: auto;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modalHeader {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalHeader h3 {
+    margin: 0;
+    color: #333;
+    font-weight: 600;
+}
+
+.modalClose {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.modalClose:hover {
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.modalBody {
+    padding: 2rem;
+}
+
+.storeInfoBox {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.storeInfoBox h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+}
+
+.storeInfoBox p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.formGroup {
+    margin-bottom: 1rem;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.formControl {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.formControl:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.formText {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.btnSecondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btnSecondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+}
+
+.btnPrimary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 768px) {
+    .headerContent {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .statsRow {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .storesTable {
+        font-size: 0.9rem;
+    }
+
+    .storesTable th,
+    .storesTable td {
+        padding: 0.75rem 0.5rem;
+    }
+}

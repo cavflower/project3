@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import './CreditCardSelector.css';
+import styles from './CreditCardSelector.module.css';
 
 const CreditCardSelector = ({ show, onClose, onSelectCard }) => {
   const [cards, setCards] = useState([]);
@@ -53,29 +53,29 @@ const CreditCardSelector = ({ show, onClose, onSelectCard }) => {
   if (!show) return null;
 
   return (
-    <div className="card-selector-overlay" onClick={onClose}>
-      <div className="card-selector-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="card-selector-header">
+    <div className={styles['card-selector-overlay']} onClick={onClose}>
+      <div className={styles['card-selector-modal']} onClick={(e) => e.stopPropagation()}>
+        <div className={styles['card-selector-header']}>
           <h3>選擇付款信用卡</h3>
-          <button className="close-btn" onClick={onClose}>&times;</button>
+          <button className={styles['close-btn']} onClick={onClose}>&times;</button>
         </div>
 
-        <div className="card-selector-body">
+        <div className={styles['card-selector-body']}>
           {loading ? (
-            <div className="loading-text">載入中...</div>
+            <div className={styles['loading-text']}>載入中...</div>
           ) : cards.length === 0 ? (
-            <div className="no-cards">
+            <div className={styles['no-cards']}>
               <p>您尚未新增信用卡</p>
-              <button className="btn-add-card" onClick={handleAddNewCard}>
+              <button className={styles['btn-add-card']} onClick={handleAddNewCard}>
                 前往新增信用卡
               </button>
             </div>
           ) : (
-            <div className="cards-list">
+            <div className={styles['cards-list']}>
               {cards.map(card => (
                 <div
                   key={card.id}
-                  className={`card-item ${selectedCardId === card.id ? 'selected' : ''}`}
+                  className={`${styles['card-item']} ${selectedCardId === card.id ? styles.selected : ''}`}
                   onClick={() => setSelectedCardId(card.id)}
                 >
                   <input
@@ -84,18 +84,18 @@ const CreditCardSelector = ({ show, onClose, onSelectCard }) => {
                     checked={selectedCardId === card.id}
                     onChange={() => setSelectedCardId(card.id)}
                   />
-                  <div className="card-info">
-                    <div className="card-number">
+                  <div className={styles['card-info']}>
+                    <div className={styles['card-number']}>
                       **** **** **** {card.card_last_four}
                     </div>
-                    <div className="card-details">
-                      <span className="card-holder">{card.card_holder_name}</span>
-                      <span className="card-expiry">
+                    <div className={styles['card-details']}>
+                      <span className={styles['card-holder']}>{card.card_holder_name}</span>
+                      <span className={styles['card-expiry']}>
                         到期: {card.expiry_month}/{card.expiry_year}
                       </span>
                     </div>
                     {card.is_default && (
-                      <span className="default-badge">預設</span>
+                      <span className={styles['default-badge']}>預設</span>
                     )}
                   </div>
                 </div>
@@ -104,12 +104,12 @@ const CreditCardSelector = ({ show, onClose, onSelectCard }) => {
           )}
         </div>
 
-        <div className="card-selector-footer">
-          <button className="btn-secondary" onClick={onClose}>
+        <div className={styles['card-selector-footer']}>
+          <button className={styles['btn-secondary']} onClick={onClose}>
             取消
           </button>
           {cards.length > 0 && (
-            <button className="btn-primary" onClick={handleConfirm}>
+            <button className={styles['btn-primary']} onClick={handleConfirm}>
               確認使用此卡
             </button>
           )}

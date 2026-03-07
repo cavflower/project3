@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createIngredient, updateIngredient } from '../../../api/inventoryApi';
-import './IngredientForm.css';
+import styles from './IngredientForm.module.css';
 
 function IngredientForm({ ingredient, onClose }) {
   const [formData, setFormData] = useState({
@@ -41,7 +41,7 @@ function IngredientForm({ ingredient, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       alert('請輸入原料名稱');
       return;
@@ -49,7 +49,7 @@ function IngredientForm({ ingredient, onClose }) {
 
     try {
       setLoading(true);
-      
+
       if (ingredient) {
         await updateIngredient(ingredient.id, formData);
         alert('更新成功');
@@ -57,7 +57,7 @@ function IngredientForm({ ingredient, onClose }) {
         await createIngredient(formData);
         alert('新增成功');
       }
-      
+
       onClose(true);
     } catch (error) {
       console.error('操作失敗:', error);
@@ -68,16 +68,16 @@ function IngredientForm({ ingredient, onClose }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
+    <div className={styles.modalOverlay}>
+      <div className={styles.modalContent}>
+        <div className={styles.modalHeader}>
           <h2>{ingredient ? '編輯原物料' : '新增原物料'}</h2>
-          <button type="button" className="close-button" onClick={() => onClose(false)}>×</button>
+          <button type="button" className={styles.closeButton} onClick={() => onClose(false)}>×</button>
         </div>
-        
-        <form onSubmit={handleSubmit} className="ingredient-form">
-          <div className="form-row">
-            <div className="form-group">
+
+        <form onSubmit={handleSubmit} className={styles.ingredientForm}>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
               <label htmlFor="name">原料名稱 *</label>
               <input
                 type="text"
@@ -88,8 +88,8 @@ function IngredientForm({ ingredient, onClose }) {
                 required
               />
             </div>
-            
-            <div className="form-group">
+
+            <div className={styles.formGroup}>
               <label htmlFor="category">類別</label>
               <input
                 type="text"
@@ -102,7 +102,7 @@ function IngredientForm({ ingredient, onClose }) {
             </div>
           </div>
 
-          <div className="form-row">
+          <div className={styles.formRow}>
             <div className="form-group">
               <label htmlFor="quantity">數量</label>
               <input
@@ -115,7 +115,7 @@ function IngredientForm({ ingredient, onClose }) {
                 min="0"
               />
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="unit">單位</label>
               <select
@@ -148,7 +148,7 @@ function IngredientForm({ ingredient, onClose }) {
                 min="0"
               />
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="minimum_stock">最低庫存量</label>
               <input
@@ -163,7 +163,7 @@ function IngredientForm({ ingredient, onClose }) {
             </div>
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="supplier">供應商</label>
             <input
               type="text"
@@ -174,7 +174,7 @@ function IngredientForm({ ingredient, onClose }) {
             />
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="notes">備註</label>
             <textarea
               id="notes"
@@ -185,11 +185,11 @@ function IngredientForm({ ingredient, onClose }) {
             />
           </div>
 
-          <div className="form-actions">
-            <button type="button" onClick={() => onClose(false)} className="cancel-button">
+          <div className={styles.formActions}>
+            <button type="button" onClick={() => onClose(false)} className={styles.cancelButton}>
               取消
             </button>
-            <button type="submit" className="submit-button" disabled={loading}>
+            <button type="submit" className={styles.submitButton} disabled={loading}>
               {loading ? '處理中...' : (ingredient ? '更新' : '新增')}
             </button>
           </div>

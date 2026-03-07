@@ -6,7 +6,7 @@ import api from "../../api/api";
 import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
 import CreditCardSelector from "../checkout/CreditCardSelector";
-import "./TakeoutCartPage.css";
+import styles from './TakeoutCartPage.module.css';
 
 const paymentOptionsList = [
   { value: "cash", label: "現金" },
@@ -366,7 +366,7 @@ function TakeoutCartPage() {
   };
 
   return (
-    <div className="takeout-cart-page container" style={{ marginTop: "70px", marginBottom: "40px" }}>
+    <div className={`${styles['takeout-cart-page']} container`} style={{ marginTop: "70px", marginBottom: "40px" }}>
       <div className="row mb-4">
         <div className="col-12">
           <button
@@ -403,7 +403,7 @@ function TakeoutCartPage() {
         <div className="col-lg-8">
           {/* 購物車商品列表 */}
           <div className="card shadow-sm mb-4">
-            <div className="card-header cart-header">
+            <div className={`card-header ${styles['cart-header']}`}>
               <strong>購物車</strong>
             </div>
             <div className="card-body">
@@ -422,7 +422,7 @@ function TakeoutCartPage() {
                         return (
                           <div
                             key={item.cartKey || item.id}
-                            className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
+                            className={`${styles['cart-item']} d-flex justify-content-between align-items-center border-bottom py-3`}
                           >
                             <div className="flex-grow-1">
                               <h5 className="mb-1">{item.name}</h5>
@@ -444,18 +444,18 @@ function TakeoutCartPage() {
                               <strong className="text-dark">NT$ {formatPrice(displayPrice)}</strong>
                             </div>
                             <div className="d-flex align-items-center gap-3">
-                              <div className="quantity-controls d-flex align-items-center gap-2">
+                              <div className={`${styles['quantity-controls']} d-flex align-items-center gap-2`}>
                                 <button
-                                  className="btn rounded-circle quantity-btn"
+                                  className={`btn rounded-circle ${styles['quantity-btn']}`}
                                   onClick={() => handleQuantityChange(item.cartKey, -1)}
                                 >
                                   <FaMinus />
                                 </button>
-                                <span className="quantity-display">
+                                <span className={styles['quantity-display']}>
                                   {item.quantity}
                                 </span>
                                 <button
-                                  className="btn rounded-circle quantity-btn"
+                                  className={`btn rounded-circle ${styles['quantity-btn']}`}
                                   onClick={() => handleQuantityChange(item.cartKey, 1)}
                                 >
                                   <FaPlus />
@@ -484,7 +484,7 @@ function TakeoutCartPage() {
                       {surplusItems.map((item) => (
                         <div
                           key={item.cartKey || item.id}
-                          className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
+                          className={`${styles['cart-item']} d-flex justify-content-between align-items-center border-bottom py-3`}
                           style={{ backgroundColor: '#f0fff4' }}
                         >
                           <div className="flex-grow-1">
@@ -507,18 +507,18 @@ function TakeoutCartPage() {
                             </div>
                           </div>
                           <div className="d-flex align-items-center gap-3">
-                            <div className="quantity-controls d-flex align-items-center gap-2">
+                            <div className={`${styles['quantity-controls']} d-flex align-items-center gap-2`}>
                               <button
-                                className="btn rounded-circle quantity-btn"
+                                className={`btn rounded-circle ${styles['quantity-btn']}`}
                                 onClick={() => handleQuantityChange(item.cartKey || item.id.toString(), -1)}
                               >
                                 <FaMinus />
                               </button>
-                              <span className="quantity-display">
+                              <span className={styles['quantity-display']}>
                                 {item.quantity}
                               </span>
                               <button
-                                className="btn rounded-circle quantity-btn"
+                                className={`btn rounded-circle ${styles['quantity-btn']}`}
                                 onClick={() => handleQuantityChange(item.cartKey || item.id.toString(), 1)}
                                 disabled={item.remaining_quantity && item.quantity >= item.remaining_quantity}
                               >
@@ -553,7 +553,7 @@ function TakeoutCartPage() {
                         return (
                           <div
                             key={item.cartKey || item.id}
-                            className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
+                            className={`${styles['cart-item']} d-flex justify-content-between align-items-center border-bottom py-3`}
                             style={{ backgroundColor: '#e8f5e9' }}
                           >
                             <div className="flex-grow-1">
@@ -571,16 +571,16 @@ function TakeoutCartPage() {
                               </p>
                             </div>
                             <div className="d-flex align-items-center gap-2">
-                              <div className="quantity-control d-flex align-items-center gap-2">
+                              <div className={`${styles['quantity-control']} d-flex align-items-center gap-2`}>
                                 <button
-                                  className="quantity-btn rounded-circle"
+                                  className={`${styles['quantity-btn']} rounded-circle`}
                                   onClick={() => handleQuantityChange(item.cartKey || item.id, -1)}
                                 >
                                   <FaMinus size={12} />
                                 </button>
-                                <span className="quantity-display">{quantity}</span>
+                                <span className={styles['quantity-display']}>{quantity}</span>
                                 <button
-                                  className="quantity-btn rounded-circle"
+                                  className={`${styles['quantity-btn']} rounded-circle`}
                                   onClick={() => handleQuantityChange(item.cartKey || item.id, 1)}
                                   disabled={quantity >= maxQty}
                                   style={quantity >= maxQty ? { opacity: 0.5 } : {}}
@@ -633,7 +633,7 @@ function TakeoutCartPage() {
           {/* 聯絡資訊 - 只在未登入時顯示 */}
           {!user && (
             <div className="card shadow-sm mb-3">
-              <div className="card-header cart-header">
+              <div className={`card-header ${styles['cart-header']}`}>
                 <strong>聯絡資訊</strong>
               </div>
               <div className="card-body">
@@ -663,7 +663,7 @@ function TakeoutCartPage() {
 
           {/* 取餐時間 */}
           <div className="card shadow-sm mb-3">
-            <div className="card-header cart-header">
+            <div className={`card-header ${styles['cart-header']}`}>
               <strong>取餐時間</strong>
             </div>
             <div className="card-body">
@@ -694,7 +694,7 @@ function TakeoutCartPage() {
 
           {/* 付款方式 */}
           <div className="card shadow-sm mb-3">
-            <div className="card-header cart-header">
+            <div className={`card-header ${styles['cart-header']}`}>
               <strong>付款方式</strong>
             </div>
             <div className="card-body">
@@ -714,7 +714,7 @@ function TakeoutCartPage() {
 
           {/* 是否需要餐具 */}
           <div className="card shadow-sm mb-3">
-            <div className="card-header cart-header">
+            <div className={`card-header ${styles['cart-header']}`}>
               <strong>是否需要餐具</strong>
             </div>
             <div className="card-body">
@@ -732,7 +732,7 @@ function TakeoutCartPage() {
 
           {/* 備註 */}
           <div className="card shadow-sm mb-3">
-            <div className="card-header cart-header">
+            <div className={`card-header ${styles['cart-header']}`}>
               <strong>備註</strong>
             </div>
             <div className="card-body">
@@ -759,8 +759,8 @@ function TakeoutCartPage() {
 
       {/* 結帳確認Modal */}
       {showCheckoutModal && (
-        <div className="checkout-modal-overlay" onClick={() => !submitting && setShowCheckoutModal(false)}>
-          <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
+        <div className={styles['checkout-modal-overlay']} onClick={() => !submitting && setShowCheckoutModal(false)}>
+          <div className={styles['checkout-modal']} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>確認訂單</h3>
               <button
@@ -774,72 +774,72 @@ function TakeoutCartPage() {
 
             <div className="modal-body">
               {/* 店家資訊 */}
-              <div className="checkout-section">
-                <h5 className="section-title">
+              <div className={styles['checkout-section']}>
+                <h5 className={styles['section-title']}>
                   <i className="bi bi-shop me-2"></i>店家資訊
                 </h5>
-                <div className="info-card">
+                <div className={styles['info-card']}>
                   <strong>{store?.name}</strong>
                   <p className="text-muted mb-0">{store?.address}</p>
                 </div>
               </div>
 
               {/* 訂單明細 */}
-              <div className="checkout-section">
-                <h5 className="section-title">
+              <div className={styles['checkout-section']}>
+                <h5 className={styles['section-title']}>
                   <i className="bi bi-receipt me-2"></i>訂單明細
                 </h5>
-                <div className="order-items">
+                <div className={styles['order-items']}>
                   {regularItems.length > 0 && (
-                    <div className="items-group">
-                      <div className="group-label">一般外帶商品</div>
+                    <div className={styles['items-group']}>
+                      <div className={styles['group-label']}>一般外帶商品</div>
                       {regularItems.map((item) => (
-                        <div key={item.id} className="order-item">
-                          <span className="item-name">{item.name}</span>
-                          <span className="item-quantity">× {item.quantity}</span>
-                          <span className="item-price">NT$ {formatPrice(item.price * item.quantity)}</span>
+                        <div key={item.id} className={styles['order-item']}>
+                          <span className={styles['item-name']}>{item.name}</span>
+                          <span className={styles['item-quantity']}>× {item.quantity}</span>
+                          <span className={styles['item-price']}>NT$ {formatPrice(item.price * item.quantity)}</span>
                         </div>
                       ))}
-                      <div className="subtotal">
+                      <div className={styles.subtotal}>
                         小計：NT$ {formatPrice(regularTotal)}
                       </div>
                     </div>
                   )}
 
                   {surplusItems.length > 0 && (
-                    <div className="items-group surplus-group">
-                      <div className="group-label">
+                    <div className={`${styles['items-group']} ${styles['surplus-group']}`}>
+                      <div className={styles['group-label']}>
                         <i className="bi bi-leaf me-1"></i>惜福品
                       </div>
                       {surplusItems.map((item) => (
-                        <div key={item.id} className="order-item">
-                          <span className="item-name">{item.name}</span>
-                          <span className="item-quantity">× {item.quantity}</span>
-                          <span className="item-price">NT$ {formatPrice(item.price * item.quantity)}</span>
+                        <div key={item.id} className={styles['order-item']}>
+                          <span className={styles['item-name']}>{item.name}</span>
+                          <span className={styles['item-quantity']}>× {item.quantity}</span>
+                          <span className={styles['item-price']}>NT$ {formatPrice(item.price * item.quantity)}</span>
                         </div>
                       ))}
-                      <div className="subtotal">
+                      <div className={styles.subtotal}>
                         小計：NT$ {formatPrice(surplusTotal)}
                       </div>
                     </div>
                   )}
 
-                  <div className="total-section">
-                    <div className="total-row">
-                      <span className="total-label">總計</span>
-                      <span className="total-amount">NT$ {formatPrice(total)}</span>
+                  <div className={styles['total-section']}>
+                    <div className={styles['total-row']}>
+                      <span className={styles['total-label']}>總計</span>
+                      <span className={styles['total-amount']}>NT$ {formatPrice(total)}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* 取餐資訊 */}
-              <div className="checkout-section">
-                <h5 className="section-title">
+              <div className={styles['checkout-section']}>
+                <h5 className={styles['section-title']}>
                   <i className="bi bi-clock me-2"></i>取餐資訊
                 </h5>
-                <div className="info-grid">
-                  <div className="info-item">
+                <div className={styles['info-grid']}>
+                  <div className={styles['info-item']}>
                     <label>取餐時間</label>
                     <span>{new Date(pickupAt).toLocaleString("zh-TW", {
                       month: 'numeric',
@@ -848,21 +848,21 @@ function TakeoutCartPage() {
                       minute: "2-digit",
                     })}</span>
                   </div>
-                  <div className="info-item">
+                  <div className={styles['info-item']}>
                     <label>聯絡人</label>
                     <span>{user ? (user.username || user.email) : contactName}</span>
                   </div>
-                  <div className="info-item">
+                  <div className={styles['info-item']}>
                     <label>聯絡電話</label>
                     <span>{user ? (user.phone_number || "未提供") : contactPhone}</span>
                   </div>
-                  <div className="info-item">
+                  <div className={styles['info-item']}>
                     <label>餐具</label>
                     <span>{useUtensils === "yes" ? "需要" : "不需要"}</span>
                   </div>
                 </div>
                 {notes && (
-                  <div className="notes-display">
+                  <div className={styles['notes-display']}>
                     <label>備註</label>
                     <p>{notes}</p>
                   </div>
@@ -870,12 +870,12 @@ function TakeoutCartPage() {
               </div>
 
               {/* 付款資訊 */}
-              <div className="checkout-section">
-                <h5 className="section-title">
+              <div className={styles['checkout-section']}>
+                <h5 className={styles['section-title']}>
                   <i className="bi bi-credit-card me-2"></i>付款方式
                 </h5>
-                <div className="payment-method">
-                  <div className="payment-badge">
+                <div className={styles['payment-method']}>
+                  <div className={styles['payment-badge']}>
                     {paymentOptionsList.find((o) => o.value === paymentMethod)?.label}
                   </div>
                   {paymentMethod === "cash" && (
@@ -900,7 +900,7 @@ function TakeoutCartPage() {
                 返回修改
               </button>
               <button
-                className="btn btn-primary btn-confirm"
+                className={`btn btn-primary ${styles['btn-confirm']}`}
                 onClick={() => {
                   handleSubmit();
                 }}

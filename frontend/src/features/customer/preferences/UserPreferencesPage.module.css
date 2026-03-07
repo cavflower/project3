@@ -1,0 +1,253 @@
+/* 用戶偏好頁面 - CSS Module */
+
+.preferencesPage {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.preferencesHeader {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.headerIcon {
+    font-size: 3rem;
+    color: #ef4444;
+    margin-bottom: 1rem;
+}
+
+.preferencesHeader h1 {
+    font-size: 2rem;
+    color: #1f2937;
+    margin: 0.5rem 0;
+}
+
+.headerSubtitle {
+    color: #6b7280;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+
+.loadingState,
+.errorState {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6b7280;
+    font-size: 1.1rem;
+}
+
+.errorState {
+    color: #ef4444;
+}
+
+/* 統計卡片 */
+.preferencesStats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.statCard {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s;
+}
+
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.statIcon {
+    font-size: 2rem;
+    color: #ef4444;
+    flex-shrink: 0;
+}
+
+.statInfo h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.statInfo p {
+    color: #6b7280;
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+}
+
+.recommendationAvailable {
+    color: #10b981;
+}
+
+/* 喜愛標籤區域 */
+.favoriteTagsSection {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.favoriteTagsSection h2 {
+    font-size: 1.5rem;
+    color: #1f2937;
+    margin: 0 0 1.5rem 0;
+}
+
+.favoriteTagsGrid {
+    display: grid;
+    gap: 1rem;
+}
+
+.favoriteTagItem {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.favoriteTagItem:hover {
+    background: #f3f4f6;
+}
+
+.tagRank {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ef4444;
+    min-width: 50px;
+    text-align: center;
+}
+
+.tagContent {
+    flex: 1;
+}
+
+.tagContent h3 {
+    font-size: 1.1rem;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.tagStats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.tagCount {
+    color: #6b7280;
+    font-size: 0.9rem;
+    min-width: 80px;
+}
+
+.tagBar {
+    flex: 1;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.tagBarFill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #f59e0b);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+/* 空狀態 */
+.emptyState {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #6b7280;
+}
+
+.emptyState p {
+    margin: 0.5rem 0;
+    font-size: 1rem;
+}
+
+.emptyHint {
+    color: #9ca3af;
+    font-size: 0.9rem;
+}
+
+/* 推薦提示 */
+.recommendationTip {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: start;
+}
+
+.tipIcon {
+    font-size: 2rem;
+    color: #f59e0b;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
+
+.tipContent h3 {
+    font-size: 1.1rem;
+    color: #92400e;
+    margin: 0 0 0.5rem 0;
+}
+
+.tipContent p {
+    color: #78350f;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .preferencesPage {
+        padding: 1rem;
+    }
+
+    .preferencesHeader h1 {
+        font-size: 1.5rem;
+    }
+
+    .headerIcon {
+        font-size: 2.5rem;
+    }
+
+    .preferencesStats {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .favoriteTagsSection {
+        padding: 1.5rem;
+    }
+
+    .tagRank {
+        font-size: 1.25rem;
+        min-width: 40px;
+    }
+
+    .tagStats {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .tagBar {
+        width: 100%;
+    }
+}

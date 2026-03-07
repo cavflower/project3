@@ -6,7 +6,7 @@ import { getOrderNotifications, markAllNotificationsAsRead, deleteNotification, 
 import { FaTrash, FaTimes, FaSync } from 'react-icons/fa';
 import { db } from '../../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import './CustomerOrdersPage.css';
+import styles from './CustomerOrdersPage.module.css';
 
 const CustomerOrdersPage = () => {
   const { user } = useAuth();
@@ -161,21 +161,21 @@ const CustomerOrdersPage = () => {
 
   const getStatusBadgeClass = (status) => {
     const statusMap = {
-      pending: 'status-pending',
-      accepted: 'status-accepted',
-      confirmed: 'status-accepted',
-      ready_for_pickup: 'status-ready',
-      ready: 'status-ready',
-      completed: 'status-completed',
-      rejected: 'status-rejected',
-      cancelled: 'status-rejected',
+      pending: styles['status-pending'],
+      accepted: styles['status-accepted'],
+      confirmed: styles['status-accepted'],
+      ready_for_pickup: styles['status-ready'],
+      ready: styles['status-ready'],
+      completed: styles['status-completed'],
+      rejected: styles['status-rejected'],
+      cancelled: styles['status-rejected'],
     };
-    return statusMap[status] || 'status-default';
+    return statusMap[status] || '';
   };
 
   if (loading) {
     return (
-      <div className="customer-orders-page">
+      <div className={styles['customer-orders-page']}>
         <div className="loading-container">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">載入中...</span>
@@ -186,24 +186,24 @@ const CustomerOrdersPage = () => {
   }
 
   return (
-    <div className="customer-orders-page">
-      <div className="page-header">
+    <div className={styles['customer-orders-page']}>
+      <div className={styles['page-header']}>
         <h1>我的訂單與通知</h1>
-        <div className={`realtime-status ${realtimeStatus === '即時更新中' ? 'connected' : ''}`}>
-          <span className="status-dot"></span>
+        <div className={`${styles['realtime-status']} ${realtimeStatus === '即時更新中' ? styles.connected : ''}`}>
+          <span className={styles['status-dot']}></span>
           {realtimeStatus}
         </div>
       </div>
 
-      <div className="tabs">
+      <div className={styles.tabs}>
         <button
-          className={`tab-button ${activeTab === 'orders' ? 'active' : ''}`}
+          className={`${styles['tab-button']} ${activeTab === 'orders' ? styles.active : ''}`}
           onClick={() => setActiveTab('orders')}
         >
           訂單紀錄 ({orders.length})
         </button>
         <button
-          className={`tab-button ${activeTab === 'notifications' ? 'active' : ''}`}
+          className={`${styles['tab-button']} ${activeTab === 'notifications' ? styles.active : ''}`}
           onClick={() => setActiveTab('notifications')}
         >
           通知中心 ({notifications.filter(n => !n.is_read).length})
@@ -214,60 +214,60 @@ const CustomerOrdersPage = () => {
         <div className="orders-section">
           {orders.length > 0 ? (
             <>
-              <div className="orders-list">
+              <div className={styles['orders-list']}>
                 {orders
                   .slice((currentPage - 1) * 9, currentPage * 9)
                   .map((order) => {
                     // 判斷是否為惜福品訂單（訂單號碼以 SFO 開頭）
                     const isSurplus = order.order_number?.startsWith('SFO') || order.order_type === 'surplus';
                     return (
-                      <div key={order.id} className="order-card">
-                        <div className="order-header">
-                          <div className="order-info">
+                      <div key={order.id} className={styles['order-card']}>
+                        <div className={styles['order-header']}>
+                          <div className={styles['order-info']}>
                             <h3>{order.store_name}</h3>
                             {/* 惜福品顯示取餐號碼，一般訂單顯示訂單號碼 */}
                             {isSurplus ? (
-                              <span className="order-number pickup-number">訂單號碼: {order.pickup_number || 'N/A'}</span>
+                              <span className={`${styles['order-number']} ${styles['pickup-number']}`}>訂單號碼: {order.pickup_number || 'N/A'}</span>
                             ) : (
-                              <span className="order-number">訂單號碼: {order.order_number}</span>
+                              <span className={styles['order-number']}>訂單號碼: {order.order_number}</span>
                             )}
-                            <span className="order-type-badge">{order.order_type_display}</span>
+                            <span className={styles['order-type-badge']}>{order.order_type_display}</span>
                           </div>
-                          <div className={`status-badge ${getStatusBadgeClass(order.status)}`}>
+                          <div className={`${styles['status-badge']} ${getStatusBadgeClass(order.status)}`}>
                             {order.status_display}
                           </div>
                         </div>
 
                         <div className="order-details">
-                          <div className="detail-row">
-                            <span className="label">顧客姓名:</span>
-                            <span className="value">{order.customer_name}</span>
+                          <div className={styles['detail-row']}>
+                            <span className={styles.label}>顧客姓名:</span>
+                            <span className={styles.value}>{order.customer_name}</span>
                           </div>
-                          <div className="detail-row">
-                            <span className="label">聯絡電話:</span>
-                            <span className="value">{order.customer_phone}</span>
+                          <div className={styles['detail-row']}>
+                            <span className={styles.label}>聯絡電話:</span>
+                            <span className={styles.value}>{order.customer_phone}</span>
                           </div>
-                          <div className="detail-row">
-                            <span className="label">付款方式:</span>
-                            <span className="value">{order.payment_method}</span>
+                          <div className={styles['detail-row']}>
+                            <span className={styles.label}>付款方式:</span>
+                            <span className={styles.value}>{order.payment_method}</span>
                           </div>
                           {order.pickup_at && (
-                            <div className="detail-row">
-                              <span className="label">取餐時間:</span>
-                              <span className="value">
+                            <div className={styles['detail-row']}>
+                              <span className={styles.label}>取餐時間:</span>
+                              <span className={styles.value}>
                                 {new Date(order.pickup_at).toLocaleString('zh-TW')}
                               </span>
                             </div>
                           )}
                           {order.table_label && (
-                            <div className="detail-row">
-                              <span className="label">桌號:</span>
-                              <span className="value">{order.table_label}</span>
+                            <div className={styles['detail-row']}>
+                              <span className={styles.label}>桌號:</span>
+                              <span className={styles.value}>{order.table_label}</span>
                             </div>
                           )}
-                          <div className="detail-row">
-                            <span className="label">訂單時間:</span>
-                            <span className="value">
+                          <div className={styles['detail-row']}>
+                            <span className={styles.label}>訂單時間:</span>
+                            <span className={styles.value}>
                               {new Date(order.created_at).toLocaleString('zh-TW')}
                             </span>
                           </div>
@@ -279,21 +279,21 @@ const CustomerOrdersPage = () => {
 
               {/* 分頁 */}
               {orders.length > 9 && (
-                <div className="pagination">
+                <div className={styles.pagination}>
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="page-btn"
+                    className={styles['page-btn']}
                   >
                     上一頁
                   </button>
-                  <span className="page-info">
+                  <span className={styles['page-info']}>
                     第 {currentPage} 頁 / 共 {Math.ceil(orders.length / 9)} 頁
                   </span>
                   <button
                     onClick={() => setCurrentPage(p => Math.min(Math.ceil(orders.length / 9), p + 1))}
                     disabled={currentPage >= Math.ceil(orders.length / 9)}
-                    className="page-btn"
+                    className={styles['page-btn']}
                   >
                     下一頁
                   </button>
@@ -301,7 +301,7 @@ const CustomerOrdersPage = () => {
               )}
             </>
           ) : (
-            <div className="no-data">
+            <div className={styles['no-data']}>
               <p>尚無訂單紀錄</p>
             </div>
           )}
@@ -311,11 +311,11 @@ const CustomerOrdersPage = () => {
       {activeTab === 'notifications' && (
         <div className="notifications-section">
           {notifications.length > 0 && (
-            <div className="notifications-header">
-              <button onClick={handleMarkAllRead} className="mark-all-read-btn">
+            <div className={styles['notifications-header']}>
+              <button onClick={handleMarkAllRead} className={styles['mark-all-read-btn']}>
                 全部標記為已讀
               </button>
-              <button onClick={handleDeleteAllNotifications} className="delete-all-btn">
+              <button onClick={handleDeleteAllNotifications} className={styles['delete-all-btn']}>
                 <FaTrash className="me-1" />
                 刪除全部
               </button>
@@ -327,27 +327,27 @@ const CustomerOrdersPage = () => {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`notification-card ${!notification.is_read ? 'unread' : ''}`}
+                  className={`${styles['notification-card']} ${!notification.is_read ? styles.unread : ''}`}
                 >
                   <div className="notification-icon">
                     {!notification.is_read && <span className="unread-dot"></span>}
                   </div>
-                  <div className="notification-content">
-                    <div className="notification-type">
+                  <div className={styles['notification-content']}>
+                    <div className={styles['notification-type']}>
                       {notification.notification_type_display}
                     </div>
-                    <div className="notification-message">
+                    <div className={styles['notification-message']}>
                       {notification.message}
                     </div>
-                    <div className="notification-meta">
-                      <span className="order-number">訂單: {notification.order_number}</span>
-                      <span className="notification-time">
+                    <div className={styles['notification-meta']}>
+                      <span className={styles['order-number']}>訂單: {notification.order_number}</span>
+                      <span className={styles['notification-time']}>
                         {new Date(notification.created_at).toLocaleString('zh-TW')}
                       </span>
                     </div>
                   </div>
                   <button
-                    className="delete-notification-btn"
+                    className={styles['delete-notification-btn']}
                     onClick={() => handleDeleteNotification(notification.id)}
                     title="刪除通知"
                   >
@@ -357,7 +357,7 @@ const CustomerOrdersPage = () => {
               ))}
             </div>
           ) : (
-            <div className="no-data">
+            <div className={styles['no-data']}>
               <p>暫無通知</p>
             </div>
           )}

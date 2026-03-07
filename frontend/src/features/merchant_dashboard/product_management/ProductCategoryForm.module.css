@@ -1,0 +1,214 @@
+/* 商品類別表單 - CSS Module */
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modalContent {
+    background: white;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modalHeader h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #1f2937;
+}
+
+.modalCloseBtn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.modalCloseBtn:hover {
+    color: #1f2937;
+}
+
+.categoryForm {
+    padding: 24px;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.formGroup input[type="text"],
+.formGroup input[type="number"],
+.formGroup textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.formGroup input[type="text"]:focus,
+.formGroup input[type="number"]:focus,
+.formGroup textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.formGroup small {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.errorText {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #ef4444;
+}
+
+.errorMessage {
+    background-color: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #991b1b;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkboxLabel input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.checkboxLabel span {
+    font-weight: 500;
+    color: #374151;
+}
+
+.formActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btnPrimary,
+.btnSecondary {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btnPrimary {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+.btnPrimary:hover:not(:disabled) {
+    background-color: #ff6b6b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btnPrimary:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.btnSecondary {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.btnSecondary:hover:not(:disabled) {
+    background-color: #e5e7eb;
+}
+
+.btnSecondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 響應式設計 */
+@media (max-width: 640px) {
+    .modalOverlay {
+        padding: 0;
+    }
+
+    .modalContent {
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .modalHeader,
+    .categoryForm {
+        padding: 16px;
+    }
+
+    .formActions {
+        flex-direction: column-reverse;
+    }
+
+    .btnPrimary,
+    .btnSecondary {
+        width: 100%;
+    }
+}

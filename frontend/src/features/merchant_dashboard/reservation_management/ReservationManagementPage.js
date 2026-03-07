@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FaClock, FaUsers, FaCalendarAlt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import TimeSlotSettings from './TimeSlotSettings';
 import ReservationList from './ReservationList';
-import './ReservationManagementPage.css';
-import { 
-  getMerchantReservations, 
-  updateReservationStatus, 
+import styles from './ReservationManagementPage.module.css';
+import {
+  getMerchantReservations,
+  updateReservationStatus,
   merchantCancelReservation,
   deleteReservation,
   getReservationStats,
@@ -102,7 +102,7 @@ const ReservationManagementPage = () => {
 
   const handleCompleteReservation = async (reservationId) => {
     if (!window.confirm('確定要將此訂位標記為已完成嗎？')) return;
-    
+
     try {
       await updateReservationStatus(reservationId, 'completed');
       await fetchReservations();
@@ -116,7 +116,7 @@ const ReservationManagementPage = () => {
 
   const handleDeleteReservation = async (reservationId) => {
     if (!window.confirm('確定要刪除此訂位記錄嗎？此操作無法復原。')) return;
-    
+
     try {
       await deleteReservation(reservationId);
       await fetchReservations();
@@ -134,10 +134,10 @@ const ReservationManagementPage = () => {
         ...timeSlotData,
         end_time: timeSlotData.end_time || null
       };
-      
+
       if (timeSlotData.id) {
         const response = await updateTimeSlot(timeSlotData.id, processedData);
-        setTimeSlots(prevSlots => 
+        setTimeSlots(prevSlots =>
           prevSlots.map(slot => slot.id === timeSlotData.id ? response.data : slot)
         );
         alert('時段已更新！');
@@ -155,7 +155,7 @@ const ReservationManagementPage = () => {
 
   const handleDeleteTimeSlot = async (slotId) => {
     if (!window.confirm('確定要刪除此時段嗎？')) return;
-    
+
     try {
       await deleteTimeSlot(slotId);
       setTimeSlots(prevSlots => prevSlots.filter(slot => slot.id !== slotId));
@@ -168,57 +168,57 @@ const ReservationManagementPage = () => {
   };
 
   return (
-    <div className="reservation-management-page">
-      <div className="page-header">
+    <div className={styles.reservationManagementPage}>
+      <div className={styles.pageHeader}>
         <h1>訂位管理</h1>
-        <div className="header-stats">
-          <div className="stat-card pending">
+        <div className={styles.headerStats}>
+          <div className={styles.statCardPending}>
             <FaClock />
             <div>
-              <span className="stat-number">{stats.pending}</span>
-              <span className="stat-label">待確認</span>
+              <span className={styles.statNumber}>{stats.pending}</span>
+              <span className={styles.statLabel}>待確認</span>
             </div>
           </div>
-          <div className="stat-card confirmed">
+          <div className={styles.statCardConfirmed}>
             <FaCheckCircle />
             <div>
-              <span className="stat-number">{stats.confirmed}</span>
-              <span className="stat-label">已確認</span>
+              <span className={styles.statNumber}>{stats.confirmed}</span>
+              <span className={styles.statLabel}>已確認</span>
             </div>
           </div>
-          <div className="stat-card completed">
+          <div className={styles.statCardCompleted}>
             <FaUsers />
             <div>
-              <span className="stat-number">{stats.completed}</span>
-              <span className="stat-label">已完成</span>
+              <span className={styles.statNumber}>{stats.completed}</span>
+              <span className={styles.statLabel}>已完成</span>
             </div>
           </div>
-          <div className="stat-card cancelled">
+          <div className={styles.statCardCancelled}>
             <FaTimesCircle />
             <div>
-              <span className="stat-number">{stats.cancelled}</span>
-              <span className="stat-label">已取消</span>
+              <span className={styles.statNumber}>{stats.cancelled}</span>
+              <span className={styles.statLabel}>已取消</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="tab-navigation">
+      <div className={styles.tabNavigation}>
         <button
-          className={`tab-button ${activeTab === 'reservations' ? 'active' : ''}`}
+          className={activeTab === 'reservations' ? styles.tabButtonActive : styles.tabButton}
           onClick={() => setActiveTab('reservations')}
         >
           <FaCalendarAlt /> 訂位列表
         </button>
         <button
-          className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`}
+          className={activeTab === 'settings' ? styles.tabButtonActive : styles.tabButton}
           onClick={() => setActiveTab('settings')}
         >
           <FaClock /> 時段設定
         </button>
       </div>
 
-      <div className="tab-content">
+      <div className={styles.tabContent}>
         {activeTab === 'reservations' ? (
           <ReservationList
             reservations={reservations}
@@ -238,11 +238,11 @@ const ReservationManagementPage = () => {
 
       {/* 取消訂位對話框 */}
       {showCancelDialog && (
-        <div className="dialog-overlay" onClick={() => setShowCancelDialog(false)}>
-          <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
+        <div className={styles.dialogOverlay} onClick={() => setShowCancelDialog(false)}>
+          <div className={styles.dialogContent} onClick={(e) => e.stopPropagation()}>
             <h3>取消訂位</h3>
             <p>您確定要取消此訂位嗎？</p>
-            <div className="form-group">
+            <div className={styles.dialogFormGroup}>
               <label>取消原因（選填）</label>
               <textarea
                 value={cancelReason}
@@ -251,9 +251,9 @@ const ReservationManagementPage = () => {
                 rows="4"
               />
             </div>
-            <div className="dialog-actions">
+            <div className={styles.dialogActions}>
               <button
-                className="btn-secondary"
+                className={styles.btnSecondary}
                 onClick={() => {
                   setShowCancelDialog(false);
                   setCancelReason('');
@@ -263,7 +263,7 @@ const ReservationManagementPage = () => {
                 返回
               </button>
               <button
-                className="btn-danger"
+                className={styles.btnDanger}
                 onClick={handleCancelReservation}
               >
                 確認取消

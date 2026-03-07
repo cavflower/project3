@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { FaCalendarAlt, FaClock, FaUsers, FaStore, FaChild } from 'react-icons/fa';
 import { getReservationDetail, updateReservation, getPublicTimeSlots } from '../../api/reservationApi';
-import './EditReservationPage.css';
+import styles from './EditReservationPage.module.css';
 
 const EditReservationPage = () => {
   const { reservationId } = useParams();
@@ -16,7 +16,7 @@ const EditReservationPage = () => {
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [guestPhoneNumber, setGuestPhoneNumber] = useState('');
   const [isGuest, setIsGuest] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     timeSlot: '',
     partySize: 1,
@@ -38,7 +38,7 @@ const EditReservationPage = () => {
     try {
       setLoading(true);
       setError('');
-      
+
       // 檢查是否為訪客
       if (!user) {
         const guestToken = sessionStorage.getItem('guestReservationToken');
@@ -51,10 +51,10 @@ const EditReservationPage = () => {
           return;
         }
       }
-      
+
       const response = await getReservationDetail(reservationId);
       const reservationData = response.data;
-      
+
       setReservation(reservationData);
       setFormData({
         timeSlot: reservationData.time_slot,
@@ -74,22 +74,22 @@ const EditReservationPage = () => {
   const fetchAvailableTimeSlots = async (date) => {
     try {
       if (!reservation?.store) return;
-      
+
       const selectedDate = new Date(date);
       const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][selectedDate.getDay()];
       const dateStr = selectedDate.toISOString().split('T')[0];
-      
+
       const response = await getPublicTimeSlots(reservation.store, dateStr);
       const allSlots = response.data.results || response.data;
-      
+
       // 篩選該星期的時段
       const daySlots = allSlots
         .filter(slot => slot.day_of_week === dayOfWeek && slot.is_active)
         .map(slot => {
-          const timeDisplay = slot.end_time 
+          const timeDisplay = slot.end_time
             ? `${slot.start_time.substring(0, 5)}-${slot.end_time.substring(0, 5)}`
             : slot.start_time.substring(0, 5);
-          
+
           return {
             id: slot.id,
             time: timeDisplay,
@@ -99,7 +99,7 @@ const EditReservationPage = () => {
             current_bookings: slot.current_bookings || 0,
           };
         });
-      
+
       setAvailableTimeSlots(daySlots);
     } catch (error) {
       console.error('Failed to fetch time slots:', error);
@@ -122,18 +122,18 @@ const EditReservationPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // 驗證
     if (!formData.timeSlot) {
       alert('請選擇訂位時段');
       return;
     }
-    
+
     if (formData.partySize < 1) {
       alert('訂位人數至少需要 1 位');
       return;
     }
-    
+
     // 驗證總人數是否超過單筆限制
     const selectedSlot = availableTimeSlots.find(slot => slot.time === formData.timeSlot);
     if (selectedSlot) {
@@ -143,7 +143,7 @@ const EditReservationPage = () => {
         return;
       }
     }
-    
+
     const totalGuests = formData.partySize + formData.childrenCount;
     if (totalGuests > 20) {
       alert('總人數不能超過 20 位');
@@ -152,18 +152,18 @@ const EditReservationPage = () => {
 
     try {
       setSaving(true);
-      
+
       const updateData = {
         time_slot: formData.timeSlot,
         party_size: formData.partySize,
         children_count: formData.childrenCount,
         special_requests: formData.specialRequests,
       };
-      
+
       // 訪客需提供手機號碼驗證
       const phoneNumber = isGuest ? guestPhoneNumber : null;
       await updateReservation(reservationId, updateData, phoneNumber);
-      
+
       alert('訂位已更新！');
       navigate('/my-reservations');
     } catch (error) {
@@ -183,8 +183,8 @@ const EditReservationPage = () => {
 
   if (loading) {
     return (
-      <div className="edit-reservation-page">
-        <div className="loading-container">
+      <div className={styles.editReservationPage}>
+        <div className={styles.loadingContainer}>
           <p>載入中...</p>
         </div>
       </div>
@@ -193,8 +193,8 @@ const EditReservationPage = () => {
 
   if (!reservation) {
     return (
-      <div className="edit-reservation-page">
-        <div className="error-container">
+      <div className={styles.editReservationPage}>
+        <div className={styles.errorContainer}>
           <p>找不到訂位資料</p>
           <button onClick={() => navigate('/my-reservations')}>返回我的訂位</button>
         </div>
@@ -203,87 +203,87 @@ const EditReservationPage = () => {
   }
 
   return (
-    <div className="edit-reservation-page">
-      <div className="page-container">
-        <div className="page-header">
+    <div className={styles.editReservationPage}>
+      <div className={styles.pageContainer}>
+        <div className={styles.pageHeader}>
           <h1>編輯訂位</h1>
-          <p className="subtitle">修改訂位時段、人數或備註需求</p>
+          <p className={styles.subtitle}>修改訂位時段、人數或備註需求</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="edit-form">
+        <form onSubmit={handleSubmit} className={styles.editForm}>
           {/* 餐廳資訊（不可編輯） */}
-          <div className="info-section">
+          <div className={styles.infoSection}>
             <h2>餐廳資訊</h2>
-            <div className="info-card">
-              <div className="info-row">
-                <FaStore className="info-icon" />
+            <div className={styles.infoCard}>
+              <div className={styles.infoRow}>
+                <FaStore className={styles.infoIcon} />
                 <div>
                   <strong>{reservation.store_name}</strong>
-                  <p className="store-address">{reservation.store_address}</p>
+                  <p className={styles.storeAddress}>{reservation.store_address}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 訂位日期（不可編輯） */}
-          <div className="info-section">
+          <div className={styles.infoSection}>
             <h2>訂位日期</h2>
-            <div className="info-card readonly">
-              <div className="info-row">
-                <FaCalendarAlt className="info-icon" />
+            <div className={`${styles.infoCard} ${styles.infoCardReadonly}`}>
+              <div className={styles.infoRow}>
+                <FaCalendarAlt className={styles.infoIcon} />
                 <div>
                   <strong>{formatDate(reservation.reservation_date)}</strong>
-                  <p className="readonly-notice">訂位日期無法修改</p>
+                  <p className={styles.readonlyNotice}>訂位日期無法修改</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 訂位時段（可編輯） */}
-          <div className="form-section">
-            <label className="section-label">
+          <div className={styles.formSection}>
+            <label className={styles.sectionLabel}>
               <FaClock /> 訂位時段
             </label>
-            <div className="time-slots-grid">
+            <div className={styles.timeSlotsGrid}>
               {availableTimeSlots.map((slot) => (
                 <button
                   key={slot.id}
                   type="button"
-                  className={`time-slot-btn ${formData.timeSlot === slot.time ? 'selected' : ''} ${!slot.available ? 'disabled' : ''}`}
+                  className={formData.timeSlot === slot.time ? styles.timeSlotBtnSelected : (!slot.available ? styles.timeSlotBtnDisabled : styles.timeSlotBtn)}
                   onClick={() => slot.available && handleInputChange('timeSlot', slot.time)}
                   disabled={!slot.available}
                 >
-                  <div className="slot-time">{slot.time}</div>
-                  <div className="slot-capacity">單筆限 {slot.max_party_size} 人</div>
+                  <div className={styles.slotTime}>{slot.time}</div>
+                  <div className={styles.slotCapacity}>單筆限 {slot.max_party_size} 人</div>
                   {slot.available ? (
-                    <div className="slot-status available">
+                    <div className={styles.slotStatusAvailable}>
                       可訂 ({slot.capacity - slot.current_bookings} 位)
                     </div>
                   ) : (
-                    <div className="slot-status full">已滿</div>
+                    <div className={styles.slotStatusFull}>已滿</div>
                   )}
                 </button>
               ))}
             </div>
             {formData.timeSlot !== reservation.time_slot && (
-              <p className="change-notice">
+              <p className={styles.changeNotice}>
                 ⚠️ 時段將從 <strong>{reservation.time_slot}</strong> 變更為 <strong>{formData.timeSlot}</strong>
               </p>
             )}
           </div>
 
           {/* 訂位人數（可編輯） */}
-          <div className="form-section">
-            <label className="section-label">
+          <div className={styles.formSection}>
+            <label className={styles.sectionLabel}>
               <FaUsers /> 訂位人數
             </label>
-            <div className="people-selection">
-              <div className="people-input-group">
+            <div className={styles.peopleSelection}>
+              <div className={styles.peopleInputGroup}>
                 <label>大人人數</label>
                 <select
                   value={formData.partySize}
                   onChange={(e) => handleInputChange('partySize', parseInt(e.target.value))}
-                  className="custom-select"
+                  className={styles.customSelect}
                 >
                   {[...Array(20)].map((_, i) => (
                     <option key={i + 1} value={i + 1}>
@@ -292,7 +292,7 @@ const EditReservationPage = () => {
                   ))}
                 </select>
               </div>
-              <div className="people-input-group">
+              <div className={styles.peopleInputGroup}>
                 <label>
                   <FaChild /> 小孩人數
                 </label>
@@ -309,35 +309,35 @@ const EditReservationPage = () => {
                 </select>
               </div>
             </div>
-            <p className="total-guests">
+            <p className={styles.totalGuests}>
               總人數：{formData.partySize + formData.childrenCount} 位
             </p>
             {(formData.partySize !== reservation.party_size || formData.childrenCount !== reservation.children_count) && (
-              <p className="change-notice">
+              <p className={styles.changeNotice}>
                 ⚠️ 人數將從 <strong>{reservation.party_size} 位大人 + {reservation.children_count} 位小孩</strong> 變更為 <strong>{formData.partySize} 位大人 + {formData.childrenCount} 位小孩</strong>
               </p>
             )}
           </div>
 
           {/* 特殊需求（可編輯） */}
-          <div className="form-section">
-            <label className="section-label">備註需求（選填）</label>
+          <div className={styles.formSection}>
+            <label className={styles.sectionLabel}>備註需求（選填）</label>
             <textarea
               value={formData.specialRequests}
               onChange={(e) => handleInputChange('specialRequests', e.target.value)}
               placeholder="如有特殊需求，請在此說明（例如：靠窗座位、兒童座椅、素食等）"
               rows="4"
-              className="special-requests-input"
+              className={styles.specialRequestsInput}
               maxLength={200}
             />
-            <p className="char-count">{formData.specialRequests.length}/200</p>
+            <p className={styles.charCount}>{formData.specialRequests.length}/200</p>
           </div>
 
           {/* 操作按鈕 */}
-          <div className="form-actions">
+          <div className={styles.formActions}>
             <button
               type="button"
-              className="btn-cancel"
+              className={styles.btnCancel}
               onClick={handleCancel}
               disabled={saving}
             >
@@ -345,7 +345,7 @@ const EditReservationPage = () => {
             </button>
             <button
               type="submit"
-              className="btn-submit"
+              className={styles.btnSubmit}
               disabled={saving}
             >
               {saving ? '儲存中...' : '確認修改'}

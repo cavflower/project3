@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getRedemptionProducts, getLoyaltyAccounts, createRedemption } from '../../api/loyaltyApi';
 import { FaGift, FaCheck, FaTimes } from 'react-icons/fa';
-import './RedemptionCatalog.css';
+import styles from './RedemptionCatalog.module.css';
 
 const RedemptionCatalog = () => {
   const [products, setProducts] = useState([]);
@@ -57,26 +57,26 @@ const RedemptionCatalog = () => {
     }
   };
 
-  const filteredProducts = selectedStore === 'all' 
-    ? products 
+  const filteredProducts = selectedStore === 'all'
+    ? products
     : products.filter(p => p.store === parseInt(selectedStore));
 
   if (loading) {
-    return <div className="loading">載入中...</div>;
+    return <div className={styles.loading}>載入中...</div>;
   }
 
   return (
-    <div className="redemption-catalog">
-      <div className="catalog-header">
+    <div className={styles['redemption-catalog']}>
+      <div className={styles['catalog-header']}>
         <h1><FaGift /> 兌換商品</h1>
         <p>使用您的點數兌換心儀商品</p>
       </div>
 
       {accounts.length > 0 && (
-        <div className="filter-bar">
+        <div className={styles['filter-bar']}>
           <label>篩選商家：</label>
-          <select 
-            value={selectedStore} 
+          <select
+            value={selectedStore}
             onChange={(e) => setSelectedStore(e.target.value)}
           >
             <option value="all">所有商家</option>
@@ -90,47 +90,47 @@ const RedemptionCatalog = () => {
       )}
 
       {filteredProducts.length === 0 ? (
-        <div className="no-products">
+        <div className={styles['no-products']}>
           <FaGift size={60} />
           <p>目前沒有可兌換的商品</p>
         </div>
       ) : (
-        <div className="products-grid">
+        <div className={styles['products-grid']}>
           {filteredProducts.map((product) => {
             const account = getAccountByStore(product.store);
             const canAfford = account && account.available_points >= product.required_points;
             const hasStock = product.inventory === null || product.inventory > 0;
 
             return (
-              <div key={product.id} className="product-card">
-                <div className="product-header">
+              <div key={product.id} className={styles['product-card']}>
+                <div className={styles['product-header']}>
                   <h3>{product.title}</h3>
-                  <span className="points-badge">
+                  <span className={styles['points-badge']}>
                     {product.required_points} 點
                   </span>
                 </div>
 
-                <p className="product-description">{product.description}</p>
+                <p className={styles['product-description']}>{product.description}</p>
 
-                <div className="product-footer">
+                <div className={styles['product-footer']}>
                   {product.inventory !== null && (
-                    <span className={`stock ${product.inventory === 0 ? 'out' : ''}`}>
+                    <span className={`${styles.stock} ${product.inventory === 0 ? styles.out : ''}`}>
                       庫存: {product.inventory}
                     </span>
                   )}
 
                   {account ? (
                     <button
-                      className={`redeem-btn ${!canAfford || !hasStock ? 'disabled' : ''}`}
+                      className={`${styles['redeem-btn']} ${!canAfford || !hasStock ? styles.disabled : ''}`}
                       onClick={() => handleRedeemClick(product)}
                       disabled={!canAfford || !hasStock || redeeming === product.id}
                     >
-                      {redeeming === product.id ? '兌換中...' : 
-                       !hasStock ? '已售完' :
-                       !canAfford ? '點數不足' : '兌換'}
+                      {redeeming === product.id ? '兌換中...' :
+                        !hasStock ? '已售完' :
+                          !canAfford ? '點數不足' : '兌換'}
                     </button>
                   ) : (
-                    <span className="no-account">需先成為會員</span>
+                    <span className={styles['no-account']}>需先成為會員</span>
                   )}
                 </div>
               </div>
@@ -140,19 +140,19 @@ const RedemptionCatalog = () => {
       )}
 
       {showConfirm && selectedProduct && (
-        <div className="modal-overlay" onClick={() => setShowConfirm(false)}>
-          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <div className={styles['modal-overlay']} onClick={() => setShowConfirm(false)}>
+          <div className={styles['confirm-modal']} onClick={(e) => e.stopPropagation()}>
             <h2>確認兌換</h2>
-            <div className="confirm-details">
+            <div className={styles['confirm-details']}>
               <p><strong>商品：</strong>{selectedProduct.title}</p>
               <p><strong>所需點數：</strong>{selectedProduct.required_points} 點</p>
-              <p className="warning">兌換後點數將立即扣除，確定要兌換嗎？</p>
+              <p className={styles.warning}>兌換後點數將立即扣除，確定要兌換嗎？</p>
             </div>
-            <div className="confirm-actions">
-              <button className="btn-cancel" onClick={() => setShowConfirm(false)}>
+            <div className={styles['confirm-actions']}>
+              <button className={styles['btn-cancel']} onClick={() => setShowConfirm(false)}>
                 <FaTimes /> 取消
               </button>
-              <button className="btn-confirm" onClick={confirmRedeem}>
+              <button className={styles['btn-confirm']} onClick={confirmRedeem}>
                 <FaCheck /> 確認兌換
               </button>
             </div>

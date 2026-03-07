@@ -1,0 +1,522 @@
+/* 商家評論管理頁面 - CSS Module */
+
+.merchantReviewsPage {
+    min-height: 100vh;
+    background: #f5f7fa;
+    padding: 20px;
+}
+
+.reviewsContainer {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.pageTitle {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+/* 統計卡片 */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.statCard {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.statCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.statCardHighlight {
+    composes: statCard;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.statIcon {
+    font-size: 3rem;
+}
+
+.statInfo h3 {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    margin: 0 0 8px 0;
+    font-weight: 500;
+}
+
+.statCardHighlight .statInfo h3,
+.statCardHighlight .statSubtitle {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.statValue {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 4px;
+}
+
+.statCardHighlight .statValue {
+    color: white;
+}
+
+.statSubtitle {
+    font-size: 0.85rem;
+    color: #95a5a6;
+    margin: 0;
+}
+
+/* 標籤切換 */
+.tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    background: white;
+    padding: 8px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.tab {
+    flex: 1;
+    padding: 12px 24px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #7f8c8d;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.tab:hover {
+    background: #f8f9fa;
+    color: #2c3e50;
+}
+
+.tabActive {
+    composes: tab;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 評論列表 */
+.reviewsList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.reviewCard {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.2s;
+}
+
+.reviewCard:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.reviewHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.reviewerInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.reviewerInfo h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.reviewDate {
+    margin: 4px 0 0 0;
+    font-size: 0.85rem;
+    color: #95a5a6;
+}
+
+/* 星星評分 */
+.starRating {
+    display: flex;
+    gap: 4px;
+}
+
+.star {
+    font-size: 1.5rem;
+    color: #dcdde1;
+}
+
+.starFilled {
+    composes: star;
+    color: #ffd700;
+}
+
+/* 標籤 */
+.reviewTags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.tag {
+    padding: 6px 12px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* 評論內容 */
+.reviewComment {
+    color: #34495e;
+    line-height: 1.6;
+    margin: 12px 0;
+    font-size: 1rem;
+}
+
+/* 商家回覆 */
+.merchantReply {
+    background: #f8f9fa;
+    border-left: 4px solid #667eea;
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 16px;
+}
+
+.replyHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.replyHeader strong {
+    color: #667eea;
+    font-size: 0.95rem;
+}
+
+.replyDate {
+    font-size: 0.8rem;
+    color: #95a5a6;
+}
+
+.merchantReply p {
+    margin: 0;
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+/* 按鈕 */
+.btnReply,
+.btnEditReply {
+    margin-top: 12px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btnReply:hover,
+.btnEditReply:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btnEditReply {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+/* 菜品評論特殊樣式 */
+.productReview .productInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.productImage {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.productName {
+    font-size: 1.2rem;
+    color: #2c3e50;
+    margin: 0;
+    font-weight: 600;
+}
+
+/* 空狀態 */
+.emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    color: #95a5a6;
+    font-size: 1.1rem;
+}
+
+/* 載入狀態 */
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 16px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* 模態框 */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.modalContent {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.modalHeader h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #2c3e50;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #95a5a6;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    background: #f8f9fa;
+    color: #2c3e50;
+}
+
+.reviewPreview {
+    padding: 20px 24px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.reviewPreview .reviewerInfo {
+    margin-bottom: 12px;
+}
+
+.reviewPreview p {
+    margin: 0;
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+.replyTextarea {
+    width: calc(100% - 48px);
+    padding: 16px;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    margin: 24px;
+    transition: border-color 0.2s;
+}
+
+.replyTextarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 24px;
+    border-top: 1px solid #ecf0f1;
+}
+
+.btnCancel,
+.btnSubmit {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnCancel {
+    background: #ecf0f1;
+    color: #2c3e50;
+}
+
+.btnCancel:hover {
+    background: #dfe4e8;
+}
+
+.btnSubmit {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btnSubmit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .merchantReviewsPage {
+        padding: 12px;
+    }
+
+    .pageTitle {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+    }
+
+    .statsGrid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .statCard,
+    .statCardHighlight {
+        padding: 16px;
+    }
+
+    .statIcon {
+        font-size: 2.5rem;
+    }
+
+    .tabs {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .tab,
+    .tabActive {
+        padding: 10px 16px;
+    }
+
+    .reviewCard {
+        padding: 16px;
+    }
+
+    .reviewHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .modalContent {
+        margin: 0;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .productInfo {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -1,0 +1,658 @@
+/* 訂位頁面 - CSS Module */
+
+.reservationPage {
+    min-height: 100vh;
+    background: var(--bg-color);
+    padding: 20px;
+    padding-top: 80px;
+}
+
+.reservationContainer {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* 進度頭部 */
+.progressHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background: linear-gradient(135deg, var(--primary-color), var(--highlight-color));
+    color: white;
+}
+
+.progressHeader h1 {
+    font-size: 24px;
+    margin: 0;
+    flex: 1;
+    text-align: center;
+}
+
+.btnBack {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+}
+
+.btnBack:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.stepIndicator {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+/* 進度條 */
+.progressBarContainer {
+    height: 6px;
+    background: var(--secondary-color);
+}
+
+.progressBarFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--highlight-color));
+    transition: width 0.3s ease;
+}
+
+/* 步驟內容 */
+.stepContent {
+    padding: 40px 30px;
+    min-height: 450px;
+}
+
+.reservationInfoSelection {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.sectionBlock {
+    margin-bottom: 35px;
+    padding: 25px;
+    background: var(--bg-color);
+    border-radius: 12px;
+    border: 2px solid var(--secondary-color);
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sectionTitle::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: var(--primary-color);
+    border-radius: 2px;
+}
+
+.customSelect {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    background: white;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.customSelect:hover {
+    border-color: var(--primary-color);
+}
+
+.customSelect:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(232, 122, 93, 0.1);
+}
+
+.partySizeRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.partySizeItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.selectLabel {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 8px;
+    opacity: 0.8;
+}
+
+.formHint {
+    display: block;
+    font-size: 13px;
+    color: var(--text-color);
+    opacity: 0.6;
+    margin-top: 8px;
+}
+
+/* 時段按鈕 */
+.timeSlotCompact {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.loadingMessage,
+.errorMessage,
+.noSlotsMessage {
+    padding: 20px;
+    text-align: center;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.loadingMessage {
+    background: #f0f8ff;
+    color: #0066cc;
+}
+
+.errorMessage {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.noSlotsMessage {
+    background: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.timeSlotBtn {
+    padding: 16px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.timeSlotBtn:hover:not(.timeSlotBtnDisabled) {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(232, 122, 93, 0.2);
+}
+
+.timeSlotBtnSelected {
+    composes: timeSlotBtn;
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color), var(--highlight-color));
+    color: white;
+}
+
+.timeSlotBtnDisabled {
+    composes: timeSlotBtn;
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f5f5f5;
+}
+
+.slotTime {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.slotCapacity {
+    font-size: 11px;
+    color: #666;
+    font-weight: 500;
+}
+
+.timeSlotBtnSelected .slotCapacity {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.slotStatusAvailable {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 500;
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+}
+
+.timeSlotBtnSelected .slotStatusAvailable {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.slotStatusFull {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 500;
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+}
+
+/* 訪客資料表單 */
+.guestInfoForm {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.formNotice {
+    background: #fff3e0;
+    border-left: 4px solid var(--primary-color);
+    padding: 15px;
+    margin-bottom: 30px;
+    border-radius: 4px;
+}
+
+.formNotice p {
+    margin: 0;
+    color: var(--text-color);
+}
+
+.formRowInline {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.flexGrow {
+    flex: 1;
+}
+
+.genderGroup {
+    width: 280px;
+    flex-shrink: 0;
+}
+
+.genderOptions {
+    display: flex;
+    gap: 10px;
+    height: 48px;
+    align-items: center;
+}
+
+.genderOption {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    background: white;
+    transition: all 0.3s;
+}
+
+.genderOption:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-color);
+}
+
+.genderOption input[type="radio"] {
+    cursor: pointer;
+    width: 12px;
+    height: 12px;
+    margin: 6px;
+    accent-color: var(--primary-color);
+}
+
+.genderLabel {
+    font-size: 15px;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.formGroup input,
+.formGroup textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(232, 122, 93, 0.1);
+}
+
+.formGroup textarea {
+    resize: vertical;
+}
+
+/* 預先點餐 */
+.preOrderSection {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.preOrderNotice {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--bg-color);
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    border: 2px solid var(--secondary-color);
+}
+
+.preOrderNotice svg {
+    font-size: 48px;
+    color: var(--primary-color);
+}
+
+.preOrderNotice h3 {
+    margin: 0 0 5px 0;
+    font-size: 20px;
+    color: var(--text-color);
+}
+
+.preOrderNotice p {
+    margin: 0;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+.preOrderOptions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.optionCard {
+    padding: 30px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.optionCard:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(232, 122, 93, 0.2);
+}
+
+.optionCardSelected {
+    composes: optionCard;
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color), var(--highlight-color));
+    color: white;
+}
+
+.optionContent h4 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+}
+
+.optionContent p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.menuPreview {
+    padding: 40px;
+    background: var(--bg-color);
+    border-radius: 12px;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed var(--secondary-color);
+}
+
+/* 特殊需求 */
+.specialRequestsSection {
+    margin-top: 30px;
+    padding: 25px;
+    background: var(--bg-color);
+    border-radius: 12px;
+    border: 2px solid var(--secondary-color);
+}
+
+.sectionSubtitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sectionSubtitle::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: var(--primary-color);
+    border-radius: 2px;
+}
+
+.specialRequestsTextarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.3s;
+}
+
+.specialRequestsTextarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(232, 122, 93, 0.1);
+}
+
+.specialRequestsTextarea::placeholder {
+    color: var(--text-color);
+    opacity: 0.5;
+}
+
+/* 確認訂位 */
+.confirmationSection {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.confirmationCard {
+    border: 2px solid var(--secondary-color);
+    border-radius: 12px;
+    padding: 30px;
+    background: var(--bg-color);
+}
+
+.confirmationCard h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 25px 0;
+    color: var(--primary-color);
+    font-size: 22px;
+}
+
+.infoGroup {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--secondary-color);
+}
+
+.infoRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--secondary-color);
+}
+
+.infoRow:last-child {
+    border-bottom: none;
+}
+
+.infoLabel {
+    color: var(--text-color);
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+.infoValue {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.genderSuffix {}
+
+/* 導航按鈕 */
+.navigationButtons {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 20px 30px;
+    border-top: 1px solid var(--secondary-color);
+}
+
+.btnPrevious,
+.btnNext,
+.btnConfirm {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s;
+}
+
+.btnPrevious {
+    background: var(--secondary-color);
+    color: var(--text-color);
+    max-width: 200px;
+}
+
+.btnPrevious:hover {
+    background: var(--highlight-color);
+    color: white;
+}
+
+.btnNext,
+.btnConfirm {
+    background: linear-gradient(135deg, var(--primary-color), var(--highlight-color));
+    color: white;
+}
+
+.btnNext:hover,
+.btnConfirm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(232, 122, 93, 0.4);
+}
+
+/* 響應式 */
+@media (max-width: 768px) {
+    .reservationPage {
+        padding: 10px;
+        padding-top: 70px;
+    }
+
+    .stepContent {
+        padding: 30px 20px;
+    }
+
+    .partySizeRow {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .formRowInline {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .genderGroup {
+        width: 100%;
+    }
+
+    .genderOptions {
+        justify-content: flex-start;
+    }
+
+    .timeSlotCompact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .preOrderOptions {
+        grid-template-columns: 1fr;
+    }
+
+    .navigationButtons {
+        flex-direction: column;
+    }
+
+    .btnPrevious {
+        max-width: 100%;
+        order: 2;
+    }
+
+    .btnNext,
+    .btnConfirm {
+        order: 1;
+    }
+
+    .sectionBlock {
+        padding: 20px;
+    }
+}

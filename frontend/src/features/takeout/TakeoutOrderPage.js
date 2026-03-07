@@ -7,7 +7,7 @@ import { getPublicProductCategories, getPublicSpecificationGroups } from "../../
 import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
 import ProductSpecificationModal from "../../components/common/ProductSpecificationModal";
-import "./TakeoutOrderPage.css";
+import styles from './TakeoutOrderPage.module.css';
 
 const initialCart = {
   items: [],
@@ -218,7 +218,7 @@ function TakeoutOrderPage() {
 
   if (loading) {
     return (
-      <div className="takeout-page container py-5 text-center">
+      <div className={`${styles['takeout-page']} container py-5 text-center`}>
         <div className="spinner-border text-primary" role="status" />
         <p className="mt-3">載入中...</p>
       </div>
@@ -227,14 +227,14 @@ function TakeoutOrderPage() {
 
   if (error) {
     return (
-      <div className="takeout-page container py-5">
+      <div className={`${styles['takeout-page']} container py-5`}>
         <div className="alert alert-danger">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="takeout-page container" style={{ marginTop: "70px" }}>
+    <div className={`${styles['takeout-page']} container`} style={{ marginTop: "70px" }}>
       <div className="row mb-4">
         <div className="col-12">
           <div className="card shadow-sm">
@@ -247,7 +247,7 @@ function TakeoutOrderPage() {
                   {store?.phone}
                 </span>
                 {user && greenPoints !== null && (
-                  <span className="green-points-badge">
+                  <span className={styles['green-points-badge']}>
                     <FaCoins style={{ color: '#4CAF50', marginRight: '4px' }} />
                     線色點數：{greenPoints} 點
                   </span>
@@ -262,14 +262,14 @@ function TakeoutOrderPage() {
         <div className="col-12">
           {/* 類別導航標籤 + 購物車按鈕 */}
           {categories.length > 0 && (
-            <div className="category-nav-tabs mb-3">
-              <div className="nav-tabs-scroll">
+            <div className={`${styles['category-nav-tabs']} mb-3`}>
+              <div className={styles['nav-tabs-scroll']}>
                 {categories.map((category) => {
                   const categoryProducts = menuItems.filter(item => item.category === category.id);
                   return (
                     <button
                       key={category.id}
-                      className={`category-nav-btn ${selectedCategory === category.id ? 'active' : ''}`}
+                      className={`${styles['category-nav-btn']} ${selectedCategory === category.id ? styles.active : ''}`}
                       onClick={() => {
                         setSelectedCategory(category.id);
                         categoryRefs.current[category.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -277,7 +277,7 @@ function TakeoutOrderPage() {
                     >
                       {category.name}
                       {categoryProducts.length > 0 && (
-                        <span className="category-count">{categoryProducts.length}</span>
+                        <span className={styles['category-count']}>{categoryProducts.length}</span>
                       )}
                     </button>
                   );
@@ -286,19 +286,19 @@ function TakeoutOrderPage() {
 
                 {/* 購物車按鈕 */}
                 <button
-                  className="cart-nav-btn"
+                  className={styles['cart-nav-btn']}
                   onClick={handleGoToCart}
                 >
                   <FaShoppingCart size={18} />
                   {cart.items.length > 0 && (
-                    <span className="cart-badge">{cart.items.length}</span>
+                    <span className={styles['cart-badge']}>{cart.items.length}</span>
                   )}
                 </button>
 
                 {/* 綠色點數按鈕 */}
                 {redemptionRules.length > 0 && (
                   <button
-                    className={`category-nav-btn green-points-nav-btn ${showGreenPointSection ? 'active' : ''}`}
+                    className={`${styles['category-nav-btn']} ${styles['green-points-nav-btn']} ${showGreenPointSection ? styles.active : ''}`}
                     onClick={() => {
                       setShowGreenPointSection(!showGreenPointSection);
                       setSelectedCategory(null);
@@ -313,7 +313,7 @@ function TakeoutOrderPage() {
 
                 {/* 惜福專區按鈕 */}
                 <button
-                  className={`surplus-zone-nav-btn ${!store?.enable_surplus_food ? 'disabled' : ''}`}
+                  className={`${styles['surplus-zone-nav-btn']} ${!store?.enable_surplus_food ? 'disabled' : ''}`}
                   onClick={() => store?.enable_surplus_food && navigate(`/store/${storeId}/surplus`, {
                     state: { cart: cart }
                   })}
@@ -328,8 +328,8 @@ function TakeoutOrderPage() {
 
           {/* 綠色點數兌換區 */}
           {showGreenPointSection && redemptionRules.length > 0 && (
-            <div ref={greenPointRef} className="card shadow-sm mb-4 takeout-card category-section">
-              <div className="card-header takeout-card-header" style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)' }}>
+            <div ref={greenPointRef} className={`card shadow-sm mb-4 ${styles['takeout-card']} ${styles['category-section']}`}>
+              <div className={`card-header ${styles['takeout-card-header']}`} style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)' }}>
                 <strong>綠色點數兌換</strong>
               </div>
               <div className="card-body">
@@ -366,16 +366,16 @@ function TakeoutOrderPage() {
                       </div>
                       <div className="d-flex align-items-center gap-2">
                         {quantity > 0 ? (
-                          <div className="quantity-control d-flex align-items-center gap-2">
+                          <div className={`${styles['quantity-control']} d-flex align-items-center gap-2`}>
                             <button
-                              className="quantity-btn rounded-circle"
+                              className={`${styles['quantity-btn']} rounded-circle`}
                               onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: `redemption_${rule.id}` })}
                             >
                               <FaMinus size={12} />
                             </button>
-                            <span className="quantity-display">{quantity}</span>
+                            <span className={styles['quantity-display']}>{quantity}</span>
                             <button
-                              className="quantity-btn rounded-circle"
+                              className={`${styles['quantity-btn']} rounded-circle`}
                               onClick={() => handleSelectRedemption(rule)}
                               disabled={quantity >= maxQty || !canRedeem}
                               style={(quantity >= maxQty || !canRedeem) ? { opacity: 0.5 } : {}}
@@ -385,7 +385,7 @@ function TakeoutOrderPage() {
                           </div>
                         ) : (
                           <button
-                            className="add-btn rounded-circle"
+                            className={`${styles['add-btn']} rounded-circle`}
                             onClick={() => handleSelectRedemption(rule)}
                             disabled={!canRedeem}
                             style={!canRedeem ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
@@ -404,8 +404,8 @@ function TakeoutOrderPage() {
 
           {/* 按類別分組顯示商品 */}
           {categories.length === 0 ? (
-            <div className="card shadow-sm mb-4 takeout-card">
-              <div className="card-header takeout-card-header">
+            <div className={`card shadow-sm mb-4 ${styles['takeout-card']}`}>
+              <div className={`card-header ${styles['takeout-card-header']}`}>
                 <strong>餐點列表</strong>
               </div>
               <div className="card-body">
@@ -440,23 +440,23 @@ function TakeoutOrderPage() {
                       {!isLinkedToSurplus && (
                         quantity === 0 ? (
                           <button
-                            className="btn rounded-circle add-btn"
+                            className={`btn rounded-circle ${styles['add-btn']}`}
                             onClick={() => handleProductClick(item)}
                             title="加入購物車"
                           >
                             <FaPlus />
                           </button>
                         ) : (
-                          <div className="quantity-control d-flex align-items-center gap-2">
+                          <div className={`${styles['quantity-control']} d-flex align-items-center gap-2`}>
                             <button
-                              className="btn rounded-circle quantity-btn"
+                              className={`btn rounded-circle ${styles['quantity-btn']}`}
                               onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: lastCartItem?.cartKey })}
                             >
                               <FaMinus />
                             </button>
-                            <span className="quantity-display">{quantity}</span>
+                            <span className={styles['quantity-display']}>{quantity}</span>
                             <button
-                              className="btn rounded-circle quantity-btn"
+                              className={`btn rounded-circle ${styles['quantity-btn']}`}
                               onClick={() => handleProductClick(item)}
                             >
                               <FaPlus />
@@ -478,9 +478,9 @@ function TakeoutOrderPage() {
                 <div
                   key={category.id}
                   ref={el => categoryRefs.current[category.id] = el}
-                  className="card shadow-sm mb-4 takeout-card category-section"
+                  className={`card shadow-sm mb-4 ${styles['takeout-card']} ${styles['category-section']}`}
                 >
-                  <div className="card-header takeout-card-header">
+                  <div className={`card-header ${styles['takeout-card-header']}`}>
                     <strong>{category.name}</strong>
                     {category.description && (
                       <small className="d-block mt-1" style={{ opacity: 0.9 }}>{category.description}</small>
@@ -524,23 +524,23 @@ function TakeoutOrderPage() {
                           {!isLinkedToSurplus && (
                             quantity === 0 ? (
                               <button
-                                className="btn rounded-circle add-btn"
+                              className={`btn rounded-circle ${styles['add-btn']}`}
                                 onClick={() => handleProductClick(item)}
                                 title="加入購物車"
                               >
                                 <FaPlus />
                               </button>
                             ) : (
-                              <div className="quantity-control d-flex align-items-center gap-2">
+                              <div className={`${styles['quantity-control']} d-flex align-items-center gap-2`}>
                                 <button
-                                  className="btn rounded-circle quantity-btn"
+                                  className={`btn rounded-circle ${styles['quantity-btn']}`}
                                   onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: lastCartItem?.cartKey })}
                                 >
                                   <FaMinus />
                                 </button>
-                                <span className="quantity-display">{quantity}</span>
+                                <span className={styles['quantity-display']}>{quantity}</span>
                                 <button
-                                  className="btn rounded-circle quantity-btn"
+                                  className={`btn rounded-circle ${styles['quantity-btn']}`}
                                   onClick={() => handleProductClick(item)}
                                 >
                                   <FaPlus />

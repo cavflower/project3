@@ -1,0 +1,300 @@
+/* 我的訂位頁面 - CSS Module */
+
+.myReservationsPage {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: var(--bg-color);
+    min-height: 100vh;
+}
+
+.pageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.pageHeader h1 {
+    font-size: 2rem;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.guestBadge {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #ffc107, #ffb300);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+.guestBadge span {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.btnNewReservation {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--highlight-color));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btnNewReservation:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(232, 122, 93, 0.3);
+}
+
+/* 狀態標籤 */
+.statusTabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 0;
+}
+
+.statusTab {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    bottom: -2px;
+}
+
+.statusTab:hover {
+    color: var(--primary-color);
+    background: rgba(232, 122, 93, 0.05);
+}
+
+.statusTabActive {
+    composes: statusTab;
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Loading and Empty States */
+.loadingContainer,
+.emptyState {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.emptyState {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.emptyIcon {
+    font-size: 4rem;
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+}
+
+.emptyState h3 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.emptyState p {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.btnPrimary {
+    padding: 0.75rem 2rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--highlight-color));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(232, 122, 93, 0.3);
+}
+
+/* Reservations Grid */
+.reservationsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.errorMessage {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+/* 取消訂位彈出視窗 */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modalContent {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modalContent h2 {
+    margin: 0 0 1rem 0;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+.modalContent p {
+    margin: 0 0 1rem 0;
+    color: #666;
+}
+
+.modalContent textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.3s;
+}
+
+.modalContent textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.modalActions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.modalActions button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.modalActions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btnSecondary {
+    background: #e0e0e0;
+    color: #555;
+}
+
+.btnSecondary:hover {
+    background: #d0d0d0;
+    transform: translateY(-2px);
+}
+
+.btnDanger {
+    background: linear-gradient(135deg, #f44336, #e57373);
+    color: white;
+}
+
+.btnDanger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(244, 67, 54, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .myReservationsPage {
+        padding: 1rem;
+    }
+
+    .pageHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .pageHeader h1 {
+        font-size: 1.5rem;
+    }
+
+    .btnNewReservation {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .reservationsGrid {
+        grid-template-columns: 1fr;
+    }
+}

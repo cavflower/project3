@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaTag } from 'react-icons/fa';
-import './FoodTags.css';
+import styles from './FoodTags.module.css';
 
 const FoodTags = ({ tags, maxDisplay = 5 }) => {
   if (!tags || tags.length === 0) return null;
@@ -9,19 +9,19 @@ const FoodTags = ({ tags, maxDisplay = 5 }) => {
   const remainingCount = tags.length - maxDisplay;
 
   return (
-    <div className="food-tags-display">
+    <div className={styles['food-tags-display']}>
       {displayTags.map((tag, index) => (
         <span
           key={index}
-          className="food-tag"
+          className={styles['food-tag']}
           title={tag}
         >
-          <FaTag className="tag-icon" />
+          <FaTag className={styles['tag-icon']} />
           {tag}
         </span>
       ))}
       {remainingCount > 0 && (
-        <span className="food-tag-more">
+        <span className={styles['food-tag-more']}>
           +{remainingCount}
         </span>
       )}

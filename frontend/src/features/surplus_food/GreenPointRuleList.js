@@ -15,6 +15,7 @@ import {
     FaTimes
 } from 'react-icons/fa';
 import surplusFoodApi from '../../api/surplusFoodApi';
+import styles from './SurplusFoodManagement.module.css';
 
 // 環保行為類型（只保留兩種）
 const ACTION_TYPES = [
@@ -243,7 +244,6 @@ const GreenPointRuleList = () => {
         if (redemptionFormData.redemption_type === 'discount') {
             submitData.discount_type = redemptionFormData.discount_type;
             submitData.discount_value = parseFloat(redemptionFormData.discount_value);
-            // 折扣兌換僅限一份
             submitData.max_quantity_per_order = 1;
         } else {
             submitData.product_name = redemptionFormData.product_name;
@@ -288,57 +288,57 @@ const GreenPointRuleList = () => {
     };
 
     if (loadingRules || loadingRedemption) {
-        return <div className="loading">載入中...</div>;
+        return <div className={styles.loading}>載入中...</div>;
     }
 
     return (
-        <div className="surplus-tab-content green-points-content">
+        <div className={`${styles.tabContent} ${styles.greenPointsContent}`}>
             {/* 子標籤導覽列 */}
-            <div className="sub-tabs">
-                <button className={`sub-tab-button ${subTab === 'rules' ? 'active' : ''}`} onClick={() => setSubTab('rules')}>
+            <div className={styles.subTabs}>
+                <button className={subTab === 'rules' ? styles.subTabButtonActive : styles.subTabButton} onClick={() => setSubTab('rules')}>
                     <FaCogs /> 設定規則
                 </button>
-                <button className={`sub-tab-button ${subTab === 'rewards' ? 'active' : ''}`} onClick={() => setSubTab('rewards')}>
+                <button className={subTab === 'rewards' ? styles.subTabButtonActive : styles.subTabButton} onClick={() => setSubTab('rewards')}>
                     <FaGift /> 設定回饋
                 </button>
             </div>
 
             {/* ========== 設定規則頁面 ========== */}
             {subTab === 'rules' && (
-                <div className="sub-tab-content">
-                    <div className="surplus-content-header">
+                <div className={styles.subTabContent}>
+                    <div className={styles.contentHeader}>
                         <h2>設定規則</h2>
-                        <button className="surplus-btn-primary green-btn" onClick={() => openRuleModal()}>
+                        <button className={`${styles.btnPrimary} ${styles.greenBtn}`} onClick={() => openRuleModal()}>
                             <FaPlus /> 新增規則
                         </button>
                     </div>
-                    <p className="reward-description">設定顧客透過環保行為可以獲得的綠色點數</p>
+                    <p className={styles.rewardDescription}>設定顧客透過環保行為可以獲得的綠色點數</p>
 
                     {rules.length === 0 ? (
-                        <div className="empty-state">
+                        <div className={styles.emptyState}>
                             <FaCoins style={{ fontSize: '3rem', color: '#4CAF50', marginBottom: '1rem' }} />
                             <p>尚未設定任何規則</p>
                         </div>
                     ) : (
-                        <div className="rules-grid">
+                        <div className={styles.rulesGrid}>
                             {rules.map(rule => {
                                 const config = getActionTypeConfig(rule.action_type);
                                 const IconComponent = config.icon || FaLeaf;
                                 return (
-                                    <div key={rule.id} className={`rule-card ${!rule.is_active ? 'inactive' : ''}`}>
-                                        <div className="rule-header" style={{ background: `linear-gradient(135deg, ${config.color}20 0%, ${config.color}10 100%)` }}>
-                                            <div className="rule-type-badge" style={{ color: config.color }}><IconComponent /><span>{rule.action_type_display}</span></div>
-                                            <button className="toggle-btn" onClick={() => handleRuleToggleActive(rule.id)}>
+                                    <div key={rule.id} className={rule.is_active ? styles.ruleCard : styles.ruleCardInactive}>
+                                        <div className={styles.ruleHeader} style={{ background: `linear-gradient(135deg, ${config.color}20 0%, ${config.color}10 100%)` }}>
+                                            <div className={styles.ruleTypeBadge} style={{ color: config.color }}><IconComponent /><span>{rule.action_type_display}</span></div>
+                                            <button className={styles.toggleBtn} onClick={() => handleRuleToggleActive(rule.id)}>
                                                 {rule.is_active ? <FaToggleOn className="active" /> : <FaToggleOff />}
                                             </button>
                                         </div>
-                                        <div className="rule-body">
+                                        <div className={styles.ruleBody}>
                                             <h3>{rule.name}</h3>
-                                            <div className="rule-points reward-points"><FaCoins className="points-icon" /><span>+{rule.points_reward} 點</span></div>
+                                            <div className={`${styles.rulePoints} ${styles.rewardPoints}`}><FaCoins className={styles.pointsIcon} /><span>+{rule.points_reward} 點</span></div>
                                         </div>
-                                        <div className="rule-actions">
-                                            <button className="btn-icon btn-edit" onClick={() => openRuleModal(rule)}><FaEdit /></button>
-                                            <button className="btn-icon btn-delete" onClick={() => handleRuleDelete(rule.id)}><FaTrash /></button>
+                                        <div className={styles.ruleActions}>
+                                            <button className={styles.btnEdit} onClick={() => openRuleModal(rule)}><FaEdit /></button>
+                                            <button className={styles.btnDelete} onClick={() => handleRuleDelete(rule.id)}><FaTrash /></button>
                                         </div>
                                     </div>
                                 );
@@ -350,45 +350,45 @@ const GreenPointRuleList = () => {
 
             {/* ========== 設定回饋頁面 ========== */}
             {subTab === 'rewards' && (
-                <div className="sub-tab-content">
-                    <div className="surplus-content-header">
+                <div className={styles.subTabContent}>
+                    <div className={styles.contentHeader}>
                         <h2>設定回饋</h2>
-                        <button className="surplus-btn-primary green-btn" onClick={() => openRedemptionModal()}>
+                        <button className={`${styles.btnPrimary} ${styles.greenBtn}`} onClick={() => openRedemptionModal()}>
                             <FaPlus /> 新增回饋
                         </button>
                     </div>
-                    <p className="reward-description">設定顧客可以用綠色點數兌換的折扣或商品</p>
+                    <p className={styles.rewardDescription}>設定顧客可以用綠色點數兌換的折扣或商品</p>
 
                     {redemptionRules.length === 0 ? (
-                        <div className="empty-state">
+                        <div className={styles.emptyState}>
                             <FaGift style={{ fontSize: '3rem', color: '#FF9800', marginBottom: '1rem' }} />
                             <p>尚未設定任何兌換規則</p>
                         </div>
                     ) : (
-                        <div className="rules-grid">
+                        <div className={styles.rulesGrid}>
                             {redemptionRules.map(rule => (
-                                <div key={rule.id} className={`rule-card ${!rule.is_active ? 'inactive' : ''}`}>
-                                    <div className="rule-header" style={{ background: rule.redemption_type === 'discount' ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)' : 'linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)' }}>
-                                        <div className="rule-type-badge" style={{ color: rule.redemption_type === 'discount' ? '#1976D2' : '#E65100' }}>
+                                <div key={rule.id} className={rule.is_active ? styles.ruleCard : styles.ruleCardInactive}>
+                                    <div className={styles.ruleHeader} style={{ background: rule.redemption_type === 'discount' ? 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)' : 'linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)' }}>
+                                        <div className={styles.ruleTypeBadge} style={{ color: rule.redemption_type === 'discount' ? '#1976D2' : '#E65100' }}>
                                             {rule.redemption_type === 'discount' ? <FaPercent /> : <FaGift />}
                                             <span>{rule.redemption_type_display}</span>
                                         </div>
-                                        <button className="toggle-btn" onClick={() => handleRedemptionToggleActive(rule.id)}>
+                                        <button className={styles.toggleBtn} onClick={() => handleRedemptionToggleActive(rule.id)}>
                                             {rule.is_active ? <FaToggleOn className="active" /> : <FaToggleOff />}
                                         </button>
                                     </div>
-                                    <div className="rule-body">
+                                    <div className={styles.ruleBody}>
                                         <h3>{rule.name}</h3>
-                                        <div className="rule-points"><FaCoins className="points-icon" /><span>{rule.required_points} 點</span></div>
-                                        <div className="rule-detail">
+                                        <div className={styles.rulePoints}><FaCoins className={styles.pointsIcon} /><span>{rule.required_points} 點</span></div>
+                                        <div className={styles.ruleDetail}>
                                             兌換：{rule.redemption_type === 'discount'
                                                 ? (rule.discount_type === 'percent' ? `${rule.discount_value}% 折扣` : `折抵 $${rule.discount_value}`)
                                                 : rule.product_name}
                                         </div>
                                     </div>
-                                    <div className="rule-actions">
-                                        <button className="btn-icon btn-edit" onClick={() => openRedemptionModal(rule)}><FaEdit /></button>
-                                        <button className="btn-icon btn-delete" onClick={() => handleRedemptionDelete(rule.id)}><FaTrash /></button>
+                                    <div className={styles.ruleActions}>
+                                        <button className={styles.btnEdit} onClick={() => openRedemptionModal(rule)}><FaEdit /></button>
+                                        <button className={styles.btnDelete} onClick={() => handleRedemptionDelete(rule.id)}><FaTrash /></button>
                                     </div>
                                 </div>
                             ))}
@@ -399,23 +399,23 @@ const GreenPointRuleList = () => {
 
             {/* ========== 設定規則 Modal ========== */}
             {showRuleModal && (
-                <div className="modal-overlay" onClick={closeRuleModal}>
-                    <div className="modal-content green-modal" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
+                <div className={styles.modalOverlay} onClick={closeRuleModal}>
+                    <div className={`${styles.modalContent} ${styles.greenModal}`} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
                             <h2>{editingRule ? '編輯規則' : '新增規則'}</h2>
-                            <button className="close-btn" onClick={closeRuleModal}><FaTimes /></button>
+                            <button className={styles.closeBtn} onClick={closeRuleModal}><FaTimes /></button>
                         </div>
-                        <form onSubmit={handleRuleSubmit} className="modal-body">
-                            <div className="form-group">
+                        <form onSubmit={handleRuleSubmit} className={styles.modalBody}>
+                            <div className={styles.formGroup}>
                                 <label>環保行為類型 *</label>
-                                <div className="action-type-grid">
+                                <div className={styles.actionTypeGrid}>
                                     {ACTION_TYPES.map(type => {
                                         const IconComponent = type.icon;
                                         return (
                                             <button
                                                 type="button"
                                                 key={type.value}
-                                                className={`action-type-btn ${ruleFormData.action_type === type.value ? 'active' : ''}`}
+                                                className={ruleFormData.action_type === type.value ? styles.actionTypeBtnActive : styles.actionTypeBtn}
                                                 style={{ '--action-color': type.color, borderColor: ruleFormData.action_type === type.value ? type.color : '#e0e0e0' }}
                                                 onClick={() => handleActionTypeChange(type.value)}
                                             >
@@ -427,32 +427,32 @@ const GreenPointRuleList = () => {
                                 </div>
                             </div>
 
-                            <div className="form-row">
-                                <div className="form-group">
+                            <div className={styles.formRow}>
+                                <div className={styles.formGroup}>
                                     <label>規則名稱 *</label>
                                     <input type="text" name="name" value={ruleFormData.name} onChange={handleRuleInputChange} required />
                                 </div>
-                                <div className="form-group">
+                                <div className={styles.formGroup}>
                                     <label>獎勵點數 *</label>
-                                    <div className="points-input-wrapper">
+                                    <div className={styles.pointsInputWrapper}>
                                         <input type="number" name="points_reward" value={ruleFormData.points_reward} onChange={handleRuleInputChange} min="1" required />
-                                        <span className="points-suffix">點</span>
+                                        <span className={styles.pointsSuffix}>點</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="form-group">
+                            <div className={styles.formGroup}>
                                 <label>說明（選填）</label>
                                 <textarea name="description" value={ruleFormData.description} onChange={handleRuleInputChange} rows="2" />
                             </div>
 
-                            <div className="form-group checkbox-group">
+                            <div className={`${styles.formGroup} ${styles.checkboxGroup}`}>
                                 <label><input type="checkbox" name="is_active" checked={ruleFormData.is_active} onChange={handleRuleInputChange} /> 啟用此規則</label>
                             </div>
 
-                            <div className="modal-footer">
-                                <button type="button" className="btn-cancel" onClick={closeRuleModal}>取消</button>
-                                <button type="submit" className="surplus-btn-primary green-btn" disabled={savingRule}>
+                            <div className={styles.modalFooter}>
+                                <button type="button" className={styles.btnCancel} onClick={closeRuleModal}>取消</button>
+                                <button type="submit" className={`${styles.btnPrimary} ${styles.greenBtn}`} disabled={savingRule}>
                                     <FaSave /> {savingRule ? '儲存中...' : (editingRule ? '更新規則' : '新增規則')}
                                 </button>
                             </div>
@@ -463,35 +463,35 @@ const GreenPointRuleList = () => {
 
             {/* ========== 設定回饋 Modal ========== */}
             {showRedemptionModal && (
-                <div className="modal-overlay" onClick={closeRedemptionModal}>
-                    <div className="modal-content green-modal" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
+                <div className={styles.modalOverlay} onClick={closeRedemptionModal}>
+                    <div className={`${styles.modalContent} ${styles.greenModal}`} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
                             <h2>{editingRedemption ? '編輯兌換規則' : '新增兌換規則'}</h2>
-                            <button className="close-btn" onClick={closeRedemptionModal}><FaTimes /></button>
+                            <button className={styles.closeBtn} onClick={closeRedemptionModal}><FaTimes /></button>
                         </div>
-                        <form onSubmit={handleRedemptionSubmit} className="modal-body">
-                            <div className="form-row">
-                                <div className="form-group">
+                        <form onSubmit={handleRedemptionSubmit} className={styles.modalBody}>
+                            <div className={styles.formRow}>
+                                <div className={styles.formGroup}>
                                     <label>規則名稱 *</label>
                                     <input type="text" name="name" value={redemptionFormData.name} onChange={handleRedemptionInputChange} placeholder="例如：100點換9折" required />
                                 </div>
-                                <div className="form-group">
+                                <div className={styles.formGroup}>
                                     <label>所需點數 *</label>
-                                    <div className="points-input-wrapper">
+                                    <div className={styles.pointsInputWrapper}>
                                         <input type="number" name="required_points" value={redemptionFormData.required_points} onChange={handleRedemptionInputChange} min="1" required />
-                                        <span className="points-suffix">點</span>
+                                        <span className={styles.pointsSuffix}>點</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="form-group">
+                            <div className={styles.formGroup}>
                                 <label>兌換類型 *</label>
-                                <div className="redemption-type-selector">
-                                    <button type="button" className={`type-btn ${redemptionFormData.redemption_type === 'discount' ? 'active' : ''}`}
+                                <div className={styles.ruleTypeSelector}>
+                                    <button type="button" className={redemptionFormData.redemption_type === 'discount' ? styles.typeBtnActive : styles.typeBtn}
                                         onClick={() => setRedemptionFormData(prev => ({ ...prev, redemption_type: 'discount' }))}>
                                         <FaPercent /> 折扣兌換
                                     </button>
-                                    <button type="button" className={`type-btn ${redemptionFormData.redemption_type === 'product' ? 'active' : ''}`}
+                                    <button type="button" className={redemptionFormData.redemption_type === 'product' ? styles.typeBtnActive : styles.typeBtn}
                                         onClick={() => setRedemptionFormData(prev => ({ ...prev, redemption_type: 'product' }))}>
                                         <FaGift /> 商品兌換
                                     </button>
@@ -499,19 +499,19 @@ const GreenPointRuleList = () => {
                             </div>
 
                             {redemptionFormData.redemption_type === 'discount' && (
-                                <div className="form-row">
-                                    <div className="form-group">
+                                <div className={styles.formRow}>
+                                    <div className={styles.formGroup}>
                                         <label>折扣類型</label>
                                         <select name="discount_type" value={redemptionFormData.discount_type} onChange={handleRedemptionInputChange}>
                                             <option value="percent">百分比折扣</option>
                                             <option value="amount">固定金額折扣</option>
                                         </select>
                                     </div>
-                                    <div className="form-group">
+                                    <div className={styles.formGroup}>
                                         <label>折扣值 *</label>
-                                        <div className="points-input-wrapper">
+                                        <div className={styles.pointsInputWrapper}>
                                             <input type="number" name="discount_value" value={redemptionFormData.discount_value} onChange={handleRedemptionInputChange} min="1" required />
-                                            <span className="points-suffix">{redemptionFormData.discount_type === 'percent' ? '%' : '元'}</span>
+                                            <span className={styles.pointsSuffix}>{redemptionFormData.discount_type === 'percent' ? '%' : '元'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -519,33 +519,33 @@ const GreenPointRuleList = () => {
 
                             {redemptionFormData.redemption_type === 'product' && (
                                 <>
-                                    <div className="form-row">
-                                        <div className="form-group">
+                                    <div className={styles.formRow}>
+                                        <div className={styles.formGroup}>
                                             <label>商品名稱 *</label>
                                             <input type="text" name="product_name" value={redemptionFormData.product_name} onChange={handleRedemptionInputChange} placeholder="例如：中杯飲料" required />
                                         </div>
-                                        <div className="form-group">
+                                        <div className={styles.formGroup}>
                                             <label>單筆訂單可兌換份數 *</label>
-                                            <div className="points-input-wrapper">
+                                            <div className={styles.pointsInputWrapper}>
                                                 <input type="number" name="max_quantity_per_order" value={redemptionFormData.max_quantity_per_order} onChange={handleRedemptionInputChange} min="1" max="10" required />
-                                                <span className="points-suffix">份</span>
+                                                <span className={styles.pointsSuffix}>份</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="form-group">
+                                    <div className={styles.formGroup}>
                                         <label>商品描述</label>
                                         <textarea name="product_description" value={redemptionFormData.product_description} onChange={handleRedemptionInputChange} rows="2" />
                                     </div>
                                 </>
                             )}
 
-                            <div className="form-group checkbox-group">
+                            <div className={`${styles.formGroup} ${styles.checkboxGroup}`}>
                                 <label><input type="checkbox" name="is_active" checked={redemptionFormData.is_active} onChange={handleRedemptionInputChange} /> 啟用此規則</label>
                             </div>
 
-                            <div className="modal-footer">
-                                <button type="button" className="btn-cancel" onClick={closeRedemptionModal}>取消</button>
-                                <button type="submit" className="surplus-btn-primary green-btn" disabled={savingRedemption}>
+                            <div className={styles.modalFooter}>
+                                <button type="button" className={styles.btnCancel} onClick={closeRedemptionModal}>取消</button>
+                                <button type="submit" className={`${styles.btnPrimary} ${styles.greenBtn}`} disabled={savingRedemption}>
                                     <FaSave /> {savingRedemption ? '儲存中...' : (editingRedemption ? '更新規則' : '新增規則')}
                                 </button>
                             </div>

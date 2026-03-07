@@ -3,7 +3,7 @@ import api from '../../../api/api';
 import { getMyStore } from '../../../api/storeApi';
 import { db } from '../../../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import './OrderManagementPage.css';
+import styles from './OrderManagementPage.module.css';
 
 const statusLabels = {
   pending: '待處理',
@@ -316,8 +316,7 @@ function OrderManagementPage() {
         ].map((opt) => (
           <button
             key={opt.key}
-            className={`btn btn-sm filter-btn ${statusFilter === opt.key ? 'filter-btn-active' : ''
-              }`}
+            className={`btn btn-sm ${statusFilter === opt.key ? styles.filterBtnActive : styles.filterBtn}`}
             onClick={() => {
               setStatusFilter(opt.key);
               setPage(1);
@@ -336,8 +335,7 @@ function OrderManagementPage() {
         ].map((opt) => (
           <button
             key={opt.key}
-            className={`btn btn-sm filter-btn ${channelFilter === opt.key ? 'filter-btn-active' : ''
-              }`}
+            className={`btn btn-sm ${channelFilter === opt.key ? styles.filterBtnActive : styles.filterBtn}`}
             onClick={() => {
               setChannelFilter(opt.key);
               setPage(1);

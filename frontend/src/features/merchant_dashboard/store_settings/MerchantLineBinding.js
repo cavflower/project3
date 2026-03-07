@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaLine, FaCheckCircle, FaBell, FaChartLine, FaBoxes, FaExclamationTriangle } from 'react-icons/fa';
 import { getMerchantLineStatus, bindMerchantLine, unbindMerchantLine, updateMerchantLinePreferences } from '../../../api/merchantLineApi';
 import { getLineAuthUrl } from '../../../api/lineLoginApi';
-import './MerchantLineBinding.css';
+import styles from './MerchantLineBinding.module.css';
 
 /**
  * 店家 LINE 綁定元件
@@ -135,9 +135,9 @@ const MerchantLineBinding = () => {
 
     if (loading) {
         return (
-            <div className="merchant-line-binding">
-                <div className="merchant-line-binding__loading">
-                    <div className="spinner"></div>
+            <div className={styles.merchantLineBinding}>
+                <div className={styles.loading}>
+                    <div className={styles.loadingSpinner}></div>
                     <span>載入中...</span>
                 </div>
             </div>
@@ -145,9 +145,9 @@ const MerchantLineBinding = () => {
     }
 
     return (
-        <div className="merchant-line-binding">
-            <div className="merchant-line-binding__header">
-                <FaLine className="merchant-line-binding__icon" />
+        <div className={styles.merchantLineBinding}>
+            <div className={styles.header}>
+                <FaLine className={styles.headerIcon} />
                 <div>
                     <h3>LINE 通知綁定</h3>
                     <p>綁定 LINE 帳號以接收店家業務通知</p>
@@ -156,12 +156,12 @@ const MerchantLineBinding = () => {
 
             {/* 訊息提示 */}
             {error && (
-                <div className="merchant-line-binding__alert merchant-line-binding__alert--error">
+                <div className={styles.alertError}>
                     {error}
                 </div>
             )}
             {successMessage && (
-                <div className="merchant-line-binding__alert merchant-line-binding__alert--success">
+                <div className={styles.alertSuccess}>
                     {successMessage}
                 </div>
             )}
@@ -169,23 +169,23 @@ const MerchantLineBinding = () => {
             {bindingStatus?.is_bound ? (
                 <>
                     {/* 已綁定狀態 */}
-                    <div className="merchant-line-binding__status merchant-line-binding__status--bound">
-                        <FaCheckCircle className="status-icon" />
-                        <div className="status-info">
+                    <div className={styles.statusBound}>
+                        <FaCheckCircle className={styles.statusIcon} />
+                        <div className={styles.statusInfo}>
                             {bindingStatus.picture_url && (
                                 <img
                                     src={bindingStatus.picture_url}
                                     alt="LINE 頭像"
-                                    className="line-avatar"
+                                    className={styles.lineAvatar}
                                 />
                             )}
                             <div>
-                                <span className="status-label">已綁定</span>
-                                <span className="status-name">{bindingStatus.display_name || 'LINE 用戶'}</span>
+                                <span className={styles.statusLabel}>已綁定</span>
+                                <span className={styles.statusName}>{bindingStatus.display_name || 'LINE 用戶'}</span>
                             </div>
                         </div>
                         <button
-                            className="unbind-btn"
+                            className={styles.unbindBtn}
                             onClick={handleUnbind}
                             disabled={saving}
                         >
@@ -194,82 +194,82 @@ const MerchantLineBinding = () => {
                     </div>
 
                     {/* 通知偏好設定 */}
-                    <div className="merchant-line-binding__preferences">
+                    <div className={styles.preferences}>
                         <h4>通知偏好設定</h4>
-                        <div className="preference-list">
-                            <div className="preference-item">
-                                <div className="preference-info">
-                                    <FaBell className="preference-icon" />
+                        <div className={styles.preferenceList}>
+                            <div className={styles.preferenceItem}>
+                                <div className={styles.preferenceInfo}>
+                                    <FaBell className={styles.preferenceIcon} />
                                     <div>
-                                        <span className="preference-label">排班通知</span>
-                                        <span className="preference-desc">接收員工排班相關通知</span>
+                                        <span className={styles.preferenceLabel}>排班通知</span>
+                                        <span className={styles.preferenceDesc}>接收員工排班相關通知</span>
                                     </div>
                                 </div>
-                                <label className="toggle-switch">
+                                <label className={styles.toggleSwitch}>
                                     <input
                                         type="checkbox"
                                         checked={preferences.notify_schedule}
                                         onChange={(e) => handlePreferenceChange('notify_schedule', e.target.checked)}
                                         disabled={saving}
                                     />
-                                    <span className="toggle-slider"></span>
+                                    <span className={styles.toggleSlider}></span>
                                 </label>
                             </div>
 
-                            <div className="preference-item">
-                                <div className="preference-info">
-                                    <FaChartLine className="preference-icon" />
+                            <div className={styles.preferenceItem}>
+                                <div className={styles.preferenceInfo}>
+                                    <FaChartLine className={styles.preferenceIcon} />
                                     <div>
-                                        <span className="preference-label">營運分析報告</span>
-                                        <span className="preference-desc">接收每日/每週營運分析</span>
+                                        <span className={styles.preferenceLabel}>營運分析報告</span>
+                                        <span className={styles.preferenceDesc}>接收每日/每週營運分析</span>
                                     </div>
                                 </div>
-                                <label className="toggle-switch">
+                                <label className={styles.toggleSwitch}>
                                     <input
                                         type="checkbox"
                                         checked={preferences.notify_analytics}
                                         onChange={(e) => handlePreferenceChange('notify_analytics', e.target.checked)}
                                         disabled={saving}
                                     />
-                                    <span className="toggle-slider"></span>
+                                    <span className={styles.toggleSlider}></span>
                                 </label>
                             </div>
 
-                            <div className="preference-item">
-                                <div className="preference-info">
-                                    <FaBoxes className="preference-icon" />
+                            <div className={styles.preferenceItem}>
+                                <div className={styles.preferenceInfo}>
+                                    <FaBoxes className={styles.preferenceIcon} />
                                     <div>
-                                        <span className="preference-label">原物料不足提醒</span>
-                                        <span className="preference-desc">庫存低於安全量時通知</span>
+                                        <span className={styles.preferenceLabel}>原物料不足提醒</span>
+                                        <span className={styles.preferenceDesc}>庫存低於安全量時通知</span>
                                     </div>
                                 </div>
-                                <label className="toggle-switch">
+                                <label className={styles.toggleSwitch}>
                                     <input
                                         type="checkbox"
                                         checked={preferences.notify_inventory}
                                         onChange={(e) => handlePreferenceChange('notify_inventory', e.target.checked)}
                                         disabled={saving}
                                     />
-                                    <span className="toggle-slider"></span>
+                                    <span className={styles.toggleSlider}></span>
                                 </label>
                             </div>
 
-                            <div className="preference-item">
-                                <div className="preference-info">
-                                    <FaExclamationTriangle className="preference-icon" />
+                            <div className={styles.preferenceItem}>
+                                <div className={styles.preferenceInfo}>
+                                    <FaExclamationTriangle className={styles.preferenceIcon} />
                                     <div>
-                                        <span className="preference-label">訂單異常警報</span>
-                                        <span className="preference-desc">訂單出現異常時即時通知</span>
+                                        <span className={styles.preferenceLabel}>訂單異常警報</span>
+                                        <span className={styles.preferenceDesc}>訂單出現異常時即時通知</span>
                                     </div>
                                 </div>
-                                <label className="toggle-switch">
+                                <label className={styles.toggleSwitch}>
                                     <input
                                         type="checkbox"
                                         checked={preferences.notify_order_alert}
                                         onChange={(e) => handlePreferenceChange('notify_order_alert', e.target.checked)}
                                         disabled={saving}
                                     />
-                                    <span className="toggle-slider"></span>
+                                    <span className={styles.toggleSlider}></span>
                                 </label>
                             </div>
                         </div>
@@ -277,10 +277,10 @@ const MerchantLineBinding = () => {
                 </>
             ) : (
                 /* 未綁定狀態 */
-                <div className="merchant-line-binding__status merchant-line-binding__status--unbound">
+                <div className={styles.statusUnbound}>
                     <p>尚未綁定 LINE 帳號</p>
                     <button
-                        className="bind-btn"
+                        className={styles.bindBtn}
                         onClick={handleBindLine}
                         disabled={loading}
                     >

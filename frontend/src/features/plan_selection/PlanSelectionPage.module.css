@@ -1,0 +1,150 @@
+/* 方案選擇頁面 - CSS Module */
+
+.planSelectionPage {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    background-color: #f4f7f6;
+    padding: 40px 20px;
+}
+
+.planContainer {
+    width: 100%;
+    max-width: 1200px;
+    background-color: #fff;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.planContainer h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.planContainer p {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 40px;
+}
+
+.plansGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.planCard {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.planCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.planCardSelected {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    border-color: #007bff;
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15);
+    transform: translateY(-5px);
+}
+
+.planCard h2,
+.planCardSelected h2 {
+    font-size: 1.8rem;
+    color: #007bff;
+    margin-bottom: 15px;
+}
+
+.price {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 25px;
+}
+
+.planCard ul,
+.planCardSelected ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.planCard ul li,
+.planCardSelected ul li {
+    color: #555;
+    margin-bottom: 12px;
+    position: relative;
+    padding-left: 25px;
+}
+
+.planCard ul li::before,
+.planCardSelected ul li::before {
+    content: '✓';
+    color: #28a745;
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.radioButton {
+    margin-top: 30px;
+    font-weight: bold;
+    color: #007bff;
+    text-align: center;
+}
+
+.planCard .radioButton {
+    color: #aaa;
+}
+
+.planCardSelected .radioButton {
+    color: #007bff;
+}
+
+.submitBtn {
+    background-color: #28a745;
+    color: white;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.submitBtn:hover {
+    background-color: #218838;
+}
+
+.submitBtn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.errorMessage {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}

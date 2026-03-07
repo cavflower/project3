@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
-import './RegisterPage.css';
+import styles from './LoginPage.module.css';
 
 const RegisterPage = () => {
   const [userType, setUserType] = useState('customer');
@@ -29,7 +29,7 @@ const RegisterPage = () => {
     const { email, password, confirmPassword, username, storeName } = formData;
 
     if (password !== confirmPassword) {
-      setError('密碼不相符');
+      setError('密碼不相�?);
       setLoading(false);
       return;
     }
@@ -78,7 +78,7 @@ const RegisterPage = () => {
       } catch (backendError) {
         console.error('Failed to save user to backend:', backendError);
         // Optionally, set an error message for the user
-        setError('帳號已建立，但後台資料同步失敗，請聯繫客服。');
+        setError('帳�?已建立�?但�??��??��?步失?��?請聯繫客?��?);
         // We don't re-throw or stop the process, as the user is technically registered.
       }
 
@@ -93,70 +93,70 @@ const RegisterPage = () => {
 
   const renderCustomerForm = () => (
     <>
-      <div className="input-group">
-        <label htmlFor="username">使用者名稱</label>
-        <input type="text" id="username" placeholder="請輸入您的暱稱" value={formData.username} onChange={handleChange} required />
+      <div className={styles['input-group']}>
+        <label htmlFor="username">使用?��?�?/label>
+        <input type="text" id="username" placeholder="請輸?�您?�暱�? value={formData.username} onChange={handleChange} required />
       </div>
-      <div className="input-group">
-        <label htmlFor="email">電子郵件</label>
-        <input type="email" id="email" placeholder="請輸入您的電子郵件" value={formData.email} onChange={handleChange} required />
+      <div className={styles['input-group']}>
+        <label htmlFor="email">?��??�件</label>
+        <input type="email" id="email" placeholder="請輸?�您?�電子郵�? value={formData.email} onChange={handleChange} required />
       </div>
-      <div className="input-group">
+      <div className={styles['input-group']}>
         <label htmlFor="password">密碼</label>
-        <input type="password" id="password" placeholder="至少 6 個字元" value={formData.password} onChange={handleChange} required />
+        <input type="password" id="password" placeholder="?��? 6 ?��??? value={formData.password} onChange={handleChange} required />
       </div>
-      <div className="input-group">
-        <label htmlFor="confirm-password">確認密碼</label>
-        <input type="password" id="confirmPassword" placeholder="再次輸入密碼" value={formData.confirmPassword} onChange={handleChange} required />
+      <div className={styles['input-group']}>
+        <label htmlFor="confirm-password">確�?密碼</label>
+        <input type="password" id="confirmPassword" placeholder="?�次輸入密碼" value={formData.confirmPassword} onChange={handleChange} required />
       </div>
     </>
   );
 
   const renderMerchantForm = () => (
     <>
-      <div className="input-group">
-        <label htmlFor="store-name">店家名稱</label>
-        <input type="text" id="storeName" placeholder="您的餐廳或品牌名稱" value={formData.storeName} onChange={handleChange} required />
+      <div className={styles['input-group']}>
+        <label htmlFor="store-name">店家?�稱</label>
+        <input type="text" id="storeName" placeholder="?��?餐廳?��??��?�? value={formData.storeName} onChange={handleChange} required />
       </div>
-      <div className="input-group">
-        <label htmlFor="email">店家聯絡信箱</label>
-        <input type="email" id="email" placeholder="用於登入及聯絡" value={formData.email} onChange={handleChange} required />
+      <div className={styles['input-group']}>
+        <label htmlFor="email">店家?�絡信箱</label>
+        <input type="email" id="email" placeholder="?�於?�入?�聯�? value={formData.email} onChange={handleChange} required />
       </div>
-      <div className="input-group">
+      <div className={styles['input-group']}>
         <label htmlFor="password">密碼</label>
-        <input type="password" id="password" placeholder="至少 6 個字元" value={formData.password} onChange={handleChange} required />
+        <input type="password" id="password" placeholder="?��? 6 ?��??? value={formData.password} onChange={handleChange} required />
       </div>
-      <div className="input-group">
-        <label htmlFor="confirm-password">確認密碼</label>
-        <input type="password" id="confirmPassword" placeholder="再次輸入密碼" value={formData.confirmPassword} onChange={handleChange} required />
+      <div className={styles['input-group']}>
+        <label htmlFor="confirm-password">確�?密碼</label>
+        <input type="password" id="confirmPassword" placeholder="?�次輸入密碼" value={formData.confirmPassword} onChange={handleChange} required />
       </div>
     </>
   );
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
+    <div className={styles['auth-page']}>
+      <div className={styles['auth-container']}>
         <div className="auth-toggle">
           <button
             className={`toggle-btn ${userType === 'customer' ? 'active' : ''}`}
             onClick={() => setUserType('customer')}
           >
-            我是顧客
+            ?�是顧客
           </button>
           <button
             className={`toggle-btn ${userType === 'merchant' ? 'active' : ''}`}
             onClick={() => setUserType('merchant')}
           >
-            我是店家
+            ?�是店家
           </button>
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <h2>{userType === 'customer' ? '建立新帳戶' : '成為合作夥伴'}</h2>
-          {error && <p className="error-message">{error}</p>}
+        <form className={styles['auth-form']} onSubmit={handleSubmit}>
+          <h2>{userType === 'customer' ? '建�??�帳?? : '?�為?��?夥伴'}</h2>
+          {error && <p className={styles['error-message']}>{error}</p>}
           {userType === 'customer' ? renderCustomerForm() : renderMerchantForm()}
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? '註冊中...' : '註冊'}
+          <button type="submit" className={styles['submit-btn']} disabled={loading}>
+            {loading ? '註�?�?..' : '註�?'}
           </button>
         </form>
       </div>

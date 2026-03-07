@@ -1,0 +1,897 @@
+/* 訂位管理頁面 - CSS Module */
+
+.reservationManagementPage {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.pageHeader {
+    margin-bottom: 30px;
+}
+
+.pageHeader h1 {
+    font-size: 28px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* 統計卡片 */
+.headerStats {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.statCard {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    min-width: 140px;
+}
+
+.statCard svg {
+    font-size: 24px;
+}
+
+.statCardPending {
+    composes: statCard;
+}
+
+.statCardPending svg {
+    color: #ff9800;
+}
+
+.statCardConfirmed {
+    composes: statCard;
+}
+
+.statCardConfirmed svg {
+    color: #4caf50;
+}
+
+.statCardCompleted {
+    composes: statCard;
+}
+
+.statCardCompleted svg {
+    color: #2196f3;
+}
+
+.statCardCancelled {
+    composes: statCard;
+}
+
+.statCardCancelled svg {
+    color: #f44336;
+}
+
+.statNumber {
+    font-size: 24px;
+    font-weight: bold;
+    display: block;
+    color: #333;
+}
+
+.statLabel {
+    font-size: 12px;
+    color: #666;
+    display: block;
+}
+
+/* Tab 導航 */
+.tabNavigation {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.tabButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.tabButton:hover {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.05);
+}
+
+.tabButtonActive {
+    composes: tabButton;
+    color: #ff6b6b;
+    border-bottom-color: #ff6b6b;
+    font-weight: 500;
+}
+
+.tabContent {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 訂位列表 */
+.reservationListContainer {
+    padding: 20px 0;
+}
+
+/* 狀態分類導航標籤 */
+.statusTabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 0;
+}
+
+.statusTab {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #666;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    bottom: -2px;
+}
+
+.statusTab:hover {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.05);
+}
+
+.statusTabActive {
+    composes: statusTab;
+    color: #ff6b6b;
+    border-bottom-color: #ff6b6b;
+    font-weight: 600;
+}
+
+.listControls {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.filterGroup,
+.sortGroup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filterGroup label,
+.sortGroup label {
+    font-weight: 500;
+    color: #555;
+}
+
+.filterGroup select,
+.sortGroup select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.reservationsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.reservationCard {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.reservationCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cardHeader {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.customerInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.customerInfo h3 {
+    font-size: 18px;
+    color: #333;
+    margin: 0;
+}
+
+.bookingTime {
+    font-size: 12px;
+    color: #999;
+}
+
+/* 狀態標籤 */
+.statusBadge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.statusPending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.statusConfirmed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.statusCancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.statusCompleted {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.cardBody {
+    margin-bottom: 15px;
+}
+
+.infoRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.infoIcon {
+    color: #ff6b6b;
+    font-size: 14px;
+    min-width: 16px;
+}
+
+.specialRequests {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.cardActions {
+    display: flex;
+    gap: 10px;
+}
+
+.btnAccept,
+.btnComplete,
+.btnCancel,
+.btnDelete {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btnAccept {
+    background: #4caf50;
+    color: white;
+}
+
+.btnAccept:hover {
+    background: #45a049;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.btnComplete {
+    background: #2196f3;
+    color: white;
+}
+
+.btnComplete:hover {
+    background: #1976d2;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.btnCancel {
+    background: #f44336;
+    color: white;
+}
+
+.btnCancel:hover {
+    background: #da190b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.btnDelete {
+    background: #9e9e9e;
+    color: white;
+}
+
+.btnDelete:hover {
+    background: #757575;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(117, 117, 117, 0.3);
+}
+
+/* 時段設定 */
+.timeSlotSettingsContainer {
+    padding: 20px 0;
+}
+
+.settingsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.headerLeft h2 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.description {
+    color: #666;
+    font-size: 14px;
+}
+
+.btnAddSlot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btnAddSlot:hover {
+    background: #ff5252;
+}
+
+.dayFilter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.dayFilter label {
+    font-weight: 500;
+    color: #555;
+}
+
+.dayFilter select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.slotsList {
+    margin-top: 20px;
+}
+
+.dayGroup {
+    margin-bottom: 30px;
+}
+
+.dayTitle {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #ff6b6b;
+}
+
+.slotsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.slotCard {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.3s;
+}
+
+.slotCard:hover {
+    border-color: #ff6b6b;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+}
+
+.slotCardInactive {
+    composes: slotCard;
+    opacity: 0.6;
+    background: #f5f5f5;
+}
+
+.slotHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.timeRange strong {
+    font-size: 16px;
+    color: #333;
+}
+
+.activeBadge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #4caf50;
+    font-size: 12px;
+}
+
+.inactiveBadge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #999;
+    font-size: 12px;
+}
+
+.slotBody {
+    margin-bottom: 12px;
+}
+
+.capacityInfo {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.capacityLabel {
+    color: #666;
+    font-size: 14px;
+}
+
+.capacityValue {
+    color: #333;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.slotActions {
+    display: flex;
+    gap: 8px;
+}
+
+.btnEdit,
+.btnSlotDelete {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btnEdit:disabled,
+.btnSlotDelete:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #ccc;
+}
+
+.btnEdit:disabled:hover,
+.btnSlotDelete:disabled:hover {
+    background: #ccc;
+    transform: none;
+}
+
+.btnEdit {
+    background: #2196f3;
+    color: white;
+}
+
+.btnEdit:hover:not(:disabled) {
+    background: #1976d2;
+}
+
+.btnSlotDelete {
+    background: #f44336;
+    color: white;
+}
+
+.btnSlotDelete:hover:not(:disabled) {
+    background: #da190b;
+}
+
+/* 空狀態 */
+.emptyState {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.emptyState p {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.btnPrimary {
+    padding: 12px 24px;
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btnPrimary:hover {
+    background: #ff5252;
+}
+
+/* 表單 Modal */
+.formOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    z-index: 1000;
+    padding: 20px;
+    padding-top: 40px;
+    overflow-y: auto;
+}
+
+.timeSlotFormModal .modalContent {
+    background: white;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 600px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modalHeader h2 {
+    font-size: 20px;
+    color: #333;
+    margin: 0;
+}
+
+.btnClose {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #999;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.3s;
+}
+
+.btnClose:hover {
+    color: #333;
+}
+
+.formBody {
+    padding: 20px;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.formGroup input,
+.formGroup select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+    outline: none;
+    border-color: #ff6b6b;
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.formHint {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #999;
+}
+
+.errorMessage {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #f44336;
+}
+
+.checkboxGroup {
+    margin-top: 20px;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btnSubmit {
+    padding: 10px 24px;
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btnSubmit:hover {
+    background: #ff5252;
+}
+
+/* 取消對話框 */
+.dialogOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.dialogContent {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.dialogContent h3 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 0.75rem;
+}
+
+.dialogContent>p {
+    color: #666;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.dialogFormGroup {
+    margin-bottom: 1.5rem;
+}
+
+.dialogFormGroup label {
+    display: block;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.dialogFormGroup textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.3s;
+}
+
+.dialogFormGroup textarea:focus {
+    outline: none;
+    border-color: #ff6b6b;
+}
+
+.dialogActions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btnSecondary,
+.btnDanger {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btnSecondary {
+    background: #e0e0e0;
+    color: #555;
+}
+
+.btnSecondary:hover {
+    background: #d0d0d0;
+    transform: translateY(-2px);
+}
+
+.btnDanger {
+    background: #f44336;
+    color: white;
+}
+
+.btnDanger:hover {
+    background: #da190b;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(244, 67, 54, 0.3);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .reservationsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .slotsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .headerStats {
+        flex-direction: column;
+    }
+
+    .statCard,
+    .statCardPending,
+    .statCardConfirmed,
+    .statCardCompleted,
+    .statCardCancelled {
+        width: 100%;
+    }
+
+    .settingsHeader {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .btnAddSlot {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .formRow {
+        grid-template-columns: 1fr;
+    }
+}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext'; // 1. 引入 useAuth
 import { FaBell } from 'react-icons/fa';
-import './Navbar.css';
+import styles from './Navbar.module.css';
 import logo from '../../assets/logo.png';
 
 const Navbar = ({ toggleSidebar }) => {
@@ -51,27 +51,27 @@ const Navbar = ({ toggleSidebar }) => {
     if (isLoggedIn) {
       // 如果使用者已登入，顯示頭像和下拉選單
       return (
-        <div className="profile-section">
+        <div className={styles['profile-section']}>
 
           {user?.user_type === 'customer' && (
             <Link
               to="/customer/orders"
               state={{ activeTab: 'notifications' }}
-              className="notification-btn"
+              className={styles['notification-btn']}
               title="訂單通知"
             >
               <FaBell />
             </Link>
           )}
-          <button className="avatar-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
+          <button className={styles['avatar-btn']} onClick={() => setDropdownOpen(!dropdownOpen)}>
             {user?.avatar_url && user.avatar_url.startsWith('data:image') ? (
-              <img src={user.avatar_url} alt={user.username} className="avatar-img" />
+              <img src={user.avatar_url} alt={user.username} className={styles['avatar-img']} />
             ) : (
               user?.username?.charAt(0).toUpperCase() || 'U'
             )}
           </button>
           {dropdownOpen && (
-            <ul className="profile-dropdown">
+            <ul className={styles['profile-dropdown']}>
               <li><Link to="/profile" onClick={() => setDropdownOpen(false)}>編輯資料</Link></li>
               {user?.user_type === 'customer' && (
                 <li><Link to="/customer/loyalty" onClick={() => setDropdownOpen(false)}>會員中心</Link></li>
@@ -93,22 +93,22 @@ const Navbar = ({ toggleSidebar }) => {
         : '/login/customer';
 
       return (
-        <ul className="navbar-links">
+        <ul className={styles['navbar-links']}>
           <li><Link to={loginPath}>登入</Link></li>
-          <li><Link to="/register/customer" className="register-btn">註冊</Link></li>
+          <li><Link to="/register/customer" className={styles['register-btn']}>註冊</Link></li>
         </ul>
       );
     }
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-left">
-        <button className="sidebar-toggle" onClick={toggleSidebar}>
+    <nav className={styles.navbar}>
+      <div className={styles['navbar-left']}>
+        <button className={styles['sidebar-toggle']} onClick={toggleSidebar}>
           ☰
         </button>
-        <div className="navbar-logo">
-          <Link to={homePath}><img src={logo} alt="Dineverse" className="navbar-logo img"></img></Link>
+        <div className={styles['navbar-logo']}>
+          <Link to={homePath}><img src={logo} alt="Dineverse" className={styles['navbar-logo']}></img></Link>
         </div>
       </div>
       {renderUserSection()}

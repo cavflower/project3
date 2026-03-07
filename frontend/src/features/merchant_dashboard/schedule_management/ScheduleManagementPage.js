@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../../store/AuthContext';
 import { getScheduleData, saveScheduleData, exportScheduleCSV, getEmployeeRequests } from '../../../api/scheduleApi';
-import './ScheduleManagementPage.css';
+import styles from './ScheduleManagementPage.module.css';
 
 const shiftPresets = {
   morning: {
@@ -143,7 +143,7 @@ const ScheduleManagementPage = () => {
       try {
         const response = await getScheduleData();
         const data = response.data;
-        
+
         // 轉換 API 資料格式為前端格式
         if (data.shifts) {
           const formattedShifts = data.shifts.map(shift => {
@@ -152,7 +152,7 @@ const ScheduleManagementPage = () => {
             if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
               assignedStaffIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s)).filter(id => id != null && id !== undefined);
             }
-            
+
             return {
               ...shift,
               assignedStaffIds: assignedStaffIds,
@@ -169,7 +169,7 @@ const ScheduleManagementPage = () => {
         } else {
           setShifts([]);
         }
-        
+
         if (data.staff) {
           setStaff(data.staff);
         } else {
@@ -227,10 +227,10 @@ const ScheduleManagementPage = () => {
       ...prev,
       [name]:
         name === 'staffNeeded' ||
-        name === 'startHour' ||
-        name === 'startMinute' ||
-        name === 'endHour' ||
-        name === 'endMinute'
+          name === 'startHour' ||
+          name === 'startMinute' ||
+          name === 'endHour' ||
+          name === 'endMinute'
           ? Number(value)
           : value,
     }));
@@ -256,7 +256,7 @@ const ScheduleManagementPage = () => {
 
     const shiftName = buildShiftName(shiftForm);
     // 確保 assignedStaffIds 是陣列
-    const assignedStaffIds = Array.isArray(shiftForm.assignedStaffIds) 
+    const assignedStaffIds = Array.isArray(shiftForm.assignedStaffIds)
       ? shiftForm.assignedStaffIds.filter(id => id != null && id !== undefined)
       : [];
 
@@ -264,14 +264,14 @@ const ScheduleManagementPage = () => {
       setShifts((prev) =>
         prev.map((shift) =>
           shift.id === editingShiftId
-            ? { 
-                ...shift, 
-                ...shiftForm, 
-                shiftName, 
-                assignedStaffIds: assignedStaffIds,
-                // 確保移除舊的 assigned_staff 欄位，避免混淆
-                assigned_staff: undefined
-              }
+            ? {
+              ...shift,
+              ...shiftForm,
+              shiftName,
+              assignedStaffIds: assignedStaffIds,
+              // 確保移除舊的 assigned_staff 欄位，避免混淆
+              assigned_staff: undefined
+            }
             : shift
         )
       );
@@ -320,7 +320,7 @@ const ScheduleManagementPage = () => {
     } else if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
       assignedStaffIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s)).filter(id => id != null && id !== undefined);
     }
-    
+
     setShiftForm({
       date: shift.date,
       shiftType: shift.shiftType || shift.shift_type,
@@ -364,7 +364,7 @@ const ScheduleManagementPage = () => {
         } else if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
           assignedIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s));
         }
-        
+
         return {
           ...shift,
           assignedStaffIds: assignedIds.filter((staffId) => staffId !== id),
@@ -440,20 +440,20 @@ const ScheduleManagementPage = () => {
       setTimeout(() => setSaveStatus(''), 3000);
       return;
     }
-    
+
     try {
       // 轉換前端格式為 API 格式
       // 只發送有真實資料庫 ID 的資料（臨時 ID 會被當作新資料處理）
       // 去重：根據 date, shift_type, role, start_hour, start_minute, end_hour, end_minute 組合去重
       const uniqueShifts = [];
       const shiftKeys = new Set();
-      
+
       for (const shift of shifts) {
         if (!shift.id && !shift.date) continue; // 跳過無效資料
-        
+
         // 為每個排班創建唯一鍵（用於去重）
         const key = `${shift.date}_${shift.shiftType || shift.shift_type}_${shift.role}_${shift.startHour || shift.start_hour}_${shift.startMinute || shift.start_minute}_${shift.endHour || shift.end_hour}_${shift.endMinute || shift.end_minute}`;
-        
+
         // 如果已經有相同的排班（除了 ID），只保留有 ID 的那個，或者第一個
         if (!shiftKeys.has(key)) {
           shiftKeys.add(key);
@@ -464,7 +464,7 @@ const ScheduleManagementPage = () => {
             const existingKey = `${s.date}_${s.shiftType || s.shift_type}_${s.role}_${s.startHour || s.start_hour}_${s.startMinute || s.start_minute}_${s.endHour || s.end_hour}_${s.endMinute || s.end_minute}`;
             return existingKey === key;
           });
-          
+
           if (existingIndex !== -1) {
             const existing = uniqueShifts[existingIndex];
             // 如果新的有 ID 且舊的沒有，或者新的 ID 更小（更可能是資料庫 ID），則替換
@@ -474,9 +474,9 @@ const ScheduleManagementPage = () => {
           }
         }
       }
-      
+
       console.log(`去重前: ${shifts.length} 個排班, 去重後: ${uniqueShifts.length} 個排班`);
-      
+
       const formattedShifts = uniqueShifts
         .filter(shift => {
           // 過濾掉沒有 ID 且沒有必填欄位的資料
@@ -491,7 +491,7 @@ const ScheduleManagementPage = () => {
           const endHour = parseInt(shift.endHour ?? shift.end_hour ?? 0, 10);
           const endMinute = parseInt(shift.endMinute ?? shift.end_minute ?? 0, 10);
           const staffNeeded = parseInt(shift.staffNeeded ?? shift.staff_needed ?? 1, 10);
-          
+
           return {
             id: shift.id,
             date: shift.date || '',
@@ -519,41 +519,41 @@ const ScheduleManagementPage = () => {
           // 驗證必填欄位
           return shift.date && shift.shift_type && shift.role;
         });
-      
+
       // 清理 staff 資料，移除不需要的欄位，並去重
       const uniqueStaff = [];
       const staffKeys = new Set();
-      
+
       for (const s of staff) {
         if (!s.id) continue;
-        
+
         // 根據 ID 去重
         if (!staffKeys.has(s.id)) {
           staffKeys.add(s.id);
           uniqueStaff.push(s);
         }
       }
-      
+
       console.log(`員工去重前: ${staff.length} 個, 去重後: ${uniqueStaff.length} 個`);
-      
+
       const cleanedStaff = uniqueStaff.map(s => ({
         id: s.id,
         name: s.name,
         role: s.role,
         status: s.status || '',
       }));
-      
+
       const payload = {
         shifts: formattedShifts,
         staff: cleanedStaff,
       };
-      
+
       // 調試日誌：檢查發送的資料
       console.log('準備儲存的資料:', JSON.stringify(payload, null, 2));
       console.log('排班資料中的 assigned_staff_ids:', formattedShifts.map(s => ({ id: s.id, assigned_staff_ids: s.assigned_staff_ids })));
-      
+
       const response = await saveScheduleData(payload);
-      
+
       // 強制重新載入資料，確保取得最新的資料庫狀態（避免重複）
       let data;
       try {
@@ -564,11 +564,11 @@ const ScheduleManagementPage = () => {
         // 如果重新載入失敗，嘗試使用後端返回的資料
         data = response?.data;
       }
-      
+
       // 轉換 API 資料格式為前端格式，並去重
       if (data && data.shifts) {
         console.log('後端返回的 shifts 資料:', JSON.stringify(data.shifts, null, 2));
-        
+
         // 先轉換格式
         const formattedShifts = data.shifts.map(shift => {
           // 確保 assignedStaffIds 正確設置
@@ -576,7 +576,7 @@ const ScheduleManagementPage = () => {
           if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
             assignedStaffIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s)).filter(id => id != null && id !== undefined);
           }
-          
+
           return {
             ...shift,
             assignedStaffIds: assignedStaffIds,
@@ -588,7 +588,7 @@ const ScheduleManagementPage = () => {
             shiftType: shift.shift_type,
           };
         });
-        
+
         // 根據 ID 去重（保留最後一個）
         const uniqueShiftsMap = new Map();
         formattedShifts.forEach(shift => {
@@ -597,13 +597,13 @@ const ScheduleManagementPage = () => {
           }
         });
         const uniqueShifts = Array.from(uniqueShiftsMap.values());
-        
+
         console.log(`去重前: ${formattedShifts.length} 個排班, 去重後: ${uniqueShifts.length} 個排班`);
         setShifts(uniqueShifts);
       } else {
         setShifts([]);
       }
-      
+
       if (data && data.staff) {
         // 根據 ID 去重員工（保留最後一個）
         const uniqueStaffMap = new Map();
@@ -618,7 +618,7 @@ const ScheduleManagementPage = () => {
       } else {
         setStaff([]);
       }
-      
+
       setSaveStatus('已儲存最新資料');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (error) {
@@ -628,7 +628,7 @@ const ScheduleManagementPage = () => {
       if (error.response?.status === 400) {
         const errorData = error.response.data;
         let errorMsg = '';
-        
+
         if (typeof errorData === 'string') {
           errorMsg = errorData;
         } else if (errorData.details) {
@@ -645,7 +645,7 @@ const ScheduleManagementPage = () => {
         } else {
           errorMsg = errorData.error || errorData.detail || JSON.stringify(errorData);
         }
-        
+
         setSaveStatus(`儲存失敗: ${errorMsg}`);
       } else if (error.response?.status === 401 || error.response?.status === 403) {
         setSaveStatus('權限不足，請確認您已登入店家帳號');
@@ -658,47 +658,47 @@ const ScheduleManagementPage = () => {
   };
 
   return (
-    <div className="schedule-page">
-      <header className="schedule-header">
+    <div className={styles.schedulePage}>
+      <header className={styles.scheduleHeader}>
         <div>
-          <p className="page-subtitle">店家管理 / 排班管理</p>
+          <p className={styles.pageSubtitle}>店家管理 / 排班管理</p>
           <h1>排班管理</h1>
-          <p className="page-description">規劃日常班表、管理員工資料並可匯出班表。</p>
+          <p className={styles.pageDescription}>規劃日常班表、管理員工資料並可匯出班表。</p>
         </div>
-        <div className="header-actions">
-          <button className="ghost-btn" onClick={handleSaveAll}>
+        <div className={styles.headerActions}>
+          <button className={styles.ghostBtn} onClick={handleSaveAll}>
             儲存最新資料
           </button>
-          <button className="primary-btn" onClick={handleExport}>
+          <button className={styles.primaryBtn} onClick={handleExport}>
             匯出班表 (CSV)
           </button>
         </div>
       </header>
-      {saveStatus && <p className="save-status">{saveStatus}</p>}
+      {saveStatus && <p className={styles.saveStatus}>{saveStatus}</p>}
 
-      <section className="summary-grid">
-        <div className="summary-card">
-          <p className="summary-label">需求人數</p>
+      <section className={styles.summaryGrid}>
+        <div className={styles.summaryCard}>
+          <p className={styles.summaryLabel}>需求人數</p>
           <h2>{summary.totalNeeded} 位</h2>
         </div>
-        <div className="summary-card">
-          <p className="summary-label">已排人數</p>
+        <div className={styles.summaryCard}>
+          <p className={styles.summaryLabel}>已排人數</p>
           <h2>{summary.totalAssigned} 位</h2>
         </div>
-        <div className="summary-card">
-          <p className="summary-label">缺口</p>
-          <h2 className={summary.shortage ? 'text-warning' : ''}>
+        <div className={styles.summaryCard}>
+          <p className={styles.summaryLabel}>缺口</p>
+          <h2 className={summary.shortage ? styles.textWarning : ''}>
             {summary.shortage ? `缺 ${summary.shortage} 位` : '0'}
           </h2>
         </div>
       </section>
 
-      <section className="manage-grid">
-        <div className="schedule-card">
-          <div className="card-header">
+      <section className={styles.manageGrid}>
+        <div className={styles.scheduleCard}>
+          <div className={styles.cardHeader}>
             <h3>{editingShiftId ? '編輯排班時段' : '新增排班時段'}</h3>
           </div>
-          <form className="shift-form" onSubmit={handleShiftSubmit}>
+          <form className={styles.shiftForm} onSubmit={handleShiftSubmit}>
             <label>
               日期
               <input type="date" name="date" value={shiftForm.date} onChange={handleShiftFormChange} />
@@ -737,9 +737,9 @@ const ScheduleManagementPage = () => {
                 onChange={handleShiftFormChange}
               />
             </label>
-            <label className="time-inputs">
+            <label className={styles.timeInputs}>
               開始時間
-              <div className="time-pickers">
+              <div className={styles.timePickers}>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -761,9 +761,9 @@ const ScheduleManagementPage = () => {
                 />
               </div>
             </label>
-            <label className="time-inputs">
+            <label className={styles.timeInputs}>
               結束時間
-              <div className="time-pickers">
+              <div className={styles.timePickers}>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -798,12 +798,12 @@ const ScheduleManagementPage = () => {
             <label>
               已指派員工
               {availableStaffForForm.length === 0 && shiftForm.assignedStaffIds.length === 0 ? (
-                <div className="no-staff-box">目前沒有可指派員工</div>
+                <div className={styles.noStaffBox}>目前沒有可指派員工</div>
               ) : (
                 <>
                   <select
                     multiple
-                    className="staff-multi-select"
+                    className={styles.staffMultiSelect}
                     value={shiftForm.assignedStaffIds.map(String)}
                     onChange={handleStaffSelectChange}
                   >
@@ -813,16 +813,16 @@ const ScheduleManagementPage = () => {
                       </option>
                     ))}
                   </select>
-                  <p className="helper-text">提示：按住 Ctrl 或 ⌘ 可多選員工</p>
+                  <p className={styles.helperText}>提示：按住 Ctrl 或 ⌘ 可多選員工</p>
                 </>
               )}
               {shiftForm.assignedStaffIds.length > 0 && (
-                <div className="selected-staff">
+                <div className={styles.selectedStaff}>
                   {shiftForm.assignedStaffIds.map((staffId) => {
                     const member = staff.find((item) => item.id === staffId);
                     if (!member) return null;
                     return (
-                      <span key={member.id} className="staff-chip selected">
+                      <span key={member.id} className={styles.staffChip}>
                         {member.name}
                       </span>
                     );
@@ -840,11 +840,11 @@ const ScheduleManagementPage = () => {
                 ))}
               </select>
             </label>
-            <div className="form-actions">
+            <div className={styles.formActions}>
               {editingShiftId && (
                 <button
                   type="button"
-                  className="ghost-btn"
+                  className={styles.ghostBtn}
                   onClick={() => {
                     setShiftForm(defaultShiftForm);
                     setEditingShiftId(null);
@@ -853,18 +853,18 @@ const ScheduleManagementPage = () => {
                   取消編輯
                 </button>
               )}
-              <button type="submit" className="primary-btn fill">
+              <button type="submit" className={styles.primaryBtnFill}>
                 {editingShiftId ? '更新時段' : '新增時段'}
               </button>
             </div>
           </form>
         </div>
 
-        <div className="schedule-card">
-          <div className="card-header">
+        <div className={styles.scheduleCard}>
+          <div className={styles.cardHeader}>
             <h3>{editingStaffId ? '編輯員工' : '新增員工'}</h3>
           </div>
-          <form className="staff-form" onSubmit={handleStaffSubmit}>
+          <form className={styles.staffForm} onSubmit={handleStaffSubmit}>
             <label>
               姓名
               <input type="text" name="name" value={staffForm.name} onChange={handleStaffFormChange} />
@@ -877,11 +877,11 @@ const ScheduleManagementPage = () => {
               備註／出勤狀態
               <input type="text" name="status" value={staffForm.status} onChange={handleStaffFormChange} />
             </label>
-            <div className="form-actions">
+            <div className={styles.formActions}>
               {editingStaffId && (
                 <button
                   type="button"
-                  className="ghost-btn"
+                  className={styles.ghostBtn}
                   onClick={() => {
                     setStaffForm(defaultStaffForm);
                     setEditingStaffId(null);
@@ -890,7 +890,7 @@ const ScheduleManagementPage = () => {
                   取消編輯
                 </button>
               )}
-              <button type="submit" className="primary-btn fill">
+              <button type="submit" className={styles.primaryBtnFill}>
                 {editingStaffId ? '更新員工' : '新增員工'}
               </button>
             </div>
@@ -898,11 +898,11 @@ const ScheduleManagementPage = () => {
         </div>
       </section>
 
-      <section className="schedule-card full-width">
-        <div className="card-header">
+      <section className={styles.scheduleCardFullWidth}>
+        <div className={styles.cardHeader}>
           <h3>排班列表</h3>
         </div>
-        <div className="table-wrapper">
+        <div className={styles.tableWrapper}>
           <table>
             <thead>
               <tr>
@@ -918,7 +918,7 @@ const ScheduleManagementPage = () => {
             <tbody>
               {shifts.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="empty">
+                  <td colSpan="7" className={styles.empty}>
                     尚未建立任何班表
                   </td>
                 </tr>
@@ -927,8 +927,8 @@ const ScheduleManagementPage = () => {
                 <tr key={shift.id}>
                   <td>{shift.date}</td>
                   <td>
-                    <p className="table-shift-name">{shiftPresets[shift.shiftType || shift.shift_type].label}</p>
-                    <p className="table-shift-time">{formatTimeRange(shift)}</p>
+                    <p className={styles.tableShiftName}>{shiftPresets[shift.shiftType || shift.shift_type].label}</p>
+                    <p className={styles.tableShiftTime}>{formatTimeRange(shift)}</p>
                   </td>
                   <td>{shift.role}</td>
                   <td>{shift.staffNeeded || shift.staff_needed}</td>
@@ -941,20 +941,20 @@ const ScheduleManagementPage = () => {
                       } else if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
                         assignedIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s));
                       }
-                      
+
                       const names = assignedIds
                         .map((id) => staff.find((member) => member.id === id)?.name)
                         .filter(Boolean);
-                      
+
                       return names.length > 0 ? names.join(', ') : '-';
                     })()}
                   </td>
                   <td>{statusOptions.find((opt) => opt.value === shift.status)?.label || shift.status}</td>
-                  <td className="table-actions">
-                    <button className="text-btn" onClick={() => handleShiftEdit(shift)}>
+                  <td className={styles.tableActions}>
+                    <button className={styles.textBtn} onClick={() => handleShiftEdit(shift)}>
                       編輯
                     </button>
-                    <button className="text-btn danger" onClick={() => handleShiftDelete(shift.id)}>
+                    <button className={styles.textBtnDanger} onClick={() => handleShiftDelete(shift.id)}>
                       刪除
                     </button>
                   </td>
@@ -965,11 +965,11 @@ const ScheduleManagementPage = () => {
         </div>
       </section>
 
-      <section className="schedule-card full-width">
-        <div className="card-header">
+      <section className={styles.scheduleCardFullWidth}>
+        <div className={styles.cardHeader}>
           <h3>員工列表</h3>
         </div>
-        <div className="table-wrapper">
+        <div className={styles.tableWrapper}>
           <table>
             <thead>
               <tr>
@@ -982,7 +982,7 @@ const ScheduleManagementPage = () => {
             <tbody>
               {staff.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="empty">
+                  <td colSpan="4" className={styles.empty}>
                     尚未新增員工
                   </td>
                 </tr>
@@ -992,11 +992,11 @@ const ScheduleManagementPage = () => {
                   <td>{member.name}</td>
                   <td>{member.role}</td>
                   <td>{member.status || '-'}</td>
-                  <td className="table-actions">
-                    <button className="text-btn" onClick={() => handleStaffEdit(member)}>
+                  <td className={styles.tableActions}>
+                    <button className={styles.textBtn} onClick={() => handleStaffEdit(member)}>
                       編輯
                     </button>
-                    <button className="text-btn danger" onClick={() => handleStaffDelete(member.id)}>
+                    <button className={styles.textBtnDanger} onClick={() => handleStaffDelete(member.id)}>
                       刪除
                     </button>
                   </td>
@@ -1007,11 +1007,11 @@ const ScheduleManagementPage = () => {
         </div>
       </section>
 
-      <section className="schedule-card full-width">
-        <div className="card-header">
+      <section className={styles.scheduleCardFullWidth}>
+        <div className={styles.cardHeader}>
           <h3>員工排班申請</h3>
         </div>
-        <div className="table-wrapper">
+        <div className={styles.tableWrapper}>
           <table>
             <thead>
               <tr>
@@ -1025,7 +1025,7 @@ const ScheduleManagementPage = () => {
             <tbody>
               {employeeRequests.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="empty">
+                  <td colSpan="5" className={styles.empty}>
                     尚無員工排班申請
                   </td>
                 </tr>

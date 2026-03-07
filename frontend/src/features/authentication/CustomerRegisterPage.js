@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
-import './RegisterPage.css';
+import styles from './LoginPage.module.css';
 
 const CustomerRegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -86,31 +86,31 @@ const CustomerRegisterPage = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container customer-theme">
-        <form className="auth-form" onSubmit={handleSubmit}>
+    <div className={styles['auth-page']}>
+      <div className={`${styles['auth-container']} ${styles['customer-theme']}`}>
+        <form className={styles['auth-form']} onSubmit={handleSubmit}>
           <h2>建立新帳戶</h2>
-          <p className="form-subtitle">
+          <p className={styles['form-subtitle']}>
             已經有帳戶了？ <Link to="/login/customer">立即登入</Link>
           </p>
-          {error && <p className="error-message">{error}</p>}
-          <div className="input-group">
+          {error && <p className={styles['error-message']}>{error}</p>}
+          <div className={styles['input-group']}>
             <label htmlFor="username">使用者名稱</label>
             <input type="text" id="username" placeholder="請輸入您的暱稱" value={formData.username} onChange={handleChange} required />
           </div>
-          <div className="input-group">
+          <div className={styles['input-group']}>
             <label htmlFor="email">電子郵件</label>
             <input type="email" id="email" placeholder="請輸入您的電子郵件" value={formData.email} onChange={handleChange} required />
           </div>
-          <div className="input-group">
+          <div className={styles['input-group']}>
             <label htmlFor="password">密碼</label>
             <input type="password" id="password" placeholder="至少 6 個字元" value={formData.password} onChange={handleChange} required />
           </div>
-          <div className="input-group">
+          <div className={styles['input-group']}>
             <label htmlFor="confirmPassword">確認密碼</label>
             <input type="password" id="confirmPassword" placeholder="再次輸入密碼" value={formData.confirmPassword} onChange={handleChange} required />
           </div>
-          <div className="input-group">
+          <div className={styles['input-group']}>
             <label htmlFor="companyTaxId">公司統編 <span style={{ color: '#999', fontSize: '0.9em' }}>(選填)</span></label>
             <input 
               type="text" 
@@ -121,10 +121,10 @@ const CustomerRegisterPage = () => {
               maxLength="8"
             />
           </div>
-          <div className="form-footer">
+          <div className={styles['form-footer']}>
             <Link to="/register/merchant">切換至店家註冊</Link>
           </div>
-          <button type="submit" className="submit-btn" disabled={loading}>
+          <button type="submit" className={styles['submit-btn']} disabled={loading}>
             {loading ? '註冊中...' : '註冊'}
           </button>
         </form>

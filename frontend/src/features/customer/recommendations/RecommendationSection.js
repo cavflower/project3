@@ -3,7 +3,7 @@ import { FaHeart, FaStar, FaFire } from 'react-icons/fa';
 import { getRecommendedProducts } from '../../../api/recommendationApi';
 import FoodTags from '../../../components/common/FoodTags';
 import { useNavigate } from 'react-router-dom';
-import './RecommendationSection.css';
+import styles from './RecommendationSection.module.css';
 
 const RecommendationSection = ({ storeId = null }) => {
   const [recommendations, setRecommendations] = useState([]);
@@ -47,12 +47,12 @@ const RecommendationSection = ({ storeId = null }) => {
 
   if (loading) {
     return (
-      <div className="recommendation-section">
-        <div className="section-header">
-          <FaHeart className="section-icon" />
+      <div className={styles.recommendationSection}>
+        <div className={styles.sectionHeader}>
+          <FaHeart className={styles.sectionIcon} />
           <h2>為您推薦</h2>
         </div>
-        <div className="loading-message">載入推薦中...</div>
+        <div className={styles.loadingMessage}>載入推薦中...</div>
       </div>
     );
   }
@@ -62,45 +62,45 @@ const RecommendationSection = ({ storeId = null }) => {
   }
 
   return (
-    <div className="recommendation-section">
-      <div className="section-header">
-        <FaHeart className="section-icon recommendation-icon" />
+    <div className={styles.recommendationSection}>
+      <div className={styles.sectionHeader}>
+        <FaHeart className={`${styles.sectionIcon} ${styles.recommendationIcon}`} />
         <h2>為您推薦</h2>
-        <span className="recommendation-subtitle">
+        <span className={styles.recommendationSubtitle}>
           根據您的喜好精選
         </span>
       </div>
 
-      <div className="recommendation-grid">
+      <div className={styles.recommendationGrid}>
         {recommendations.map((item) => (
           <div
             key={item.product.id}
-            className="recommendation-card"
+            className={styles.recommendationCard}
             onClick={() => handleProductClick(item.product)}
           >
-            <div className="recommendation-image-container">
+            <div className={styles.recommendationImageContainer}>
               <img
                 src={getImageUrl(item.product.image)}
                 alt={item.product.name}
-                className="recommendation-image"
+                className={styles.recommendationImage}
               />
-              <div className="recommendation-score">
-                <FaStar className="score-icon" />
+              <div className={styles.recommendationScore}>
+                <FaStar className={styles.scoreIcon} />
                 {item.score}%
               </div>
             </div>
 
-            <div className="recommendation-info">
-              <h3 className="recommendation-name">{item.product.name}</h3>
-              <p className="recommendation-price">NT$ {item.product.price}</p>
-              
+            <div className={styles.recommendationInfo}>
+              <h3 className={styles.recommendationName}>{item.product.name}</h3>
+              <p className={styles.recommendationPrice}>NT$ {item.product.price}</p>
+
               {item.product.food_tags && item.product.food_tags.length > 0 && (
                 <FoodTags tags={item.product.food_tags} maxDisplay={3} />
               )}
 
               {item.matching_tags && item.matching_tags.length > 0 && (
-                <div className="matching-tags-info">
-                  <FaFire className="fire-icon" />
+                <div className={styles.matchingTagsInfo}>
+                  <FaFire className={styles.fireIcon} />
                   <span>符合您的喜好：{item.matching_tags.join(', ')}</span>
                 </div>
               )}

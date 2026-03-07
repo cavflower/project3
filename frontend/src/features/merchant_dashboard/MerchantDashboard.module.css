@@ -1,0 +1,233 @@
+/* 商家後台 Dashboard - CSS Module */
+
+.merchantDashboard {
+    padding: 40px 20px;
+    background-color: #f4f6f9;
+    min-height: calc(100vh - 80px);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dashboardHeader {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.dashboardHeader h1 {
+    font-size: 2.5rem;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.dashboardHeader p {
+    font-size: 1.1rem;
+    color: #555;
+}
+
+.featuresGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.loadingContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    font-size: 1.2rem;
+    color: #666;
+}
+
+.dashboardStatsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto 40px auto;
+}
+
+.statsCard {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+}
+
+.statsCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.statsCard h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.lowStockList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lowStockItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.itemName {
+    font-weight: 500;
+    color: #333;
+}
+
+.itemQty {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.restockBtn {
+    margin-top: 15px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+    font-weight: bold;
+}
+
+.restockBtn:hover {
+    background-color: #d32f2f;
+}
+
+.allGood {
+    text-align: center;
+    color: #4caf50;
+    padding: 20px;
+    font-size: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.moreItems {
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+/* Pending Orders Styles */
+.pendingOrdersList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pendingOrdersScroll {
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.pendingOrdersScroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pendingOrdersScroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.pendingOrdersScroll::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.pendingOrdersScroll::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.pendingOrderItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.orderInfo {
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.orderTypeBadge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+}
+
+.badgeTakeout {
+    background-color: #2196f3 !important;
+}
+
+.badgeDinein {
+    background-color: #4caf50 !important;
+}
+
+.badgeSurplus {
+    background-color: #ff9800 !important;
+}
+
+.orderNumber {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.tableLabel {
+    color: #666;
+    font-size: 0.85rem;
+    background: #f0f0f0;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.orderTime {
+    color: #888;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.viewOrdersBtn {
+    margin-top: 15px;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+    font-weight: bold;
+}
+
+.viewOrdersBtn:hover {
+    background-color: #1976d2;
+}

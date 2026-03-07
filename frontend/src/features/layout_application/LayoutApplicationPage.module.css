@@ -1,0 +1,174 @@
+/* 版位申請頁面 - CSS Module */
+
+.layoutApplicationPage {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    padding: 2rem 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.layoutApplicationPage h1 {
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.pageDescription {
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.alertError {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    background-color: #fee;
+    color: #c33;
+    border: 1px solid #fcc;
+}
+
+.alertSuccess {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    background-color: #efe;
+    color: #3c3;
+    border: 1px solid #cfc;
+}
+
+.formSection,
+.requestsSection {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.formSection h2,
+.requestsSection h2 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-weight: 500;
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+    outline: none;
+    border-color: #ff6b35;
+}
+
+.btnSubmit {
+    background: linear-gradient(135deg, #ff6b35, #ff8c61);
+    color: white;
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btnSubmit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.btnSubmit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.emptyMessage {
+    text-align: center;
+    color: #999;
+    padding: 2rem;
+}
+
+.requestsTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.requestsTable thead {
+    background-color: #f8f9fa;
+}
+
+.requestsTable th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+}
+
+.requestsTable td {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.requestsTable tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.btnDelete {
+    background-color: #dc3545;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+}
+
+.btnDelete:hover {
+    background-color: #c82333;
+}
+
+.errorMessage {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.errorMessage p {
+    color: #c33;
+    font-size: 1.1rem;
+}

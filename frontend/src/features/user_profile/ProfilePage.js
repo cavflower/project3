@@ -7,7 +7,7 @@ import { bindLine } from '../../api/lineLoginApi';
 import PaymentCards from './PaymentCards';
 import LineBinding from '../../components/user/LineBinding';
 import MerchantLineBinding from '../../components/merchant/MerchantLineBinding';
-import './ProfilePage.css';
+import styles from './ProfilePage.module.css';
 
 const ProfilePage = () => {
   const { user, updateUser, login, loading } = useAuth();
@@ -147,19 +147,19 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="profile-page">
-      <div className="profile-wrapper">
-        <div className="profile-container">
-          <form onSubmit={handleSubmit} className="profile-form">
-            <div className="profile-sidebar">
+    <div className={styles['profile-page']}>
+      <div className={styles['profile-wrapper']}>
+        <div className={styles['profile-container']}>
+          <form onSubmit={handleSubmit} className={styles['profile-form']}>
+            <div className={styles['profile-sidebar']}>
               <h1>編輯個人資料</h1>
-              <div className="avatar-upload-container" onClick={() => fileInputRef.current.click()}>
+              <div className={styles['avatar-upload-container']} onClick={() => fileInputRef.current.click()}>
                 <img
                   src={avatarPreview}
                   alt="Avatar"
-                  className="avatar-preview"
+                  className={styles['avatar-preview']}
                 />
-                <div className="avatar-edit-overlay">
+                <div className={styles['avatar-edit-overlay']}>
                   <span>更換頭像</span>
                 </div>
               </div>
@@ -172,8 +172,8 @@ const ProfilePage = () => {
               />
             </div>
 
-            <div className="profile-main">
-              <div className="form-group">
+            <div className={styles['profile-main']}>
+              <div className={styles['form-group']}>
                 <label htmlFor="username">名稱</label>
                 <input
                   type="text"
@@ -184,7 +184,7 @@ const ProfilePage = () => {
                   required
                 />
               </div>
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label htmlFor="email">電子郵件 (無法修改)</label>
                 <input
                   type="email"
@@ -194,7 +194,7 @@ const ProfilePage = () => {
                   readOnly
                 />
               </div>
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label htmlFor="phone_number">電話號碼</label>
                 <input
                   type="tel"
@@ -205,10 +205,10 @@ const ProfilePage = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label htmlFor="gender">性別</label>
-                <div className="gender-radio-group">
-                  <label className="radio-option">
+                <div className={styles['gender-radio-group']}>
+                  <label className={styles['radio-option']}>
                     <input
                       type="radio"
                       name="gender"
@@ -218,7 +218,7 @@ const ProfilePage = () => {
                     />
                     <span>小姐</span>
                   </label>
-                  <label className="radio-option">
+                  <label className={styles['radio-option']}>
                     <input
                       type="radio"
                       name="gender"
@@ -228,7 +228,7 @@ const ProfilePage = () => {
                     />
                     <span>先生</span>
                   </label>
-                  <label className="radio-option">
+                  <label className={styles['radio-option']}>
                     <input
                       type="radio"
                       name="gender"
@@ -241,7 +241,7 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              <button type="submit" className="submit-btn">
+              <button type="submit" className={styles['submit-btn']}>
                 儲存變更
               </button>
             </div>
@@ -249,16 +249,16 @@ const ProfilePage = () => {
         </div>
 
         {user.user_type === 'merchant' && (
-          <div className="plan-sidebar">
+          <div className={styles['plan-sidebar']}>
             <h2>現在選擇的方案</h2>
-            <div className="current-plan-display">
-              <div className="plan-badge">
+            <div className={styles['current-plan-display']}>
+              <div className={styles['plan-badge']}>
                 {getPlanName(currentPlan)}
               </div>
               {currentPlan === 'basic' && (
-                <div className="plan-details">
-                  <p className="plan-price">NT$ 499/月</p>
-                  <ul className="plan-features">
+                <div className={styles['plan-details']}>
+                  <p className={styles['plan-price']}>NT$ 499/月</p>
+                  <ul className={styles['plan-features']}>
                     <li>平台基礎功能(販賣、排班...)</li>
                     <li>基本訂單管理+惜福品</li>
                     <li>營運報表</li>
@@ -266,9 +266,9 @@ const ProfilePage = () => {
                 </div>
               )}
               {currentPlan === 'premium' && (
-                <div className="plan-details">
-                  <p className="plan-price">NT$ 999/月</p>
-                  <ul className="plan-features">
+                <div className={styles['plan-details']}>
+                  <p className={styles['plan-price']}>NT$ 999/月</p>
+                  <ul className={styles['plan-features']}>
                     <li>包含基本方案所有功能</li>
                     <li>開放特殊功能(訂位、會員)</li>
                     <li>中優先級別</li>
@@ -276,9 +276,9 @@ const ProfilePage = () => {
                 </div>
               )}
               {currentPlan === 'enterprise' && (
-                <div className="plan-details">
-                  <p className="plan-price">NT$ 2,499/月</p>
-                  <ul className="plan-features">
+                <div className={styles['plan-details']}>
+                  <p className={styles['plan-price']}>NT$ 2,499/月</p>
+                  <ul className={styles['plan-features']}>
                     <li>包含進階方案所有功能</li>
                     <li>LINE BOT個人化推播</li>
                     <li>高優先級別</li>
@@ -286,30 +286,30 @@ const ProfilePage = () => {
                 </div>
               )}
               {!currentPlan && (
-                <div className="plan-details">
-                  <p className="no-plan-text">您尚未選擇方案</p>
+                <div className={styles['plan-details']}>
+                  <p className={styles['no-plan-text']}>您尚未選擇方案</p>
                 </div>
               )}
             </div>
-            <button className="change-plan-btn" onClick={handleChangePlan}>
+            <button className={styles['change-plan-btn']} onClick={handleChangePlan}>
               更改方案
             </button>
 
             {/* 方案費用折扣資訊 */}
-            <div className="discount-info-section">
+            <div className={styles['discount-info-section']}>
               <h2>方案費用折扣</h2>
-              <div className="discount-info-display">
+              <div className={styles['discount-info-display']}>
                 {platformFeeDiscount > 0 ? (
                   <>
-                    <div className="discount-badge-large">
+                    <div className={styles['discount-badge-large']}>
                       折抵{platformFeeDiscount}%費用
                     </div>
-                    <div className="discount-details">
-                      <p className="discount-label">目前折扣：</p>
-                      <p className="discount-value">{platformFeeDiscount}%</p>
+                    <div className={styles['discount-details']}>
+                      <p className={styles['discount-label']}>目前折扣：</p>
+                      <p className={styles['discount-value']}>{platformFeeDiscount}%</p>
 
-                      <p className="discount-label">折扣後方案費用：</p>
-                      <p className="discount-value">
+                      <p className={styles['discount-label']}>折扣後方案費用：</p>
+                      <p className={styles['discount-value']}>
                         {currentPlan === 'basic' && `NT$ ${(499 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
                         {currentPlan === 'premium' && `NT$ ${(999 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
                         {currentPlan === 'enterprise' && `NT$ ${(2499 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
@@ -318,14 +318,14 @@ const ProfilePage = () => {
 
                       {discountReason && (
                         <>
-                          <p className="discount-label">折扣原因：</p>
-                          <p className="discount-reason">{discountReason}</p>
+                          <p className={styles['discount-label']}>折扣原因：</p>
+                          <p className={styles['discount-reason']}>{discountReason}</p>
                         </>
                       )}
                     </div>
                   </>
                 ) : (
-                  <div className="no-discount-text">
+                  <div className={styles['no-discount-text']}>
                     <p>目前沒有方案費用折扣</p>
                   </div>
                 )}
@@ -410,9 +410,9 @@ const JoinCompanySection = ({ user, updateUser }) => {
   };
 
   return (
-    <div className="join-company-section">
+    <div className={styles['join-company-section']}>
       <h2>🏢 {hasJoinedCompany ? '公司資訊' : '加入公司'}</h2>
-      <p className="section-description">
+      <p className={styles['section-description']}>
         {hasJoinedCompany
           ? '您已加入公司，可以前往「排班申請」頁面申請排班。'
           : '輸入公司統編後，即可前往「排班申請」頁面向該公司的店家申請排班。'
@@ -421,23 +421,23 @@ const JoinCompanySection = ({ user, updateUser }) => {
 
       {hasJoinedCompany ? (
         // 已加入公司狀態 - 顯示統編和退出按鈕
-        <div className="company-info">
-          <div className="company-status">
-            <span className="status-badge success">✓ 已加入公司</span>
+        <div className={styles['company-info']}>
+          <div className={styles['company-status']}>
+            <span className={`${styles['status-badge']} ${styles.success}`}>✓ 已加入公司</span>
           </div>
-          <div className="company-detail">
+          <div className={styles['company-detail']}>
             <label>公司統編：</label>
-            <span className="company-tax-id">{user.company_tax_id}</span>
+            <span className={styles['company-tax-id']}>{user.company_tax_id}</span>
           </div>
-          <div className="company-actions">
+          <div className={styles['company-actions']}>
             <button
-              className="btn-schedule"
+              className={styles['btn-schedule']}
               onClick={goToScheduleApplication}
             >
               前往排班申請
             </button>
             <button
-              className="btn-leave"
+              className={styles['btn-leave']}
               onClick={handleLeaveCompany}
               disabled={saving}
             >
@@ -447,8 +447,8 @@ const JoinCompanySection = ({ user, updateUser }) => {
         </div>
       ) : (
         // 尚未加入公司 - 顯示輸入框
-        <div className="company-form">
-          <div className="form-group">
+        <div className={styles['company-form']}>
+          <div className={styles['form-group']}>
             <label htmlFor="companyTaxId">公司統編</label>
             <input
               type="text"
@@ -460,9 +460,9 @@ const JoinCompanySection = ({ user, updateUser }) => {
               disabled={saving}
             />
           </div>
-          <div className="form-actions">
+          <div className={styles['form-actions']}>
             <button
-              className="btn-save"
+              className={styles['btn-save']}
               onClick={handleJoinCompany}
               disabled={saving || !companyTaxId.trim()}
             >

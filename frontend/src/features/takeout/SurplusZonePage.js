@@ -5,8 +5,8 @@ import { getStore } from "../../api/storeApi";
 import api from "../../api/api";
 import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
-import "./TakeoutOrderPage.css";
-import "./SurplusZonePage.css";
+import takeoutStyles from './TakeoutOrderPage.module.css';
+import styles from './SurplusZonePage.module.css';
 
 const initialCart = {
   items: [],
@@ -203,7 +203,7 @@ function SurplusZonePage() {
 
   if (loading) {
     return (
-      <div className="takeout-page container py-5 text-center">
+      <div className={`${takeoutStyles['takeout-page']} container py-5 text-center`}>
         <div className="spinner-border text-primary" role="status" />
         <p className="mt-3">載入中...</p>
       </div>
@@ -212,14 +212,14 @@ function SurplusZonePage() {
 
   if (error) {
     return (
-      <div className="takeout-page container py-5">
+      <div className={`${takeoutStyles['takeout-page']} container py-5`}>
         <div className="alert alert-danger">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="takeout-page surplus-zone-page container" style={{ marginTop: "70px" }}>
+    <div className={`${takeoutStyles['takeout-page']} ${styles['surplus-zone-page']} container`} style={{ marginTop: "70px" }}>
       <div className="row mb-4">
         <div className="col-12">
           <div className="card shadow-sm">
@@ -232,7 +232,7 @@ function SurplusZonePage() {
                   {store?.phone}
                 </span>
                 {user && greenPoints !== null && (
-                  <span className="green-points-badge">
+                  <span className={takeoutStyles['green-points-badge']}>
                     <FaCoins style={{ color: '#4CAF50', marginRight: '4px' }} />
                     綠色點數：{greenPoints} 點
                   </span>
@@ -246,8 +246,8 @@ function SurplusZonePage() {
       <div className="row g-4">
         <div className="col-12">
           {/* 導航標籤列：返回按鈕 + 類別標籤 + 購物車按鈕 */}
-          <div className="category-nav-tabs mb-3">
-            <div className="nav-tabs-scroll">
+          <div className={`${takeoutStyles['category-nav-tabs']} mb-3`}>
+            <div className={takeoutStyles['nav-tabs-scroll']}>
 
 
               {/* 類別標籤 */}
@@ -256,7 +256,7 @@ function SurplusZonePage() {
                 return (
                   <button
                     key={category.id}
-                    className={`category-nav-btn ${selectedCategory === category.id ? 'active' : ''}`}
+                    className={`${takeoutStyles['category-nav-btn']} ${selectedCategory === category.id ? takeoutStyles.active : ''}`}
                     onClick={() => {
                       setSelectedCategory(category.id);
                       categoryRefs.current[category.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -264,7 +264,7 @@ function SurplusZonePage() {
                   >
                     {category.name}
                     {categoryProducts.length > 0 && (
-                      <span className="category-count">{categoryProducts.length}</span>
+                        <span className={takeoutStyles['category-count']}>{categoryProducts.length}</span>
                     )}
                   </button>
                 );
@@ -272,19 +272,19 @@ function SurplusZonePage() {
 
               {/* 購物車按鈕 */}
               <button
-                className="cart-nav-btn"
+                className={takeoutStyles['cart-nav-btn']}
                 onClick={handleGoToCart}
               >
                 <FaShoppingCart size={18} />
                 {cart.items.length > 0 && (
-                  <span className="cart-badge">{cart.items.length}</span>
+                    <span className={takeoutStyles['cart-badge']}>{cart.items.length}</span>
                 )}
               </button>
 
               {/* 綠色點數按鈕 */}
               {redemptionRules.length > 0 && (
                 <button
-                  className={`category-nav-btn green-points-nav-btn ${showGreenPointSection ? 'active' : ''}`}
+                    className={`${takeoutStyles['category-nav-btn']} ${takeoutStyles['green-points-nav-btn']} ${showGreenPointSection ? takeoutStyles.active : ''}`}
                   onClick={() => {
                     setShowGreenPointSection(!showGreenPointSection);
                     setSelectedCategory(null);
@@ -299,7 +299,7 @@ function SurplusZonePage() {
 
               {/* 返回菜單按鈕 */}
               <button
-                className="back-to-menu-btn"
+                className={styles['back-to-menu-btn']}
                 onClick={handleBackToMenu}
               >
                 {tableLabel ? '內用菜單' : '外帶菜單'}
@@ -309,8 +309,8 @@ function SurplusZonePage() {
 
           {/* 綠色點數兌換區 */}
           {showGreenPointSection && redemptionRules.length > 0 && (
-            <div ref={greenPointRef} className="card shadow-sm mb-4 takeout-card category-section">
-              <div className="card-header takeout-card-header" style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)' }}>
+            <div ref={greenPointRef} className={`card shadow-sm mb-4 ${takeoutStyles['takeout-card']} ${takeoutStyles['category-section']}`}>
+              <div className={`card-header ${takeoutStyles['takeout-card-header']}`} style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)' }}>
                 <strong>綠色點數兌換</strong>
                 <small className="d-block mt-1" style={{ opacity: 0.9 }}>
                   您的點數：{greenPoints !== null ? greenPoints : '請登入查看'} 點
@@ -350,16 +350,16 @@ function SurplusZonePage() {
                       </div>
                       <div className="d-flex align-items-center gap-2">
                         {quantity > 0 ? (
-                          <div className="quantity-control d-flex align-items-center gap-2">
+                          <div className={`${takeoutStyles['quantity-control']} d-flex align-items-center gap-2`}>
                             <button
-                              className="quantity-btn rounded-circle"
+                              className={`${takeoutStyles['quantity-btn']} rounded-circle`}
                               onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: `redemption_${rule.id}` })}
                             >
                               <FaMinus size={12} />
                             </button>
-                            <span className="quantity-display">{quantity}</span>
+                            <span className={takeoutStyles['quantity-display']}>{quantity}</span>
                             <button
-                              className="quantity-btn rounded-circle"
+                              className={`${takeoutStyles['quantity-btn']} rounded-circle`}
                               onClick={() => handleSelectRedemption(rule)}
                               disabled={quantity >= maxQty || !canRedeem}
                               style={(quantity >= maxQty || !canRedeem) ? { opacity: 0.5 } : {}}
@@ -369,7 +369,7 @@ function SurplusZonePage() {
                           </div>
                         ) : (
                           <button
-                            className="add-btn rounded-circle"
+                            className={`${takeoutStyles['add-btn']} rounded-circle`}
                             onClick={() => handleSelectRedemption(rule)}
                             disabled={!canRedeem}
                             style={!canRedeem ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
@@ -388,8 +388,8 @@ function SurplusZonePage() {
 
           {/* 按類別分組顯示惜福品 */}
           {categories.length === 0 ? (
-            <div className="card shadow-sm mb-4 takeout-card">
-              <div className="card-header takeout-card-header">
+            <div className={`card shadow-sm mb-4 ${takeoutStyles['takeout-card']}`}>
+              <div className={`card-header ${takeoutStyles['takeout-card-header']}`}>
                 <strong>惜福商品</strong>
               </div>
               <div className="card-body">
@@ -407,7 +407,7 @@ function SurplusZonePage() {
                   return (
                     <div
                       key={item.id}
-                      className="menu-item d-flex justify-content-between align-items-center border-bottom py-3"
+                      className={`${styles['menu-item']} d-flex justify-content-between align-items-center border-bottom py-3`}
                     >
                       {item.image && (
                         <div className="me-3">
@@ -422,7 +422,7 @@ function SurplusZonePage() {
                         <div className="d-flex align-items-center gap-2">
                           <h5 className="mb-1">{item.title}</h5>
                           {item.condition && (
-                            <span className="badge bg-warning text-dark condition-badge">
+                            <span className={`badge bg-warning text-dark ${styles['condition-badge']}`}>
                               {item.condition === 'near_expiry' ? '即期品' : item.condition === 'surplus' ? '剩餘品' : '外包裝損傷'}
                             </span>
                           )}
@@ -434,27 +434,27 @@ function SurplusZonePage() {
                             <strong>到期日：{new Date(item.expiry_date).toLocaleDateString('zh-TW')}</strong>
                           </p>
                         )}
-                        <div className="price-container">
+                        <div className={styles['price-container']}>
                           {hasDiscount && (
-                            <span className="original-price">
+                            <span className={styles['original-price']}>
                               原價 NT$ {formatPrice(originalPrice)}
                             </span>
                           )}
-                          <strong className="surplus-price">NT$ {formatPrice(surplusPrice)}</strong>
+                          <strong className={styles['surplus-price']}>NT$ {formatPrice(surplusPrice)}</strong>
                         </div>
                       </div>
                       <div className="d-flex align-items-center gap-2">
                         {quantity > 0 ? (
-                          <div className="quantity-control d-flex align-items-center gap-2">
+                          <div className={`${takeoutStyles['quantity-control']} d-flex align-items-center gap-2`}>
                             <button
-                              className="quantity-btn rounded-circle"
+                              className={`${takeoutStyles['quantity-btn']} rounded-circle`}
                               onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
                             >
                               <FaMinus size={12} />
                             </button>
-                            <span className="quantity-display">{quantity}</span>
+                            <span className={takeoutStyles['quantity-display']}>{quantity}</span>
                             <button
-                              className="quantity-btn rounded-circle"
+                              className={`${takeoutStyles['quantity-btn']} rounded-circle`}
                               onClick={() =>
                                 dispatch({
                                   type: "ADD_ITEM",
@@ -473,7 +473,7 @@ function SurplusZonePage() {
                           </div>
                         ) : (
                           <button
-                            className="add-btn rounded-circle"
+                            className={`${takeoutStyles['add-btn']} rounded-circle`}
                             onClick={() =>
                               dispatch({
                                 type: "ADD_ITEM",
@@ -505,9 +505,9 @@ function SurplusZonePage() {
                 <div
                   key={category.id}
                   ref={(el) => (categoryRefs.current[category.id] = el)}
-                  className="category-section card shadow-sm mb-4 takeout-card"
+                  className={`${takeoutStyles['category-section']} card shadow-sm mb-4 ${takeoutStyles['takeout-card']}`}
                 >
-                  <div className="card-header takeout-card-header">
+                  <div className={`card-header ${takeoutStyles['takeout-card-header']}`}>
                     <strong>{category.name}</strong>
                     {category.description && (
                       <small className="ms-2 text-white-50">{category.description}</small>
@@ -525,7 +525,7 @@ function SurplusZonePage() {
                       return (
                         <div
                           key={item.id}
-                          className="menu-item d-flex justify-content-between align-items-center border-bottom py-3"
+                          className={`${styles['menu-item']} d-flex justify-content-between align-items-center border-bottom py-3`}
                         >
                           {item.image && (
                             <div className="me-3">
@@ -540,7 +540,7 @@ function SurplusZonePage() {
                             <div className="d-flex align-items-center gap-2">
                               <h5 className="mb-1">{item.title}</h5>
                               {item.condition && (
-                                <span className="badge bg-warning text-dark condition-badge">
+                                <span className={`badge bg-warning text-dark ${styles['condition-badge']}`}>
                                   {item.condition === 'near_expiry' ? '即期品' : item.condition === 'surplus' ? '剩餘品' : '外包裝損傷'}
                                 </span>
                               )}
@@ -552,27 +552,27 @@ function SurplusZonePage() {
                                 <strong>到期日：{new Date(item.expiry_date).toLocaleDateString('zh-TW')}</strong>
                               </p>
                             )}
-                            <div className="price-container">
+                            <div className={styles['price-container']}>
                               {hasDiscount && (
-                                <span className="original-price">
+                                <span className={styles['original-price']}>
                                   原價 NT$ {formatPrice(originalPrice)}
                                 </span>
                               )}
-                              <strong className="surplus-price">惜福價 NT$ {formatPrice(surplusPrice)}</strong>
+                              <strong className={styles['surplus-price']}>惜福價 NT$ {formatPrice(surplusPrice)}</strong>
                             </div>
                           </div>
                           <div className="d-flex align-items-center gap-2">
                             {quantity > 0 ? (
-                              <div className="quantity-control d-flex align-items-center gap-2">
+                              <div className={`${takeoutStyles['quantity-control']} d-flex align-items-center gap-2`}>
                                 <button
-                                  className="quantity-btn rounded-circle"
+                                  className={`${takeoutStyles['quantity-btn']} rounded-circle`}
                                   onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
                                 >
                                   <FaMinus size={12} />
                                 </button>
-                                <span className="quantity-display">{quantity}</span>
+                                <span className={takeoutStyles['quantity-display']}>{quantity}</span>
                                 <button
-                                  className="quantity-btn rounded-circle"
+                                  className={`${takeoutStyles['quantity-btn']} rounded-circle`}
                                   onClick={() =>
                                     dispatch({
                                       type: "ADD_ITEM",
@@ -591,7 +591,7 @@ function SurplusZonePage() {
                               </div>
                             ) : (
                               <button
-                                className="add-btn rounded-circle"
+                                className={`${takeoutStyles['add-btn']} rounded-circle`}
                                 onClick={() =>
                                   dispatch({
                                     type: "ADD_ITEM",

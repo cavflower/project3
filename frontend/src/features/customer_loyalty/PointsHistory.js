@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getPointTransactions, getLoyaltyAccounts } from '../../api/loyaltyApi';
 import { FaHistory, FaArrowUp, FaArrowDown, FaAdjust, FaClock } from 'react-icons/fa';
-import './PointsHistory.css';
+import styles from './PointsHistory.module.css';
 
 const PointsHistory = () => {
   const [transactions, setTransactions] = useState([]);
@@ -31,13 +31,13 @@ const PointsHistory = () => {
   const getTransactionIcon = (type) => {
     switch (type) {
       case 'earn':
-        return <FaArrowUp className="icon-earn" />;
+        return <FaArrowUp className={styles['icon-earn']} />;
       case 'redeem':
-        return <FaArrowDown className="icon-redeem" />;
+        return <FaArrowDown className={styles['icon-redeem']} />;
       case 'adjust':
-        return <FaAdjust className="icon-adjust" />;
+        return <FaAdjust className={styles['icon-adjust']} />;
       case 'expire':
-        return <FaClock className="icon-expire" />;
+        return <FaClock className={styles['icon-expire']} />;
       default:
         return null;
     }
@@ -51,26 +51,26 @@ const PointsHistory = () => {
   const filteredTransactions = selectedStore === 'all'
     ? transactions
     : transactions.filter(t => {
-        const account = accounts.find(acc => acc.id === t.account);
-        return account && account.store === parseInt(selectedStore);
-      });
+      const account = accounts.find(acc => acc.id === t.account);
+      return account && account.store === parseInt(selectedStore);
+    });
 
   if (loading) {
-    return <div className="loading">載入中...</div>;
+    return <div className={styles.loading}>載入中...</div>;
   }
 
   return (
-    <div className="points-history">
-      <div className="history-header">
+    <div className={styles['points-history']}>
+      <div className={styles['history-header']}>
         <h1><FaHistory /> 點數歷史</h1>
         <p>查看您的點數獲得與使用記錄</p>
       </div>
 
       {accounts.length > 0 && (
-        <div className="filter-bar">
+        <div className={styles['filter-bar']}>
           <label>篩選商家：</label>
-          <select 
-            value={selectedStore} 
+          <select
+            value={selectedStore}
             onChange={(e) => setSelectedStore(e.target.value)}
           >
             <option value="all">所有商家</option>
@@ -83,25 +83,25 @@ const PointsHistory = () => {
         </div>
       )}
 
-      <div className="accounts-summary">
+      <div className={styles['accounts-summary']}>
         {accounts
           .filter(acc => selectedStore === 'all' || acc.store === parseInt(selectedStore))
           .map(acc => (
-            <div key={acc.id} className="summary-card">
+            <div key={acc.id} className={styles['summary-card']}>
               <h3>{acc.store_name}</h3>
-              <div className="points-info">
-                <div className="point-item">
+              <div className={styles['points-info']}>
+                <div className={styles['point-item']}>
                   <label>可用點數</label>
-                  <span className="points">{acc.available_points}</span>
+                  <span className={styles.points}>{acc.available_points}</span>
                 </div>
-                <div className="point-item">
+                <div className={styles['point-item']}>
                   <label>累計點數</label>
-                  <span className="points total">{acc.total_points}</span>
+                  <span className={`${styles.points} ${styles.total}`}>{acc.total_points}</span>
                 </div>
               </div>
               {acc.current_level_name && (
-                <div className="level-info">
-                  <span className="level-badge">{acc.current_level_name}</span>
+                <div className={styles['level-info']}>
+                  <span className={styles['level-badge']}>{acc.current_level_name}</span>
                 </div>
               )}
             </div>
@@ -110,29 +110,29 @@ const PointsHistory = () => {
       </div>
 
       {filteredTransactions.length === 0 ? (
-        <div className="no-transactions">
+        <div className={styles['no-transactions']}>
           <FaHistory size={60} />
           <p>沒有點數記錄</p>
         </div>
       ) : (
-        <div className="transactions-list">
+        <div className={styles['transactions-list']}>
           <h2>交易記錄</h2>
           {filteredTransactions.map((transaction) => (
-            <div key={transaction.id} className={`transaction-item ${transaction.transaction_type}`}>
-              <div className="transaction-icon">
+            <div key={transaction.id} className={`${styles['transaction-item']} ${styles[transaction.transaction_type] || ''}`}>
+              <div className={styles['transaction-icon']}>
                 {getTransactionIcon(transaction.transaction_type)}
               </div>
-              <div className="transaction-details">
-                <div className="transaction-header">
-                  <span className="type-label">{transaction.transaction_type_display}</span>
-                  <span className="store-name">{getAccountStoreName(transaction.account)}</span>
+              <div className={styles['transaction-details']}>
+                <div className={styles['transaction-header']}>
+                  <span className={styles['type-label']}>{transaction.transaction_type_display}</span>
+                  <span className={styles['store-name']}>{getAccountStoreName(transaction.account)}</span>
                 </div>
-                <p className="description">{transaction.description}</p>
-                <span className="date">
+                <p className={styles.description}>{transaction.description}</p>
+                <span className={styles.date}>
                   {new Date(transaction.created_at).toLocaleString('zh-TW')}
                 </span>
               </div>
-              <div className={`points-change ${transaction.points >= 0 ? 'positive' : 'negative'}`}>
+              <div className={`${styles['points-change']} ${transaction.points >= 0 ? styles.positive : styles.negative}`}>
                 {transaction.points >= 0 ? '+' : ''}{transaction.points}
               </div>
             </div>

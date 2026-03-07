@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../store/AuthContext';
 import { getCompanyStores, submitScheduleRequest, getMyScheduleRequests, deleteScheduleRequest } from '../../api/scheduleApi';
-import './LayoutApplicationPage.css';
+import styles from './LayoutApplicationPage.module.css';
 
 const SHIFT_TYPES = [
   { value: 'morning', label: '早班' },
@@ -148,9 +148,9 @@ const LayoutApplicationPage = () => {
   // 如果認證還在載入中，顯示載入狀態
   if (authLoading) {
     return (
-      <div className="layout-application-page">
-        <div className="container">
-          <div className="error-message">
+      <div className={styles.layoutApplicationPage}>
+        <div className={styles.container}>
+          <div className={styles.errorMessage}>
             <p>載入中...</p>
           </div>
         </div>
@@ -161,9 +161,9 @@ const LayoutApplicationPage = () => {
   // 如果用戶不存在，顯示錯誤
   if (!user) {
     return (
-      <div className="layout-application-page">
-        <div className="container">
-          <div className="error-message">
+      <div className={styles.layoutApplicationPage}>
+        <div className={styles.container}>
+          <div className={styles.errorMessage}>
             <p>請先登入</p>
           </div>
         </div>
@@ -174,9 +174,9 @@ const LayoutApplicationPage = () => {
   // 如果用戶沒有統編，顯示錯誤訊息
   if (!user.company_tax_id) {
     return (
-      <div className="layout-application-page">
-        <div className="container">
-          <div className="error-message">
+      <div className={styles.layoutApplicationPage}>
+        <div className={styles.container}>
+          <div className={styles.errorMessage}>
             <p>只有公司員工才能使用此功能</p>
             <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
               請在註冊時填寫公司統編
@@ -188,18 +188,18 @@ const LayoutApplicationPage = () => {
   }
 
   return (
-    <div className="layout-application-page">
-      <div className="container">
+    <div className={styles.layoutApplicationPage}>
+      <div className={styles.container}>
         <h1>排版申請</h1>
-        <p className="page-description">請填寫您本週可行的排班時段</p>
+        <p className={styles.pageDescription}>請填寫您本週可行的排班時段</p>
 
-        {error && <div className="alert alert-error">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
+        {error && <div className={styles.alertError}>{error}</div>}
+        {success && <div className={styles.alertSuccess}>{success}</div>}
 
-        <div className="form-section">
+        <div className={styles.formSection}>
           <h2>新增排班申請</h2>
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="store">選擇店家 *</label>
               <select
                 id="store"
@@ -229,7 +229,7 @@ const LayoutApplicationPage = () => {
               )}
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="date">日期 *</label>
               <input
                 type="date"
@@ -240,7 +240,7 @@ const LayoutApplicationPage = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="shift_type">時段 *</label>
               <select id="shift_type" name="shift_type" required>
                 <option value="">請選擇時段</option>
@@ -252,7 +252,7 @@ const LayoutApplicationPage = () => {
               </select>
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="role">職務 *</label>
               <input
                 type="text"
@@ -263,7 +263,7 @@ const LayoutApplicationPage = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="notes">備註</label>
               <textarea
                 id="notes"
@@ -273,18 +273,18 @@ const LayoutApplicationPage = () => {
               />
             </div>
 
-            <button type="submit" className="btn-submit" disabled={loading}>
+            <button type="submit" className={styles.btnSubmit} disabled={loading}>
               {loading ? '提交中...' : '提交申請'}
             </button>
           </form>
         </div>
 
-        <div className="requests-section">
+        <div className={styles.requestsSection}>
           <h2>我的申請記錄</h2>
           {requests.length === 0 ? (
-            <p className="empty-message">尚無申請記錄</p>
+            <p className={styles.emptyMessage}>尚無申請記錄</p>
           ) : (
-            <table className="requests-table">
+            <table className={styles.requestsTable}>
               <thead>
                 <tr>
                   <th>店家</th>
@@ -306,7 +306,7 @@ const LayoutApplicationPage = () => {
                     <td>
                       {request.id && (
                         <button
-                          className="btn-delete"
+                          className={styles.btnDelete}
                           onClick={() => handleDelete(request.id)}
                         >
                           刪除

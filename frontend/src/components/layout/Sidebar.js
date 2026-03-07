@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { useStore } from '../../store/StoreContext';
-import './Sidebar.css';
+import styles from './Sidebar.module.css';
 
 const Sidebar = ({ isOpen }) => {
   const { user } = useAuth();
@@ -28,11 +28,11 @@ const Sidebar = ({ isOpen }) => {
   // 顧客端 Sidebar
   if (!user || user.user_type === 'customer') {
     return (
-      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
+        <div className={styles['sidebar-header']}>
           <h3>功能選單</h3>
         </div>
-        <ul className="sidebar-links">
+        <ul className={styles['sidebar-links']}>
 
           <li><Link to="/customer-home">🔍 搜尋店家</Link></li>
           <li>
@@ -52,7 +52,7 @@ const Sidebar = ({ isOpen }) => {
             </Link>
           </li>
           <hr />
-          <p className="sidebar-section-title">會員中心</p>
+          <p className={styles['sidebar-section-title']}>會員中心</p>
           <li><Link to="/profile">👤 個人資料</Link></li>
           <li><Link to="/customer/loyalty">🌟 我的會員</Link></li>
           <li><Link to="/reviews">💬 我的評論</Link></li>
@@ -66,13 +66,13 @@ const Sidebar = ({ isOpen }) => {
 
   // 店家端 Sidebar
   return (
-    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-      <div className="sidebar-header">
+    <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
+      <div className={styles['sidebar-header']}>
         <h3>店家管理</h3>
       </div>
-      <ul className="sidebar-links">
+      <ul className={styles['sidebar-links']}>
         {/* 菜單管理 */}
-        <p className="sidebar-section-title">菜單管理</p>
+        <p className={styles['sidebar-section-title']}>菜單管理</p>
 
         <li><Link to="/merchant/products">📦 商品管理</Link></li>
         <li><Link to="/merchant/dine-in">🪑 內用設定</Link></li>
@@ -82,7 +82,7 @@ const Sidebar = ({ isOpen }) => {
         <hr />
 
         {/* 營運管理 */}
-        <p className="sidebar-section-title">營運管理</p>
+        <p className={styles['sidebar-section-title']}>營運管理</p>
 
         <li><Link to="/merchant/schedule">👨‍🍳 排班管理</Link></li>
         <li><Link to="/merchant/inventory">🧊 原物料管理</Link></li>
@@ -92,7 +92,7 @@ const Sidebar = ({ isOpen }) => {
         <hr />
 
         {/* 行銷管理 */}
-        <p className="sidebar-section-title">行銷管理</p>
+        <p className={styles['sidebar-section-title']}>行銷管理</p>
 
         <li><Link to="/merchant/orders">🛒 訂單管理</Link></li>
         <li><Link to="/merchant/promotions">📢 行銷活動</Link></li>
@@ -102,14 +102,14 @@ const Sidebar = ({ isOpen }) => {
         <hr />
 
         {/* 額外功能 */}
-        <p className="sidebar-section-title">額外功能</p>
-        <li className={!storeSettings.enable_reservation ? 'disabled' : ''}>
+        <p className={styles['sidebar-section-title']}>額外功能</p>
+        <li className={!storeSettings.enable_reservation ? styles.disabled : ''}>
           <Link to="/merchant/reservations">📅 訂位管理</Link>
         </li>
-        <li className={!storeSettings.enable_loyalty ? 'disabled' : ''}>
+        <li className={!storeSettings.enable_loyalty ? styles.disabled : ''}>
           <Link to="/merchant/loyalty">🎁 會員制度</Link>
         </li>
-        <li className={!storeSettings.enable_surplus_food ? 'disabled' : ''}>
+        <li className={!storeSettings.enable_surplus_food ? styles.disabled : ''}>
           <Link to="/merchant/surplus-food">♻️ 惜福品</Link>
 
         </li>

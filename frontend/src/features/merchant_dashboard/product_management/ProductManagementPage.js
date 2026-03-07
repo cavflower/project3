@@ -4,7 +4,7 @@ import ProductForm from './ProductForm';
 import ProductCategoryForm from './ProductCategoryForm';
 import ProductSpecificationForm from './ProductSpecificationForm';
 import FoodTags from '../../../components/common/FoodTags';
-import './ProductManagementPage.css';
+import styles from './ProductManagementPage.module.css';
 import { getProducts, deleteProduct, getProductCategories, deleteProductCategory } from '../../../api/productApi';
 
 const ProductManagementPage = () => {
@@ -168,12 +168,12 @@ const ProductManagementPage = () => {
   };
 
   return (
-    <div className="product-management-page">
-      <header className="page-header">
+    <div className={styles.productManagementPage}>
+      <header className={styles.pageHeader}>
         <h1>商品管理</h1>
       </header>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && <p className={styles.errorMessage}>{error}</p>}
 
       {isCategoryFormVisible && (
         <ProductCategoryForm
@@ -209,39 +209,39 @@ const ProductManagementPage = () => {
         />
       )}
 
-      <div className="product-content-header">
-        <button className="product-btn-add" onClick={handleAddCategoryClick}>
+      <div className={styles.productContentHeader}>
+        <button className={styles.productBtnAdd} onClick={handleAddCategoryClick}>
           <FaPlus /> 新增類別
         </button>
       </div>
 
-      <div className="categories-sections">
+      <div className={styles.categoriesSections}>
         {Object.values(groupProductsByCategory()).map(({ category, products: categoryProducts }) => (
-          <div key={category.id} className="category-section">
-            <div className="category-header">
-              <div className="category-title">
-                <FaFolder className="category-icon" />
+          <div key={category.id} className={styles.categorySection}>
+            <div className={styles.categoryHeader}>
+              <div className={styles.categoryTitle}>
+                <FaFolder className={styles.categoryIcon} />
                 <h3>{category.name}</h3>
                 {category.description && (
-                  <span className="category-description">{category.description}</span>
+                  <span className={styles.categoryDescription}>{category.description}</span>
                 )}
               </div>
-              <div className="category-actions">
+              <div className={styles.categoryActions}>
                 <button
-                  className="product-btn-add btn-compact"
+                  className={`${styles.productBtnAdd} ${styles.btnCompact}`}
                   onClick={() => handleAddClick(category)}
                 >
                   <FaPlus /> 新增商品
                 </button>
                 <button
-                  className="product-btn-secondary btn-icon"
+                  className={`${styles.productBtnSecondary} ${styles.btnIcon}`}
                   onClick={() => handleEditCategory(category)}
                   title="編輯類別"
                 >
                   <FaEdit />
                 </button>
                 <button
-                  className="product-btn-danger btn-icon"
+                  className={`${styles.productBtnDanger} ${styles.btnIcon}`}
                   onClick={() => handleDeleteCategory(category.id)}
                   title="刪除類別"
                 >
@@ -250,32 +250,32 @@ const ProductManagementPage = () => {
               </div>
             </div>
 
-            <div className="product-list">
+            <div className={styles.productList}>
               {categoryProducts.length === 0 ? (
-                <div className="empty-message">此類別尚無商品</div>
+                <div className={styles.emptyMessage}>此類別尚無商品</div>
               ) : (
                 categoryProducts.map((product) => (
-                  <div key={product.id} className="product-card-manage">
-                    <img src={getImageUrl(product.image)} alt={product.name} className="product-image-manage" />
-                    <div className="product-info-manage">
-                      <div className="product-name-header">
+                  <div key={product.id} className={styles.productCardManage}>
+                    <img src={getImageUrl(product.image)} alt={product.name} className={styles.productImageManage} />
+                    <div className={styles.productInfoManage}>
+                      <div className={styles.productNameHeader}>
                         <h3>{product.name}</h3>
-                        <span className="badge">{getServiceTypeLabel(product.service_type)}</span>
+                        <span className={styles.badge}>{getServiceTypeLabel(product.service_type)}</span>
                       </div>
-                      <p className="price">NT$ {Number(product.price).toFixed(0)}</p>
+                      <p className={styles.price}>NT$ {Number(product.price).toFixed(0)}</p>
                       <p>{product.description}</p>
                       {product.food_tags && product.food_tags.length > 0 && (
                         <FoodTags tags={product.food_tags} maxDisplay={5} />
                       )}
                     </div>
-                    <div className="product-actions-manage">
-                      <button className="icon-btn spec-btn" onClick={() => { setSpecProduct(product); setIsSpecFormVisible(true); }} title="規格設定">
+                    <div className={styles.productActionsManage}>
+                      <button className={`${styles.iconBtn} ${styles.iconBtnSpec}`} onClick={() => { setSpecProduct(product); setIsSpecFormVisible(true); }} title="規格設定">
                         <FaCog />
                       </button>
-                      <button className="icon-btn edit-btn" onClick={() => handleEditClick(product)} title="編輯">
+                      <button className={`${styles.iconBtn} ${styles.iconBtnEdit}`} onClick={() => handleEditClick(product)} title="編輯">
                         <FaEdit />
                       </button>
-                      <button className="icon-btn delete-btn" onClick={() => handleDelete(product.id)} title="刪除">
+                      <button className={`${styles.iconBtn} ${styles.iconBtnDelete}`} onClick={() => handleDelete(product.id)} title="刪除">
                         <FaTrash />
                       </button>
                     </div>
@@ -287,7 +287,7 @@ const ProductManagementPage = () => {
         ))}
 
         {categories.filter(cat => cat.is_active).length === 0 && (
-          <div className="empty-state">
+          <div className={styles.emptyState}>
             <p>尚未建立任何類別，請先新增類別</p>
           </div>
         )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
+import styles from './SurplusFoodManagement.module.css';
 
 const SurplusStatistics = () => {
   const [statistics, setStatistics] = useState(null);
@@ -23,34 +24,34 @@ const SurplusStatistics = () => {
   };
 
   return (
-    <div className="surplus-tab-content">
-      <div className="surplus-content-header">
+    <div className={styles.tabContent}>
+      <div className={styles.contentHeader}>
         <h2>統計資訊</h2>
       </div>
 
       {loading ? (
-        <div className="loading">載入中...</div>
+        <div className={styles.loading}>載入中...</div>
       ) : statistics ? (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-value">{statistics.total}</div>
-            <div className="stat-label">總商品數</div>
+        <div className={styles.statsGrid}>
+          <div className={styles.statCard}>
+            <div className={styles.statValue}>{statistics.total}</div>
+            <div className={styles.statLabel}>總商品數</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{statistics.active}</div>
-            <div className="stat-label">上架中</div>
+          <div className={styles.statCard}>
+            <div className={styles.statValue}>{statistics.active}</div>
+            <div className={styles.statLabel}>上架中</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{statistics.sold_out}</div>
-            <div className="stat-label">已售完</div>
+          <div className={styles.statCard}>
+            <div className={styles.statValue}>{statistics.sold_out}</div>
+            <div className={styles.statLabel}>已售完</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{statistics.total_views}</div>
-            <div className="stat-label">總瀏覽次數</div>
+          <div className={styles.statCard}>
+            <div className={styles.statValue}>{statistics.total_views}</div>
+            <div className={styles.statLabel}>總瀏覽次數</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{statistics.total_orders}</div>
-            <div className="stat-label">總訂購次數</div>
+          <div className={styles.statCard}>
+            <div className={styles.statValue}>{statistics.total_orders}</div>
+            <div className={styles.statLabel}>總訂購次數</div>
           </div>
         </div>
       ) : null}

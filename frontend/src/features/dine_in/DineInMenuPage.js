@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { getStore } from '../../api/storeApi';
 import { getDineInProducts } from '../../api/orderApi';
 import { useAuth } from '../../store/AuthContext';
-import './DineInMenuPage.css';
+import styles from './DineInMenuPage.module.css';
 
 const DineInMenuPage = () => {
   const { storeId } = useParams();
@@ -42,8 +42,8 @@ const DineInMenuPage = () => {
 
   if (loading) {
     return (
-      <div className="dinein-menu-page">
-        <div className="menu-card">
+      <div className={styles.dineinMenuPage}>
+        <div className={styles.menuCard}>
           <p>載入菜單中...</p>
         </div>
       </div>
@@ -52,8 +52,8 @@ const DineInMenuPage = () => {
 
   if (error) {
     return (
-      <div className="dinein-menu-page">
-        <div className="menu-card error">
+      <div className={styles.dineinMenuPage}>
+        <div className={styles.menuCardError}>
           <p>{error}</p>
         </div>
       </div>
@@ -67,21 +67,21 @@ const DineInMenuPage = () => {
   // 構建登入 URL 與 redirect 參數 - 使用完整的 URL 對象
   const currentUrl = window.location.pathname + window.location.search;
   const loginUrl = `/login/customer?redirect=${encodeURIComponent(currentUrl)}`;
-  
+
   console.log('Current URL:', currentUrl);
   console.log('Login URL will be:', loginUrl);
   console.log('Encoded redirect:', encodeURIComponent(currentUrl));
 
   return (
-    <div className="dinein-menu-page">
-      <div className="menu-card">
-        <header className="menu-header">
+    <div className={styles.dineinMenuPage}>
+      <div className={styles.menuCard}>
+        <header className={styles.menuHeader}>
           <h1>{store?.name || '餐廳菜單'}</h1>
           <p>桌號：{tableLabel}</p>
-          <p className="menu-note">本頁面提供內用與共用餐點，點餐後請告知服務人員。</p>
+          <p className={styles.menuNote}>本頁面提供內用與共用餐點，點餐後請告知服務人員。</p>
           <div className="menu-actions" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
             {!user ? (
-              <a 
+              <a
                 href={loginUrl}
                 style={{
                   padding: '0.75rem 1.5rem',
@@ -100,7 +100,7 @@ const DineInMenuPage = () => {
                 登入會員
               </a>
             ) : (
-              <button 
+              <button
                 onClick={handleOrderClick}
                 style={{
                   padding: '0.75rem 1.5rem',
@@ -123,16 +123,16 @@ const DineInMenuPage = () => {
         </header>
 
         {products.length === 0 ? (
-          <p className="empty-state">目前尚未有內用菜單，請稍後再查看。</p>
+          <p className={styles.emptyState}>目前尚未有內用菜單，請稍後再查看。</p>
         ) : (
-          <div className="menu-items">
+          <div className={styles.menuItems}>
             {products.map((item) => (
-              <div key={item.id} className="menu-item">
+              <div key={item.id} className={styles.menuItem}>
                 <div>
                   <h3>{item.name}</h3>
                   {item.description && <p>{item.description}</p>}
                 </div>
-                <div className="menu-price">
+                <div className={styles.menuPrice}>
                   NT$ {Number(item.price).toLocaleString()}
                 </div>
               </div>

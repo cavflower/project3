@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaTag } from 'react-icons/fa';
-import './ProductForm.css';
+import styles from './ProductForm.module.css';
 import { createProduct, updateProduct } from '../../../api/productApi';
 
 const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
@@ -54,15 +54,15 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
   const handleAddTag = (e) => {
     e.preventDefault();
     const trimmedTag = tagInput.trim();
-    
+
     if (!trimmedTag) return;
-    
+
     // 檢查是否已存在
     if (formData.food_tags.includes(trimmedTag)) {
       alert('此標籤已存在');
       return;
     }
-    
+
     setFormData(prev => ({
       ...prev,
       food_tags: [...prev.food_tags, trimmedTag]
@@ -105,19 +105,19 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
       data.append('price', priceNumber.toFixed(2));
       data.append('description', formData.description);
       data.append('service_type', formData.service_type);
-      
+
       // 編輯時使用產品原本的category，新增時使用initialCategory
       if (product && product.category) {
         data.append('category', product.category);
       } else if (initialCategory) {
         data.append('category', initialCategory.id);
       }
-      
+
       // 加入食物標籤（每個標籤單獨 append）
       formData.food_tags.forEach(tag => {
         data.append('food_tags', tag);
       });
-      
+
       if (formData.image) {
         data.append('image', formData.image);
       }
@@ -139,23 +139,23 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
+    <div className={styles.modalOverlay}>
+      <div className={styles.modalContent}>
+        <div className={styles.modalHeader}>
           <h2>
             {product ? '編輯商品' : `新增商品 - ${initialCategory?.name || ''}`}
           </h2>
-          <button className="modal-close-btn" onClick={onCancel}>
+          <button className={styles.modalCloseBtn} onClick={onCancel}>
             <FaTimes />
           </button>
         </div>
 
-        <form className="product-form" onSubmit={handleSubmit}>
-          {error && <div className="error-message">{error}</div>}
+        <form className={styles.productForm} onSubmit={handleSubmit}>
+          {error && <div className={styles.errorMessage}>{error}</div>}
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="name">
-              商品名稱 <span className="required">*</span>
+              商品名稱 <span className={styles.required}>*</span>
             </label>
             <input
               type="text"
@@ -167,9 +167,9 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
             />
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="price">
-              價格 (NT$) <span className="required">*</span>
+              價格 (NT$) <span className={styles.required}>*</span>
             </label>
             <input
               type="text"
@@ -185,7 +185,7 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
             />
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="description">商品描述</label>
             <textarea
               id="description"
@@ -196,7 +196,7 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
             />
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="image">商品圖片</label>
             <input
               type="file"
@@ -207,9 +207,9 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
             />
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="service_type">
-              服務類型 <span className="required">*</span>
+              服務類型 <span className={styles.required}>*</span>
             </label>
             <select
               id="service_type"
@@ -224,13 +224,13 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
             </select>
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>
               <FaTag /> 食物標籤（用於個人化推薦）
             </label>
-            <p className="form-hint">輸入此商品的特性標籤，例如：辣、素食、健康</p>
-            
-            <div className="tag-input-container">
+            <p className={styles.formHint}>輸入此商品的特性標籤，例如：辣、素食、健康</p>
+
+            <div className={styles.tagInputContainer}>
               <input
                 type="text"
                 value={tagInput}
@@ -241,21 +241,21 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
               />
               <button
                 type="button"
-                className="add-tag-btn"
+                className={styles.addTagBtn}
                 onClick={handleAddTag}
               >
                 新增
               </button>
             </div>
-            
+
             {formData.food_tags.length > 0 && (
-              <div className="food-tags-display">
+              <div className={styles.foodTagsDisplay}>
                 {formData.food_tags.map((tag, index) => (
-                  <span key={index} className="food-tag-item">
+                  <span key={index} className={styles.foodTagItem}>
                     {tag}
                     <button
                       type="button"
-                      className="remove-tag-btn"
+                      className={styles.removeTagBtn}
                       onClick={() => handleRemoveTag(tag)}
                       title="移除標籤"
                     >
@@ -267,17 +267,17 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
             )}
           </div>
 
-          <div className="form-actions">
+          <div className={styles.formActions}>
             <button
               type="button"
-              className="btn-secondary"
+              className={styles.btnSecondary}
               onClick={onCancel}
             >
               取消
             </button>
             <button
               type="submit"
-              className="btn-primary"
+              className={styles.btnPrimary}
             >
               {product ? '更新' : '新增'}
             </button>

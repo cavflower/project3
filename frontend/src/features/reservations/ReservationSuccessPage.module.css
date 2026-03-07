@@ -1,0 +1,264 @@
+/* 訂位成功頁面 - CSS Module */
+
+.reservationSuccessPage {
+    min-height: 100vh;
+    background: var(--bg-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.successContainer {
+    max-width: 600px;
+    width: 100%;
+    background: white;
+    border-radius: 16px;
+    padding: 60px 40px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.successIcon {
+    font-size: 80px;
+    color: #4caf50;
+    margin-bottom: 20px;
+    animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+    0% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.successContainer h1 {
+    font-size: 32px;
+    color: var(--text-color);
+    margin-bottom: 15px;
+}
+
+.successMessage {
+    font-size: 16px;
+    color: var(--text-color);
+    opacity: 0.8;
+    margin-bottom: 40px;
+    line-height: 1.6;
+}
+
+/* 訪客驗證資訊 */
+.guestInfoSection {
+    margin-bottom: 30px;
+}
+
+.importantNotice {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border-left: 4px solid #ffc107;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.importantNotice h3 {
+    margin: 0 0 0.5rem 0;
+    color: #856404;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.importantNotice p {
+    margin: 0;
+    color: #856404;
+    font-size: 0.9rem;
+}
+
+/* 手機號碼提醒卡片 */
+.phoneReminderCard {
+    background: linear-gradient(135deg, #FDF8F5, #FFE8E0);
+    border: 2px solid var(--primary-color, #E87A5D);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: left;
+    margin-bottom: 1.5rem;
+}
+
+.phoneReminderCard .cardHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color, #E87A5D);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.phoneDisplay {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
+.phoneText {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color, #E87A5D);
+    letter-spacing: 0.05em;
+    font-family: 'Courier New', monospace;
+}
+
+.phoneHint {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #856404;
+    text-align: center;
+    font-style: italic;
+}
+
+.guestNotice {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.guestNotice p {
+    margin: 0.5rem 0;
+    color: #1565c0;
+    font-size: 0.9rem;
+}
+
+.guestNotice strong {
+    color: #0d47a1;
+}
+
+.successInfo {
+    margin-bottom: 40px;
+}
+
+.infoCard {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    background: var(--bg-color);
+    padding: 25px;
+    border-radius: 12px;
+    text-align: left;
+    border: 2px solid var(--secondary-color);
+}
+
+.cardIcon {
+    font-size: 40px;
+    color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+.cardContent h3 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    color: var(--text-color);
+}
+
+.cardContent ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.cardContent li {
+    margin-bottom: 8px;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+.reservationNumberSection {
+    margin-bottom: 1.5rem;
+}
+
+.reservationNumberCard {
+    background: var(--bg-color);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 2px solid var(--secondary-color);
+}
+
+.reservationNumberCard .label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.reservationNumber {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color, #E87A5D);
+    letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
+}
+
+.actionButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.btnPrimary,
+.btnSecondary {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btnPrimary {
+    background: linear-gradient(135deg, var(--primary-color), var(--highlight-color));
+    color: white;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(232, 122, 93, 0.4);
+}
+
+.btnSecondary {
+    background: white;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.btnSecondary:hover {
+    background: var(--secondary-color);
+}
+
+@media (max-width: 768px) {
+    .successContainer {
+        padding: 40px 20px;
+    }
+
+    .successIcon {
+        font-size: 60px;
+    }
+
+    .successContainer h1 {
+        font-size: 24px;
+    }
+}

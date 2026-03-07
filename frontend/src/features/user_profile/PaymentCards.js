@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import './PaymentCards.css';
+import styles from './PaymentCards.module.css';
 
 const PaymentCards = () => {
   const [cards, setCards] = useState([]);
@@ -176,50 +176,50 @@ const PaymentCards = () => {
   }
 
   return (
-    <div className="payment-cards-section">
-      <div className="section-header">
+    <div className={styles['payment-cards-section']}>
+      <div className={styles['section-header']}>
         <h2>💳 我的信用卡</h2>
-        <button className="add-card-btn" onClick={openAddModal}>
+        <button className={styles['add-card-btn']} onClick={openAddModal}>
           + 新增卡片
         </button>
       </div>
 
       {cards.length === 0 ? (
-        <div className="no-cards-message">
+        <div className={styles['no-cards-message']}>
           <p>尚未新增任何信用卡</p>
           <p>點擊上方「新增卡片」按鈕來新增您的第一張信用卡</p>
         </div>
       ) : (
-        <div className="cards-list">
+        <div className={styles['cards-list']}>
           {cards.map(card => (
-            <div key={card.id} className={`card-item ${card.is_default ? 'default' : ''}`}>
-              <div className="card-info">
-                <div className="card-number">
+            <div key={card.id} className={`${styles['card-item']} ${card.is_default ? styles.default : ''}`}>
+              <div className={styles['card-info']}>
+                <div className={styles['card-number']}>
                   **** **** **** {card.card_last_four}
-                  {card.is_default && <span className="default-badge">預設</span>}
+                  {card.is_default && <span className={styles['default-badge']}>預設</span>}
                 </div>
-                <div className="card-details">
-                  <span className="card-holder">{card.card_holder_name}</span>
-                  <span className="card-expiry">到期: {card.expiry_month}/{card.expiry_year}</span>
+                <div className={styles['card-details']}>
+                  <span className={styles['card-holder']}>{card.card_holder_name}</span>
+                  <span className={styles['card-expiry']}>到期: {card.expiry_month}/{card.expiry_year}</span>
                 </div>
               </div>
-              <div className="card-actions">
+              <div className={styles['card-actions']}>
                 {!card.is_default && (
                   <button 
-                    className="set-default-btn"
+                    className={styles['set-default-btn']}
                     onClick={() => handleSetDefault(card.id)}
                   >
                     設為預設
                   </button>
                 )}
                 <button 
-                  className="edit-card-btn"
+                  className={styles['edit-card-btn']}
                   onClick={() => openEditModal(card)}
                 >
                   編輯
                 </button>
                 <button 
-                  className="delete-card-btn"
+                  className={styles['delete-card-btn']}
                   onClick={() => handleDelete(card.id)}
                 >
                   刪除
@@ -231,11 +231,11 @@ const PaymentCards = () => {
       )}
 
       {showModal && (
-        <div className="card-modal-overlay" onClick={closeModal}>
-          <div className="card-modal" onClick={(e) => e.stopPropagation()}>
+        <div className={styles['card-modal-overlay']} onClick={closeModal}>
+          <div className={styles['card-modal']} onClick={(e) => e.stopPropagation()}>
             <h3>{editingCard ? '編輯信用卡' : '新增信用卡'}</h3>
-            <form className="card-form" onSubmit={handleSubmit}>
-              <div className="form-group">
+            <form className={styles['card-form']} onSubmit={handleSubmit}>
+              <div className={styles['form-group']}>
                 <label>持卡人姓名 *</label>
                 <input
                   type="text"
@@ -247,7 +247,7 @@ const PaymentCards = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label>卡號 *</label>
                 <input
                   type="text"
@@ -264,8 +264,8 @@ const PaymentCards = () => {
                 )}
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
+              <div className={styles['form-row']}>
+                <div className={styles['form-group']}>
                   <label>到期月份 *</label>
                   <input
                     type="text"
@@ -277,7 +277,7 @@ const PaymentCards = () => {
                     required
                   />
                 </div>
-                <div className="form-group">
+                <div className={styles['form-group']}>
                   <label>到期年份 *</label>
                   <input
                     type="text"
@@ -291,7 +291,7 @@ const PaymentCards = () => {
                 </div>
               </div>
 
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label>CVV/CVC(安全碼) *</label>
                 <input
                   type="text"
@@ -309,7 +309,7 @@ const PaymentCards = () => {
                 )}
               </div>
 
-              <div className="checkbox-group">
+              <div className={styles['checkbox-group']}>
                 <input
                   type="checkbox"
                   id="is_default"
@@ -320,11 +320,11 @@ const PaymentCards = () => {
                 <label htmlFor="is_default">設為預設付款方式</label>
               </div>
 
-              <div className="modal-actions">
-                <button type="button" className="cancel-btn" onClick={closeModal}>
+              <div className={styles['modal-actions']}>
+                <button type="button" className={styles['cancel-btn']} onClick={closeModal}>
                   取消
                 </button>
-                <button type="submit" className="submit-btn">
+                <button type="submit" className={styles['submit-btn']}>
                   {editingCard ? '更新' : '新增'}
                 </button>
               </div>

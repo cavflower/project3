@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
-import './CategoryForm.css';
+import styles from './CategoryForm.module.css';
 
 const CategoryForm = ({ category, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -35,7 +35,7 @@ const CategoryForm = ({ category, onClose, onSuccess }) => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
     });
-    
+
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -54,13 +54,13 @@ const CategoryForm = ({ category, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setLoading(true);
-    
+
     try {
       const submitData = {
         name: formData.name.trim(),
@@ -91,11 +91,11 @@ const CategoryForm = ({ category, onClose, onSuccess }) => {
     } catch (error) {
       console.error('提交表單失敗:', error);
       console.error('錯誤詳情:', error.response?.data);
-      setErrors({ 
-        submit: error.response?.data?.name?.[0] || 
-                error.response?.data?.message || 
-                error.response?.data?.detail ||
-                '提交失敗，請稍後再試' 
+      setErrors({
+        submit: error.response?.data?.name?.[0] ||
+          error.response?.data?.message ||
+          error.response?.data?.detail ||
+          '提交失敗，請稍後再試'
       });
     } finally {
       setLoading(false);
@@ -104,7 +104,7 @@ const CategoryForm = ({ category, onClose, onSuccess }) => {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content category-form-modal">
+      <div className={`modal-content ${styles.categoryFormModal}`}>
         <div className="modal-header">
           <h2>
             {category ? '編輯惜福品類別' : '新增惜福品類別'}

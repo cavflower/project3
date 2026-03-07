@@ -1,0 +1,388 @@
+/* 編輯訂位頁面 - CSS Module */
+
+.editReservationPage {
+    min-height: 100vh;
+    background-color: var(--bg-color, #FDF8F5);
+    padding: 2rem 1rem;
+}
+
+.pageContainer {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.pageHeader {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.pageHeader h1 {
+    font-size: 2rem;
+    color: var(--primary-color, #E87A5D);
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+/* Loading & Error */
+.loadingContainer,
+.errorContainer {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.errorContainer button {
+    margin-top: 1rem;
+    padding: 0.75rem 2rem;
+    background: var(--primary-color, #E87A5D);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+/* Form */
+.editForm {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Info Section */
+.infoSection h2 {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.infoCard {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 2px solid var(--secondary-color, #F3DACE);
+}
+
+.infoCardReadonly {
+    composes: infoCard;
+    background: #f9f9f9;
+    border-color: #e0e0e0;
+}
+
+.infoRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.infoIcon {
+    font-size: 1.5rem;
+    color: var(--primary-color, #E87A5D);
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.infoRow strong {
+    display: block;
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.storeAddress,
+.readonlyNotice {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+.readonlyNotice {
+    color: #999;
+    font-style: italic;
+}
+
+/* Form Section */
+.formSection {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 2px solid var(--secondary-color, #F3DACE);
+    transition: border-color 0.3s;
+}
+
+.formSection:focus-within {
+    border-color: var(--primary-color, #E87A5D);
+}
+
+.sectionLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+/* Time Slots */
+.timeSlotsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.timeSlotBtn {
+    padding: 0.75rem;
+    background: white;
+    border: 2px solid var(--secondary-color, #F3DACE);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.timeSlotBtn:hover:not(.timeSlotBtnDisabled) {
+    border-color: var(--primary-color, #E87A5D);
+    background: var(--bg-color, #FDF8F5);
+    transform: translateY(-2px);
+}
+
+.timeSlotBtnSelected {
+    composes: timeSlotBtn;
+    background: linear-gradient(135deg, var(--primary-color, #E87A5D), var(--highlight-color, #F5A993));
+    border-color: var(--primary-color, #E87A5D);
+    color: white;
+    box-shadow: 0 4px 12px rgba(232, 122, 93, 0.3);
+}
+
+.timeSlotBtnDisabled {
+    composes: timeSlotBtn;
+    background: #f5f5f5;
+    border-color: #e0e0e0;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.slotTime {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.slotCapacity {
+    font-size: 11px;
+    color: #666;
+    font-weight: 500;
+}
+
+.timeSlotBtnSelected .slotCapacity {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.slotStatusAvailable {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 500;
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+}
+
+.timeSlotBtnSelected .slotStatusAvailable {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.slotStatusFull {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 500;
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+}
+
+.unavailableTag {
+    display: block;
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 0.25rem;
+}
+
+/* People Selection */
+.peopleSelection {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.peopleInputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.peopleInputGroup label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.customSelect {
+    padding: 0.75rem;
+    border: 2px solid var(--secondary-color, #F3DACE);
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.customSelect:focus {
+    outline: none;
+    border-color: var(--primary-color, #E87A5D);
+}
+
+.totalGuests {
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color, #E87A5D);
+    padding: 0.75rem;
+    background: var(--bg-color, #FDF8F5);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.changeNotice {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #856404;
+    margin-top: 1rem;
+}
+
+.changeNotice strong {
+    color: #856404;
+}
+
+/* Special Requests */
+.specialRequestsInput {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--secondary-color, #F3DACE);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.3s;
+}
+
+.specialRequestsInput:focus {
+    outline: none;
+    border-color: var(--primary-color, #E87A5D);
+}
+
+.charCount {
+    text-align: right;
+    font-size: 0.85rem;
+    color: #999;
+    margin-top: 0.5rem;
+}
+
+/* Form Actions */
+.formActions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding-top: 1rem;
+}
+
+.btnCancel,
+.btnSubmit {
+    flex: 1;
+    max-width: 200px;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btnCancel {
+    background: #e0e0e0;
+    color: #555;
+}
+
+.btnCancel:hover:not(:disabled) {
+    background: #d0d0d0;
+    transform: translateY(-2px);
+}
+
+.btnSubmit {
+    background: linear-gradient(135deg, var(--primary-color, #E87A5D), var(--highlight-color, #F5A993));
+    color: white;
+}
+
+.btnSubmit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(232, 122, 93, 0.3);
+}
+
+.btnCancel:disabled,
+.btnSubmit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .editReservationPage {
+        padding: 1rem 0.5rem;
+    }
+
+    .pageHeader h1 {
+        font-size: 1.5rem;
+    }
+
+    .timeSlotsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .peopleSelection {
+        grid-template-columns: 1fr;
+    }
+
+    .formActions {
+        flex-direction: column;
+    }
+
+    .btnCancel,
+    .btnSubmit {
+        max-width: 100%;
+    }
+}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getLoyaltyAccounts } from '../../api/loyaltyApi';
 import { FaGift, FaHistory, FaAward, FaStore, FaArrowLeft } from 'react-icons/fa';
-import './CustomerLoyalty.css';
+import styles from './CustomerLoyalty.module.css';
 
 const CustomerLoyalty = () => {
   const [accounts, setAccounts] = useState([]);
@@ -19,14 +19,14 @@ const CustomerLoyalty = () => {
     try {
       const response = await getLoyaltyAccounts();
       let accountsData = response.data;
-      
+
       // 如果有 storeId，只顯示該店家的會員資料
       if (storeId) {
-        accountsData = accountsData.filter(account => 
+        accountsData = accountsData.filter(account =>
           account.store?.id === parseInt(storeId)
         );
       }
-      
+
       setAccounts(accountsData);
 
     } catch (error) {
@@ -37,14 +37,14 @@ const CustomerLoyalty = () => {
   };
 
   if (loading) {
-    return <div className="loading">載入中...</div>;
+    return <div className={styles.loading}>載入中...</div>;
   }
 
   return (
-    <div className="customer-loyalty">
-      <div className="loyalty-header">
+    <div className={styles['customer-loyalty']}>
+      <div className={styles['loyalty-header']}>
         {storeId && (
-          <button 
+          <button
             className="back-to-store-btn"
             onClick={() => navigate(`/store/${storeId}`)}
             style={{
@@ -64,34 +64,34 @@ const CustomerLoyalty = () => {
           </button>
         )}
         <h1>
-          <FaAward /> 
+          <FaAward />
           {storeId ? ' 店家會員中心' : ' 我的會員中心'}
         </h1>
         <p>
-          {storeId 
-            ? '查看您在此店家的會員資訊和點數' 
+          {storeId
+            ? '查看您在此店家的會員資訊和點數'
             : '查看您在各商家的會員資訊和點數'}
         </p>
 
       </div>
 
-      <div className="quick-actions">
-        <button 
-          className="action-btn"
+      <div className={styles['quick-actions']}>
+        <button
+          className={styles['action-btn']}
           onClick={() => navigate('/customer/loyalty/redemptions')}
         >
           <FaGift />
           <span>兌換商品</span>
         </button>
-        <button 
-          className="action-btn"
+        <button
+          className={styles['action-btn']}
           onClick={() => navigate('/customer/loyalty/history')}
         >
           <FaHistory />
           <span>點數歷史</span>
         </button>
-        <button 
-          className="action-btn"
+        <button
+          className={styles['action-btn']}
           onClick={() => navigate('/customer/loyalty/my-redemptions')}
         >
           <FaAward />
@@ -100,16 +100,16 @@ const CustomerLoyalty = () => {
       </div>
 
       {accounts.length === 0 ? (
-        <div className="no-accounts">
+        <div className={styles['no-accounts']}>
           <FaStore size={60} />
           <p>
-            {storeId 
-              ? '您尚未在此店家建立會員' 
+            {storeId
+              ? '您尚未在此店家建立會員'
               : '您尚未在任何商家建立會員'}
           </p>
-          <p className="hint">完成第一筆消費後自動建立會員帳戶</p>
+          <p className={styles.hint}>完成第一筆消費後自動建立會員帳戶</p>
           {storeId && (
-            <button 
+            <button
               className="btn btn-primary mt-3"
               onClick={() => navigate(`/store/${storeId}`)}
               style={{
@@ -131,41 +131,41 @@ const CustomerLoyalty = () => {
 
         </div>
       ) : (
-        <div className="accounts-grid">
+        <div className={styles['accounts-grid']}>
           {accounts.map((account) => (
-            <div 
-              key={account.id} 
-              className="account-card"
+            <div
+              key={account.id}
+              className={styles['account-card']}
               onClick={() => navigate(`/customer/loyalty/${account.store}`)}
               style={{ cursor: 'pointer' }}
 
             >
-              <div className="account-header">
+              <div className={styles['account-header']}>
                 <h3>{account.store_name}</h3>
                 {account.current_level_name && (
-                  <span className="level-badge">{account.current_level_name}</span>
+                  <span className={styles['level-badge']}>{account.current_level_name}</span>
                 )}
               </div>
-              
-              <div className="points-display">
-                <div className="points-main">
-                  <span className="points-number">{account.available_points}</span>
-                  <span className="points-label">可用點數</span>
+
+              <div className={styles['points-display']}>
+                <div className={styles['points-main']}>
+                  <span className={styles['points-number']}>{account.available_points}</span>
+                  <span className={styles['points-label']}>可用點數</span>
                 </div>
-                <div className="points-secondary">
+                <div className={styles['points-secondary']}>
                   <span>累計: {account.total_points}</span>
                 </div>
               </div>
 
               {account.current_level_benefits && (
-                <div className="benefits-preview">
+                <div className={styles['benefits-preview']}>
                   <small>會員權益</small>
                   <p>{account.current_level_benefits}</p>
                 </div>
               )}
 
               {account.current_level_discount && (
-                <div className="discount-badge">
+                <div className={styles['discount-badge']}>
                   享 {account.current_level_discount}% 折扣
                 </div>
               )}

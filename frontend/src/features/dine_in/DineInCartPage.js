@@ -6,7 +6,7 @@ import api from "../../api/api";
 import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
 import CreditCardSelector from "../checkout/CreditCardSelector";
-import "../takeout/TakeoutCartPage.css";
+import "../takeout/TakeoutCartPage.module.css";
 
 const paymentOptionsList = [
   { value: "cash", label: "現金" },

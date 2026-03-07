@@ -1,0 +1,282 @@
+/* 商品表單 - CSS Module */
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modalContent {
+    background: white;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modalHeader h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #1f2937;
+}
+
+.modalCloseBtn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.modalCloseBtn:hover {
+    color: #1f2937;
+}
+
+.productForm {
+    padding: 24px;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.formGroup input[type="text"],
+.formGroup input[type="number"],
+.formGroup select,
+.formGroup textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.formGroup input[type="text"]:focus,
+.formGroup input[type="number"]:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.formGroup input[type="file"] {
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.errorMessage {
+    background-color: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #991b1b;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.formActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btnPrimary,
+.btnSecondary {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btnPrimary {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.btnPrimary:hover:not(:disabled) {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btnPrimary:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.btnSecondary {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.btnSecondary:hover:not(:disabled) {
+    background-color: #e5e7eb;
+}
+
+.btnSecondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 標籤輸入樣式 */
+.tagInputContainer {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.tagInputContainer input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.addTagBtn {
+    padding: 8px 16px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.addTagBtn:hover {
+    background-color: #2563eb;
+}
+
+.foodTagsDisplay {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.foodTagItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background-color: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.removeTagBtn {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 4px;
+    line-height: 1;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.removeTagBtn:hover {
+    background-color: #e5e7eb;
+    color: #ef4444;
+}
+
+.formHint {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+/* 響應式設計 */
+@media (max-width: 640px) {
+    .modalOverlay {
+        padding: 0;
+    }
+
+    .modalContent {
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .modalHeader,
+    .productForm {
+        padding: 16px;
+    }
+
+    .formActions {
+        flex-direction: column-reverse;
+    }
+
+    .btnPrimary,
+    .btnSecondary {
+        width: 100%;
+    }
+
+    .foodTagItem {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
+    .tagInputContainer {
+        flex-direction: column;
+    }
+
+    .addTagBtn {
+        width: 100%;
+    }
+}

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getPublishedStores } from '../../api/storeApi';
 import { getRecommendedStores, getUserPreferences } from '../../api/recommendationApi';
 import { useAuth } from '../../store/AuthContext';
-import './CustomerHomePage.css';
+import styles from './CustomerHomePage.module.css';
 
 const categories = [
   { id: 'all', name: '全部', icon: 'grid-3x3-gap-fill', emoji: '🍽️' },
@@ -31,7 +31,7 @@ function CustomerHomePage() {
     has_loyalty: false,
     has_surplus_food: false,
   });
-  
+
   useEffect(() => {
     loadStores();
   }, [selectedCategory, filters, user, selectedTags]);
@@ -39,7 +39,7 @@ function CustomerHomePage() {
   const loadStores = async () => {
     try {
       setLoading(true);
-      
+
       // 如果選擇"為你推薦"且用戶已登入，調用推薦API
       if (selectedCategory === 'recommended') {
         if (!user) {
@@ -48,13 +48,13 @@ function CustomerHomePage() {
           setLoading(false);
           return;
         }
-        
+
         try {
           // 獲取用戶偏好
           const preferencesResponse = await getUserPreferences();
           console.log('[CustomerHome] 用戶偏好數據:', preferencesResponse.data);
           setUserPreferences(preferencesResponse.data);
-          
+
           // 設定預設選擇：有數據則選擇點餐最多次的標籤，無數據則空陣列（顯示熱門店家）
           if (!selectedTags || selectedTags.length === 0) {
             if (preferencesResponse.data && preferencesResponse.data.favorite_tags && preferencesResponse.data.favorite_tags.length > 0) {
@@ -63,7 +63,7 @@ function CustomerHomePage() {
               setSelectedTags([]); // 無數據，空陣列表示顯示熱門店家
             }
           }
-          
+
           // 獲取推薦店家
           const response = await getRecommendedStores(10, selectedTags.length > 0 ? selectedTags : null);
           const formattedStores = response.data.map(store => ({
@@ -74,10 +74,10 @@ function CustomerHomePage() {
             phone: store.phone || '',
             cuisine_type: store.cuisine_type,
             rating: 4.5,
-            imageUrl: store.first_image 
-              ? (store.first_image.startsWith('http') 
-                  ? store.first_image 
-                  : `http://127.0.0.1:8000${store.first_image}`)
+            imageUrl: store.first_image
+              ? (store.first_image.startsWith('http')
+                ? store.first_image
+                : `http://127.0.0.1:8000${store.first_image}`)
               : '/images/default-store.jpg',
             tags: [],
             is_open: store.is_open,
@@ -89,7 +89,7 @@ function CustomerHomePage() {
           setStores(formattedStores);
         } catch (err) {
           console.error('Failed to load recommended stores:', err);
-          
+
           // 即使推薦失敗，也嘗試獲取用戶偏好
           try {
             const preferencesResponse = await getUserPreferences();
@@ -108,10 +108,10 @@ function CustomerHomePage() {
             phone: store.phone || '',
             cuisine_type: store.cuisine_type,
             rating: 4.5,
-            imageUrl: store.first_image 
-              ? (store.first_image.startsWith('http') 
-                  ? store.first_image 
-                  : `http://127.0.0.1:8000${store.first_image}`)
+            imageUrl: store.first_image
+              ? (store.first_image.startsWith('http')
+                ? store.first_image
+                : `http://127.0.0.1:8000${store.first_image}`)
               : '/images/default-store.jpg',
             tags: [],
             is_open: store.is_open,
@@ -137,10 +137,10 @@ function CustomerHomePage() {
           phone: store.phone || '',
           cuisine_type: store.cuisine_type,
           rating: 4.5,
-          imageUrl: store.first_image 
-            ? (store.first_image.startsWith('http') 
-                ? store.first_image 
-                : `http://127.0.0.1:8000${store.first_image}`)
+          imageUrl: store.first_image
+            ? (store.first_image.startsWith('http')
+              ? store.first_image
+              : `http://127.0.0.1:8000${store.first_image}`)
             : '/images/default-store.jpg',
           tags: [],
           is_open: store.is_open,
@@ -185,14 +185,14 @@ function CustomerHomePage() {
   };
 
   return (
-    <div className="customer-home-page">
+    <div className={styles['customer-home-page']}>
       <div className="container" style={{ marginTop: '70px', paddingBottom: '40px' }}>
         {/* 會員快速入口 */}
         <div className="row mb-4">
           <div className="col-12">
-            <Link 
-              to="/customer/loyalty" 
-              className="loyalty-link-card"
+            <Link
+              to="/customer/loyalty"
+              className={styles['loyalty-link-card']}
             >
               <i className="bi bi-award me-2"></i>
               我的會員中心
@@ -203,10 +203,10 @@ function CustomerHomePage() {
         {/* 搜尋區 */}
         <div className="row mb-4">
           <div className="col-12">
-            <div className="search-card">
+            <div className={styles['search-card']}>
               <div className="input-group">
                 <span className="input-group-text bg-white border-end-0">
-                  <i className="bi bi-search text-orange"></i>
+                  <i className={`bi bi-search ${styles['text-orange']}`}></i>
                 </span>
                 <input
                   type="text"
@@ -216,8 +216,8 @@ function CustomerHomePage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 />
-                <button 
-                  className="btn btn-orange"
+                <button
+                  className={`btn ${styles['btn-orange']}`}
                   onClick={handleSearch}
                 >
                   搜尋
@@ -231,20 +231,19 @@ function CustomerHomePage() {
         <div className="row g-2 mb-4">
           <div className="col-12">
             <h6 className="mb-3 fw-bold">
-              <i className="bi bi-grid-3x3-gap me-2 text-orange"></i>
+              <i className={`bi bi-grid-3x3-gap me-2 ${styles['text-orange']}`}></i>
               餐廳類別
             </h6>
           </div>
           {categories.map(category => {
             // 如果是需要登入的類別且用戶未登入，顯示登入提示樣式
             const isLocked = category.requiresAuth && !user;
-            
+
             return (
               <div key={category.id} className="col-4 col-md-3 col-lg-2">
                 <button
-                  className={`category-btn ${
-                    selectedCategory === category.id ? 'active' : ''
-                  } ${isLocked ? 'locked' : ''} ${category.id === 'recommended' ? 'recommended-category' : ''}`}
+                  className={`${styles['category-btn']} ${selectedCategory === category.id ? styles.active : ''
+                    } ${isLocked ? styles.locked : ''} ${category.id === 'recommended' ? styles['recommended-category'] : ''}`}
                   onClick={() => {
                     if (isLocked) {
                       alert('請先登入會員以查看個人化推薦');
@@ -273,12 +272,12 @@ function CustomerHomePage() {
         <div className="row mb-4">
           <div className="col-12">
             <h6 className="mb-3 fw-bold">
-              <i className="bi bi-funnel me-2 text-orange"></i>
+              <i className={`bi bi-funnel me-2 ${styles['text-orange']}`}></i>
               特殊功能篩選
             </h6>
             <div className="d-flex flex-wrap gap-2">
               <button
-                className={`feature-filter-btn ${filters.has_reservation ? 'active' : ''}`}
+                className={`${styles['feature-filter-btn']} ${filters.has_reservation ? styles.active : ''}`}
                 onClick={() => handleFilterChange('has_reservation')}
               >
                 <i className="bi bi-calendar-check me-1"></i>
@@ -286,7 +285,7 @@ function CustomerHomePage() {
                 {filters.has_reservation && <i className="bi bi-check-circle-fill ms-1"></i>}
               </button>
               <button
-                className={`feature-filter-btn ${filters.has_loyalty ? 'active' : ''}`}
+                className={`${styles['feature-filter-btn']} ${filters.has_loyalty ? styles.active : ''}`}
                 onClick={() => handleFilterChange('has_loyalty')}
               >
                 <i className="bi bi-award me-1"></i>
@@ -294,7 +293,7 @@ function CustomerHomePage() {
                 {filters.has_loyalty && <i className="bi bi-check-circle-fill ms-1"></i>}
               </button>
               <button
-                className={`feature-filter-btn ${filters.has_surplus_food ? 'active' : ''}`}
+                className={`${styles['feature-filter-btn']} ${filters.has_surplus_food ? styles.active : ''}`}
                 onClick={() => handleFilterChange('has_surplus_food')}
               >
                 <i className="bi bi-recycle me-1"></i>
@@ -311,11 +310,11 @@ function CustomerHomePage() {
             <div className="col-12">
               <div className="d-flex justify-content-between align-items-center">
                 <p className="text-muted mb-0">
-                  找到 <span className="fw-bold text-orange">{stores.length}</span> 間店家
+                  找到 <span className={`fw-bold ${styles['text-orange']}`}>{stores.length}</span> 間店家
                 </p>
                 {(selectedCategory !== 'all' || filters.has_reservation || filters.has_loyalty || filters.has_surplus_food || searchTerm) && (
-                  <button 
-                    className="btn btn-sm btn-outline-orange"
+                  <button
+                    className={`btn btn-sm ${styles['btn-outline-orange']}`}
                     onClick={resetFilters}
                   >
                     <i className="bi bi-x-circle me-1"></i>
@@ -332,12 +331,12 @@ function CustomerHomePage() {
           <div className="row g-4">
             {[1, 2, 3, 4, 5, 6].map(index => (
               <div key={index} className="col-md-6 col-lg-4">
-                <div className="store-card skeleton-loading">
-                  <div className="skeleton-image"></div>
-                  <div className="store-card-body">
-                    <div className="skeleton-title"></div>
-                    <div className="skeleton-text"></div>
-                    <div className="skeleton-text short"></div>
+                <div className={styles['store-card'] + ' ' + styles['skeleton-loading']}>
+                  <div className={styles['skeleton-image']}></div>
+                  <div className={styles['store-card-body']}>
+                    <div className={styles['skeleton-title']}></div>
+                    <div className={styles['skeleton-text']}></div>
+                    <div className={`${styles['skeleton-text']} ${styles.short}`}></div>
                   </div>
                 </div>
               </div>
@@ -351,14 +350,14 @@ function CustomerHomePage() {
             {selectedCategory === 'recommended' && user && userPreferences && userPreferences.favorite_tags && userPreferences.favorite_tags.length > 1 && (
               <div className="row mb-3">
                 <div className="col-12">
-                  <div className="tag-filter-section">
-                    <label htmlFor="tagFilter" className="tag-filter-label">
+                  <div className={styles['tag-filter-section']}>
+                    <label htmlFor="tagFilter" className={styles['tag-filter-label']}>
                       <i className="bi bi-funnel-fill me-2"></i>
                       切換喜好標籤：
                     </label>
                     <select
                       id="tagFilter"
-                      className="tag-filter-select"
+                      className={styles['tag-filter-select']}
                       value={selectedTags && selectedTags.length > 0 ? selectedTags[0] : ''}
                       onChange={(e) => {
                         if (e.target.value) {
@@ -376,11 +375,11 @@ function CustomerHomePage() {
                 </div>
               </div>
             )}
-            
+
             {selectedCategory === 'recommended' && stores.length > 0 && user && (
               <div className="row mb-3">
                 <div className="col-12">
-                  <div className="recommendation-banner">
+                  <div className={styles['recommendation-banner']}>
                     <i className="bi bi-heart-fill me-2"></i>
                     {selectedTags && selectedTags.length > 0 ? (
                       <>
@@ -400,58 +399,58 @@ function CustomerHomePage() {
             <div className="row g-4">
               {stores.map(store => (
                 <div key={store.id} className="col-md-6 col-lg-4">
-                  <Link 
-                    to={`/store/${store.id}`} 
+                  <Link
+                    to={`/store/${store.id}`}
                     className="text-decoration-none"
                   >
-                    <div className={`store-card ${store.isRecommended ? 'recommended-store' : ''}`}>
-                      <div className="store-image" style={{
+                    <div className={`${styles['store-card']} ${store.isRecommended ? styles['recommended-store'] : ''}`}>
+                      <div className={styles['store-image']} style={{
                         backgroundImage: `url(${store.imageUrl})`,
                       }}>
                         {store.isRecommended && (
-                          <span className="badge-recommended">
+                          <span className={styles['badge-recommended']}>
                             <i className="bi bi-heart-fill me-1"></i>
                             為你推薦
                           </span>
                         )}
                         {store.is_open ? (
-                          <span className="badge-status open">營業中</span>
+                          <span className={`${styles['badge-status']} ${styles.open}`}>營業中</span>
                         ) : (
-                          <span className="badge-status closed">休息中</span>
+                          <span className={`${styles['badge-status']} ${styles.closed}`}>休息中</span>
                         )}
                       </div>
-                      <div className="store-card-body">
+                      <div className={styles['store-card-body']}>
                         <div className="d-flex justify-content-between align-items-start mb-2">
-                          <h5 className="store-name mb-0">{store.name}</h5>
-                          <span className="badge-rating">
+                          <h5 className={`${styles['store-name']} mb-0`}>{store.name}</h5>
+                          <span className={styles['badge-rating']}>
                             <i className="bi bi-star-fill me-1"></i>
                             {store.rating}
                           </span>
                         </div>
-                        <p className="store-category mb-2">
+                        <p className={`${styles['store-category']} mb-2`}>
                           <i className="bi bi-tag me-1"></i>
                           {getCuisineTypeName(store.cuisine_type)}
                         </p>
-                        <div className="store-features mb-3">
+                        <div className={`${styles['store-features']} mb-3`}>
                           {store.enable_reservation && (
-                            <span className="feature-badge">
+                            <span className={styles['feature-badge']}>
                               <i className="bi bi-calendar-check"></i> 可訂位
                             </span>
                           )}
                           {store.enable_loyalty && (
-                            <span className="feature-badge">
+                            <span className={styles['feature-badge']}>
                               <i className="bi bi-award"></i> 會員
                             </span>
                           )}
                           {store.enable_surplus_food && (
-                            <span className="feature-badge">
+                            <span className={styles['feature-badge']}>
                               <i className="bi bi-recycle"></i> 惜福
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="store-card-footer">
-                        <button className="btn-view-store">
+                      <div className={styles['store-card-footer']}>
+                        <button className={styles['btn-view-store']}>
                           查看店家
                           <i className="bi bi-arrow-right ms-2"></i>
                         </button>
@@ -472,7 +471,7 @@ function CustomerHomePage() {
                 <i className="bi bi-lock display-1 text-muted"></i>
                 <p className="lead mt-3">請先登入會員</p>
                 <p className="text-muted">登入後即可查看根據您的喜好推薦的店家</p>
-                <Link to="/login" className="btn btn-orange mt-3">
+                <Link to="/login" className={`btn ${styles['btn-orange']} mt-3`}>
                   <i className="bi bi-box-arrow-in-right me-2"></i>
                   立即登入
                 </Link>
@@ -482,8 +481,8 @@ function CustomerHomePage() {
                 <i className="bi bi-heart display-1 text-muted"></i>
                 <p className="lead mt-3">還沒有足夠的資料產生推薦</p>
                 <p className="text-muted">多訂購幾次餐點，我們就能為您推薦更適合的店家！</p>
-                <button 
-                  className="btn btn-orange mt-3"
+                <button
+                  className={`btn ${styles['btn-orange']} mt-3`}
                   onClick={() => setSelectedCategory('all')}
                 >
                   <i className="bi bi-shop me-2"></i>
@@ -494,8 +493,8 @@ function CustomerHomePage() {
               <>
                 <i className="bi bi-search display-1 text-muted"></i>
                 <p className="lead mt-3">找不到符合條件的店家</p>
-                <button 
-                  className="btn btn-orange"
+                <button
+                  className={`btn ${styles['btn-orange']}`}
                   onClick={resetFilters}
                 >
                   <i className="bi bi-arrow-clockwise me-2"></i>

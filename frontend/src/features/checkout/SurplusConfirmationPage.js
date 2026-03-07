@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaCheckCircle, FaReceipt, FaCreditCard, FaArrowLeft, FaLeaf, FaClock } from 'react-icons/fa';
-import './ConfirmationPage.css';
+import './ConfirmationPage.module.css';
 
 function SurplusConfirmationPage() {
     const { orderId } = useParams();

@@ -1,0 +1,275 @@
+/* 內用設定頁面 - CSS Module */
+
+.dineinSettingsContainer {
+    padding: 24px;
+}
+
+.dineinTopBar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.saveButton {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(120deg, #ff8a65, #ff7043);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.saveButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dineinSettingsPage {
+    display: flex;
+    gap: 24px;
+    padding: 24px;
+    flex-wrap: wrap;
+}
+
+.dineinToolbox {
+    width: 320px;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(18, 38, 63, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.tableConfig,
+.tableEditor {
+    border: 1px solid #f1f3f8;
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tableEditor {
+    background: #fff9f5;
+}
+
+.sectionLabel {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555;
+}
+
+.shapeOptions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.shapeOption {
+    flex: 1 0 30%;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #dadfe9;
+    background: #fff;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.shapeOptionActive {
+    composes: shapeOption;
+    border-color: #ff8a65;
+    background: rgba(255, 138, 101, 0.15);
+    color: #ff6f43;
+    font-weight: 600;
+}
+
+.seatCounter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.seatCounter button {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: #f0f2f8;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.seatCounter button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.seatCounter span {
+    font-weight: 600;
+    min-width: 72px;
+    text-align: center;
+}
+
+.tableConfig input,
+.tableEditor input {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #dfe2eb;
+    font-size: 0.95rem;
+}
+
+.addTableBtn {
+    margin-top: 4px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(120deg, #ff8a65, #ff7043);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.addTableBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.deleteTableBtn {
+    margin-top: 12px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 12px;
+    background: #dc3545;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.deleteTableBtn:hover {
+    background: #c82333;
+}
+
+.qrPanel {
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px dashed #ffb89d;
+    border-radius: 12px;
+    background: #fff4ee;
+    text-align: center;
+}
+
+.qrLink {
+    font-size: 0.85rem;
+    color: #777;
+    word-break: break-all;
+    margin: 8px 0;
+}
+
+.qrActions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.qrActions button {
+    border: none;
+    border-radius: 10px;
+    background: #ff8a65;
+    color: #fff;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.saveStatus {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #ff6f43;
+}
+
+.dineinCanvas {
+    flex: 1;
+    min-height: 520px;
+    background: repeating-linear-gradient(0deg,
+            rgba(99, 110, 132, 0.08),
+            rgba(99, 110, 132, 0.08) 1px,
+            transparent 1px,
+            transparent 40px),
+        repeating-linear-gradient(90deg,
+            rgba(99, 110, 132, 0.08),
+            rgba(99, 110, 132, 0.08) 1px,
+            transparent 1px,
+            transparent 40px),
+        #f6f8fb;
+    border: 2px dashed #d7dce5;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+.dineinEmpty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #767c8b;
+    font-weight: 600;
+}
+
+.tableItem {
+    position: absolute;
+    background: #ffffff;
+    box-shadow: 0 8px 18px rgba(18, 38, 63, 0.18);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    border: 2px solid transparent;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.tableItemRectangle {
+    composes: tableItem;
+    width: 140px;
+    height: 80px;
+    border-radius: 20px;
+}
+
+.tableItemSquare {
+    composes: tableItem;
+    width: 90px;
+    height: 90px;
+    border-radius: 16px;
+}
+
+.tableItemCircle {
+    composes: tableItem;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+}
+
+.tableItemSelected {
+    border-color: #ff8a65;
+    transform: translateY(-3px);
+}
+
+.tableLabel {
+    font-weight: 600;
+    color: #2f2f2f;
+}
+
+.tableItem small {
+    margin-top: 4px;
+    color: #7b7f8f;
+}

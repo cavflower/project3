@@ -11,16 +11,16 @@ import SurplusTimeSlotList from './SurplusTimeSlotList';
 import SurplusOrderList from './SurplusOrderList';
 import SurplusStatistics from './SurplusStatistics';
 import GreenPointRuleList from './GreenPointRuleList';
-import './SurplusFoodManagement.css';
+import styles from './SurplusFoodManagement.module.css';
 
 const SurplusFoodManagement = () => {
   const [activeTab, setActiveTab] = useState('foods');
 
   return (
-    <div className="surplus-food-management">
-      <header className="page-header">
-        <div className="header-content">
-          <FaLeaf className="header-icon" />
+    <div className={styles.surplusFoodManagement}>
+      <header className={styles.pageHeader}>
+        <div className={styles.headerContent}>
+          <FaLeaf className={styles.headerIcon} />
           <div>
             <h1>惜福食品管理</h1>
             <p>減少食物浪費，創造環保價值</p>
@@ -29,33 +29,33 @@ const SurplusFoodManagement = () => {
       </header>
 
       {/* 標籤頁導航 */}
-      <div className="tabs">
+      <div className={styles.tabs}>
         <button
-          className={`tab-button ${activeTab === 'foods' ? 'active' : ''}`}
+          className={activeTab === 'foods' ? styles.tabButtonActive : styles.tabButton}
           onClick={() => setActiveTab('foods')}
         >
           <FaLeaf /> 惜福食品
         </button>
         <button
-          className={`tab-button ${activeTab === 'timeslots' ? 'active' : ''}`}
+          className={activeTab === 'timeslots' ? styles.tabButtonActive : styles.tabButton}
           onClick={() => setActiveTab('timeslots')}
         >
           <FaClock /> 惜福時段
         </button>
         <button
-          className={`tab-button ${activeTab === 'orders' ? 'active' : ''}`}
+          className={activeTab === 'orders' ? styles.tabButtonActive : styles.tabButton}
           onClick={() => setActiveTab('orders')}
         >
           <FaCheck /> 訂單管理
         </button>
         <button
-          className={`tab-button ${activeTab === 'stats' ? 'active' : ''}`}
+          className={activeTab === 'stats' ? styles.tabButtonActive : styles.tabButton}
           onClick={() => setActiveTab('stats')}
         >
           <FaChartBar /> 統計分析
         </button>
         <button
-          className={`tab-button green-points ${activeTab === 'greenpoints' ? 'active' : ''}`}
+          className={activeTab === 'greenpoints' ? styles.tabButtonGreenPointsActive : styles.tabButtonGreenPoints}
           onClick={() => setActiveTab('greenpoints')}
         >
           <FaCoins /> 綠色點數
@@ -73,4 +73,3 @@ const SurplusFoodManagement = () => {
 };
 
 export default SurplusFoodManagement;
-

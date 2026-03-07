@@ -1,0 +1,79 @@
+/* 內用菜單頁面 - CSS Module */
+
+.dineinMenuPage {
+    min-height: 100vh;
+    background: #fff7f2;
+    padding: 40px 16px;
+    display: flex;
+    justify-content: center;
+}
+
+.menuCard {
+    width: 100%;
+    max-width: 720px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 18px 40px rgba(25, 25, 35, 0.08);
+    padding: 32px;
+}
+
+.menuCardError {
+    width: 100%;
+    max-width: 720px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 18px 40px rgba(25, 25, 35, 0.08);
+    padding: 32px;
+    text-align: center;
+    color: #d9534f;
+}
+
+.menuHeader h1 {
+    margin-bottom: 8px;
+}
+
+.menuHeader p {
+    margin: 2px 0;
+    color: #666;
+}
+
+.menuNote {
+    font-size: 0.9rem;
+    color: #ff7043;
+    margin-top: 6px;
+}
+
+.menuItems {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.menuItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f2f6;
+}
+
+.menuItem h3 {
+    margin: 0;
+}
+
+.menuItem p {
+    margin: 4px 0 0;
+    color: #777;
+}
+
+.menuPrice {
+    font-weight: 700;
+    color: #333;
+}
+
+.emptyState {
+    text-align: center;
+    color: #999;
+    margin-top: 40px;
+}

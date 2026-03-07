@@ -3,14 +3,15 @@ import { surplusFoodApi } from '../../api/surplusFoodApi';
 import { db } from '../../lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useAuth } from '../../store/AuthContext';
+import styles from './SurplusFoodManagement.module.css';
 
 const SurplusOrderList = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [channelFilter, setChannelFilter] = useState('all'); // 'all', 'dine_in', 'takeout'
-  const [monthFilter, setMonthFilter] = useState('all'); // 月份篩選
+  const [channelFilter, setChannelFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState('all');
   const [realtimeStatus, setRealtimeStatus] = useState('連線中...');
   const [page, setPage] = useState(1);
   const pageSize = 9;
@@ -67,7 +68,6 @@ const SurplusOrderList = () => {
     const surplusOrdersRef = collection(db, 'surplus_orders');
 
     const unsubscribe = onSnapshot(surplusOrdersRef, (snapshot) => {
-      // 跳過初始載入的事件（避免重複載入）
       if (isInitialLoad) {
         isInitialLoad = false;
         setRealtimeStatus('即時更新中');
@@ -79,13 +79,11 @@ const SurplusOrderList = () => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
           console.log('新惜福品訂單:', change.doc.data());
-          // 標記需要重新載入（用防抖避免多次呼叫）
           needsReload = true;
         } else if (change.type === 'modified') {
           const updatedOrder = change.doc.data();
           console.log('惜福品訂單更新:', updatedOrder);
 
-          // 更新本地訂單狀態（不重新載入整個列表）
           setOrders(prevOrders =>
             prevOrders.map(order => {
               if (String(order.id) === change.doc.id ||
@@ -103,7 +101,6 @@ const SurplusOrderList = () => {
         } else if (change.type === 'removed') {
           const removedOrder = change.doc.data();
           console.log('惜福品訂單已刪除:', removedOrder);
-          // 從本地列表移除（不重新載入整個列表）
           setOrders(prevOrders =>
             prevOrders.filter(order =>
               String(order.id) !== change.doc.id &&
@@ -113,7 +110,6 @@ const SurplusOrderList = () => {
         }
       });
 
-      // 只有新增訂單時才重新載入，且使用防抖
       if (needsReload) {
         if (reloadTimeout) clearTimeout(reloadTimeout);
         reloadTimeout = setTimeout(async () => {
@@ -123,7 +119,7 @@ const SurplusOrderList = () => {
           } catch (error) {
             console.error('重新載入訂單失敗:', error);
           }
-        }, 500); // 500ms 防抖
+        }, 500);
       }
     }, (error) => {
       console.error('Firestore 監聯錯誤:', error);
@@ -134,7 +130,7 @@ const SurplusOrderList = () => {
       unsubscribe();
       if (reloadTimeout) clearTimeout(reloadTimeout);
     };
-  }, []); // 不依賴任何外部變數
+  }, []);
 
   const getStatusLabel = (status) => {
     const labels = {
@@ -149,7 +145,6 @@ const SurplusOrderList = () => {
   };
 
   const handleUpdateStatus = async (orderId, action) => {
-    // 定義狀態映射
     const statusMap = {
       'confirm': 'confirmed',
       'ready': 'ready',
@@ -160,7 +155,7 @@ const SurplusOrderList = () => {
 
     const newStatus = statusMap[action];
 
-    // 樂觀更新：先更新 UI
+    // 樂觀更新
     setOrders(prevOrders =>
       prevOrders.map(order =>
         order.id === orderId
@@ -184,7 +179,6 @@ const SurplusOrderList = () => {
     } catch (error) {
       console.error('更新失敗:', error);
       alert('更新失敗');
-      // 如果失敗，重新載入正確的資料
       loadOrders();
     }
   };
@@ -194,7 +188,6 @@ const SurplusOrderList = () => {
       return;
     }
 
-    // 樂觀更新：先從 UI 移除
     setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
 
     try {
@@ -203,85 +196,63 @@ const SurplusOrderList = () => {
     } catch (error) {
       console.error('刪除失敗:', error);
       alert('刪除失敗');
-      // 如果失敗，重新載入正確的資料
       loadOrders();
     }
   };
 
+  const statusFilters = [
+    { value: 'all', label: '全部' },
+    { value: 'pending', label: '待處理' },
+    { value: 'confirmed', label: '已接受' },
+    { value: 'ready', label: '可取餐' },
+    { value: 'completed', label: '已完成' },
+    { value: 'cancelled', label: '已拒絕' },
+  ];
+
+  const channelFilters = [
+    { value: 'all', label: '全部' },
+    { value: 'dine_in', label: '內用' },
+    { value: 'takeout', label: '外帶' },
+  ];
+
   return (
-    <div className="tab-content">
-      <div className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className={styles.tabContent}>
+      <div className={styles.contentHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>惜福食品訂單</h2>
-        <div className={`realtime-status ${realtimeStatus === '即時更新中' ? 'connected' : ''}`}>
-          <span className="status-dot"></span>
+        <div className={realtimeStatus === '即時更新中' ? styles.realtimeStatusConnected : styles.realtimeStatus}>
+          <span className={realtimeStatus === '即時更新中' ? styles.statusDotConnected : styles.statusDot}></span>
           {realtimeStatus}
         </div>
       </div>
 
       {/* 狀態篩選器 */}
-      <div className="filter-section" style={{ marginBottom: '20px' }}>
-        <button
-          className={statusFilter === 'all' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => setStatusFilter('all')}
-        >
-          全部
-        </button>
-        <button
-          className={statusFilter === 'pending' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => setStatusFilter('pending')}
-        >
-          待處理
-        </button>
-        <button
-          className={statusFilter === 'confirmed' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => setStatusFilter('confirmed')}
-        >
-          已接受
-        </button>
-        <button
-          className={statusFilter === 'ready' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => setStatusFilter('ready')}
-        >
-          可取餐
-        </button>
-        <button
-          className={statusFilter === 'completed' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => setStatusFilter('completed')}
-        >
-          已完成
-        </button>
-        <button
-          className={statusFilter === 'cancelled' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => setStatusFilter('cancelled')}
-        >
-          已拒絕
-        </button>
+      <div className={styles.filterSection} style={{ marginBottom: '20px' }}>
+        {statusFilters.map(f => (
+          <button
+            key={f.value}
+            className={statusFilter === f.value ? styles.filterBtnActive : styles.filterBtn}
+            onClick={() => setStatusFilter(f.value)}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {/* 內用/外帶篩選器 */}
-      <div className="filter-section" style={{ marginBottom: '20px' }}>
-        <button
-          className={channelFilter === 'all' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => setChannelFilter('all')}
-        >
-          全部
-        </button>
-        <button
-          className={channelFilter === 'dine_in' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => setChannelFilter('dine_in')}
-        >
-          內用
-        </button>
-        <button
-          className={channelFilter === 'takeout' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => setChannelFilter('takeout')}
-        >
-          外帶
-        </button>
+      <div className={styles.filterSection} style={{ marginBottom: '20px' }}>
+        {channelFilters.map(f => (
+          <button
+            key={f.value}
+            className={channelFilter === f.value ? styles.filterBtnActive : styles.filterBtn}
+            onClick={() => setChannelFilter(f.value)}
+          >
+            {f.label}
+          </button>
+        ))}
 
         {/* 月份篩選 */}
         <select
-          className="form-select form-select-sm"
+          className={styles.filterSelect}
           style={{ width: 'auto', marginLeft: '16px' }}
           value={monthFilter}
           onChange={(e) => {
@@ -298,12 +269,12 @@ const SurplusOrderList = () => {
       </div>
 
       {loading ? (
-        <div className="loading">載入中...</div>
+        <div className={styles.loading}>載入中...</div>
       ) : (
         <>
-          <div className="orders-list">
+          <div className={styles.ordersList}>
             {filteredOrders.length === 0 ? (
-              <div className="empty-state">目前沒有訂單</div>
+              <div className={styles.emptyState}>目前沒有訂單</div>
             ) : (
               filteredOrders
                 .slice((page - 1) * pageSize, page * pageSize)
@@ -356,14 +327,12 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
     cancelled: '已拒絕',
   };
 
-  // 從 order_type 取得訂單類型
   const getOrderType = () => {
     if (order.order_type === 'dine_in') return '內用';
     if (order.order_type === 'takeout') return '外帶';
     return order.order_type_display || '外帶';
   };
 
-  // 格式化取餐時間
   const formatPickupTime = (pickupTime) => {
     if (!pickupTime) return null;
     const date = new Date(pickupTime);
@@ -378,9 +347,9 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
   };
 
   return (
-    <div className="order-card">
-      <div className="order-body">
-        <div className="order-info">
+    <div className={styles.orderCard}>
+      <div className={styles.orderBody}>
+        <div className={styles.orderInfo}>
           <p><strong>取餐號碼：</strong>{order.pickup_number || '待生成'}</p>
           <p><strong>客戶：</strong>{order.customer_name}</p>
           <p><strong>電話：</strong>{order.customer_phone}</p>
@@ -410,7 +379,6 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
                   );
                 })
               ) : (
-                // 向後兼容：舊格式單一品項
                 order.surplus_food_detail && (
                   <li>
                     {order.surplus_food_detail.title} × {order.quantity || 1}
@@ -424,17 +392,17 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
           </div>
         </div>
       </div>
-      <div className="order-actions">
+      <div className={styles.orderActions}>
         {order.status === 'pending' && (
           <>
             <button
-              className="surplus-btn-sm btn-success"
+              className={styles.btnSmSuccess}
               onClick={() => onUpdateStatus(order.id, 'confirm')}
             >
               確認訂單
             </button>
             <button
-              className="surplus-btn-sm btn-danger"
+              className={styles.btnSmDanger}
               onClick={() => onUpdateStatus(order.id, 'reject')}
             >
               拒絕
@@ -444,13 +412,13 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
         {order.status === 'confirmed' && (
           <>
             <button
-              className="surplus-btn-sm surplus-btn-primary"
+              className={styles.btnSmPrimary}
               onClick={() => onUpdateStatus(order.id, 'ready')}
             >
               可取餐
             </button>
             <button
-              className="surplus-btn-sm btn-danger"
+              className={styles.btnSmDanger}
               onClick={() => onUpdateStatus(order.id, 'cancel')}
             >
               取消
@@ -459,7 +427,7 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
         )}
         {order.status === 'ready' && (
           <button
-            className="surplus-btn-sm btn-success"
+            className={styles.btnSmSuccess}
             onClick={() => onUpdateStatus(order.id, 'complete')}
           >
             完成訂單
@@ -467,7 +435,7 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
         )}
         {(order.status === 'completed' || order.status === 'cancelled' || order.status === 'rejected') && (
           <button
-            className="surplus-btn-sm btn-danger"
+            className={styles.btnSmDanger}
             onClick={() => onDeleteOrder(order.id)}
           >
             刪除

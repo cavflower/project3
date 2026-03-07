@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyStore, createStore, updateStore, uploadStoreImages, deleteStoreImage, publishStore, unpublishStore, uploadMenuImages, deleteMenuImage } from '../../../api/storeApi';
-import './StoreSettingsPage.css';
+import styles from './StoreSettingsPage.module.css';
 
 const StoreSettingsPage = () => {
   const navigate = useNavigate();
@@ -465,34 +465,34 @@ const StoreSettingsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="store-settings-page">
-        <div className="loading">載入中...</div>
+      <div className={styles.storeSettingsPage}>
+        <div className={styles.loading}>載入中...</div>
       </div>
     );
   }
 
   return (
-    <div className="store-settings-page">
-      <div className="store-settings-container">
-        <div className="page-header">
+    <div className={styles.storeSettingsPage}>
+      <div className={styles.storeSettingsContainer}>
+        <div className={styles.pageHeader}>
           <h1>餐廳設定</h1>
-          <div className="header-actions">
+          <div className={styles.headerActions}>
             {storeId ? (
               <button
-                className={isPublished ? 'btn-unpublish' : 'btn-publish'}
+                className={isPublished ? styles.btnUnpublish : styles.btnPublish}
                 onClick={isPublished ? handleUnpublish : handlePublish}
                 disabled={loading}
               >
                 {loading ? '處理中...' : (isPublished ? '下架店家' : '上架店家')}
               </button>
             ) : (
-              <div className="warning-badge">
+              <div className={styles.warningBadge}>
                 請先儲存店家資訊
               </div>
             )}
             <button
               type="button"
-              className="btn-back"
+              className={styles.btnBack}
               onClick={() => navigate('/dashboard')}
             >
               ← 返回儀表板
@@ -500,15 +500,15 @@ const StoreSettingsPage = () => {
           </div>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
-        {success && <div className="success-message">{success}</div>}
+        {error && <div className={styles.errorMessage}>{error}</div>}
+        {success && <div className={styles.successMessage}>{success}</div>}
 
-        <form onSubmit={handleSubmit} className="store-settings-form">
+        <form onSubmit={handleSubmit} className={styles.storeSettingsForm}>
           {/* 基本資訊 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>基本資訊</h2>
-            <div className="form-grid">
-              <div className="form-group full-width">
+            <div className={styles.formGrid}>
+              <div className={styles.formGroupFullWidth}>
                 <label htmlFor="name">餐廳名稱 *</label>
                 <input
                   type="text"
@@ -521,7 +521,7 @@ const StoreSettingsPage = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="cuisine_type">餐廳類別 *</label>
                 <select
                   id="cuisine_type"
@@ -541,7 +541,7 @@ const StoreSettingsPage = () => {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="phone">電話 *</label>
                 <input
                   type="tel"
@@ -554,7 +554,7 @@ const StoreSettingsPage = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="email">Email</label>
                 <input
                   type="email"
@@ -566,7 +566,7 @@ const StoreSettingsPage = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="line_friend_url">LINE 好友網址</label>
                 <input
                   type="url"
@@ -578,7 +578,7 @@ const StoreSettingsPage = () => {
                 />
               </div>
 
-              <div className="form-group full-width">
+              <div className={styles.formGroupFullWidth}>
                 <label htmlFor="address">地址 *</label>
                 <input
                   type="text"
@@ -591,7 +591,7 @@ const StoreSettingsPage = () => {
                 />
               </div>
 
-              <div className="form-group full-width">
+              <div className={styles.formGroupFullWidth}>
                 <label htmlFor="website">餐廳網站</label>
                 <input
                   type="url"
@@ -603,7 +603,7 @@ const StoreSettingsPage = () => {
                 />
               </div>
 
-              <div className="form-group full-width">
+              <div className={styles.formGroupFullWidth}>
                 <label htmlFor="transportation">交通方式</label>
                 <textarea
                   id="transportation"
@@ -615,7 +615,7 @@ const StoreSettingsPage = () => {
                 />
               </div>
 
-              <div className="form-group full-width">
+              <div className={styles.formGroupFullWidth}>
                 <label htmlFor="description">餐廳描述</label>
                 <textarea
                   id="description"
@@ -630,12 +630,12 @@ const StoreSettingsPage = () => {
           </div>
 
           {/* 營業時間 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>營業時間</h2>
-            <div className="opening-hours-container">
+            <div className={styles.openingHoursContainer}>
               {Object.keys(dayNames).map((day) => (
-                <div key={day} className="opening-hours-item">
-                  <div className="day-label">
+                <div key={day} className={styles.openingHoursItem}>
+                  <div className={styles.dayLabel}>
                     <input
                       type="checkbox"
                       checked={!openingHours[day].is_closed}
@@ -646,7 +646,7 @@ const StoreSettingsPage = () => {
                     <label>{dayNames[day]}</label>
                   </div>
                   {!openingHours[day].is_closed && (
-                    <div className="time-inputs">
+                    <div className={styles.timeInputs}>
                       <input
                         type="time"
                         value={openingHours[day].open}
@@ -665,12 +665,12 @@ const StoreSettingsPage = () => {
                     </div>
                   )}
                   {openingHours[day].is_closed && (
-                    <span className="closed-label">休息</span>
+                    <span className={styles.closedLabel}>休息</span>
                   )}
                 </div>
               ))}
             </div>
-            <div className="form-group" style={{ marginTop: '15px' }}>
+            <div className={styles.formGroup} style={{ marginTop: '15px' }}>
               <label htmlFor="fixed_holidays">固定休息日</label>
               <textarea
                 id="fixed_holidays"
@@ -684,10 +684,10 @@ const StoreSettingsPage = () => {
           </div>
 
           {/* 平均預算 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>平均預算</h2>
-            <div className="form-grid">
-              <div className="form-group">
+            <div className={styles.formGrid}>
+              <div className={styles.formGroup}>
                 <label htmlFor="budget_lunch">午餐</label>
                 <input
                   type="number"
@@ -699,7 +699,7 @@ const StoreSettingsPage = () => {
                   placeholder="例如：1500"
                 />
               </div>
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="budget_dinner">晚餐</label>
                 <input
                   type="number"
@@ -711,7 +711,7 @@ const StoreSettingsPage = () => {
                   placeholder="例如：4000"
                 />
               </div>
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="budget_banquet">宴會</label>
                 <input
                   type="number"
@@ -727,13 +727,13 @@ const StoreSettingsPage = () => {
           </div>
 
           {/* 支付方式 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>支付方式</h2>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label>接受的信用卡</label>
-              <div className="credit-card-options">
+              <div className={styles.creditCardOptions}>
                 {creditCardOptions.map((card) => (
-                  <label key={card} className="credit-card-option">
+                  <label key={card} className={styles.creditCardOption}>
                     <input
                       type="checkbox"
                       checked={selectedCreditCards.includes(card)}
@@ -750,10 +750,10 @@ const StoreSettingsPage = () => {
           </div>
 
           {/* 設施與服務 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>設施與服務</h2>
-            <div className="form-group">
-              <label className="checkbox-label">
+            <div className={styles.formGroup}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   name="has_wifi"
@@ -763,8 +763,8 @@ const StoreSettingsPage = () => {
                 <span>提供 Wi-Fi</span>
               </label>
             </div>
-            <div className="form-group">
-              <label className="checkbox-label">
+            <div className={styles.formGroup}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   name="has_english_menu"
@@ -774,7 +774,7 @@ const StoreSettingsPage = () => {
                 <span>提供英文菜單</span>
               </label>
             </div>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="parking_info">停車場資訊</label>
               <textarea
                 id="parking_info"
@@ -788,9 +788,9 @@ const StoreSettingsPage = () => {
           </div>
 
           {/* 吸菸政策 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>吸菸政策</h2>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="smoking_policy">吸菸政策</label>
               <select
                 id="smoking_policy"
@@ -806,10 +806,10 @@ const StoreSettingsPage = () => {
           </div>
 
           {/* 其他設定 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>其他設定</h2>
-            <div className="form-group">
-              <label className="checkbox-label">
+            <div className={styles.formGroup}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   name="suitable_for_children"
@@ -819,7 +819,7 @@ const StoreSettingsPage = () => {
                 <span>適合帶小孩</span>
               </label>
             </div>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="remarks">備註</label>
               <textarea
                 id="remarks"
@@ -833,9 +833,9 @@ const StoreSettingsPage = () => {
           </div>
 
           {/* 菜單設定 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>菜單設定（選填）</h2>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="menu_type">菜單類型</label>
               <select
                 id="menu_type"
@@ -849,7 +849,7 @@ const StoreSettingsPage = () => {
             </div>
 
             {formData.menu_type === 'text' && (
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="menu_text">菜單內容（文字與價格）</label>
                 <textarea
                   id="menu_text"
@@ -865,7 +865,7 @@ const StoreSettingsPage = () => {
 
             {formData.menu_type === 'image' && (
               <>
-                <div className="form-group">
+                <div className={styles.formGroup}>
                   <label htmlFor="menu_images">上傳菜單圖片（可多選）</label>
                   <input
                     type="file"
@@ -880,14 +880,14 @@ const StoreSettingsPage = () => {
 
                 {/* 現有菜單圖片 */}
                 {menuImages.length > 0 && (
-                  <div className="images-grid">
+                  <div className={styles.imagesGrid}>
                     <h3>現有菜單圖片</h3>
                     {menuImages.map((img) => (
-                      <div key={img.id} className="image-item">
+                      <div key={img.id} className={styles.imageItem}>
                         <img src={img.url} alt={`菜單圖片 ${img.order + 1}`} />
                         <button
                           type="button"
-                          className="btn-delete-image"
+                          className={styles.btnDeleteImage}
                           onClick={() => removeExistingMenuImage(img.id)}
                         >
                           刪除
@@ -899,14 +899,14 @@ const StoreSettingsPage = () => {
 
                 {/* 新上傳的菜單圖片預覽 */}
                 {menuImagePreviews.length > 0 && (
-                  <div className="images-grid">
+                  <div className={styles.imagesGrid}>
                     <h3>新上傳的菜單圖片（待儲存）</h3>
                     {menuImagePreviews.map((item, index) => (
-                      <div key={index} className="image-item">
+                      <div key={index} className={styles.imageItem}>
                         <img src={item.preview} alt={`預覽 ${index + 1}`} />
                         <button
                           type="button"
-                          className="btn-delete-image"
+                          className={styles.btnDeleteImage}
                           onClick={() => removeNewMenuImage(index)}
                         >
                           移除
@@ -920,9 +920,9 @@ const StoreSettingsPage = () => {
           </div>
 
           {/* 餐廳圖片 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>餐廳圖片</h2>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="images">上傳餐廳圖片（可多選）</label>
               <input
                 type="file"
@@ -937,14 +937,14 @@ const StoreSettingsPage = () => {
 
             {/* 現有圖片 */}
             {storeImages.length > 0 && (
-              <div className="images-grid">
+              <div className={styles.imagesGrid}>
                 <h3>現有圖片</h3>
                 {storeImages.map((img) => (
-                  <div key={img.id} className="image-item">
+                  <div key={img.id} className={styles.imageItem}>
                     <img src={img.url} alt={`餐廳圖片 ${img.order + 1}`} />
                     <button
                       type="button"
-                      className="btn-delete-image"
+                      className={styles.btnDeleteImage}
                       onClick={() => removeExistingImage(img.id)}
                     >
                       刪除
@@ -956,14 +956,14 @@ const StoreSettingsPage = () => {
 
             {/* 新上傳的圖片預覽 */}
             {imagePreviews.length > 0 && (
-              <div className="images-grid">
+              <div className={styles.imagesGrid}>
                 <h3>新上傳的圖片（待儲存）</h3>
                 {imagePreviews.map((item, index) => (
-                  <div key={index} className="image-item">
+                  <div key={index} className={styles.imageItem}>
                     <img src={item.preview} alt={`預覽 ${index + 1}`} />
                     <button
                       type="button"
-                      className="btn-delete-image"
+                      className={styles.btnDeleteImage}
                       onClick={() => removeNewImage(index)}
                     >
                       移除
@@ -975,17 +975,17 @@ const StoreSettingsPage = () => {
           </div>
 
           {/* 功能開關 */}
-          <div className="form-section">
+          <div className={styles.formSection}>
             <h2>功能開關</h2>
-            <p className="section-description">控制哪些功能在您的餐廳中啟用</p>
+            <p className={styles.sectionDescription}>控制哪些功能在您的餐廳中啟用</p>
 
-            <div className="feature-toggles">
-              <div className="feature-toggle-item">
-                <div className="toggle-info">
+            <div className={styles.featureToggles}>
+              <div className={styles.featureToggleItem}>
+                <div className={styles.toggleInfo}>
                   <label htmlFor="enable_reservation">訂位功能</label>
                   <small>允許顧客線上預約訂位</small>
                 </div>
-                <label className="toggle-switch">
+                <label className={styles.toggleSwitch}>
                   <input
                     type="checkbox"
                     id="enable_reservation"
@@ -993,7 +993,7 @@ const StoreSettingsPage = () => {
                     checked={formData.enable_reservation}
                     onChange={handleChange}
                   />
-                  <span className="toggle-slider"></span>
+                  <span className={styles.toggleSlider}></span>
                 </label>
               </div>
 
@@ -1010,16 +1010,16 @@ const StoreSettingsPage = () => {
                     checked={formData.enable_loyalty}
                     onChange={handleChange}
                   />
-                  <span className="toggle-slider"></span>
+                  <span className={styles.toggleSlider}></span>
                 </label>
               </div>
 
-              <div className="feature-toggle-item">
-                <div className="toggle-info">
+              <div className={styles.featureToggleItem}>
+                <div className={styles.toggleInfo}>
                   <label htmlFor="enable_surplus_food">惜福品功能</label>
                   <small>提供惜福食品販売服務</small>
                 </div>
-                <label className="toggle-switch">
+                <label className={styles.toggleSwitch}>
                   <input
                     type="checkbox"
                     id="enable_surplus_food"
@@ -1027,23 +1027,23 @@ const StoreSettingsPage = () => {
                     checked={formData.enable_surplus_food}
                     onChange={handleChange}
                   />
-                  <span className="toggle-slider"></span>
+                  <span className={styles.toggleSlider}></span>
                 </label>
               </div>
             </div>
           </div>
 
-          <div className="form-actions">
+          <div className={styles.formActions}>
             <button
               type="button"
-              className="btn-cancel"
+              className={styles.btnCancel}
               onClick={() => navigate('/dashboard')}
             >
               取消
             </button>
             <button
               type="submit"
-              className="btn-submit"
+              className={styles.btnSubmit}
               disabled={loading}
             >
               {loading ? '儲存中...' : storeId ? '更新資訊' : '儲存資訊'}

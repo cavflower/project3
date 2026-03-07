@@ -7,7 +7,7 @@ import { getPublicProductCategories, getPublicSpecificationGroups } from '../../
 import surplusFoodApi from '../../api/surplusFoodApi';
 import { useAuth } from "../../store/AuthContext";
 import ProductSpecificationModal from '../../components/common/ProductSpecificationModal';
-import '../takeout/TakeoutOrderPage.css';
+import '../takeout/TakeoutOrderPage.module.css';
 
 const cartReducer = (state, action) => {
   switch (action.type) {

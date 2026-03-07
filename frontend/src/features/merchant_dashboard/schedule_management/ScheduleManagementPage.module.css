@@ -1,0 +1,407 @@
+/* 排班管理頁面 - CSS Module */
+
+.schedulePage {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.scheduleHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+}
+
+.headerActions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.pageSubtitle {
+    color: #ff8c82;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.saveStatus {
+    background: #ecfdf5;
+    color: #0f766e;
+    padding: 0.6rem 1rem;
+    border-radius: 0.75rem;
+    width: fit-content;
+    font-weight: 600;
+}
+
+.pageDescription {
+    color: #6f6f6f;
+    margin-top: 0.25rem;
+}
+
+.primaryBtn {
+    border: none;
+    background: #ff8c82;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.75rem 1.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.primaryBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 140, 130, 0.3);
+}
+
+.primaryBtnFill {
+    composes: primaryBtn;
+    width: 100%;
+    border-radius: 1rem;
+    margin-top: 0.5rem;
+}
+
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.summaryCard {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.summaryLabel {
+    color: #9aa5b1;
+    font-size: 0.9rem;
+}
+
+.summaryBadge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    width: fit-content;
+}
+
+.summaryBadgeNeutral {
+    composes: summaryBadge;
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.summaryBadgeSuccess {
+    composes: summaryBadge;
+    background: #def7ec;
+    color: #087f5b;
+}
+
+.summaryBadgeWarning {
+    composes: summaryBadge;
+    background: #fff8e1;
+    color: #b45309;
+}
+
+.summaryBadgeInfo {
+    composes: summaryBadge;
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.textWarning {
+    color: #dc2626;
+}
+
+.scheduleGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+
+.manageGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.25rem;
+}
+
+.scheduleCard {
+    background: #fff;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.scheduleCardLarge {
+    composes: scheduleCard;
+    min-height: 360px;
+}
+
+.scheduleCardFullWidth {
+    composes: scheduleCard;
+    width: 100%;
+}
+
+.cardHeader h3 {
+    margin: 0;
+}
+
+.cardHeader p {
+    margin: 0.25rem 0 0;
+    color: #6b7280;
+}
+
+.shiftForm {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.shiftForm label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-weight: 600;
+    color: #344054;
+}
+
+.shiftForm input,
+.shiftForm select,
+.staffForm input {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.95rem;
+}
+
+.timeInputs .timePickers {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.timePickers input {
+    width: 70px;
+}
+
+.staffSelect {
+    margin-top: 0.35rem;
+}
+
+.staffMultiSelect {
+    width: 100%;
+    min-height: 120px;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.helperText {
+    margin-top: 0.35rem;
+    color: #9aa5b1;
+    font-size: 0.85rem;
+}
+
+.noStaffBox {
+    border: 1px dashed #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    color: #9aa5b1;
+    text-align: center;
+}
+
+.selectedStaff {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.staffChip {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    background: #ff8c82;
+    color: #fff;
+    font-weight: 600;
+}
+
+.staffForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.formActions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.ghostBtn {
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #4b5563;
+    border-radius: 999px;
+    padding: 0.6rem 1.25rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ghostBtn:hover {
+    border-color: #cbd5f5;
+}
+
+.staffList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.staffList li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.staffName {
+    font-weight: 600;
+}
+
+.staffRole {
+    font-size: 0.85rem;
+    color: #9aa5b1;
+}
+
+.staffStatus {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}
+
+.tableShiftName {
+    margin: 0;
+    font-weight: 600;
+}
+
+.tableShiftTime {
+    margin: 0.15rem 0 0;
+    color: #9aa5b1;
+    font-size: 0.85rem;
+}
+
+.tableActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.textBtn {
+    background: transparent;
+    border: none;
+    color: #2563eb;
+    cursor: pointer;
+    padding: 0;
+}
+
+.textBtnDanger {
+    composes: textBtn;
+    color: #dc2626;
+}
+
+.empty {
+    text-align: center;
+    color: #94a3b8;
+}
+
+.statusChip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.statusChipSuccess {
+    composes: statusChip;
+    background: #ecfdf5;
+    color: #0f766e;
+}
+
+.statusChipInfo {
+    composes: statusChip;
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.statusChipWarning {
+    composes: statusChip;
+    background: #fff8e1;
+    color: #b45309;
+}
+
+.suggestionList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.suggestionList li {
+    display: flex;
+    gap: 0.85rem;
+    align-items: center;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff8c82;
+}
+
+.suggestionTitle {
+    font-weight: 600;
+}
+
+.suggestionText {
+    margin: 0.15rem 0 0;
+    color: #6b7280;
+}
+
+@media (max-width: 768px) {
+    .scheduleHeader {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .shiftForm {
+        grid-template-columns: 1fr;
+    }
+
+    .headerActions {
+        width: 100%;
+        flex-direction: column;
+    }
+}

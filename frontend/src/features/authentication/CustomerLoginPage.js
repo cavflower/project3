@@ -3,7 +3,7 @@ import { useAuth } from '../../store/AuthContext';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { authApi } from '../../api/authApi';
-import './LoginPage.css';
+import styles from './LoginPage.module.css';
 import { Link, useSearchParams } from 'react-router-dom';
 
 const CustomerLoginPage = () => {
@@ -134,27 +134,27 @@ const CustomerLoginPage = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container customer-theme">
-        <form className="auth-form" onSubmit={handleSubmit}>
+    <div className={styles['auth-page']}>
+      <div className={`${styles['auth-container']} ${styles['customer-theme']}`}>
+        <form className={styles['auth-form']} onSubmit={handleSubmit}>
           <h2>會員登入</h2>
-          <p className="form-subtitle">
+          <p className={styles['form-subtitle']}>
             還不是會員？ <Link to="/register/customer">立即註冊</Link>
           </p>
-          {error && <p className="error-message">{error}</p>}
-          <div className="input-group">
+          {error && <p className={styles['error-message']}>{error}</p>}
+          <div className={styles['input-group']}>
             <label htmlFor="email">電子郵件</label>
             <input type="email" id="email" placeholder="請輸入您的電子郵件" value={formData.email} onChange={handleChange} required />
           </div>
-          <div className="input-group">
+          <div className={styles['input-group']}>
             <label htmlFor="password">密碼</label>
             <input type="password" id="password" placeholder="請輸入您的密碼" value={formData.password} onChange={handleChange} required />
           </div>
-          <div className="form-footer">
+          <div className={styles['form-footer']}>
             <Link to="/forgot-password">忘記密碼？</Link>
             {!redirectUrl && <Link to="/login/merchant">切換至店家登入</Link>}
           </div>
-          <button type="submit" className="submit-btn" disabled={loading}>
+          <button type="submit" className={styles['submit-btn']} disabled={loading}>
             {loading ? '登入中...' : '登入'}
           </button>
         </form>

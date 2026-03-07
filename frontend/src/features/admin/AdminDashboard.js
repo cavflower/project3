@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getAvailableStores, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast } from '../../api/adminApi';
-import './AdminDashboard.css';
+import styles from './AdminDashboard.module.css';
 
 const AdminDashboard = () => {
   const [stores, setStores] = useState([]);
@@ -380,16 +380,16 @@ const AdminDashboard = () => {
   };
 
   const getDiscountBadgeClass = (discount) => {
-    if (discount >= 50) return 'discount-high';
-    if (discount >= 20) return 'discount-medium';
-    if (discount > 0) return 'discount-low';
-    return 'discount-none';
+    if (discount >= 50) return styles.discountHigh;
+    if (discount >= 20) return styles.discountMedium;
+    if (discount > 0) return styles.discountLow;
+    return styles.discountNone;
   };
 
   if (loading) {
     return (
-      <div className="admin-dashboard">
-        <div className="loading-container">
+      <div className={styles.adminDashboard}>
+        <div className={styles.loadingContainer}>
           <div className="spinner-border text-primary" role="status" />
           <p className="mt-3">載入中...</p>
         </div>
@@ -398,15 +398,15 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="admin-dashboard">
-      <div className="admin-header">
+    <div className={styles.adminDashboard}>
+      <div className={styles.adminHeader}>
         <div className="container">
-          <div className="header-content">
+          <div className={styles.headerContent}>
             <div>
               <h1>平台管理員儀表板</h1>
-              <p className="text-muted">DineVerse 後台管理系統</p>
+              <p className={styles.textMuted}>DineVerse 後台管理系統</p>
             </div>
-            <button className="btn-logout" onClick={handleLogout}>
+            <button className={styles.btnLogout} onClick={handleLogout}>
               登出
             </button>
           </div>
@@ -414,34 +414,34 @@ const AdminDashboard = () => {
       </div>
 
       <div className="container py-4">
-        <div className="stats-row">
-          <div className="stat-card">
+        <div className={styles.statsRow}>
+          <div className={styles.statCard}>
             <h3>{stores.length}</h3>
             <p>總商家數</p>
           </div>
-          <div className="stat-card">
+          <div className={styles.statCard}>
             <h3>{stores.filter(s => s.is_open).length}</h3>
             <p>營業中</p>
           </div>
-          <div className="stat-card">
+          <div className={styles.statCard}>
             <h3>{stores.filter(s => s.enable_reservation).length}</h3>
             <p>啟用訂位</p>
           </div>
-          <div className="stat-card">
+          <div className={styles.statCard}>
             <h3>{stores.filter(s => s.enable_surplus_food).length}</h3>
             <p>啟用惜福品</p>
           </div>
-          <div className="stat-card ai-stat-card" onClick={handleOpenAIModal} style={{ cursor: 'pointer' }}>
+          <div className={styles.statCard} onClick={handleOpenAIModal} style={{ cursor: 'pointer' }}>
             <h3>{aiSettings?.has_ai_config ? '✅' : '❌'}</h3>
             <p>平台 AI {aiSettings?.has_ai_config ? '已啟用' : '未設定'}</p>
             <small style={{ color: '#666' }}>點擊設定</small>
           </div>
-          <div className="stat-card line-stat-card" onClick={handleOpenLineModal} style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #00B900, #00C300)' }}>
+          <div className={styles.statCard} onClick={handleOpenLineModal} style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #00B900, #00C300)' }}>
             <h3 style={{ color: 'white' }}>{lineSettings?.has_line_login_config ? '✅' : '❌'}</h3>
             <p style={{ color: 'white' }}>LINE Login {lineSettings?.has_line_login_config ? '已設定' : '未設定'}</p>
             <small style={{ color: 'rgba(255,255,255,0.8)' }}>點擊設定</small>
           </div>
-          <div className="stat-card" onClick={handleOpenBroadcastModal} style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)' }}>
+          <div className={styles.statCard} onClick={handleOpenBroadcastModal} style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)' }}>
             <h3 style={{ color: 'white' }}>📢</h3>
             <p style={{ color: 'white' }}>平台推播</p>
             <small style={{ color: 'rgba(255,255,255,0.8)' }}>推薦店家</small>
@@ -454,16 +454,16 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        <div className="stores-section">
+        <div className={styles.storesSection}>
           <h2 className="mb-4">商家列表</h2>
-          <div className="table-responsive">
-            <table className="stores-table">
+          <div className={styles.tableResponsive}>
+            <table className={styles.storesTable}>
               <thead>
                 <tr>
                   <th>
                     店家 ID
                     <button
-                      className="sort-btn"
+                      className={styles.sortBtn}
                       onClick={toggleSortOrder}
                       title={sortOrder === 'asc' ? '切換為大到小' : '切換為小到大'}
                     >
@@ -496,31 +496,31 @@ const AdminDashboard = () => {
                       <td className="font-weight-bold">{store.name}</td>
                       <td>{getCuisineType(store.cuisine_type)}</td>
                       <td>{store.phone}</td>
-                      <td className="address-cell">{store.address}</td>
+                      <td className={styles.addressCell}>{store.address}</td>
                       <td>
-                        <span className={`badge badge-${store.plan || 'none'}`}>
+                        <span className={styles[`badge${(store.plan || 'none').charAt(0).toUpperCase() + (store.plan || 'none').slice(1)}`] || styles.badgeNone}>
                           {getPlanName(store.plan)}
                         </span>
                       </td>
                       <td>
-                        <span className={`status-badge ${store.is_open ? 'status-open' : 'status-closed'}`}>
+                        <span className={`${styles.statusBadge} ${store.is_open ? styles.statusOpen : styles.statusClosed}`}>
                           {store.is_open ? '營業中' : '已打烊'}
                         </span>
                       </td>
                       <td>
-                        <div className="feature-tags">
-                          {store.enable_reservation && <span className="feature-tag">訂位</span>}
-                          {store.enable_loyalty && <span className="feature-tag">會員</span>}
-                          {store.enable_surplus_food && <span className="feature-tag">惜福品</span>}
+                        <div className={styles.featureTags}>
+                          {store.enable_reservation && <span className={styles.featureTag}>訂位</span>}
+                          {store.enable_loyalty && <span className={styles.featureTag}>會員</span>}
+                          {store.enable_surplus_food && <span className={styles.featureTag}>惜福品</span>}
                         </div>
                       </td>
                       <td>
-                        <span className="order-count-badge">
+                        <span className={styles.orderCountBadge}>
                           {store.surplus_order_count || 0} 筆
                         </span>
                       </td>
                       <td>
-                        <span className={`discount-badge ${getDiscountBadgeClass(store.platform_fee_discount)}`}>
+                        <span className={`${styles.discountBadge} ${getDiscountBadgeClass(store.platform_fee_discount)}`}>
                           {store.platform_fee_discount > 0 ? `${store.platform_fee_discount}%` : '無折扣'}
                         </span>
                         {store.discount_reason && (
@@ -532,14 +532,14 @@ const AdminDashboard = () => {
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
-                            className="btn-action"
+                            className={styles.btnAction}
                             onClick={() => handleOpenDiscountModal(store)}
                             title="設定平台費折扣"
                           >
                             設定折扣
                           </button>
                           <button
-                            className="btn-action"
+                            className={styles.btnAction}
                             onClick={() => handleOpenStoreLineModal(store)}
                             title="設定 LINE BOT"
                             style={{ background: '#00B900', color: 'white' }}
@@ -559,26 +559,26 @@ const AdminDashboard = () => {
 
       {/* 折扣設定 Modal */}
       {showDiscountModal && selectedStore && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
               <h3>設定方案費用折扣</h3>
-              <button className="modal-close" onClick={handleCloseDiscountModal}>×</button>
+              <button className={styles.modalClose} onClick={handleCloseDiscountModal}>×</button>
             </div>
-            <div className="modal-body">
-              <div className="store-info-box">
+            <div className={styles.modalBody}>
+              <div className={styles.storeInfoBox}>
                 <h4>{selectedStore.name}</h4>
                 <p className="text-muted">
                   惜福品已完成訂單：<strong>{selectedStore.surplus_order_count || 0}</strong> 筆
                 </p>
               </div>
               <form onSubmit={handleSubmitDiscount}>
-                <div className="form-group">
+                <div className={styles.formGroup}>
                   <label htmlFor="discount">折扣百分比 (0-100%)</label>
                   <input
                     type="number"
                     id="discount"
-                    className="form-control"
+                    className={styles.formControl}
                     min="0"
                     max="100"
                     step="0.01"
@@ -587,7 +587,7 @@ const AdminDashboard = () => {
                     placeholder="例如：10 代表 10% 折扣"
                     required
                   />
-                  <small className="form-text text-muted">
+                  <small className={styles.formText}>
                     輸入 0 表示無折扣，100 表示完全免費
                   </small>
                 </div>
@@ -595,18 +595,18 @@ const AdminDashboard = () => {
                   <label htmlFor="reason">折扣原因</label>
                   <textarea
                     id="reason"
-                    className="form-control"
+                    className={styles.formControl}
                     rows="3"
                     value={discountForm.reason}
                     onChange={(e) => setDiscountForm({ ...discountForm, reason: e.target.value })}
                     placeholder="例如：感謝貢獻 50 筆惜福品訂單，減少食物浪費"
                   />
                 </div>
-                <div className="modal-footer mt-4">
-                  <button type="button" className="btn-secondary" onClick={handleCloseDiscountModal}>
+                <div className={styles.modalFooter}>
+                  <button type="button" className={styles.btnSecondary} onClick={handleCloseDiscountModal}>
                     取消
                   </button>
-                  <button type="submit" className="btn-primary">
+                  <button type="submit" className={styles.btnPrimary}>
                     確認設定
                   </button>
                 </div>
@@ -619,24 +619,24 @@ const AdminDashboard = () => {
       {/* AI 設定 Modal */}
       {showAIModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
               <h3>平台 AI 設定</h3>
-              <button className="modal-close" onClick={handleCloseAIModal}>×</button>
+              <button className={styles.modalClose} onClick={handleCloseAIModal}>×</button>
             </div>
-            <div className="modal-body">
-              <div className="store-info-box">
+            <div className={styles.modalBody}>
+              <div className={styles.storeInfoBox}>
                 <h4>🤖 AI 智能回覆服務</h4>
                 <p className="text-muted">
                   設定後所有店家的 LINE BOT 將自動使用此 AI 服務
                 </p>
               </div>
               <form onSubmit={handleSubmitAI}>
-                <div className="form-group">
+                <div className={styles.formGroup}>
                   <label htmlFor="ai_provider">AI 提供商</label>
                   <select
                     id="ai_provider"
-                    className="form-control"
+                    className={styles.formControl}
                     value={aiForm.ai_provider}
                     onChange={(e) => setAIForm({ ...aiForm, ai_provider: e.target.value })}
                   >
@@ -650,12 +650,12 @@ const AdminDashboard = () => {
                   <input
                     type="password"
                     id="ai_api_key"
-                    className="form-control"
+                    className={styles.formControl}
                     value={aiForm.ai_api_key}
                     onChange={(e) => setAIForm({ ...aiForm, ai_api_key: e.target.value })}
                     placeholder={aiSettings?.ai_api_key_set ? '已設定（留空則不更改）' : '請輸入 API Key'}
                   />
-                  <small className="form-text text-muted">
+                  <small className={styles.formText}>
                     {aiForm.ai_provider === 'gemini' && '從 Google AI Studio 取得'}
                     {aiForm.ai_provider === 'openai' && '從 OpenAI 取得'}
                     {aiForm.ai_provider === 'groq' && '從 Groq Console 取得'}
@@ -666,12 +666,12 @@ const AdminDashboard = () => {
                   <input
                     type="text"
                     id="ai_model"
-                    className="form-control"
+                    className={styles.formControl}
                     value={aiForm.ai_model}
                     onChange={(e) => setAIForm({ ...aiForm, ai_model: e.target.value })}
                     placeholder="例如: gemini-2.5-flash"
                   />
-                  <small className="form-text text-muted">
+                  <small className={styles.formText}>
                     {aiForm.ai_provider === 'gemini' && '例如: gemini-2.5-flash, gemini-2.5-pro'}
                     {aiForm.ai_provider === 'openai' && '例如: gpt-4o-mini, gpt-4o'}
                     {aiForm.ai_provider === 'groq' && '例如: llama-3.1-8b-instant, llama-3.3-70b-versatile'}
@@ -683,27 +683,27 @@ const AdminDashboard = () => {
                     <input
                       type="number"
                       id="ai_temperature"
-                      className="form-control"
+                      className={styles.formControl}
                       value={aiForm.ai_temperature}
                       onChange={(e) => setAIForm({ ...aiForm, ai_temperature: parseFloat(e.target.value) })}
                       min="0"
                       max="2"
                       step="0.1"
                     />
-                    <small className="form-text text-muted">0-2，數值越高回覆越有創意</small>
+                    <small className={styles.formText}>0-2，數值越高回覆越有創意</small>
                   </div>
                   <div className="form-group" style={{ flex: 1 }}>
                     <label htmlFor="ai_max_tokens">Max Tokens</label>
                     <input
                       type="number"
                       id="ai_max_tokens"
-                      className="form-control"
+                      className={styles.formControl}
                       value={aiForm.ai_max_tokens}
                       onChange={(e) => setAIForm({ ...aiForm, ai_max_tokens: parseInt(e.target.value) })}
                       min="100"
                       max="4000"
                     />
-                    <small className="form-text text-muted">回覆的最大字數限制</small>
+                    <small className={styles.formText}>回覆的最大字數限制</small>
                   </div>
                 </div>
                 <div className="form-group mt-3">
@@ -716,11 +716,11 @@ const AdminDashboard = () => {
                     啟用 AI 服務
                   </label>
                 </div>
-                <div className="modal-footer mt-4">
-                  <button type="button" className="btn-secondary" onClick={handleCloseAIModal}>
+                <div className={styles.modalFooter}>
+                  <button type="button" className={styles.btnSecondary} onClick={handleCloseAIModal}>
                     取消
                   </button>
-                  <button type="submit" className="btn-primary" disabled={aiSaving}>
+                  <button type="submit" className={styles.btnPrimary} disabled={aiSaving}>
                     {aiSaving ? '儲存中...' : '儲存設定'}
                   </button>
                 </div>
@@ -738,7 +738,7 @@ const AdminDashboard = () => {
               <h2 style={{ color: 'white' }}>📱 LINE 平台設定</h2>
               <button className="close-btn" onClick={handleCloseLineModal}>&times;</button>
             </div>
-            <div className="modal-body">
+            <div className={styles.modalBody}>
               <form onSubmit={handleSubmitLine}>
                 {/* LINE Login 設定 */}
                 <div style={{ marginBottom: '24px', padding: '16px', background: '#f0f9f0', borderRadius: '8px' }}>
@@ -746,12 +746,12 @@ const AdminDashboard = () => {
                   <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
                     讓用戶透過 LINE 帳號登入並綁定，需在 LINE Developers Console 建立 LINE Login Channel。
                   </p>
-                  <div className="form-group">
+                  <div className={styles.formGroup}>
                     <label htmlFor="line_login_channel_id">Channel ID</label>
                     <input
                       type="text"
                       id="line_login_channel_id"
-                      className="form-control"
+                      className={styles.formControl}
                       value={lineForm.line_login_channel_id}
                       onChange={(e) => setLineForm({ ...lineForm, line_login_channel_id: e.target.value })}
                       placeholder="LINE Login Channel ID"
@@ -762,12 +762,12 @@ const AdminDashboard = () => {
                     <input
                       type="password"
                       id="line_login_channel_secret"
-                      className="form-control"
+                      className={styles.formControl}
                       value={lineForm.line_login_channel_secret}
                       onChange={(e) => setLineForm({ ...lineForm, line_login_channel_secret: e.target.value })}
                       placeholder="留空表示不修改"
                     />
-                    <small className="form-text text-muted">
+                    <small className={styles.formText}>
                       {lineSettings?.has_line_login_config ? '✅ 已設定，留空保持不變' : '尚未設定'}
                     </small>
                   </div>
@@ -779,12 +779,12 @@ const AdminDashboard = () => {
                   <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
                     平台 LINE BOT 可主動推送推薦和通知給用戶，需在 LINE Developers Console 建立 Messaging API Channel。
                   </p>
-                  <div className="form-group">
+                  <div className={styles.formGroup}>
                     <label htmlFor="line_bot_channel_access_token">Channel Access Token</label>
                     <input
                       type="password"
                       id="line_bot_channel_access_token"
-                      className="form-control"
+                      className={styles.formControl}
                       value={lineForm.line_bot_channel_access_token}
                       onChange={(e) => setLineForm({ ...lineForm, line_bot_channel_access_token: e.target.value })}
                       placeholder="留空表示不修改"
@@ -795,12 +795,12 @@ const AdminDashboard = () => {
                     <input
                       type="password"
                       id="line_bot_channel_secret"
-                      className="form-control"
+                      className={styles.formControl}
                       value={lineForm.line_bot_channel_secret}
                       onChange={(e) => setLineForm({ ...lineForm, line_bot_channel_secret: e.target.value })}
                       placeholder="留空表示不修改"
                     />
-                    <small className="form-text text-muted">
+                    <small className={styles.formText}>
                       {lineSettings?.has_line_bot_config ? '✅ 已設定，留空保持不變' : '尚未設定'}
                     </small>
                   </div>
@@ -808,7 +808,7 @@ const AdminDashboard = () => {
                     <label htmlFor="line_bot_welcome_message">歡迎訊息</label>
                     <textarea
                       id="line_bot_welcome_message"
-                      className="form-control"
+                      className={styles.formControl}
                       rows="2"
                       value={lineForm.line_bot_welcome_message}
                       onChange={(e) => setLineForm({ ...lineForm, line_bot_welcome_message: e.target.value })}
@@ -827,11 +827,11 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                <div className="modal-footer mt-4">
-                  <button type="button" className="btn-secondary" onClick={handleCloseLineModal}>
+                <div className={styles.modalFooter}>
+                  <button type="button" className={styles.btnSecondary} onClick={handleCloseLineModal}>
                     取消
                   </button>
-                  <button type="submit" className="btn-primary" disabled={lineSaving} style={{ background: '#00B900' }}>
+                  <button type="submit" className={styles.btnPrimary} disabled={lineSaving} style={{ background: '#00B900' }}>
                     {lineSaving ? '儲存中...' : '儲存設定'}
                   </button>
                 </div>
@@ -849,7 +849,7 @@ const AdminDashboard = () => {
               <h2 style={{ color: 'white' }}>🤖 {selectedStoreForLine.name} - LINE BOT 設定</h2>
               <button className="close-btn" onClick={handleCloseStoreLineModal}>&times;</button>
             </div>
-            <div className="modal-body">
+            <div className={styles.modalBody}>
               <form onSubmit={handleSubmitStoreLine}>
                 <div style={{ marginBottom: '16px', padding: '12px', background: '#fff3cd', borderRadius: '8px' }}>
                   <p style={{ margin: 0, fontSize: '14px' }}>
@@ -861,12 +861,12 @@ const AdminDashboard = () => {
                   <small style={{ color: '#666' }}>請在 LINE Developers Console 設定此 Webhook URL</small>
                 </div>
 
-                <div className="form-group">
+                <div className={styles.formGroup}>
                   <label htmlFor="store_line_channel_access_token">Channel Access Token</label>
                   <input
                     type="password"
                     id="store_line_channel_access_token"
-                    className="form-control"
+                    className={styles.formControl}
                     value={storeLineForm.line_channel_access_token}
                     onChange={(e) => setStoreLineForm({ ...storeLineForm, line_channel_access_token: e.target.value })}
                     placeholder="留空表示不修改"
@@ -878,7 +878,7 @@ const AdminDashboard = () => {
                   <input
                     type="password"
                     id="store_line_channel_secret"
-                    className="form-control"
+                    className={styles.formControl}
                     value={storeLineForm.line_channel_secret}
                     onChange={(e) => setStoreLineForm({ ...storeLineForm, line_channel_secret: e.target.value })}
                     placeholder="留空表示不修改"
@@ -890,7 +890,7 @@ const AdminDashboard = () => {
                   <input
                     type="text"
                     id="store_invitation_url"
-                    className="form-control"
+                    className={styles.formControl}
                     value={storeLineForm.invitation_url}
                     onChange={(e) => setStoreLineForm({ ...storeLineForm, invitation_url: e.target.value })}
                     placeholder="https://manager.line.biz/invitation/..."
@@ -904,11 +904,11 @@ const AdminDashboard = () => {
                   </p>
                 </div>
 
-                <div className="modal-footer mt-4">
-                  <button type="button" className="btn-secondary" onClick={handleCloseStoreLineModal}>
+                <div className={styles.modalFooter}>
+                  <button type="button" className={styles.btnSecondary} onClick={handleCloseStoreLineModal}>
                     取消
                   </button>
-                  <button type="submit" className="btn-primary" disabled={storeLineSaving} style={{ background: '#00B900' }}>
+                  <button type="submit" className={styles.btnPrimary} disabled={storeLineSaving} style={{ background: '#00B900' }}>
                     {storeLineSaving ? '儲存中...' : '儲存設定'}
                   </button>
                 </div>
@@ -934,11 +934,11 @@ const AdminDashboard = () => {
               </div>
 
               <form onSubmit={handleSendBroadcast}>
-                <div className="form-group">
+                <div className={styles.formGroup}>
                   <label htmlFor="broadcast_type">推播類型</label>
                   <select
                     id="broadcast_type"
-                    className="form-control"
+                    className={styles.formControl}
                     value={broadcastForm.broadcast_type}
                     onChange={(e) => setBroadcastForm({ ...broadcastForm, broadcast_type: e.target.value })}
                   >
@@ -953,7 +953,7 @@ const AdminDashboard = () => {
                   <input
                     type="text"
                     id="broadcast_title"
-                    className="form-control"
+                    className={styles.formControl}
                     value={broadcastForm.title}
                     onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
                     placeholder="例如：本週推薦店家"
@@ -965,7 +965,7 @@ const AdminDashboard = () => {
                   <label htmlFor="broadcast_content">訊息內容</label>
                   <textarea
                     id="broadcast_content"
-                    className="form-control"
+                    className={styles.formControl}
                     rows="3"
                     value={broadcastForm.message_content}
                     onChange={(e) => setBroadcastForm({ ...broadcastForm, message_content: e.target.value })}
@@ -995,14 +995,14 @@ const AdminDashboard = () => {
                       </label>
                     ))}
                   </div>
-                  <small className="form-text text-muted">已選擇 {broadcastForm.recommended_store_ids.length} 間店家</small>
+                  <small className={styles.formText}>已選擇 {broadcastForm.recommended_store_ids.length} 間店家</small>
                 </div>
 
-                <div className="modal-footer mt-4">
-                  <button type="button" className="btn-secondary" onClick={handleCloseBroadcastModal}>
+                <div className={styles.modalFooter}>
+                  <button type="button" className={styles.btnSecondary} onClick={handleCloseBroadcastModal}>
                     取消
                   </button>
-                  <button type="submit" className="btn-primary" disabled={broadcastSending} style={{ background: '#FF6B6B' }}>
+                  <button type="submit" className={styles.btnPrimary} disabled={broadcastSending} style={{ background: '#FF6B6B' }}>
                     {broadcastSending ? '發送中...' : `發送推播 (${targetUserCount} 人)`}
                   </button>
                 </div>

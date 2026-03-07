@@ -1,0 +1,257 @@
+/* 訪客查詢訂位 - CSS Module */
+
+.guestLookupPage {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-color, #FDF8F5) 0%, var(--secondary-color, #F3DACE) 100%);
+    padding: 3rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lookupContainer {
+    max-width: 500px;
+    width: 100%;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    padding: 2.5rem;
+}
+
+.lookupHeader {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.headerIcon {
+    font-size: 3rem;
+    color: var(--primary-color, #E87A5D);
+    margin-bottom: 1rem;
+}
+
+.lookupHeader h1 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+/* Form */
+.lookupForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.formGroup label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.formInput {
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--secondary-color, #F3DACE);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s;
+    font-family: monospace;
+    letter-spacing: 1px;
+}
+
+.formInput:focus {
+    outline: none;
+    border-color: var(--primary-color, #E87A5D);
+    box-shadow: 0 0 0 3px rgba(232, 122, 93, 0.1);
+}
+
+.formInput:disabled {
+    background: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.inputHint {
+    font-size: 0.85rem;
+    color: #999;
+    margin-top: -0.25rem;
+}
+
+/* Error Message */
+.errorMessage {
+    background: #fee;
+    border-left: 4px solid #f44336;
+    padding: 1rem;
+    border-radius: 4px;
+    color: #c62828;
+    font-size: 0.9rem;
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-10px);
+    }
+
+    75% {
+        transform: translateX(10px);
+    }
+}
+
+/* Form Actions */
+.formActions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.btnSecondary,
+.btnPrimary {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btnSecondary {
+    background: #e0e0e0;
+    color: #555;
+}
+
+.btnSecondary:hover:not(:disabled) {
+    background: #d0d0d0;
+    transform: translateY(-2px);
+}
+
+.btnPrimary {
+    background: linear-gradient(135deg, var(--primary-color, #E87A5D), var(--highlight-color, #F5A993));
+    color: white;
+}
+
+.btnPrimary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(232, 122, 93, 0.3);
+}
+
+.btnSecondary:disabled,
+.btnPrimary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Info Box */
+.infoBox {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--bg-color, #FDF8F5);
+    border-radius: 8px;
+    border: 1px solid var(--secondary-color, #F3DACE);
+}
+
+.infoBox h3 {
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.infoBox ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.infoBox li {
+    padding: 0.5rem 0;
+    color: #666;
+    font-size: 0.9rem;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.infoBox li::before {
+    content: '•';
+    color: var(--primary-color, #E87A5D);
+    font-weight: bold;
+    position: absolute;
+    left: 0.5rem;
+}
+
+.infoBox a {
+    color: var(--primary-color, #E87A5D);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.infoBox a:hover {
+    text-decoration: underline;
+}
+
+/* Dev Hint */
+.devHint {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #fffbea;
+    border: 2px dashed #ffc107;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.devHint strong {
+    display: block;
+    color: #f57c00;
+    margin-bottom: 0.5rem;
+}
+
+.devHint p {
+    margin: 0.25rem 0;
+    color: #666;
+    font-family: monospace;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .guestLookupPage {
+        padding: 2rem 1rem;
+    }
+
+    .lookupContainer {
+        padding: 2rem 1.5rem;
+    }
+
+    .lookupHeader h1 {
+        font-size: 1.5rem;
+    }
+
+    .formActions {
+        flex-direction: column;
+    }
+
+    .btnSecondary,
+    .btnPrimary {
+        width: 100%;
+    }
+}

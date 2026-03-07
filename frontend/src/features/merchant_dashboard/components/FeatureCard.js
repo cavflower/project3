@@ -1,14 +1,14 @@
 import React from 'react';
-import './FeatureCard.css';
+import styles from './FeatureCard.module.css';
 
-const FeatureCard = ({ 
-  icon: IconComponent, 
-  name, 
-  description, 
-  path, 
-  onClick, 
+const FeatureCard = ({
+  icon: IconComponent,
+  name,
+  description,
+  path,
+  onClick,
   isDisabled = false,
-  disabledMessage = '' 
+  disabledMessage = ''
 }) => {
   const handleClick = () => {
     if (!isDisabled) {
@@ -17,21 +17,21 @@ const FeatureCard = ({
   };
 
   return (
-    <div 
-      className={`feature-card ${isDisabled ? 'feature-card-disabled' : ''}`}
+    <div
+      className={isDisabled ? styles.featureCardDisabled : styles.featureCard}
       onClick={handleClick}
       title={isDisabled ? disabledMessage : ''}
     >
       {IconComponent && (
-        <div className="feature-icon">
+        <div className={styles.featureIcon}>
           <IconComponent />
         </div>
       )}
-      <h3 className="feature-name">{name}</h3>
-      <p className="feature-description">{description}</p>
+      <h3 className={styles.featureName}>{name}</h3>
+      <p className={styles.featureDescription}>{description}</p>
       {isDisabled && (
-        <div className="disabled-overlay">
-          <span className="disabled-badge">已關閉</span>
+        <div className={styles.disabledOverlay}>
+          <span className={styles.disabledBadge}>已關閉</span>
         </div>
       )}
     </div>

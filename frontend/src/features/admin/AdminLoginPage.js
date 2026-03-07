@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../authentication/LoginPage.css';
+import styles from '../authentication/LoginPage.module.css';
 
 const AdminLoginPage = () => {
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -37,15 +37,15 @@ const AdminLoginPage = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container admin-theme">
-        <form className="auth-form" onSubmit={handleSubmit}>
+    <div className={styles['auth-page']}>
+      <div className={`${styles['auth-container']} ${styles['admin-theme']}`}>
+        <form className={styles['auth-form']} onSubmit={handleSubmit}>
           <h2>平台管理員登入</h2>
-          <p className="form-subtitle">
+          <p className={styles['form-subtitle']}>
             DineVerse 後台管理系統
           </p>
-          {error && <p className="error-message">{error}</p>}
-          <div className="input-group">
+          {error && <p className={styles['error-message']}>{error}</p>}
+          <div className={styles['input-group']}>
             <label htmlFor="username">帳號</label>
             <input 
               type="text" 
@@ -56,7 +56,7 @@ const AdminLoginPage = () => {
               required 
             />
           </div>
-          <div className="input-group">
+          <div className={styles['input-group']}>
             <label htmlFor="password">密碼</label>
             <input 
               type="password" 
@@ -67,7 +67,7 @@ const AdminLoginPage = () => {
               required 
             />
           </div>
-          <button type="submit" className="submit-btn" disabled={loading}>
+          <button type="submit" className={styles['submit-btn']} disabled={loading}>
             {loading ? '登入中...' : '登入'}
           </button>
         </form>

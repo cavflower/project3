@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { createProductCategory, updateProductCategory } from '../../../api/productApi';
-import './ProductCategoryForm.css';
+import styles from './ProductCategoryForm.module.css';
 
 const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -39,7 +39,7 @@ const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
     });
-    
+
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -58,13 +58,13 @@ const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setLoading(true);
-    
+
     try {
       const submitData = {
         name: formData.name.trim(),
@@ -95,11 +95,11 @@ const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
     } catch (error) {
       console.error('提交表單失敗:', error);
       console.error('錯誤詳情:', error.response?.data);
-      setErrors({ 
-        submit: error.response?.data?.name?.[0] || 
-                error.response?.data?.message || 
-                error.response?.data?.detail ||
-                '提交失敗，請稍後再試' 
+      setErrors({
+        submit: error.response?.data?.name?.[0] ||
+          error.response?.data?.message ||
+          error.response?.data?.detail ||
+          '提交失敗，請稍後再試'
       });
     } finally {
       setLoading(false);
@@ -107,23 +107,23 @@ const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
+    <div className={styles.modalOverlay}>
+      <div className={styles.modalContent}>
+        <div className={styles.modalHeader}>
           <h2>{category ? '編輯類別' : '新增類別'}</h2>
-          <button className="modal-close-btn" onClick={onClose}>
+          <button className={styles.modalCloseBtn} onClick={onClose}>
             <FaTimes />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="category-form">
+        <form onSubmit={handleSubmit} className={styles.categoryForm}>
           {errors.submit && (
-            <div className="error-message">{errors.submit}</div>
+            <div className={styles.errorMessage}>{errors.submit}</div>
           )}
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="name">
-              類別名稱 <span className="required">*</span>
+              類別名稱 <span className={styles.required}>*</span>
             </label>
             <input
               type="text"
@@ -134,10 +134,10 @@ const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
               placeholder="例如：主餐、飲料、甜點"
               className={errors.name ? 'error' : ''}
             />
-            {errors.name && <span className="error-text">{errors.name}</span>}
+            {errors.name && <span className={styles.errorText}>{errors.name}</span>}
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="description">類別描述</label>
             <textarea
               id="description"
@@ -149,7 +149,7 @@ const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
             />
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="display_order">顯示順序</label>
             <input
               type="number"
@@ -163,8 +163,8 @@ const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
             <small>數字越小，類別在列表中的位置越前面</small>
           </div>
 
-          <div className="form-group">
-            <label className="checkbox-label">
+          <div className={styles.formGroup}>
+            <label className={styles.checkboxLabel}>
               <input
                 type="checkbox"
                 name="is_active"
@@ -175,10 +175,10 @@ const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
             </label>
           </div>
 
-          <div className="form-actions">
+          <div className={styles.formActions}>
             <button
               type="button"
-              className="btn-secondary"
+              className={styles.btnSecondary}
               onClick={onClose}
               disabled={loading}
             >
@@ -186,7 +186,7 @@ const ProductCategoryForm = ({ category, onClose, onSuccess }) => {
             </button>
             <button
               type="submit"
-              className="btn-primary"
+              className={styles.btnPrimary}
               disabled={loading}
             >
               {loading ? '處理中...' : (category ? '更新' : '新增')}

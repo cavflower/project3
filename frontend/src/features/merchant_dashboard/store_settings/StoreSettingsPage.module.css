@@ -1,0 +1,567 @@
+/* 餐廳設定頁面 - CSS Module */
+
+.storeSettingsPage {
+    min-height: 100vh;
+    background-color: #f5f5f5;
+    padding: 20px;
+}
+
+.storeSettingsContainer {
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+}
+
+.pageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #eee;
+}
+
+.pageHeader h1 {
+    margin: 0;
+    color: #333;
+    font-size: 2rem;
+}
+
+.headerActions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.btnBack {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #6c757d !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    text-decoration: none;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.btnBack:hover {
+    background-color: #5a6268 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btnBack:active {
+    transform: translateY(0);
+}
+
+.btnPublish {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background-color: #28a745;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btnPublish:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btnPublish:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btnUnpublish {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background-color: #dc3545;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btnUnpublish:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btnUnpublish:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.warningBadge {
+    padding: 10px 20px;
+    border-radius: 6px;
+    background-color: #ffc107;
+    color: #000;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.storeSettingsForm {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.formSection {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.formSection h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.5rem;
+    border-bottom: 2px solid #e74c3c;
+    padding-bottom: 10px;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.formGroupFullWidth {
+    display: flex;
+    flex-direction: column;
+    grid-column: 1 / -1;
+}
+
+.formGroup label {
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+.formGroup input[type="text"],
+.formGroup input[type="tel"],
+.formGroup input[type="email"],
+.formGroup input[type="url"],
+.formGroup input[type="number"],
+.formGroup input[type="time"],
+.formGroup select,
+.formGroup textarea {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+.formGroupFullWidth label {
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+.formGroupFullWidth input[type="text"],
+.formGroupFullWidth input[type="tel"],
+.formGroupFullWidth input[type="email"],
+.formGroupFullWidth input[type="url"],
+.formGroupFullWidth input[type="number"],
+.formGroupFullWidth input[type="time"],
+.formGroupFullWidth select,
+.formGroupFullWidth textarea {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+.formGroup select {
+    background-color: white;
+    cursor: pointer;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus {
+    outline: none;
+    border-color: #e74c3c;
+}
+
+.formGroup input[type="file"] {
+    padding: 5px;
+}
+
+.formGroup small {
+    color: #666;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.openingHoursContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.openingHoursItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background-color: white;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.dayLabel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 120px;
+}
+
+.dayLabel input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.dayLabel label {
+    margin: 0;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.timeInputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.timeInputs input[type="time"] {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+.timeInputs span {
+    color: #666;
+}
+
+.closedLabel {
+    color: #999;
+    font-style: italic;
+    padding-right: 10px;
+}
+
+.imagesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.imagesGrid h3 {
+    margin-bottom: 15px;
+    color: #555;
+    font-size: 1.1rem;
+}
+
+.imageItem {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #ddd;
+    background-color: #f9f9f9;
+}
+
+.imageItem img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+}
+
+.btnDeleteImage {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 5px 10px;
+    background-color: rgba(231, 76, 60, 0.9);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.btnDeleteImage:hover {
+    background-color: rgba(192, 57, 43, 1);
+}
+
+/* 功能開關 */
+.featureToggles {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.featureToggleItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s;
+}
+
+.featureToggleItem:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.toggleInfo {
+    flex: 1;
+}
+
+.toggleInfo label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+    font-size: 1rem;
+}
+
+.toggleInfo small {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+/* Toggle Switch */
+.toggleSwitch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin: 0;
+}
+
+.toggleSwitch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggleSlider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 34px;
+}
+
+.toggleSlider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+}
+
+.toggleSwitch input:checked+.toggleSlider {
+    background-color: #ff6b6b;
+}
+
+.toggleSwitch input:checked+.toggleSlider:before {
+    transform: translateX(26px);
+}
+
+.toggleSlider:hover {
+    background-color: #b3b3b3;
+}
+
+.toggleSwitch input:checked+.toggleSlider:hover {
+    background-color: #ff5252;
+}
+
+.sectionDescription {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-top: 5px;
+    margin-bottom: 20px;
+}
+
+.formActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #eee;
+}
+
+.btnSubmit,
+.btnCancel {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.btnSubmit {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btnSubmit:hover:not(:disabled) {
+    background-color: #c0392b;
+}
+
+.btnSubmit:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.btnCancel {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btnCancel:hover {
+    background-color: #5a6268;
+}
+
+.errorMessage {
+    color: #e74c3c;
+    background-color: #fbeaea;
+    border: 1px solid #e74c3c;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+.successMessage {
+    color: #27ae60;
+    background-color: #eafaf1;
+    border: 1px solid #27ae60;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+.loading {
+    text-align: center;
+    padding: 50px;
+    font-size: 1.2rem;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .storeSettingsContainer {
+        padding: 20px;
+    }
+
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .pageHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .openingHoursItem {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .timeInputs {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+.creditCardOptions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.creditCardOption {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.95rem;
+}

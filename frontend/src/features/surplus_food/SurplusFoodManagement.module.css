@@ -1,0 +1,1173 @@
+/* 惜福食品管理 - CSS Module */
+
+.surplusFoodManagement {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* 頁面標題 */
+.pageHeader {
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+    border-radius: 12px;
+    color: white;
+}
+
+.headerContent {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.headerIcon {
+    font-size: 3rem;
+    color: white;
+}
+
+.pageHeader h1 {
+    margin: 0;
+    font-size: 2rem;
+    color: white;
+}
+
+.pageHeader p {
+    margin: 0.5rem 0 0 0;
+    color: white;
+    opacity: 0.9;
+}
+
+/* 標籤頁 */
+.tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.tabButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #666;
+    transition: all 0.3s;
+}
+
+.tabButton:hover {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.05);
+}
+
+.tabButtonActive {
+    composes: tabButton;
+    color: #ff6b6b;
+    border-bottom-color: #ff6b6b;
+    font-weight: 600;
+}
+
+/* 內容區 */
+.tabContent {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.contentHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.contentHeader h2 {
+    margin: 0;
+    color: #333;
+}
+
+.filterGroup {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.filterSelect {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+/* 惜福食品網格 */
+.foodsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.foodCard {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.foodCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.foodImage {
+    position: relative;
+    height: 200px;
+    background: #f5f5f5;
+    overflow: hidden;
+}
+
+.foodImage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.noImage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 3rem;
+    color: #ccc;
+}
+
+.foodInfo {
+    padding: 1rem;
+}
+
+.foodInfo h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.foodCode {
+    font-size: 0.85rem;
+    color: #999;
+    margin-bottom: 0.5rem;
+}
+
+.foodPrice {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.originalPrice {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.surplusPrice {
+    font-size: 1.0rem;
+    font-weight: 600;
+    color: #28a745;
+}
+
+.discount {
+    background: #ff8e53;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.foodQuantity {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0.5rem 0;
+}
+
+.foodTime {
+    font-size: 0.85rem;
+    color: #999;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+}
+
+.foodActions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+}
+
+/* 狀態標籤 */
+.statusBadge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+}
+
+.statusDraft {
+    background: #6c757d;
+}
+
+.statusActive {
+    background: white;
+    color: #28a745;
+    border: 1px solid #28a745;
+}
+
+.statusInactive {
+    background: white;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.statusSoldOut {
+    background: #dc3545;
+}
+
+.statusExpired {
+    background: #6c757d;
+}
+
+/* 時段列表 */
+.timeslotsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.daySection {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dayHeader {
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #ff6b6b;
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.timeslotsList {
+    display: grid;
+    gap: 1rem;
+}
+
+.timeslotCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.timeslotCard:hover {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateX(4px);
+}
+
+.timeslotInfo {
+    flex: 1;
+}
+
+.timeslotTime {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.timeslotDetails {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.timeslotName {
+    color: #666;
+}
+
+.timeslotMeta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: #999;
+}
+
+.timeslotActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btnIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: black;
+}
+
+.btnIcon:hover {
+    transform: scale(1.1);
+}
+
+.btnEdit {
+    composes: btnIcon;
+}
+
+.btnEdit:hover {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btnDelete {
+    composes: btnIcon;
+}
+
+.btnDelete:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 3rem;
+    color: #999;
+}
+
+.emptyState p {
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+/* 訂單列表 */
+.ordersList {
+    display: flex;
+    gap: 1rem;
+}
+
+.orderCard {
+    height: 100%;
+    width: 30%;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.orderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.orderNumber {
+    font-weight: 600;
+    color: #333;
+}
+
+.orderBody {
+    margin-bottom: 1rem;
+}
+
+.orderInfo p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.orderActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* 統計卡片 */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.statCard {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.statValue {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ff6b6b;
+    margin-bottom: 0.5rem;
+}
+
+.statLabel {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* 按鈕樣式 */
+.btnPrimary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btnPrimary:hover {
+    background: #ff5252;
+}
+
+.btnSmSuccess {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #ef8e72;
+    color: white;
+}
+
+.btnSmPrimary {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #ff6b6b;
+    color: white;
+}
+
+.btnSmDanger {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: white;
+    color: #f19173;
+    border: 1px solid #f19173;
+}
+
+/* 模態視窗 */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s;
+}
+
+.modalContent {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.modalHeader h2 {
+    margin: 0;
+    color: #333;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.3s;
+}
+
+.closeBtn:hover {
+    color: #333;
+}
+
+.modalBody {
+    padding: 1.5rem;
+}
+
+/* 載入狀態 */
+.loading {
+    text-align: center;
+    padding: 3rem;
+    color: #999;
+}
+
+/* 狀態篩選按鈕 */
+.filterSection {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filterBtn {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #666;
+    transition: all 0.3s;
+}
+
+.filterBtn:hover {
+    background: #f5f5f5;
+    border-color: #ff6b6b;
+    color: #ff6b6b;
+}
+
+.filterBtnActive {
+    composes: filterBtn;
+    background: #f19173;
+    color: white;
+    border-color: #f19173;
+    font-weight: 500;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .surplusFoodManagement {
+        padding: 1rem;
+    }
+
+    .pageHeader {
+        padding: 1.5rem;
+    }
+
+    .headerIcon {
+        font-size: 2rem;
+    }
+
+    .pageHeader h1 {
+        font-size: 1.5rem;
+    }
+
+    .foodsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .tabs {
+        overflow-x: auto;
+    }
+
+    .tabButton {
+        white-space: nowrap;
+    }
+
+    .contentHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .filterSection {
+        width: 100%;
+    }
+}
+
+/* ============ 綠色點數標籤樣式 ============ */
+.tabButtonGreenPoints {
+    composes: tabButton;
+    color: #4CAF50;
+}
+
+.tabButtonGreenPoints:hover {
+    color: #2E7D32;
+    background: rgba(76, 175, 80, 0.05);
+}
+
+.tabButtonGreenPointsActive {
+    composes: tabButtonGreenPoints;
+    color: #4CAF50;
+    border-bottom-color: #4CAF50;
+    font-weight: 600;
+}
+
+/* 綠色按鈕 */
+.greenBtn {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
+}
+
+.greenBtn:hover {
+    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%) !important;
+}
+
+/* 綠色點數內容區 */
+.greenPointsContent {
+    animation: fadeIn 0.3s;
+}
+
+/* 規則網格 */
+.rulesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+/* 規則卡片 */
+.ruleCard {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+    border-left: 4px solid #4CAF50;
+}
+
+.ruleCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.ruleCardInactive {
+    composes: ruleCard;
+    opacity: 0.6;
+    border-left-color: #9e9e9e;
+}
+
+.ruleHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+.ruleTypeBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: white;
+    color: #4CAF50;
+}
+
+.toggleBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #9e9e9e;
+    transition: color 0.3s;
+}
+
+.ruleBody {
+    padding: 1.25rem;
+}
+
+.ruleBody h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.rulePoints {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #4CAF50;
+    margin-bottom: 0.5rem;
+}
+
+.pointsIcon {
+    color: #FFC107;
+}
+
+.ruleDetail {
+    font-size: 0.95rem;
+    color: #666;
+    padding: 0.5rem 0;
+    border-top: 1px dashed #e0e0e0;
+    border-bottom: 1px dashed #e0e0e0;
+    margin: 0.5rem 0;
+}
+
+.ruleDescription {
+    font-size: 0.85rem;
+    color: #999;
+    margin: 0.5rem 0 0 0;
+}
+
+.ruleQuota {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.5rem;
+}
+
+.ruleActions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+}
+
+/* 綠色 Modal */
+.greenModal .modalHeader {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+}
+
+.greenModal .modalHeader h2 {
+    color: white;
+}
+
+.greenModal .closeBtn {
+    color: white;
+}
+
+/* 規則類型選擇器 */
+.ruleTypeSelector {
+    display: flex;
+    gap: 1rem;
+}
+
+.typeBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1rem;
+}
+
+.typeBtn:hover {
+    border-color: #4CAF50;
+    color: #4CAF50;
+}
+
+.typeBtnActive {
+    composes: typeBtn;
+    border-color: #4CAF50;
+    background: #E8F5E9;
+    color: #4CAF50;
+}
+
+/* 折扣類型選擇器 */
+.discountTypeSelector {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.radioLabel input[type="radio"] {
+    accent-color: #4CAF50;
+}
+
+/* 表單樣式 */
+.formGroup {
+    margin-bottom: 1.25rem;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.formGroup input,
+.formGroup textarea,
+.formGroup select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus,
+.formGroup select:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.formGroup small {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.formRow {
+    display: flex;
+    gap: 1rem;
+}
+
+.formRow .formGroup {
+    flex: 1;
+}
+
+.checkboxGroup label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.checkboxGroup input[type="checkbox"] {
+    width: auto;
+    accent-color: #4CAF50;
+}
+
+/* Modal Footer */
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+    margin-top: 1rem;
+}
+
+.btnCancel {
+    padding: 0.75rem 1.5rem;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btnCancel:hover {
+    background: #f5f5f5;
+}
+
+/* 響應式 */
+@media (max-width: 768px) {
+    .rulesGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .ruleTypeSelector {
+        flex-direction: column;
+    }
+
+    .formRow {
+        flex-direction: column;
+    }
+
+    .discountTypeSelector {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* ============ 設定回饋專用樣式 ============ */
+.rewardDescription {
+    color: #666;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.rewardPoints {
+    color: #4CAF50 !important;
+    font-size: 1.5rem !important;
+}
+
+/* 環保行為類型選擇器 */
+.actionTypeGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.actionTypeBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 0.75rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.85rem;
+    min-height: 80px;
+}
+
+.actionTypeBtn svg {
+    font-size: 1.5rem;
+}
+
+.actionTypeBtn:hover {
+    border-color: var(--action-color);
+    transform: translateY(-2px);
+}
+
+.actionTypeBtnActive {
+    composes: actionTypeBtn;
+    border-color: var(--action-color);
+    background: linear-gradient(135deg, var(--action-color)10 0%, var(--action-color)05 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 點數輸入包裝 */
+.pointsInputWrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pointsInputWrapper input {
+    width: 100px !important;
+}
+
+.pointsSuffix {
+    font-weight: 600;
+    color: #4CAF50;
+}
+
+@media (max-width: 768px) {
+    .actionTypeGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ============ 子標籤導覽列樣式 ============ */
+.subTabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem;
+    background: #f5f5f5;
+    border-radius: 10px;
+}
+
+.subTabButton {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.3s;
+}
+
+.subTabButton:hover {
+    color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.subTabButtonActive {
+    composes: subTabButton;
+    background: white;
+    color: #4CAF50;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.subTabButton svg {
+    font-size: 1.1rem;
+}
+
+.subTabContent {
+    animation: fadeIn 0.3s;
+}
+
+@media (max-width: 768px) {
+    .subTabs {
+        flex-direction: column;
+    }
+}
+
+/* ============ 內嵌表單樣式 ============ */
+.ruleFormInline {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e8f5e9;
+}
+
+.formActions {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+/* 已設定標籤 */
+.actionTypeBtnConfigured {
+    composes: actionTypeBtn;
+    position: relative;
+}
+
+.configuredBadge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #4CAF50;
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* 已設定規則區塊 */
+.configuredRulesSection {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed #e0e0e0;
+}
+
+.configuredRulesSection h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+/* 即時更新狀態指示器 */
+.realtimeStatus {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #999;
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border-radius: 20px;
+}
+
+.realtimeStatusConnected {
+    composes: realtimeStatus;
+    color: #28a745;
+    background: #e8f5e9;
+}
+
+.statusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #999;
+}
+
+.statusDotConnected {
+    composes: statusDot;
+    background: #28a745;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useNavigate } from 'react-router-dom';
-import './ForgotPasswordPage.css';
+import styles from './ForgotPasswordPage.module.css';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -62,37 +62,37 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="forgot-password-page">
-      <div className="forgot-password-container">
-        <div className="forgot-password-header">
+    <div className={styles['forgot-password-page']}>
+      <div className={styles['forgot-password-container']}>
+        <div className={styles['forgot-password-header']}>
           <h1>忘記密碼</h1>
-          <p className="subtitle">請輸入您的電子郵件地址，我們將發送密碼重置連結給您</p>
+          <p className={styles.subtitle}>請輸入您的電子郵件地址，我們將發送密碼重置連結給您</p>
         </div>
 
         {success ? (
-          <div className="success-message">
-            <div className="success-icon">✓</div>
+          <div className={styles['success-message']}>
+            <div className={styles['success-icon']}>✓</div>
             <h2>郵件已發送！</h2>
             <p>
               我們已將密碼重置連結發送到 <strong>{email}</strong>
             </p>
-            <p className="instruction">
+            <p className={styles.instruction}>
               請檢查您的電子郵件信箱（包括垃圾郵件），點擊連結重置密碼。
             </p>
-            <p className="redirect-notice">
+            <p className={styles['redirect-notice']}>
               即將自動返回登入頁面...
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="forgot-password-form">
+          <form onSubmit={handleSubmit} className={styles['forgot-password-form']}>
             {error && (
-              <div className="error-message">
-                <span className="error-icon">⚠</span>
+              <div className={styles['error-message']}>
+                <span className={styles['error-icon']}>⚠</span>
                 {error}
               </div>
             )}
 
-            <div className="form-group">
+            <div className={styles['form-group']}>
               <label htmlFor="email">電子郵件</label>
               <input
                 type="email"
@@ -107,17 +107,17 @@ const ForgotPasswordPage = () => {
 
             <button 
               type="submit" 
-              className="submit-btn"
+              className={styles['submit-btn']}
               disabled={loading}
             >
               {loading ? '發送中...' : '發送重置郵件'}
             </button>
 
-            <div className="back-to-login">
+            <div className={styles['back-to-login']}>
               <button 
                 type="button"
                 onClick={() => navigate('/customer-login')}
-                className="back-btn"
+                className={styles['back-btn']}
                 disabled={loading}
               >
                 ← 返回登入

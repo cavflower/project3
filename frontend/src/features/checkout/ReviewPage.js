@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FaStar, FaRegStar, FaUtensils, FaStore, FaSmile, FaThumbsUp, FaCheckCircle } from 'react-icons/fa';
 import { getUserOrders } from '../../api/orderApi';
 import api from '../../api/api';
-import './ReviewPage.css';
+import styles from './ReviewPage.module.css';
 
 function ReviewPage() {
   const { orderId } = useParams();
@@ -128,12 +128,12 @@ function ReviewPage() {
 
   const renderStars = (rating, hoverRating, onRate, onHover, onLeave) => {
     return (
-      <div className="star-rating">
+      <div className={styles['star-rating']}>
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
             type="button"
-            className={`star-btn ${star <= (hoverRating || rating) ? 'active' : ''}`}
+            className={`${styles['star-btn']} ${star <= (hoverRating || rating) ? styles.active : ''}`}
             onClick={() => onRate(star)}
             onMouseEnter={() => onHover(star)}
             onMouseLeave={onLeave}
@@ -147,8 +147,8 @@ function ReviewPage() {
 
   if (loading) {
     return (
-      <div className="review-page">
-        <div className="review-container">
+      <div className={styles['review-page']}>
+        <div className={styles['review-container']}>
           <p>載入中...</p>
         </div>
       </div>
@@ -157,9 +157,9 @@ function ReviewPage() {
 
   if (isSubmitted) {
     return (
-      <div className="review-page">
-        <div className="review-success">
-          <div className="success-icon">
+      <div className={styles['review-page']}>
+        <div className={styles['review-success']}>
+          <div className={styles['success-icon']}>
             <FaCheckCircle />
           </div>
           <h2>感謝您的評價！</h2>
@@ -171,8 +171,8 @@ function ReviewPage() {
 
   if (!orderData) {
     return (
-      <div className="review-page">
-        <div className="review-container">
+      <div className={styles['review-page']}>
+        <div className={styles['review-container']}>
           <p>找不到訂單資料</p>
         </div>
       </div>
@@ -180,10 +180,10 @@ function ReviewPage() {
   }
 
   return (
-    <div className="review-page">
-      <div className="review-container">
+    <div className={styles['review-page']}>
+      <div className={styles['review-container']}>
         {/* 頁面標題 */}
-        <div className="review-header">
+        <div className={styles['review-header']}>
           <h1>評價您的用餐體驗</h1>
           <p>訂單編號：{orderId}</p>
           <p>店家：{orderData.store_name || orderData.store}</p>
@@ -191,12 +191,12 @@ function ReviewPage() {
 
         <form onSubmit={handleSubmit}>
           {/* 店家評分 */}
-          <div className="review-section store-rating-section">
-            <div className="section-header">
-              <FaStore className="section-icon" />
+          <div className={`${styles['review-section']} ${styles['store-rating-section']}`}>
+            <div className={styles['section-header']}>
+              <FaStore className={styles['section-icon']} />
               <h3>店家整體評價</h3>
             </div>
-            <div className="rating-container">
+            <div className={styles['rating-container']}>
               {renderStars(
                 storeRating,
                 storeHoverRating,
@@ -204,7 +204,7 @@ function ReviewPage() {
                 setStoreHoverRating,
                 () => setStoreHoverRating(0)
               )}
-              <span className="rating-text">
+              <span className={styles['rating-text']}>
                 {storeRating === 0 ? '點擊星星評分' : 
                  storeRating === 5 ? '非常滿意！' :
                  storeRating === 4 ? '很好' :
@@ -215,16 +215,16 @@ function ReviewPage() {
           </div>
 
           {/* 快速評價標籤 */}
-          <div className="review-section quick-tags-section">
-            <div className="section-header">
+          <div className={`${styles['review-section']} ${styles['quick-tags-section']}`}>
+            <div className={styles['section-header']}>
               <h3>您的感受（可多選）</h3>
             </div>
-            <div className="quick-tags">
+            <div className={styles['quick-tags']}>
               {quickTags.map((tag, index) => (
                 <button
                   key={index}
                   type="button"
-                  className={`tag-btn ${selectedTags.includes(tag.text) ? 'selected' : ''}`}
+                  className={`${styles['tag-btn']} ${selectedTags.includes(tag.text) ? styles.selected : ''}`}
                   onClick={() => handleTagClick(tag.text)}
                 >
                   {tag.icon}
@@ -236,16 +236,16 @@ function ReviewPage() {
 
           {/* 產品評分 */}
           {orderData && orderData.items && orderData.items.length > 0 && (
-            <div className="review-section product-rating-section">
-              <div className="section-header">
-                <FaUtensils className="section-icon" />
+            <div className={`${styles['review-section']} ${styles['product-rating-section']}`}>
+              <div className={styles['section-header']}>
+                <FaUtensils className={styles['section-icon']} />
                 <h3>餐點評分</h3>
               </div>
-              <div className="product-ratings">
+              <div className={styles['product-ratings']}>
                 {orderData.items.map((item) => (
-                  <div key={item.id} className="product-item">
-                    <div className="product-info">
-                      <span className="product-name">
+                  <div key={item.id} className={styles['product-item']}>
+                    <div className={styles['product-info']}>
+                      <span className={styles['product-name']}>
                         {item.product_name || item.name}
                         {item.quantity > 1 && ` x${item.quantity}`}
                       </span>
@@ -264,34 +264,34 @@ function ReviewPage() {
           )}
 
           {/* 文字評論 */}
-          <div className="review-section comment-section">
-            <div className="section-header">
+          <div className={`${styles['review-section']} ${styles['comment-section']}`}>
+            <div className={styles['section-header']}>
               <h3>詳細評論（選填）</h3>
             </div>
             <textarea
-              className="comment-input"
+              className={styles['comment-input']}
               placeholder="分享您對店家的整體看法、餐點口味、服務品質等..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows="5"
             />
-            <div className="char-count">
+            <div className={styles['char-count']}>
               {comment.length} / 500
             </div>
           </div>
 
           {/* 提交按鈕 */}
-          <div className="submit-section">
+          <div className={styles['submit-section']}>
             <button 
               type="submit" 
-              className="submit-btn"
+              className={styles['submit-btn']}
               disabled={isSubmitting}
             >
               {isSubmitting ? '提交中...' : '送出評價'}
             </button>
             <button 
               type="button" 
-              className="cancel-btn"
+              className={styles['cancel-btn']}
               onClick={() => navigate('/customer-home')}
             >
               稍後再說

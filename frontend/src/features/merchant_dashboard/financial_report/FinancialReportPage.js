@@ -34,7 +34,7 @@ import api from '../../../api/api';
 import { getMyStore } from '../../../api/storeApi';
 import { getProducts } from '../../../api/productApi';
 import { getAIReport } from '../../../api/financialApi';
-import './FinancialReportPage.css';
+import styles from './FinancialReportPage.module.css';
 
 const FinancialReportPage = () => {
   // 日期區間狀態
@@ -455,11 +455,11 @@ const FinancialReportPage = () => {
   };
 
   return (
-    <div className="financial-report-page">
+    <div className={styles.financialReportPage}>
       {/* 頁面標題 */}
-      <div className="report-header">
-        <div className="header-content">
-          <FaChartLine className="header-icon" />
+      <div className={styles.reportHeader}>
+        <div className={styles.headerContent}>
+          <FaChartLine className={styles.headerIcon} />
           <div>
             <h1>財務報表</h1>
             <p>查看店家營收、銷售與通路分析</p>
@@ -468,11 +468,11 @@ const FinancialReportPage = () => {
       </div>
 
       {/* 日期選擇與匯出 */}
-      <div className="report-controls">
-        <div className="date-range-selector">
-          <FaCalendarAlt className="control-icon" />
-          <div className="date-inputs">
-            <div className="date-input-group">
+      <div className={styles.reportControls}>
+        <div className={styles.dateRangeSelector}>
+          <FaCalendarAlt className={styles.controlIcon} />
+          <div className={styles.dateInputs}>
+            <div className={styles.dateInputGroup}>
               <label>開始日期</label>
               <input
                 type="date"
@@ -481,8 +481,8 @@ const FinancialReportPage = () => {
                 max={dateRange.endDate}
               />
             </div>
-            <span className="date-separator">至</span>
-            <div className="date-input-group">
+            <span className={styles.dateSeparator}>至</span>
+            <div className={styles.dateInputGroup}>
               <label>結束日期</label>
               <input
                 type="date"
@@ -495,16 +495,16 @@ const FinancialReportPage = () => {
           </div>
         </div>
 
-        <div className="export-buttons">
+        <div className={styles.exportButtons}>
           <button
-            className="export-btn excel-btn"
+            className={styles.excelBtn}
             onClick={() => handleExportReport('excel')}
           >
             <FaFileExport />
             匯出 Excel
           </button>
           <button
-            className="export-btn pdf-btn"
+            className={styles.pdfBtn}
             onClick={() => handleExportReport('pdf')}
           >
             <FaDownload />
@@ -514,50 +514,50 @@ const FinancialReportPage = () => {
       </div>
 
       {loading ? (
-        <div className="loading-state">
-          <div className="spinner"></div>
+        <div className={styles.loadingState}>
+          <div className={styles.spinner}></div>
           <p>載入報表資料中...</p>
         </div>
       ) : (
         <>
           {/* 摘要卡片 */}
-          <div className="summary-cards">
-            <div className="summary-card revenue-card">
-              <div className="card-icon">
+          <div className={styles.summaryCards}>
+            <div className={styles.summaryCard}>
+              <div className={styles.revenueCardIcon}>
                 <FaDollarSign />
               </div>
-              <div className="card-content">
+              <div className={styles.cardContent}>
                 <h3>總營收</h3>
-                <p className="card-value">{formatCurrency(reportData.summary.totalRevenue)}</p>
-                <div className="card-growth positive">
+                <p className={styles.cardValue}>{formatCurrency(reportData.summary.totalRevenue)}</p>
+                <div className={styles.cardGrowthPositive}>
                   <FaArrowUp />
                   <span>{reportData.summary.revenueGrowth}% vs 上期</span>
                 </div>
               </div>
             </div>
 
-            <div className="summary-card orders-card">
-              <div className="card-icon">
+            <div className={styles.summaryCard}>
+              <div className={styles.ordersCardIcon}>
                 <FaShoppingCart />
               </div>
-              <div className="card-content">
+              <div className={styles.cardContent}>
                 <h3>總訂單數</h3>
-                <p className="card-value">{reportData.summary.totalOrders}</p>
-                <div className="card-growth positive">
+                <p className={styles.cardValue}>{reportData.summary.totalOrders}</p>
+                <div className={styles.cardGrowthPositive}>
                   <FaArrowUp />
                   <span>8.3% vs 上期</span>
                 </div>
               </div>
             </div>
 
-            <div className="summary-card avg-card">
-              <div className="card-icon">
+            <div className={styles.summaryCard}>
+              <div className={styles.avgCardIcon}>
                 <FaUtensils />
               </div>
-              <div className="card-content">
+              <div className={styles.cardContent}>
                 <h3>平均客單價</h3>
-                <p className="card-value">{formatCurrency(reportData.summary.avgOrderValue)}</p>
-                <div className="card-growth positive">
+                <p className={styles.cardValue}>{formatCurrency(reportData.summary.avgOrderValue)}</p>
+                <div className={styles.cardGrowthPositive}>
                   <FaArrowUp />
                   <span>3.7% vs 上期</span>
                 </div>
@@ -566,12 +566,12 @@ const FinancialReportPage = () => {
           </div>
 
           {/* 每日營收趨勢 */}
-          <div className="chart-section">
-            <div className="section-header">
+          <div className={styles.chartSection}>
+            <div className={styles.sectionHeader}>
               <h2>每日營收趨勢</h2>
               <p>檢視期間內的每日營收變化</p>
             </div>
-            <div className="chart-container">
+            <div className={styles.chartContainer}>
               {reportData.dailyRevenue.length > 0 ? (
                 <ResponsiveContainer width="100%" height={350}>
                   <LineChart data={reportData.dailyRevenue}>
@@ -608,7 +608,7 @@ const FinancialReportPage = () => {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="empty-state">
+                <div className={styles.emptyState}>
                   <FaChartLine style={{ fontSize: '3rem', color: '#ccc', marginBottom: '1rem' }} />
                   <p>目前尚無訂單資料</p>
                   <p style={{ fontSize: '0.9rem', color: '#888' }}>開始接受訂單後，這裡將顯示營收趨勢</p>
@@ -618,14 +618,14 @@ const FinancialReportPage = () => {
           </div>
 
           {/* 商品銷售分析 */}
-          <div className="chart-section">
-            <div className="section-header">
+          <div className={styles.chartSection}>
+            <div className={styles.sectionHeader}>
               <h2>商品銷售分析</h2>
               <p>各商品的銷售數量與營收貢獻</p>
             </div>
             {reportData.productSales.length > 0 ? (
-              <div className="product-sales-grid">
-                <div className="chart-container">
+              <div className={styles.productSalesGrid}>
+                <div className={styles.chartContainer}>
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={reportData.productSales}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -660,7 +660,7 @@ const FinancialReportPage = () => {
                   </ResponsiveContainer>
                 </div>
 
-                <div className="product-table">
+                <div className={styles.productTable}>
                   <h3>銷售明細</h3>
                   <table>
                     <thead>
@@ -674,13 +674,13 @@ const FinancialReportPage = () => {
                     <tbody>
                       {reportData.productSales.map((product, index) => (
                         <tr key={index}>
-                          <td className="product-name">{product.name}</td>
+                          <td className={styles.productName}>{product.name}</td>
                           <td>{product.quantity}</td>
-                          <td className="revenue-value">{formatCurrency(product.revenue)}</td>
+                          <td className={styles.revenueValue}>{formatCurrency(product.revenue)}</td>
                           <td>
-                            <div className="percentage-bar">
+                            <div className={styles.percentageBar}>
                               <div
-                                className="percentage-fill"
+                                className={styles.percentageFill}
                                 style={{ width: `${product.percentage}%` }}
                               ></div>
                               <span>{product.percentage}%</span>
@@ -693,7 +693,7 @@ const FinancialReportPage = () => {
                 </div>
               </div>
             ) : (
-              <div className="empty-state">
+              <div className={styles.emptyState}>
                 <FaShoppingCart style={{ fontSize: '3rem', color: '#ccc', marginBottom: '1rem' }} />
                 <p>目前尚無商品銷售資料</p>
                 <p style={{ fontSize: '0.9rem', color: '#888' }}>開始接受訂單後，這裡將顯示商品銷售分析</p>
@@ -702,14 +702,14 @@ const FinancialReportPage = () => {
           </div>
 
           {/* 各通路營收分析 */}
-          <div className="chart-section">
-            <div className="section-header">
+          <div className={styles.chartSection}>
+            <div className={styles.sectionHeader}>
               <h2>各通路營收分析</h2>
               <p>不同銷售通路的營收佔比與訂單數</p>
             </div>
             {reportData.channelRevenue.length > 0 ? (
-              <div className="channel-revenue-grid">
-                <div className="chart-container">
+              <div className={styles.channelRevenueGrid}>
+                <div className={styles.chartContainer}>
                   <ResponsiveContainer width="100%" height={350}>
                     <PieChart>
                       <Pie
@@ -739,19 +739,19 @@ const FinancialReportPage = () => {
                   </ResponsiveContainer>
                 </div>
 
-                <div className="channel-cards">
+                <div className={styles.channelCards}>
                   {reportData.channelRevenue.map((channel, index) => (
-                    <div key={index} className="channel-card">
+                    <div key={index} className={styles.channelCard}>
                       <div
-                        className="channel-indicator"
+                        className={styles.channelIndicator}
                         style={{ background: COLORS[index % COLORS.length] }}
                       ></div>
-                      <div className="channel-info">
+                      <div className={styles.channelInfo}>
                         <h4>{channel.name}</h4>
-                        <p className="channel-revenue">{formatCurrency(channel.value)}</p>
-                        <div className="channel-stats">
-                          <span className="channel-orders">{channel.orders} 筆訂單</span>
-                          <span className="channel-percentage">{channel.percentage}%</span>
+                        <p className={styles.channelRevenue}>{formatCurrency(channel.value)}</p>
+                        <div className={styles.channelStats}>
+                          <span className={styles.channelOrders}>{channel.orders} 筆訂單</span>
+                          <span className={styles.channelPercentage}>{channel.percentage}%</span>
                         </div>
                       </div>
                     </div>
@@ -759,7 +759,7 @@ const FinancialReportPage = () => {
                 </div>
               </div>
             ) : (
-              <div className="empty-state">
+              <div className={styles.emptyState}>
                 <FaStore style={{ fontSize: '3rem', color: '#ccc', marginBottom: '1rem' }} />
                 <p>目前尚無通路營收資料</p>
                 <p style={{ fontSize: '0.9rem', color: '#888' }}>開始接受訂單後，這裡將顯示各通路營收分析</p>
@@ -768,24 +768,24 @@ const FinancialReportPage = () => {
           </div>
 
           {/* AI 智能分析區塊 */}
-          <div className="chart-section ai-section">
-            <div className="section-header">
+          <div className={styles.aiSection}>
+            <div className={styles.sectionHeader}>
               <h2><FaRobot style={{ marginRight: '8px' }} /> AI 智能分析</h2>
               <p>讓 AI 為您分析銷售數據並提供經營建議</p>
             </div>
-            <div className="ai-analysis-content">
+            <div className={styles.aiAnalysisContent}>
               {aiError && (
-                <div className="ai-error">
+                <div className={styles.aiError}>
                   {aiError}
                 </div>
               )}
               {aiReport ? (
-                <div className="ai-report-result">
-                  <div className="ai-report-text">
+                <div className={styles.aiReportResult}>
+                  <div className={styles.aiReportText}>
                     {aiReport}
                   </div>
                   <button
-                    className="ai-regenerate-btn"
+                    className={styles.aiRegenerateBtn}
                     onClick={handleGenerateAIReport}
                     disabled={aiLoading}
                   >
@@ -794,11 +794,11 @@ const FinancialReportPage = () => {
                   </button>
                 </div>
               ) : (
-                <div className="ai-placeholder">
-                  <FaRobot className="ai-icon" />
+                <div className={styles.aiPlaceholder}>
+                  <FaRobot className={styles.aiIcon} />
                   <p>點擊下方按鈕，讓 AI 為您分析近期的營業數據</p>
                   <button
-                    className="ai-generate-btn"
+                    className={styles.aiGenerateBtn}
                     onClick={handleGenerateAIReport}
                     disabled={aiLoading}
                   >

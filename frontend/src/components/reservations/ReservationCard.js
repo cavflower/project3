@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  FaCalendarAlt, 
-  FaClock, 
-  FaUsers, 
-  FaStore, 
+import {
+  FaCalendarAlt,
+  FaClock,
+  FaUsers,
+  FaStore,
   FaPhone,
   FaUser,
-  FaEdit, 
+  FaEdit,
   FaTimes,
   FaCheck,
   FaTrash,
@@ -14,7 +14,7 @@ import {
   FaTimesCircle,
   FaHourglassHalf
 } from 'react-icons/fa';
-import './ReservationCard.css';
+import styles from './ReservationCard.module.css';
 
 /**
  * 可重複使用的訂位資料卡片組件
@@ -29,11 +29,11 @@ import './ReservationCard.css';
  * @param {Function} actions.onDelete - 刪除回調（商家端）
  * @param {boolean} showActions - 是否顯示操作按鈕
  */
-const ReservationCard = ({ 
-  reservation, 
-  viewMode = 'customer', 
+const ReservationCard = ({
+  reservation,
+  viewMode = 'customer',
   actions = {},
-  showActions = true 
+  showActions = true
 }) => {
   const {
     id,
@@ -57,15 +57,15 @@ const ReservationCard = ({
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      pending: { icon: <FaHourglassHalf />, label: '待確認', className: 'status-pending' },
-      confirmed: { icon: <FaCheckCircle />, label: '已確認', className: 'status-confirmed' },
-      cancelled: { icon: <FaTimesCircle />, label: '已取消', className: 'status-cancelled' },
-      completed: { icon: <FaCheckCircle />, label: '已完成', className: 'status-completed' },
+      pending: { icon: <FaHourglassHalf />, label: '待確認', className: styles['status-pending'] },
+      confirmed: { icon: <FaCheckCircle />, label: '已確認', className: styles['status-confirmed'] },
+      cancelled: { icon: <FaTimesCircle />, label: '已取消', className: styles['status-cancelled'] },
+      completed: { icon: <FaCheckCircle />, label: '已完成', className: styles['status-completed'] },
     };
-    
+
     const config = statusConfig[status] || statusConfig.pending;
     return (
-      <span className={`status-badge ${config.className}`}>
+      <span className={`${styles['status-badge']} ${config.className}`}>
         {config.icon}
         {config.label}
       </span>
@@ -96,25 +96,25 @@ const ReservationCard = ({
   const totalGuests = party_size + children_count;
 
   return (
-    <div className="reservation-card">
+    <div className={styles['reservation-card']}>
       {/* 卡片頭部 */}
-      <div className="card-header">
-        <div className="header-left">
+      <div className={styles['card-header']}>
+        <div className={styles['header-left']}>
           {viewMode === 'customer' && store_name && (
-            <div className="store-info">
-              <FaStore className="store-icon" />
+            <div className={styles['store-info']}>
+              <FaStore className={styles['store-icon']} />
               <div>
                 <h3>{store_name}</h3>
-                {store_address && <p className="store-address">{store_address}</p>}
+                {store_address && <p className={styles['store-address']}>{store_address}</p>}
               </div>
             </div>
           )}
           {viewMode === 'merchant' && customer_name && (
-            <div className="customer-info">
-              <FaUser className="customer-icon" />
+            <div className={styles['customer-info']}>
+              <FaUser className={styles['customer-icon']} />
               <div>
                 <h3>{customer_name}{getCustomerTitle(customer_gender)}</h3>
-                {created_at && <p className="created-time">{formatCreatedAt(created_at)}</p>}
+                {created_at && <p className={styles['created-time']}>{formatCreatedAt(created_at)}</p>}
               </div>
             </div>
           )}
@@ -123,11 +123,11 @@ const ReservationCard = ({
       </div>
 
       {/* 卡片內容 */}
-      <div className="card-body">
+      <div className={styles['card-body']}>
         {/* 聯絡電話（商家端顯示） */}
         {viewMode === 'merchant' && customer_phone && (
-          <div className="info-row">
-            <FaPhone className="info-icon" />
+          <div className={styles['info-row']}>
+            <FaPhone className={styles['info-icon']} />
             <span>{customer_phone}</span>
           </div>
         )}
@@ -157,14 +157,14 @@ const ReservationCard = ({
 
         {/* 特殊需求 */}
         {special_requests && (
-          <div className="special-requests">
+          <div className={styles['special-requests']}>
             <strong>特殊需求：</strong>{special_requests}
           </div>
         )}
 
         {/* 取消原因（僅在已取消狀態顯示） */}
         {status === 'cancelled' && cancel_reason && (
-          <div className="cancel-reason">
+          <div className={styles['cancel-reason']}>
             <strong>取消原因：</strong>{cancel_reason}
           </div>
         )}
@@ -172,27 +172,27 @@ const ReservationCard = ({
 
       {/* 操作按鈕 */}
       {showActions && (
-        <div className="card-actions">
+        <div className={styles['card-actions']}>
           {/* 商家端按鈕 */}
           {viewMode === 'merchant' && (
             <>
               {status === 'confirmed' && actions.onComplete && (
-                <button className="btn-complete" onClick={() => actions.onComplete(id)}>
+                <button className={styles['btn-complete']} onClick={() => actions.onComplete(id)}>
                   <FaCheck /> 完成
                 </button>
               )}
               {status === 'pending' && actions.onAccept && (
-                <button className="btn-accept" onClick={() => actions.onAccept(id)}>
+                <button className={styles['btn-accept']} onClick={() => actions.onAccept(id)}>
                   <FaCheck /> 接受訂位
                 </button>
               )}
               {(status === 'pending' || status === 'confirmed') && actions.onCancel && (
-                <button className="btn-cancel" onClick={() => actions.onCancel(id)}>
+                <button className={styles['btn-cancel']} onClick={() => actions.onCancel(id)}>
                   <FaTimes /> 取消訂位
                 </button>
               )}
               {(status === 'completed' || status === 'cancelled') && actions.onDelete && (
-                <button className="btn-delete" onClick={() => actions.onDelete(id)}>
+                <button className={styles['btn-delete']} onClick={() => actions.onDelete(id)}>
                   <FaTrash /> 刪除資料
                 </button>
               )}
@@ -203,17 +203,17 @@ const ReservationCard = ({
           {viewMode === 'customer' && (
             <>
               {(status === 'pending' || status === 'confirmed') && actions.onEdit && (
-                <button className="btn-edit" onClick={() => actions.onEdit(id)}>
+                <button className={styles['btn-edit']} onClick={() => actions.onEdit(id)}>
                   <FaEdit /> 編輯
                 </button>
               )}
               {(status === 'pending' || status === 'confirmed') && actions.onCancel && (
-                <button className="btn-cancel" onClick={() => actions.onCancel(id)}>
+                <button className={styles['btn-cancel']} onClick={() => actions.onCancel(id)}>
                   <FaTimes /> 取消訂位
                 </button>
               )}
               {(status === 'completed' || status === 'cancelled') && actions.onDelete && (
-                <button className="btn-delete" onClick={() => actions.onDelete(id)}>
+                <button className={styles['btn-delete']} onClick={() => actions.onDelete(id)}>
                   <FaTrash /> 刪除資料
                 </button>
               )}

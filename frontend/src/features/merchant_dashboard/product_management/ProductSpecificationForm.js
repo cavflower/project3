@@ -9,7 +9,7 @@ import {
     updateProductSpecification,
     deleteProductSpecification
 } from '../../../api/productApi';
-import './ProductSpecificationForm.css';
+import styles from './ProductSpecificationForm.module.css';
 
 const ProductSpecificationForm = ({ product, onClose }) => {
     const [groups, setGroups] = useState([]);
@@ -202,55 +202,55 @@ const ProductSpecificationForm = ({ product, onClose }) => {
     };
 
     return (
-        <div className="spec-modal-overlay">
-            <div className="spec-modal-content">
-                <div className="spec-modal-header">
+        <div className={styles.specModalOverlay}>
+            <div className={styles.specModalContent}>
+                <div className={styles.specModalHeader}>
                     <div>
                         <h2>規格設定</h2>
-                        <p className="spec-product-name">{product?.name}</p>
+                        <p className={styles.specProductName}>{product?.name}</p>
                     </div>
-                    <button className="spec-modal-close-btn" onClick={onClose}>
+                    <button className={styles.specModalCloseBtn} onClick={onClose}>
                         <FaTimes />
                     </button>
                 </div>
 
-                <div className="spec-modal-body">
-                    {error && <div className="spec-error-message">{error}</div>}
+                <div className={styles.specModalBody}>
+                    {error && <div className={styles.specErrorMessage}>{error}</div>}
 
                     {/* 新增類別按鈕 */}
-                    <div className="spec-list-header">
+                    <div className={styles.specListHeader}>
                         <h3>規格類別</h3>
                         {!isAddingGroup && !editingGroupId && (
-                            <button className="spec-add-btn" onClick={handleAddGroupClick}>
+                            <button className={styles.specAddBtn} onClick={handleAddGroupClick}>
                                 <FaPlus /> 新增類別
                             </button>
                         )}
                     </div>
 
-                    {loading && <div className="spec-loading">載入中...</div>}
+                    {loading && <div className={styles.specLoading}>載入中...</div>}
 
                     {/* 新增類別表單 */}
                     {isAddingGroup && (
-                        <div className="spec-group-form-card">
+                        <div className={styles.specGroupFormCard}>
                             <form onSubmit={handleGroupSubmit}>
-                                <div className="spec-group-form-row">
+                                <div className={styles.specGroupFormRow}>
                                     <input
                                         type="text"
                                         value={groupFormData.name}
                                         onChange={(e) => setGroupFormData({ ...groupFormData, name: e.target.value })}
                                         placeholder="類別名稱（如：大小、配料）"
-                                        className="spec-input"
+                                        className={styles.specInput}
                                         autoFocus
                                     />
                                     <select
                                         value={groupFormData.selection_type}
                                         onChange={(e) => setGroupFormData({ ...groupFormData, selection_type: e.target.value })}
-                                        className="spec-select"
+                                        className={styles.specSelect}
                                     >
                                         <option value="single">單選</option>
                                         <option value="multiple">多選</option>
                                     </select>
-                                    <label className="spec-checkbox-label">
+                                    <label className={styles.specCheckboxLabel}>
                                         <input
                                             type="checkbox"
                                             checked={groupFormData.is_required}
@@ -259,11 +259,11 @@ const ProductSpecificationForm = ({ product, onClose }) => {
                                         必選
                                     </label>
                                 </div>
-                                <div className="spec-form-actions">
-                                    <button type="submit" className="spec-save-btn" disabled={loading}>
+                                <div className={styles.specFormActions}>
+                                    <button type="submit" className={styles.specSaveBtn} disabled={loading}>
                                         <FaPlus /> 新增
                                     </button>
-                                    <button type="button" className="spec-cancel-btn" onClick={resetGroupForm}>
+                                    <button type="button" className={styles.specCancelBtn} onClick={resetGroupForm}>
                                         取消
                                     </button>
                                 </div>
@@ -273,34 +273,34 @@ const ProductSpecificationForm = ({ product, onClose }) => {
 
                     {/* 類別列表 */}
                     {groups.length === 0 && !isAddingGroup && !loading && (
-                        <div className="spec-empty">
+                        <div className={styles.specEmpty}>
                             <p>尚未設定任何規格類別</p>
-                            <p className="spec-empty-hint">點擊「新增類別」來建立規格分組</p>
+                            <p className={styles.specEmptyHint}>點擊「新增類別」來建立規格分組</p>
                         </div>
                     )}
 
                     {groups.map((group) => (
-                        <div key={group.id} className="spec-group-card">
+                        <div key={group.id} className={styles.specGroupCard}>
                             {editingGroupId === group.id ? (
-                                <div className="spec-group-form-card">
+                                <div className={styles.specGroupFormCard}>
                                     <form onSubmit={handleGroupSubmit}>
-                                        <div className="spec-group-form-row">
+                                        <div className={styles.specGroupFormRow}>
                                             <input
                                                 type="text"
                                                 value={groupFormData.name}
                                                 onChange={(e) => setGroupFormData({ ...groupFormData, name: e.target.value })}
-                                                className="spec-input"
+                                                className={styles.specInput}
                                                 autoFocus
                                             />
                                             <select
                                                 value={groupFormData.selection_type}
                                                 onChange={(e) => setGroupFormData({ ...groupFormData, selection_type: e.target.value })}
-                                                className="spec-select"
+                                                className={styles.specSelect}
                                             >
                                                 <option value="single">單選</option>
                                                 <option value="multiple">多選</option>
                                             </select>
-                                            <label className="spec-checkbox-label">
+                                            <label className={styles.specCheckboxLabel}>
                                                 <input
                                                     type="checkbox"
                                                     checked={groupFormData.is_required}
@@ -309,11 +309,11 @@ const ProductSpecificationForm = ({ product, onClose }) => {
                                                 必選
                                             </label>
                                         </div>
-                                        <div className="spec-form-actions">
-                                            <button type="submit" className="spec-save-btn" disabled={loading}>
+                                        <div className={styles.specFormActions}>
+                                            <button type="submit" className={styles.specSaveBtn} disabled={loading}>
                                                 <FaSave /> 儲存
                                             </button>
-                                            <button type="button" className="spec-cancel-btn" onClick={resetGroupForm}>
+                                            <button type="button" className={styles.specCancelBtn} onClick={resetGroupForm}>
                                                 取消
                                             </button>
                                         </div>
@@ -321,70 +321,70 @@ const ProductSpecificationForm = ({ product, onClose }) => {
                                 </div>
                             ) : (
                                 <>
-                                    <div className="spec-group-header" onClick={() => toggleGroup(group.id)}>
-                                        <div className="spec-group-toggle">
+                                    <div className={styles.specGroupHeader} onClick={() => toggleGroup(group.id)}>
+                                        <div className={styles.specGroupToggle}>
                                             {expandedGroups[group.id] ? <FaChevronDown /> : <FaChevronRight />}
                                         </div>
-                                        <div className="spec-group-info">
-                                            <span className="spec-group-name">{group.name}</span>
-                                            <span className={`spec-type-badge ${group.selection_type}`}>
+                                        <div className={styles.specGroupInfo}>
+                                            <span className={styles.specGroupName}>{group.name}</span>
+                                            <span className={group.selection_type === 'single' ? styles.specTypeBadgeSingle : styles.specTypeBadgeMultiple}>
                                                 {group.selection_type === 'single' ? '單選' : '多選'}
                                             </span>
-                                            {group.is_required && <span className="spec-required-badge">必選</span>}
-                                            <span className="spec-count">({group.options?.length || 0} 個選項)</span>
+                                            {group.is_required && <span className={styles.specRequiredBadge}>必選</span>}
+                                            <span className={styles.specCount}>({group.options?.length || 0} 個選項)</span>
                                         </div>
-                                        <div className="spec-group-actions" onClick={(e) => e.stopPropagation()}>
-                                            <button className="spec-icon-btn edit" onClick={() => handleEditGroupClick(group)} title="編輯">
+                                        <div className={styles.specGroupActions} onClick={(e) => e.stopPropagation()}>
+                                            <button className={`${styles.specIconBtn} ${styles.specIconBtnEdit}`} onClick={() => handleEditGroupClick(group)} title="編輯">
                                                 <FaEdit />
                                             </button>
-                                            <button className="spec-icon-btn delete" onClick={() => handleDeleteGroup(group.id)} title="刪除">
+                                            <button className={`${styles.specIconBtn} ${styles.specIconBtnDelete}`} onClick={() => handleDeleteGroup(group.id)} title="刪除">
                                                 <FaTrash />
                                             </button>
                                         </div>
                                     </div>
 
                                     {expandedGroups[group.id] && (
-                                        <div className="spec-options-container">
+                                        <div className={styles.specOptionsContainer}>
                                             {/* 選項列表 */}
                                             {group.options?.map((option) => (
-                                                <div key={option.id} className="spec-option-item">
+                                                <div key={option.id} className={styles.specOptionItem}>
                                                     {editingOptionId === option.id ? (
-                                                        <form onSubmit={(e) => handleOptionSubmit(e, group.id)} className="spec-option-form">
+                                                        <form onSubmit={(e) => handleOptionSubmit(e, group.id)} className={styles.specOptionForm}>
                                                             <input
                                                                 type="text"
                                                                 value={optionFormData.name}
                                                                 onChange={(e) => setOptionFormData({ ...optionFormData, name: e.target.value })}
-                                                                className="spec-input"
+                                                                className={styles.specInput}
                                                                 autoFocus
                                                             />
-                                                            <div className="spec-price-input-group">
-                                                                <span className="spec-price-prefix">NT$</span>
+                                                            <div className={styles.specPriceInputGroup}>
+                                                                <span className={styles.specPricePrefix}>NT$</span>
                                                                 <input
                                                                     type="number"
                                                                     value={optionFormData.price_adjustment}
                                                                     onChange={(e) => setOptionFormData({ ...optionFormData, price_adjustment: e.target.value })}
-                                                                    className="spec-price-input"
+                                                                    className={styles.specPriceInput}
                                                                     step="1"
                                                                 />
                                                             </div>
-                                                            <button type="submit" className="spec-save-btn small" disabled={loading}>
+                                                            <button type="submit" className={`${styles.specSaveBtn} ${styles.specIconBtnSmall}`} disabled={loading}>
                                                                 <FaSave />
                                                             </button>
-                                                            <button type="button" className="spec-cancel-btn small" onClick={resetOptionForm}>
+                                                            <button type="button" className={`${styles.specCancelBtn} ${styles.specIconBtnSmall}`} onClick={resetOptionForm}>
                                                                 取消
                                                             </button>
                                                         </form>
                                                     ) : (
                                                         <>
-                                                            <span className="spec-option-name">{option.name}</span>
-                                                            <span className={`spec-price ${parseFloat(option.price_adjustment) > 0 ? 'positive' : parseFloat(option.price_adjustment) < 0 ? 'negative' : ''}`}>
+                                                            <span className={styles.specOptionName}>{option.name}</span>
+                                                            <span className={parseFloat(option.price_adjustment) > 0 ? styles.specPricePositive : parseFloat(option.price_adjustment) < 0 ? styles.specPriceNegative : styles.specPrice}>
                                                                 {formatPriceAdjustment(option.price_adjustment)}
                                                             </span>
-                                                            <div className="spec-option-actions">
-                                                                <button className="spec-icon-btn edit small" onClick={() => handleEditOptionClick(option)}>
+                                                            <div className={styles.specOptionActions}>
+                                                                <button className={`${styles.specIconBtn} ${styles.specIconBtnEdit} ${styles.specIconBtnSmall}`} onClick={() => handleEditOptionClick(option)}>
                                                                     <FaEdit />
                                                                 </button>
-                                                                <button className="spec-icon-btn delete small" onClick={() => handleDeleteOption(option.id)}>
+                                                                <button className={`${styles.specIconBtn} ${styles.specIconBtnDelete} ${styles.specIconBtnSmall}`} onClick={() => handleDeleteOption(option.id)}>
                                                                     <FaTrash />
                                                                 </button>
                                                             </div>
@@ -395,35 +395,35 @@ const ProductSpecificationForm = ({ product, onClose }) => {
 
                                             {/* 新增選項表單 */}
                                             {addingOptionGroupId === group.id ? (
-                                                <form onSubmit={(e) => handleOptionSubmit(e, group.id)} className="spec-option-form new">
+                                                <form onSubmit={(e) => handleOptionSubmit(e, group.id)} className={styles.specOptionFormNew}>
                                                     <input
                                                         type="text"
                                                         value={optionFormData.name}
                                                         onChange={(e) => setOptionFormData({ ...optionFormData, name: e.target.value })}
                                                         placeholder="選項名稱（如：大份）"
-                                                        className="spec-input"
+                                                        className={styles.specInput}
                                                         autoFocus
                                                     />
-                                                    <div className="spec-price-input-group">
-                                                        <span className="spec-price-prefix">NT$</span>
+                                                    <div className={styles.specPriceInputGroup}>
+                                                        <span className={styles.specPricePrefix}>NT$</span>
                                                         <input
                                                             type="number"
                                                             value={optionFormData.price_adjustment}
                                                             onChange={(e) => setOptionFormData({ ...optionFormData, price_adjustment: e.target.value })}
                                                             placeholder="0"
-                                                            className="spec-price-input"
+                                                            className={styles.specPriceInput}
                                                             step="1"
                                                         />
                                                     </div>
-                                                    <button type="submit" className="spec-save-btn small" disabled={loading}>
+                                                    <button type="submit" className={`${styles.specSaveBtn} ${styles.specIconBtnSmall}`} disabled={loading}>
                                                         <FaPlus />
                                                     </button>
-                                                    <button type="button" className="spec-cancel-btn small" onClick={resetOptionForm}>
+                                                    <button type="button" className={`${styles.specCancelBtn} ${styles.specIconBtnSmall}`} onClick={resetOptionForm}>
                                                         取消
                                                     </button>
                                                 </form>
                                             ) : (
-                                                <button className="spec-add-option-btn" onClick={() => handleAddOptionClick(group.id)}>
+                                                <button className={styles.specAddOptionBtn} onClick={() => handleAddOptionClick(group.id)}>
                                                     <FaPlus /> 新增選項
                                                 </button>
                                             )}
@@ -435,7 +435,7 @@ const ProductSpecificationForm = ({ product, onClose }) => {
                     ))}
 
                     {/* 說明 */}
-                    <div className="spec-help-section">
+                    <div className={styles.specHelpSection}>
                         <h4>使用說明</h4>
                         <ul>
                             <li><strong>規格類別</strong>：如「大小」、「配料」、「辣度」</li>
@@ -445,8 +445,8 @@ const ProductSpecificationForm = ({ product, onClose }) => {
                     </div>
                 </div>
 
-                <div className="spec-modal-footer">
-                    <button className="spec-close-btn" onClick={onClose}>關閉</button>
+                <div className={styles.specModalFooter}>
+                    <button className={styles.specCloseBtn} onClick={onClose}>關閉</button>
                 </div>
             </div>
         </div>

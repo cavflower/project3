@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../store/AuthContext';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
-import './StoreBrowse.css';
+import styles from './StoreBrowse.module.css';
 
 function StoreBrowse() {
   const { user } = useAuth();
@@ -10,7 +10,7 @@ function StoreBrowse() {
   const { storeId } = useParams();
   const [selectedSeats, setSelectedSeats] = useState(1);
   const [store, setStore] = useState(null);
-  
+
   useEffect(() => {
     const loadStore = async () => {
       try {
@@ -22,7 +22,7 @@ function StoreBrowse() {
     };
     loadStore();
   }, [storeId]);
-  
+
   // 可選擇的座位數量選項
   const seatOptions = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -36,7 +36,7 @@ function StoreBrowse() {
       <div className="row mb-4">
         <div className="col-12">
           <h2 className="mb-3">歡迎光臨，{user?.name || '顧客'}
-            <span className="badge-member ms-2">
+            <span className={`${styles['badge-member']} ms-2`}>
               <i className="bi bi-award me-1"></i>
               鉑金會員
             </span>
@@ -49,19 +49,19 @@ function StoreBrowse() {
         <div className="col-md-6">
           <div className="card h-100">
             <div className="card-body text-center">
-              <i className="bi bi-calendar-check fs-1 text-orange mb-3"></i>
+              <i className={`bi bi-calendar-check fs-1 ${styles['text-orange']} mb-3`}></i>
               <h3 className="card-title mb-4">線上訂位</h3>
-              
+
               <div className="mb-4">
-                <div className="alert alert-orange-light">
+                <div className={`alert ${styles['alert-orange-light']}`}>
                   <i className="bi bi-info-circle me-2"></i>
                   提前預訂，享受無縫用餐體驗
                 </div>
               </div>
 
               <div className="d-grid gap-2">
-                <button 
-                  className={`btn btn-lg mb-2 ${store?.enable_reservation ? 'btn-orange' : 'btn-secondary'}`}
+                <button
+                  className={`btn btn-lg mb-2 ${store?.enable_reservation ? styles['btn-orange'] : 'btn-secondary'}`}
                   onClick={() => store?.enable_reservation && navigate(`/reservation/new/${storeId}`)}
                   disabled={!store?.enable_reservation}
                   style={!store?.enable_reservation ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
@@ -83,19 +83,19 @@ function StoreBrowse() {
         <div className="col-md-6">
           <div className="card h-100">
             <div className="card-body text-center">
-              <i className="bi bi-bag fs-1 text-orange-light mb-3"></i>
+              <i className={`bi bi-bag fs-1 ${styles['text-orange-light']} mb-3`}></i>
               <h3 className="card-title mb-4">外帶自取</h3>
-              
+
               <div className="mb-4">
-                <div className="alert alert-orange-light">
+                <div className={`alert ${styles['alert-orange-light']}`}>
                   <i className="bi bi-clock me-2"></i>
                   預計取餐時間：20-30 分鐘
                 </div>
               </div>
 
               <div className="d-grid gap-2">
-                <button 
-                  className="btn btn-orange-gradient btn-lg mb-2"
+                <button
+                  className={`btn ${styles['btn-orange-gradient']} btn-lg mb-2`}
                   onClick={() => navigate(`/store/${storeId}/takeout`)}
                 >
                   <i className="bi bi-arrow-right-circle me-2"></i>
@@ -121,10 +121,10 @@ function StoreBrowse() {
               </h5>
             </div>
             <div className="card-body">
-              <div className="alert alert-orange-light mb-0">
+              <div className={`alert ${styles['alert-orange-light']} mb-0`}>
                 <i className="bi bi-exclamation-triangle me-2"></i>
                 您有一筆訂單正在製作中 (訂單編號: #123456)
-                <button className="btn btn-sm btn-outline-orange ms-3">
+                <button className={`btn btn-sm ${styles['btn-outline-orange']} ms-3`}>
                   查看詳情
                 </button>
               </div>

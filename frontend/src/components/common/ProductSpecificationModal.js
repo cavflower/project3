@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getPublicSpecificationGroups } from '../../api/productApi';
-import './ProductSpecificationModal.css';
+import styles from './ProductSpecificationModal.module.css';
 
 /**
  * 顧客端商品規格選擇 Modal
@@ -150,33 +150,33 @@ const ProductSpecificationModal = ({ product, onConfirm, onCancel }) => {
     const finalPrice = parseFloat(product?.price || 0) + priceAdjustment;
 
     return (
-        <div className="spec-select-overlay" onClick={onCancel}>
-            <div className="spec-select-modal" onClick={e => e.stopPropagation()}>
-                <div className="spec-select-header">
+        <div className={styles['spec-select-overlay']} onClick={onCancel}>
+            <div className={styles['spec-select-modal']} onClick={e => e.stopPropagation()}>
+                <div className={styles['spec-select-header']}>
                     <h3>{product?.name}</h3>
-                    <p className="spec-base-price">基本價格：NT$ {Math.round(product?.price || 0)}</p>
+                    <p className={styles['spec-base-price']}>基本價格：NT$ {Math.round(product?.price || 0)}</p>
                 </div>
 
-                <div className="spec-select-body">
-                    {loading && <div className="spec-loading">載入中...</div>}
+                <div className={styles['spec-select-body']}>
+                    {loading && <div className={styles['spec-loading']}>載入中...</div>}
 
-                    {error && <div className="spec-error">{error}</div>}
+                    {error && <div className={styles['spec-error']}>{error}</div>}
 
                     {!loading && specGroups.length === 0 && (
-                        <p className="spec-no-options">此商品無需選擇規格</p>
+                        <p className={styles['spec-no-options']}>此商品無需選擇規格</p>
                     )}
 
                     {specGroups.map(group => (
-                        <div key={group.id} className="spec-select-group">
-                            <div className="spec-group-title">
+                        <div key={group.id} className={styles['spec-select-group']}>
+                            <div className={styles['spec-group-title']}>
                                 <span>{group.name}</span>
-                                <span className="spec-group-type">
+                                <span className={styles['spec-group-type']}>
                                     {group.selection_type === 'single' ? '單選' : '多選'}
-                                    {group.is_required && <span className="spec-required">*必選</span>}
+                                    {group.is_required && <span className={styles['spec-required']}>*必選</span>}
                                 </span>
                             </div>
 
-                            <div className="spec-options-list">
+                            <div className={styles['spec-options-list']}>
                                 {group.options?.map(option => {
                                     const isSelected = group.selection_type === 'single'
                                         ? selections[group.id]?.id === option.id
@@ -185,7 +185,7 @@ const ProductSpecificationModal = ({ product, onConfirm, onCancel }) => {
                                     return (
                                         <button
                                             key={option.id}
-                                            className={`spec-option-btn ${isSelected ? 'selected' : ''}`}
+                                            className={isSelected ? `${styles['spec-option-btn']} ${styles.selected}` : styles['spec-option-btn']}
                                             onClick={() => {
                                                 if (group.selection_type === 'single') {
                                                     handleSingleSelect(group.id, option);
@@ -195,9 +195,9 @@ const ProductSpecificationModal = ({ product, onConfirm, onCancel }) => {
                                                 setError('');
                                             }}
                                         >
-                                            <span className="option-name">{option.name}</span>
+                                            <span className={styles['option-name']}>{option.name}</span>
                                             {parseFloat(option.price_adjustment) !== 0 && (
-                                                <span className={`option-price ${parseFloat(option.price_adjustment) > 0 ? 'positive' : 'negative'}`}>
+                                                <span className={`${styles['option-price']} ${parseFloat(option.price_adjustment) > 0 ? styles.positive : styles.negative}`}>
                                                     {formatPrice(option.price_adjustment)}
                                                 </span>
                                             )}
@@ -209,16 +209,16 @@ const ProductSpecificationModal = ({ product, onConfirm, onCancel }) => {
                     ))}
                 </div>
 
-                <div className="spec-select-footer">
-                    <div className="spec-total-price">
+                <div className={styles['spec-select-footer']}>
+                    <div className={styles['spec-total-price']}>
                         <span>合計：</span>
-                        <span className="total-amount">NT$ {Math.round(finalPrice)}</span>
+                        <span className={styles['total-amount']}>NT$ {Math.round(finalPrice)}</span>
                     </div>
-                    <div className="spec-actions">
-                        <button className="spec-cancel-btn" onClick={onCancel}>
+                    <div className={styles['spec-actions']}>
+                        <button className={styles['spec-cancel-btn']} onClick={onCancel}>
                             取消
                         </button>
-                        <button className="spec-confirm-btn" onClick={handleConfirm}>
+                        <button className={styles['spec-confirm-btn']} onClick={handleConfirm}>
                             加入購物車
                         </button>
                     </div>

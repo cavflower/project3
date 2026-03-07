@@ -7,7 +7,7 @@ import { getIngredients } from '../../api/inventoryApi';
 import { getMerchantPendingOrders } from '../../api/orderApi';
 import { db } from '../../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import './MerchantDashboard.css';
+import styles from './MerchantDashboard.module.css';
 
 
 import {
@@ -157,11 +157,11 @@ const MerchantDashboard = () => {
   const getOrderTypeBadgeClass = (orderType) => {
     switch (orderType) {
       case 'takeout':
-        return 'badge-takeout';
+        return styles.badgeTakeout;
       case 'dine_in':
-        return 'badge-dinein';
+        return styles.badgeDinein;
       case 'surplus':
-        return 'badge-surplus';
+        return styles.badgeSurplus;
       default:
         return '';
     }
@@ -281,8 +281,8 @@ const MerchantDashboard = () => {
   // 只在 store 載入中時顯示完整載入畫面
   if (storeLoading) {
     return (
-      <div className="merchant-dashboard">
-        <div className="loading-container">
+      <div className={styles.merchantDashboard}>
+        <div className={styles.loadingContainer}>
           <p>載入中...</p>
         </div>
       </div>
@@ -290,74 +290,74 @@ const MerchantDashboard = () => {
   }
 
   return (
-    <div className="merchant-dashboard">
-      <header className="dashboard-header">
+    <div className={styles.merchantDashboard}>
+      <header className={styles.dashboardHeader}>
         <h1>歡迎，{user?.username || '店家老闆'}！</h1>
         <p>這裡是您的管理後台，請選擇一項功能開始。</p>
       </header>
 
-      <div className="dashboard-stats-container">
-        <div className="stats-card chart-card">
+      <div className={styles.dashboardStatsContainer}>
+        <div className={styles.statsCard}>
           <h3>🔔 待確認訂單 {!loading && `(${pendingOrders.length})`}</h3>
           {loading ? (
-            <div className="all-good">
+            <div className={styles.allGood}>
               <p>載入中...</p>
             </div>
           ) : pendingOrders.length > 0 ? (
-            <div className="pending-orders-list">
-              <div className="pending-orders-scroll">
+            <div className={styles.pendingOrdersList}>
+              <div className={styles.pendingOrdersScroll}>
                 {pendingOrders.map((order, index) => (
-                  <div key={`${order.order_type}-${order.id}-${index}`} className="pending-order-item">
-                    <div className="order-info">
-                      <span className={`order-type-badge ${getOrderTypeBadgeClass(order.order_type)}`}>
+                  <div key={`${order.order_type}-${order.id}-${index}`} className={styles.pendingOrderItem}>
+                    <div className={styles.orderInfo}>
+                      <span className={`${styles.orderTypeBadge} ${getOrderTypeBadgeClass(order.order_type)}`}>
                         {order.order_type_display}
                       </span>
-                      <span className="order-number">#{order.order_number}</span>
-                      {order.table_label && <span className="table-label">桌號: {order.table_label}</span>}
+                      <span className={styles.orderNumber}>#{order.order_number}</span>
+                      {order.table_label && <span className={styles.tableLabel}>桌號: {order.table_label}</span>}
                     </div>
-                    <span className="order-time">{formatTime(order.created_at)}</span>
+                    <span className={styles.orderTime}>{formatTime(order.created_at)}</span>
                   </div>
                 ))}
               </div>
-              <button className="view-orders-btn" onClick={() => navigate('/merchant/orders')}>
+              <button className={styles.viewOrdersBtn} onClick={() => navigate('/merchant/orders')}>
                 前往訂單管理
               </button>
             </div>
           ) : (
-            <div className="all-good">
+            <div className={styles.allGood}>
               <p>目前沒有待確認訂單！</p>
             </div>
           )}
         </div>
 
-        <div className="stats-card alert-card">
+        <div className={styles.statsCard}>
           <h3>⚠️ 庫存不足提醒 {!loading && `(${lowStockItems.length})`}</h3>
           {loading ? (
-            <div className="all-good">
+            <div className={styles.allGood}>
               <p>載入中...</p>
             </div>
           ) : lowStockItems.length > 0 ? (
-            <div className="low-stock-list">
+            <div className={styles.lowStockList}>
               {lowStockItems.slice(0, 5).map(item => (
-                <div key={item.id} className="low-stock-item">
-                  <span className="item-name">{item.name}</span>
-                  <span className="item-qty">剩餘: {item.quantity} {item.unit_display}</span>
+                <div key={item.id} className={styles.lowStockItem}>
+                  <span className={styles.itemName}>{item.name}</span>
+                  <span className={styles.itemQty}>剩餘: {item.quantity} {item.unit_display}</span>
                 </div>
               ))}
-              {lowStockItems.length > 5 && <div className="more-items">還有 {lowStockItems.length - 5} 項...</div>}
-              <button className="restock-btn" onClick={() => navigate('/merchant/inventory')}>
+              {lowStockItems.length > 5 && <div className={styles.moreItems}>還有 {lowStockItems.length - 5} 項...</div>}
+              <button className={styles.restockBtn} onClick={() => navigate('/merchant/inventory')}>
                 前往補貨
               </button>
             </div>
           ) : (
-            <div className="all-good">
+            <div className={styles.allGood}>
               <p>目前庫存狀況良好！</p>
             </div>
           )}
         </div>
       </div>
 
-      <main className="features-grid">
+      <main className={styles.featuresGrid}>
         {features.map((feature) => {
           // 檢查此功能是否需要特定的功能開關
           const isDisabled = feature.requiresFeature && !storeSettings[feature.requiresFeature];

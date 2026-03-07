@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllFAQs, createFAQ, updateFAQ, deleteFAQ, getPopularFAQs } from '../../api/lineBotApi';
-import './LineBotFAQManagement.css';
+import styles from './LineBotFAQManagement.module.css';
 
 const LineBotFAQManagement = () => {
   const navigate = useNavigate();
@@ -49,7 +49,7 @@ const LineBotFAQManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.question || !formData.answer) {
       alert('請填寫問題和答案');
       return;
@@ -65,11 +65,11 @@ const LineBotFAQManagement = () => {
         await createFAQ(formData);
         alert('FAQ 建立成功！');
       }
-      
+
       // 重新載入資料
       fetchFAQs();
       fetchPopularFAQs();
-      
+
       // 重置表單
       resetForm();
     } catch (error) {
@@ -144,12 +144,12 @@ const LineBotFAQManagement = () => {
   };
 
   if (loading) {
-    return <div className="loading">載入中...</div>;
+    return <div className={styles.loading}>載入中...</div>;
   }
 
   return (
-    <div className="linebot-faq-management">
-      <div className="faq-header">
+    <div className={styles.linebotFaqManagement}>
+      <div className={styles.faqHeader}>
         <div>
           <button
             className="btn btn-secondary"
@@ -169,10 +169,10 @@ const LineBotFAQManagement = () => {
       </div>
 
       {showForm && (
-        <div className="faq-form-container">
+        <div className={styles.faqFormContainer}>
           <h3>{editingFaq ? '編輯 FAQ' : '新增 FAQ'}</h3>
           <form onSubmit={handleSubmit} className="faq-form">
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label>問題 *</label>
               <input
                 type="text"
@@ -185,7 +185,7 @@ const LineBotFAQManagement = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label>答案 *</label>
               <textarea
                 value={formData.answer}
@@ -198,9 +198,9 @@ const LineBotFAQManagement = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label>關鍵字（用於匹配用戶問題）</label>
-              <div className="keyword-input-group">
+              <div className={styles.keywordInputGroup}>
                 <input
                   type="text"
                   value={keywordInput}
@@ -216,14 +216,14 @@ const LineBotFAQManagement = () => {
                   新增
                 </button>
               </div>
-              <div className="keywords-list">
+              <div className={styles.keywordsList}>
                 {formData.keywords.map((keyword, index) => (
                   <span key={index} className="keyword-tag">
                     {keyword}
                     <button
                       type="button"
                       onClick={() => removeKeyword(keyword)}
-                      className="remove-keyword"
+                      className={styles.removeKeyword}
                     >
                       ×
                     </button>
@@ -232,8 +232,8 @@ const LineBotFAQManagement = () => {
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
                 <label>優先順序</label>
                 <input
                   type="number"
@@ -249,8 +249,8 @@ const LineBotFAQManagement = () => {
                 <small>數字越大優先級越高</small>
               </div>
 
-              <div className="form-group">
-                <label className="checkbox-label">
+              <div className={styles.formGroup}>
+                <label className={styles.checkboxLabel}>
                   <input
                     type="checkbox"
                     checked={formData.is_active}
@@ -263,7 +263,7 @@ const LineBotFAQManagement = () => {
               </div>
             </div>
 
-            <div className="form-actions">
+            <div className={styles.formActions}>
               <button type="submit" className="btn btn-primary">
                 {editingFaq ? '更新' : '建立'}
               </button>
@@ -279,31 +279,31 @@ const LineBotFAQManagement = () => {
         </div>
       )}
 
-      <div className="faq-tabs">
+      <div className={styles.faqTabs}>
         <button
-          className={`tab ${activeTab === 'all' ? 'active' : ''}`}
+          className={activeTab === 'all' ? styles.tabActive : styles.tab}
           onClick={() => setActiveTab('all')}
         >
           所有 FAQ ({faqs.length})
         </button>
         <button
-          className={`tab ${activeTab === 'popular' ? 'active' : ''}`}
+          className={activeTab === 'popular' ? styles.tabActive : styles.tab}
           onClick={() => setActiveTab('popular')}
         >
           熱門 FAQ ({popularFaqs.length})
         </button>
       </div>
 
-      <div className="faq-list">
+      <div className={styles.faqList}>
         {activeTab === 'all' && faqs.length === 0 && (
-          <div className="empty-state">
+          <div className={styles.emptyState}>
             <p>尚未建立任何 FAQ</p>
             <p>點擊「新增 FAQ」開始建立常見問題</p>
           </div>
         )}
 
         {activeTab === 'popular' && popularFaqs.length === 0 && (
-          <div className="empty-state">
+          <div className={styles.emptyState}>
             <p>尚無熱門 FAQ 資料</p>
           </div>
         )}
@@ -311,28 +311,28 @@ const LineBotFAQManagement = () => {
         {(activeTab === 'all' ? faqs : popularFaqs).map((faq) => (
           <div
             key={faq.id}
-            className={`faq-item ${!faq.is_active ? 'inactive' : ''}`}
+            className={faq.is_active ? styles.faqItem : styles.faqItemInactive}
           >
-            <div className="faq-header-row">
-              <div className="faq-priority">優先級: {faq.priority}</div>
+            <div className={styles.faqHeaderRow}>
+              <div className={styles.faqPriority}>優先級: {faq.priority}</div>
               {faq.usage_count > 0 && (
-                <div className="faq-usage">使用次數: {faq.usage_count}</div>
+                <div className={styles.faqUsage}>使用次數: {faq.usage_count}</div>
               )}
-              {!faq.is_active && <div className="faq-status">已停用</div>}
+              {!faq.is_active && <div className={styles.faqStatus}>已停用</div>}
             </div>
 
-            <div className="faq-question">
+            <div className={styles.faqQuestion}>
               <strong>問題：</strong>
               {faq.question}
             </div>
 
-            <div className="faq-answer">
+            <div className={styles.faqAnswer}>
               <strong>答案：</strong>
               {faq.answer}
             </div>
 
             {faq.keywords && faq.keywords.length > 0 && (
-              <div className="faq-keywords">
+              <div className={styles.faqKeywords}>
                 <strong>關鍵字：</strong>
                 {faq.keywords.map((keyword, index) => (
                   <span key={index} className="keyword-tag">
@@ -342,7 +342,7 @@ const LineBotFAQManagement = () => {
               </div>
             )}
 
-            <div className="faq-actions">
+            <div className={styles.faqActions}>
               <button
                 onClick={() => handleEdit(faq)}
                 className="btn btn-edit"

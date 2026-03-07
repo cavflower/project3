@@ -7,7 +7,7 @@ import {
 } from '../../../api/inventoryApi';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import IngredientForm from './IngredientForm';
-import './InventoryManagementPage.css';
+import styles from './InventoryManagementPage.module.css';
 
 function InventoryManagementPage() {
   const [ingredients, setIngredients] = useState([]);
@@ -91,37 +91,37 @@ function InventoryManagementPage() {
   // 篩選原物料
   const filteredIngredients = ingredients.filter(ingredient => {
     const matchesSearch = ingredient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ingredient.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
+      ingredient.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !filterCategory || ingredient.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
   if (loading) {
-    return <div className="loading">載入中...</div>;
+    return <div className={styles.loading}>載入中...</div>;
   }
 
   return (
-    <div className="inventory-management-page">
-      <div className="page-header">
+    <div className={styles.inventoryManagementPage}>
+      <div className={styles.pageHeader}>
         <h1>原物料管理</h1>
-        <button onClick={() => navigate('/dashboard')} className="back-button">
+        <button onClick={() => navigate('/dashboard')} className={styles.backButton}>
           返回儀表板
         </button>
       </div>
 
-      <div className="controls">
-        <div className="search-filter">
+      <div className={styles.controls}>
+        <div className={styles.searchFilter}>
           <input
             type="text"
             placeholder="搜尋原物料名稱或供應商..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
+            className={styles.searchInput}
           />
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="filter-select"
+            className={styles.filterSelect}
           >
             <option value="">所有類別</option>
             {categories.map(category => (
@@ -129,17 +129,17 @@ function InventoryManagementPage() {
             ))}
           </select>
         </div>
-        <div className="action-buttons">
-          <button onClick={handleAdd} className="add-button">
+        <div className={styles.actionButtons}>
+          <button onClick={handleAdd} className={styles.addButton}>
             + 新增原物料
           </button>
-          <button onClick={handleExport} className="export-button">
+          <button onClick={handleExport} className={styles.exportButton}>
             匯出當日清單
           </button>
         </div>
       </div>
 
-      <div className="chart-container">
+      <div className={styles.chartContainer}>
         <h3>庫存數量概覽</h3>
         <div style={{ width: '100%', height: 300 }}>
           <ResponsiveContainer>
@@ -167,8 +167,8 @@ function InventoryManagementPage() {
         </div>
       </div>
 
-      <div className="ingredients-table-container">
-        <table className="ingredients-table">
+      <div className={styles.ingredientsTableContainer}>
+        <table className={styles.ingredientsTable}>
           <thead>
             <tr>
               <th>名稱</th>
@@ -186,13 +186,13 @@ function InventoryManagementPage() {
           <tbody>
             {filteredIngredients.length === 0 ? (
               <tr>
-                <td colSpan="10" className="no-data">
+                <td colSpan="10" className={styles.noData}>
                   {searchTerm || filterCategory ? '沒有符合的原物料' : '尚未新增任何原物料'}
                 </td>
               </tr>
             ) : (
               filteredIngredients.map(ingredient => (
-                <tr key={ingredient.id} className={ingredient.is_low_stock ? 'low-stock-row' : ''}>
+                <tr key={ingredient.id} className={ingredient.is_low_stock ? styles.lowStockRow : ''}>
                   <td>{ingredient.name}</td>
                   <td>{ingredient.category || '-'}</td>
                   <td>{ingredient.quantity}</td>
@@ -203,22 +203,22 @@ function InventoryManagementPage() {
                   <td>{ingredient.minimum_stock}</td>
                   <td>
                     {ingredient.is_low_stock ? (
-                      <span className="inventory-status-badge low-stock">庫存不足</span>
+                      <span className={styles.inventoryStatusBadgeLowStock}>庫存不足</span>
                     ) : (
-                      <span className="inventory-status-badge normal">正常</span>
+                      <span className={styles.inventoryStatusBadgeNormal}>正常</span>
                     )}
                   </td>
                   <td>
                     <button
                       onClick={() => handleEdit(ingredient)}
-                      className="edit-button"
+                      className={styles.editButton}
                       title="編輯"
                     >
                       <i className="bi bi-pencil"></i>
                     </button>
                     <button
                       onClick={() => handleDelete(ingredient.id)}
-                      className="delete-button"
+                      className={styles.deleteButton}
                       title="刪除"
                     >
                       <i className="bi bi-trash"></i>
