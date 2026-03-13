@@ -1,7 +1,7 @@
 import React from 'react';
-import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { FaCheckCircle, FaReceipt, FaCreditCard, FaArrowLeft, FaLeaf, FaClock } from 'react-icons/fa';
-import './ConfirmationPage.module.css';
+import styles from './ConfirmationPage.module.css';
 
 function SurplusConfirmationPage() {
     const { orderId } = useParams();
@@ -16,72 +16,72 @@ function SurplusConfirmationPage() {
     } = location.state || {};
 
     return (
-        <div className="confirmation-page" style={{ marginTop: '70px' }}>
+        <div className={styles['confirmation-page']} style={{ marginTop: '70px' }}>
             <div className="container">
                 <div className="row justify-content-center">
                     <div className="col-lg-8">
                         {/* 成功圖示 */}
-                        <div className="success-header">
-                            <div className="success-icon">
+                        <div className={styles['success-header']}>
+                            <div className={styles['success-icon']}>
                                 <FaCheckCircle />
                             </div>
-                            <h1 className="success-title">訂單送出成功！</h1>
-                            <p className="success-subtitle">感謝您的訂購，請準時前來取餐</p>
+                            <h1 className={styles['success-title']}>訂單送出成功！</h1>
+                            <p className={styles['success-subtitle']}>感謝您的訂購，請準時前來取餐</p>
                         </div>
 
                         {/* 取餐號碼卡片 - 惜福品專用 */}
-                        <div className="pickup-number-card surplus-pickup-card">
+                        <div className={styles['pickup-number-card']}>
                             <div className="card-header">
-                                <FaLeaf className="header-icon" style={{ color: '#28a745' }} />
+                                <FaLeaf className={styles['header-icon']} style={{ color: '#28a745' }} />
                                 <h3>惜福品取餐號碼</h3>
                             </div>
                             <div className="card-body">
-                                <div className="pickup-number surplus-number">
+                                <div className={styles['pickup-number']}>
                                     {pickupNumber || '待通知'}
                                 </div>
-                                <p className="pickup-hint">請記下您的取餐號碼，或截圖保存</p>
+                                <p className={styles['pickup-hint']}>請記下您的取餐號碼，或截圖保存</p>
                             </div>
                         </div>
 
                         {/* 訂單資訊 */}
-                        <div className="order-info-card">
-                            <div className="info-row">
-                                <div className="info-item">
-                                    <div className="info-label">
+                        <div className={styles['order-info-card']}>
+                            <div className={styles['info-row']}>
+                                <div className={styles['info-item']}>
+                                    <div className={styles['info-label']}>
                                         <FaReceipt className="me-2" />
                                         訂單編號
                                     </div>
-                                    <div className="info-value">#{orderNumber || orderId}</div>
+                                    <div className={styles['info-value']}>#{orderNumber || orderId}</div>
                                 </div>
-                                <div className="info-item">
-                                    <div className="info-label">
+                                <div className={styles['info-item']}>
+                                    <div className={styles['info-label']}>
                                         <FaCreditCard className="me-2" />
                                         付款方式
                                     </div>
-                                    <div className="info-value">{paymentMethod || '未提供'}</div>
+                                    <div className={styles['info-value']}>{paymentMethod || '未提供'}</div>
                                 </div>
                             </div>
                             {isDineIn && tableLabel && (
-                                <div className="info-row mt-2">
-                                    <div className="info-item">
-                                        <div className="info-label">
+                                <div className={`${styles['info-row']} mt-2`}>
+                                    <div className={styles['info-item']}>
+                                        <div className={styles['info-label']}>
                                             <i className="bi bi-geo-alt me-2"></i>
                                             桌號
                                         </div>
-                                        <div className="info-value">{tableLabel}</div>
+                                        <div className={styles['info-value']}>{tableLabel}</div>
                                     </div>
                                 </div>
                             )}
                         </div>
 
                         {/* 訂單狀態提示 */}
-                        <div className="current-status-card">
-                            <div className="status-header">
+                        <div className={styles['current-status-card']}>
+                            <div className={styles['status-header']}>
                                 <FaClock className="me-2" />
                                 <h4>訂單狀態</h4>
                             </div>
-                            <div className="status-body">
-                                <div className="status-message">
+                            <div className={styles['status-body']}>
+                                <div>
                                     <p>您的惜福品訂單正在準備中</p>
                                     <p className="text-muted">請留意店家叫號，聽到您的號碼後即可前往取餐</p>
                                 </div>
@@ -89,7 +89,7 @@ function SurplusConfirmationPage() {
                         </div>
 
                         {/* 惜福品特別提示 */}
-                        <div className="surplus-notice">
+                        <div className={styles['surplus-notice']}>
                             <FaLeaf className="me-2" style={{ color: '#28a745' }} />
                             <div>
                                 <p className="mb-2">感謝您選擇惜福品！</p>
@@ -98,7 +98,7 @@ function SurplusConfirmationPage() {
                         </div>
 
                         {/* 溫馨提醒 */}
-                        <div className="reminder-card">
+                        <div className={styles['reminder-card']}>
                             <h5>
                                 <i className="bi bi-info-circle me-2"></i>
                                 溫馨提醒
@@ -111,7 +111,7 @@ function SurplusConfirmationPage() {
                         </div>
 
                         {/* 動作按鈕 */}
-                        <div className="action-buttons">
+                        <div className={styles['action-buttons']}>
                             <button
                                 className="btn btn-secondary"
                                 onClick={() => navigate('/customer-home')}

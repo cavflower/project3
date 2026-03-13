@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import TimeSlotForm from './TimeSlotForm';
+import styles from './ReservationManagementPage.module.css';
 
 const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
   const [showForm, setShowForm] = useState(false);
@@ -77,18 +78,18 @@ const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
   });
 
   return (
-    <div className="time-slot-settings-container">
-      <div className="settings-header">
-        <div className="header-left">
+    <div className={styles.timeSlotSettingsContainer}>
+      <div className={styles.settingsHeader}>
+        <div className={styles.headerLeft}>
           <h2>可訂位時段設定</h2>
-          <p className="description">設定每週的可訂位時段與人數上限</p>
+          <p className={styles.description}>設定每週的可訂位時段與人數上限</p>
         </div>
-        <button className="btn-add-slot" onClick={handleAddNew}>
+        <button className={styles.btnAddSlot} onClick={handleAddNew}>
           <FaPlus /> 新增時段
         </button>
       </div>
 
-      <div className="day-filter">
+      <div className={styles.dayFilter}>
         <label>篩選星期：</label>
         <select value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)}>
           {Object.entries(daysOfWeek).map(([key, value]) => (
@@ -98,7 +99,7 @@ const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
       </div>
 
       {showForm && (
-        <div className="form-overlay">
+        <div className={styles.formOverlay}>
           <TimeSlotForm
             slot={editingSlot}
             onSubmit={handleFormSubmit}
@@ -107,51 +108,51 @@ const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
         </div>
       )}
 
-      <div className="slots-list">
+      <div className={styles.slotsList}>
         {Object.keys(sortedGroupedSlots).length === 0 ? (
-          <div className="empty-state">
+          <div className={styles.emptyState}>
             <p>尚未設定任何訂位時段</p>
           </div>
         ) : (
           Object.entries(sortedGroupedSlots).map(([day, slots]) => (
-            <div key={day} className="day-group">
-              <h3 className="day-title">{daysOfWeek[day]}</h3>
-              <div className="slots-grid">
+            <div key={day} className={styles.dayGroup}>
+              <h3 className={styles.dayTitle}>{daysOfWeek[day]}</h3>
+              <div className={styles.slotsGrid}>
                 {slots.map((slot) => (
-                  <div key={slot.id} className={`slot-card ${!slot.is_active ? 'inactive' : ''}`}>
-                    <div className="slot-header">
-                      <div className="time-range">
+                  <div key={slot.id} className={slot.is_active ? styles.slotCard : styles.slotCardInactive}>
+                    <div className={styles.slotHeader}>
+                      <div className={styles.timeRange}>
                         <strong>
                           {slot.end_time ? `${slot.start_time} - ${slot.end_time}` : slot.start_time}
                         </strong>
                       </div>
-                      <div className="slot-status">
+                      <div>
                         {slot.is_active ? (
-                          <span className="active-badge">
+                          <span className={styles.activeBadge}>
                             <FaToggleOn /> 啟用中
                           </span>
                         ) : (
-                          <span className="inactive-badge">
+                          <span className={styles.inactiveBadge}>
                             <FaToggleOff /> 已停用
                           </span>
                         )}
                       </div>
                     </div>
                     
-                    <div className="slot-body">
-                      <div className="capacity-info">
-                        <span className="label">人數上限：</span>
-                        <span className="value">{slot.max_capacity} 位</span>
+                    <div className={styles.slotBody}>
+                      <div className={styles.capacityInfo}>
+                        <span className={styles.capacityLabel}>人數上限：</span>
+                        <span className={styles.capacityValue}>{slot.max_capacity} 位</span>
                       </div>
-                      <div className="capacity-info">
-                        <span className="label">單筆最多：</span>
-                        <span className="value">{slot.max_party_size || 10} 位</span>
+                      <div className={styles.capacityInfo}>
+                        <span className={styles.capacityLabel}>單筆最多：</span>
+                        <span className={styles.capacityValue}>{slot.max_party_size || 10} 位</span>
                       </div>
                     </div>
 
-                    <div className="slot-actions">
+                    <div className={styles.slotActions}>
                       <button 
-                        className="btn-edit"
+                        className={styles.btnEdit}
                         onClick={() => handleEdit(slot)}
                         disabled={slot.has_reservations}
                         title={slot.has_reservations ? "此時段已有訂位，無法編輯" : "編輯時段"}
@@ -159,7 +160,7 @@ const TimeSlotSettings = ({ timeSlots, onSave, onDelete }) => {
                         <FaEdit /> 編輯
                       </button>
                       <button 
-                        className="btn-delete"
+                        className={styles.btnSlotDelete}
                         onClick={() => onDelete(slot.id)}
                         disabled={slot.has_reservations}
                         title={slot.has_reservations ? "此時段已有訂位，無法刪除" : "刪除時段"}

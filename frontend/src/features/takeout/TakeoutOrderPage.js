@@ -95,6 +95,10 @@ function TakeoutOrderPage() {
 
   // 處理商品點擊：檢查是否有規格
   const handleProductClick = async (product) => {
+    if (product.is_orderable === false || product.is_sold_out_by_ingredients) {
+      return;
+    }
+
     try {
       const response = await getPublicSpecificationGroups(product.id);
       const specs = response.data || [];
@@ -418,12 +422,15 @@ function TakeoutOrderPage() {
                   const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
                   const lastCartItem = cartItemsForProduct[cartItemsForProduct.length - 1];
                   const isLinkedToSurplus = item.is_linked_to_surplus || false;
+                  const isSoldOutByIngredients = item.is_sold_out_by_ingredients || false;
+                  const isOrderable = item.is_orderable !== false;
+                  const isUnavailable = isLinkedToSurplus || !isOrderable;
 
                   return (
                     <div
                       key={item.id}
                       className="d-flex justify-content-between align-items-center border-bottom py-3"
-                      style={isLinkedToSurplus ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+                      style={isUnavailable ? { opacity: 0.5 } : {}}
                     >
                       <div className="flex-grow-1">
                         <h5 className="mb-1">
@@ -433,11 +440,17 @@ function TakeoutOrderPage() {
                               (已轉為惜福品)
                             </span>
                           )}
+                          {!isLinkedToSurplus && isSoldOutByIngredients && (
+                            <span className="badge bg-secondary ms-2">已售完</span>
+                          )}
                         </h5>
                         <p className="text-muted mb-1">{item.description}</p>
+                        {!isLinkedToSurplus && isSoldOutByIngredients && (
+                          <small className="text-danger d-block mb-1">原物料不足，暫時無法供應</small>
+                        )}
                         <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
                       </div>
-                      {!isLinkedToSurplus && (
+                      {!isUnavailable && (
                         quantity === 0 ? (
                           <button
                             className={`btn rounded-circle ${styles['add-btn']}`}
@@ -493,12 +506,15 @@ function TakeoutOrderPage() {
                       const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
                       const lastCartItem = cartItemsForProduct[cartItemsForProduct.length - 1];
                       const isLinkedToSurplus = item.is_linked_to_surplus || false;
+                      const isSoldOutByIngredients = item.is_sold_out_by_ingredients || false;
+                      const isOrderable = item.is_orderable !== false;
+                      const isUnavailable = isLinkedToSurplus || !isOrderable;
 
                       return (
                         <div
                           key={item.id}
                           className="d-flex justify-content-between align-items-center border-bottom py-3"
-                          style={isLinkedToSurplus ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+                          style={isUnavailable ? { opacity: 0.5 } : {}}
                         >
                           {item.image && (
                             <div className="me-3">
@@ -517,11 +533,17 @@ function TakeoutOrderPage() {
                                   (已轉為惜福品)
                                 </span>
                               )}
+                              {!isLinkedToSurplus && isSoldOutByIngredients && (
+                                <span className="badge bg-secondary ms-2">已售完</span>
+                              )}
                             </h5>
                             <p className="text-muted mb-1">{item.description}</p>
+                            {!isLinkedToSurplus && isSoldOutByIngredients && (
+                              <small className="text-danger d-block mb-1">原物料不足，暫時無法供應</small>
+                            )}
                             <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
                           </div>
-                          {!isLinkedToSurplus && (
+                          {!isUnavailable && (
                             quantity === 0 ? (
                               <button
                               className={`btn rounded-circle ${styles['add-btn']}`}

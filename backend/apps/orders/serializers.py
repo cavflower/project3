@@ -5,6 +5,10 @@ import firebase_admin
 from .models import TakeoutOrder, TakeoutOrderItem, DineInOrder, DineInOrderItem, Notification
 import logging
 import threading
+from django.db import transaction
+from decimal import Decimal
+from apps.products.models import ProductIngredient
+from apps.inventory.models import Ingredient
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +17,78 @@ if not firebase_admin._apps:
     cred = credentials.Certificate('serviceAccountKey.json')
     firebase_app = initialize_app(cred)
 db = firestore.client()
+
+
+def _consume_ingredient_stock(store, items_data):
+    """
+    根據商品配方扣減原物料庫存。
+    若任一原料不足，直接拋出驗證錯誤並中止訂單建立。
+    """
+    if not items_data:
+        return
+
+    product_quantity_map = {}
+    for item in items_data:
+        product = item['product']
+        qty = int(item['quantity'])
+        product_quantity_map[product.id] = product_quantity_map.get(product.id, 0) + qty
+
+    if not product_quantity_map:
+        return
+
+    recipe_links = ProductIngredient.objects.select_related('ingredient').filter(
+        product_id__in=product_quantity_map.keys(),
+        product__store=store,
+    )
+
+    if not recipe_links.exists():
+        return
+
+    required_by_ingredient = {}
+    for link in recipe_links:
+        sold_quantity = product_quantity_map.get(link.product_id, 0)
+        if sold_quantity <= 0:
+            continue
+
+        required_amount = link.quantity_used * Decimal(sold_quantity)
+        required_by_ingredient[link.ingredient_id] = required_by_ingredient.get(link.ingredient_id, Decimal('0')) + required_amount
+
+    if not required_by_ingredient:
+        return
+
+    ingredients = list(
+        Ingredient.objects.select_for_update().filter(
+            store=store,
+            id__in=required_by_ingredient.keys(),
+        )
+    )
+    ingredients_by_id = {ingredient.id: ingredient for ingredient in ingredients}
+
+    missing_ingredient_ids = [
+        ingredient_id
+        for ingredient_id in required_by_ingredient.keys()
+        if ingredient_id not in ingredients_by_id
+    ]
+    if missing_ingredient_ids:
+        raise serializers.ValidationError({
+            'inventory': f'配方中的原物料不存在或不屬於此店家: {missing_ingredient_ids}'
+        })
+
+    insufficient = []
+    for ingredient in ingredients:
+        required_amount = required_by_ingredient[ingredient.id]
+        if ingredient.quantity < required_amount:
+            insufficient.append(
+                f"{ingredient.name} 庫存不足（需要 {required_amount} {ingredient.get_unit_display()}，目前 {ingredient.quantity} {ingredient.get_unit_display()}）"
+            )
+
+    if insufficient:
+        raise serializers.ValidationError({'inventory': insufficient})
+
+    for ingredient in ingredients:
+        ingredient.quantity = ingredient.quantity - required_by_ingredient[ingredient.id]
+
+    Ingredient.objects.bulk_update(ingredients, ['quantity', 'updated_at'])
 
 
 # ===== 外帶訂單 Serializers =====
@@ -62,145 +138,138 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
             validated_data['user'] = request.user
             user = request.user
 
-        
-        # 1. 寫入 PostgreSQL - 完整訂單資料（包含兌換商品）
-        order = TakeoutOrder.objects.create(
-            pickup_number=pickup_number,
-            product_redemptions=product_redemptions,
-            **validated_data
-        )
-        
-        # 建立訂單項目並計算總金額
-        total_amount = 0
-        firestore_items = []
-        for item_data in items_data:
-            product = item_data['product']
-            quantity = item_data['quantity']
-            unit_price = item_data.get('unit_price') or product.price
-            specifications = item_data.get('specifications', [])
-            
-            item = TakeoutOrderItem.objects.create(
-                order=order,
-                product=product,
-                quantity=quantity,
-                unit_price=unit_price,
-                specifications=specifications
+        with transaction.atomic():
+            _consume_ingredient_stock(store, items_data)
+
+            # 1. 寫入 PostgreSQL - 完整訂單資料（包含兌換商品）
+            order = TakeoutOrder.objects.create(
+                pickup_number=pickup_number,
+                product_redemptions=product_redemptions,
+                **validated_data
             )
-            total_amount += float(unit_price) * quantity
-            
-            # 準備 Firestore 資料
-            firestore_items.append({
-                'product_id': product.id,
-                'product_name': product.name,
-                'quantity': quantity,
-                'unit_price': float(unit_price),
-                'specifications': specifications
-            })
-        
-        # 處理兌換商品 - 加入 Firestore items 顯示
-        for redemption in product_redemptions:
-            firestore_items.append({
-                'product_id': None,
-                'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
-                'quantity': redemption.get('quantity', 1),
-                'unit_price': 0,
-                'is_redemption': True,
-                'required_points': redemption.get('required_points', 0)
-            })
-        
-        # 2. 自動建立或更新會員帳戶（如果用戶已登入）
-        if user and store.enable_loyalty:
-            from apps.loyalty.models import CustomerLoyaltyAccount, PointRule, PointTransaction
-            from decimal import Decimal
-            
-            loyalty_account, created = CustomerLoyaltyAccount.objects.get_or_create(
-                user=user,
-                store=store,
-                defaults={'available_points': 0, 'total_points': 0}
-            )
-            if created:
-                logger.info(f"為用戶 {user.email} 在店家 {store.name} 創建會員帳戶")
-            
-            # 計算並累積點數（根據店家的點數規則）
-            try:
-                # 獲取該店家的活躍點數規則
-                point_rule = PointRule.objects.filter(
-                    store=store,
-                    active=True
-                ).first()
-                
-                if point_rule:
-                    # 檢查是否達到最低消費門檻
-                    min_spend = point_rule.min_spend or Decimal('0')
-                    if total_amount >= min_spend:
-                        # 計算獲得的點數
-                        earned_points = int(total_amount * point_rule.points_per_currency)
-                        
-                        if earned_points > 0:
-                            # 更新會員帳戶點數
-                            loyalty_account.available_points += earned_points
-                            loyalty_account.total_points += earned_points
-                            loyalty_account.save()
-                            
-                            # 創建點數交易記錄
-                            PointTransaction.objects.create(
-                                account=loyalty_account,
-                                points=earned_points,
-                                transaction_type='earn',
-                                description=f'外帶訂單消費 ${total_amount} 元獲得點數',
-                                order=order
-                            )
-                            
-                            logger.info(f"用戶 {user.email} 在店家 {store.name} 獲得 {earned_points} 點")
-            except Exception as e:
-                logger.error(f"計算點數時發生錯誤: {e}")
-        
-        # 綠色點數獎勵：外帶不需餐具
-        if user and not validated_data.get('use_utensils', True):
-            try:
-                from apps.surplus_food.models import GreenPointRule, UserGreenPoints
-                
-                # 查找該店家的「外帶不要餐具」規則
-                rule = GreenPointRule.objects.filter(
-                    store=store,
-                    action_type='no_utensils',
-                    is_active=True
-                ).first()
-                
-                if rule:
-                    # 獲取或創建用戶點數餘額
-                    balance = UserGreenPoints.get_or_create_balance(user, store)
-                    balance.add_points(
-                        amount=rule.points_reward,
-                        reason='外帶不需餐具',
-                        order=order
-                    )
-                    logger.info(f"用戶 {user.email} 獲得綠色點數 {rule.points_reward} 點（外帶不需餐具）")
-            except Exception as e:
-                logger.error(f"綠色點數獎勵發放失敗: {e}")
-        
-        # 3. 寫入 Firestore - 即時訂單通知（非同步執行以加快回應速度）
-        def write_to_firestore():
-            try:
-                db.collection('orders').document(pickup_number).set({
-                    'store_id': store.id,
-                    'pickup_number': pickup_number,
-                    'customer_name': validated_data.get('customer_name', ''),
-                    'customer_phone': validated_data.get('customer_phone', ''),
-                    'payment_method': validated_data.get('payment_method', ''),
-                    'notes': validated_data.get('notes', ''),
-                    'channel': 'takeout',
-                    'use_utensils': validated_data.get('use_utensils', False),
-                    'items': firestore_items,
-                    'status': 'pending',
-                    'created_at': firestore.SERVER_TIMESTAMP,
+
+            # 建立訂單項目並計算總金額
+            total_amount = 0
+            firestore_items = []
+            for item_data in items_data:
+                product = item_data['product']
+                quantity = item_data['quantity']
+                unit_price = item_data.get('unit_price') or product.price
+                specifications = item_data.get('specifications', [])
+
+                TakeoutOrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    specifications=specifications
+                )
+                total_amount += float(unit_price) * quantity
+
+                # 準備 Firestore 資料
+                firestore_items.append({
+                    'product_id': product.id,
+                    'product_name': product.name,
+                    'quantity': quantity,
+                    'unit_price': float(unit_price),
+                    'specifications': specifications
                 })
-            except Exception as exc:
-                logger.exception("Failed to write order to Firestore")
-        
-        # 背景執行 Firestore 寫入
-        threading.Thread(target=write_to_firestore, daemon=True).start()
-        
+
+            # 處理兌換商品 - 加入 Firestore items 顯示
+            for redemption in product_redemptions:
+                firestore_items.append({
+                    'product_id': None,
+                    'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
+                    'quantity': redemption.get('quantity', 1),
+                    'unit_price': 0,
+                    'is_redemption': True,
+                    'required_points': redemption.get('required_points', 0)
+                })
+
+            # 2. 自動建立或更新會員帳戶（如果用戶已登入）
+            if user and store.enable_loyalty:
+                from apps.loyalty.models import CustomerLoyaltyAccount, PointRule, PointTransaction
+
+                loyalty_account, created = CustomerLoyaltyAccount.objects.get_or_create(
+                    user=user,
+                    store=store,
+                    defaults={'available_points': 0, 'total_points': 0}
+                )
+                if created:
+                    logger.info(f"為用戶 {user.email} 在店家 {store.name} 創建會員帳戶")
+
+                # 計算並累積點數（根據店家的點數規則）
+                try:
+                    point_rule = PointRule.objects.filter(
+                        store=store,
+                        active=True
+                    ).first()
+
+                    if point_rule:
+                        min_spend = point_rule.min_spend or Decimal('0')
+                        if total_amount >= min_spend:
+                            earned_points = int(total_amount * point_rule.points_per_currency)
+
+                            if earned_points > 0:
+                                loyalty_account.available_points += earned_points
+                                loyalty_account.total_points += earned_points
+                                loyalty_account.save()
+
+                                PointTransaction.objects.create(
+                                    account=loyalty_account,
+                                    points=earned_points,
+                                    transaction_type='earn',
+                                    description=f'外帶訂單消費 ${total_amount} 元獲得點數',
+                                    order=order
+                                )
+
+                                logger.info(f"用戶 {user.email} 在店家 {store.name} 獲得 {earned_points} 點")
+                except Exception as e:
+                    logger.error(f"計算點數時發生錯誤: {e}")
+
+            # 綠色點數獎勵：外帶不需餐具
+            if user and not validated_data.get('use_utensils', True):
+                try:
+                    from apps.surplus_food.models import GreenPointRule, UserGreenPoints
+
+                    rule = GreenPointRule.objects.filter(
+                        store=store,
+                        action_type='no_utensils',
+                        is_active=True
+                    ).first()
+
+                    if rule:
+                        balance = UserGreenPoints.get_or_create_balance(user, store)
+                        balance.add_points(
+                            amount=rule.points_reward,
+                            reason='外帶不需餐具',
+                            order=order
+                        )
+                        logger.info(f"用戶 {user.email} 獲得綠色點數 {rule.points_reward} 點（外帶不需餐具）")
+                except Exception as e:
+                    logger.error(f"綠色點數獎勵發放失敗: {e}")
+
+            # 3. 寫入 Firestore - 即時訂單通知（交易提交後再非同步執行）
+            def write_to_firestore():
+                try:
+                    db.collection('orders').document(pickup_number).set({
+                        'store_id': store.id,
+                        'pickup_number': pickup_number,
+                        'customer_name': validated_data.get('customer_name', ''),
+                        'customer_phone': validated_data.get('customer_phone', ''),
+                        'payment_method': validated_data.get('payment_method', ''),
+                        'notes': validated_data.get('notes', ''),
+                        'channel': 'takeout',
+                        'use_utensils': validated_data.get('use_utensils', False),
+                        'items': firestore_items,
+                        'status': 'pending',
+                        'created_at': firestore.SERVER_TIMESTAMP,
+                    })
+                except Exception:
+                    logger.exception("Failed to write order to Firestore")
+
+            transaction.on_commit(lambda: threading.Thread(target=write_to_firestore, daemon=True).start())
+
         return order
 
     def generate_pickup_number(self, store):
@@ -266,146 +335,139 @@ class DineInOrderSerializer(serializers.ModelSerializer):
             validated_data['user'] = request.user
             user = request.user
 
-        
-        # 1. 寫入 PostgreSQL - 完整訂單資料（包含兌換商品）
-        order = DineInOrder.objects.create(
-            order_number=order_number,
-            product_redemptions=product_redemptions,
-            **validated_data
-        )
-        
-        # 建立訂單項目並計算總金額
-        total_amount = 0
-        firestore_items = []
-        for item_data in items_data:
-            product = item_data['product']
-            quantity = item_data['quantity']
-            unit_price = item_data.get('unit_price') or product.price
-            specifications = item_data.get('specifications', [])
-            
-            item = DineInOrderItem.objects.create(
-                order=order,
-                product=product,
-                quantity=quantity,
-                unit_price=unit_price,
-                specifications=specifications
+        with transaction.atomic():
+            _consume_ingredient_stock(store, items_data)
+
+            # 1. 寫入 PostgreSQL - 完整訂單資料（包含兌換商品）
+            order = DineInOrder.objects.create(
+                order_number=order_number,
+                product_redemptions=product_redemptions,
+                **validated_data
             )
-            total_amount += float(unit_price) * quantity
-            
-            # 準備 Firestore 資料
-            firestore_items.append({
-                'product_id': product.id,
-                'product_name': product.name,
-                'quantity': quantity,
-                'unit_price': float(unit_price),
-                'specifications': specifications
-            })
-        
-        # 處理兌換商品 - 加入 Firestore items 顯示
-        for redemption in product_redemptions:
-            firestore_items.append({
-                'product_id': None,
-                'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
-                'quantity': redemption.get('quantity', 1),
-                'unit_price': 0,
-                'is_redemption': True,
-                'required_points': redemption.get('required_points', 0)
-            })
-        
-        # 2. 自動建立或更新會員帳戶（如果用戶已登入）
-        if user and store.enable_loyalty:
-            from apps.loyalty.models import CustomerLoyaltyAccount, PointRule, PointTransaction
-            from decimal import Decimal
-            
-            loyalty_account, created = CustomerLoyaltyAccount.objects.get_or_create(
-                user=user,
-                store=store,
-                defaults={'available_points': 0, 'total_points': 0}
-            )
-            if created:
-                logger.info(f"為用戶 {user.email} 在店家 {store.name} 創建會員帳戶")
-            
-            # 計算並累積點數（根據店家的點數規則）
-            try:
-                # 獲取該店家的活躍點數規則
-                point_rule = PointRule.objects.filter(
-                    store=store,
-                    active=True
-                ).first()
-                
-                if point_rule:
-                    # 檢查是否達到最低消費門檻
-                    min_spend = point_rule.min_spend or Decimal('0')
-                    if total_amount >= min_spend:
-                        # 計算獲得的點數
-                        earned_points = int(total_amount * point_rule.points_per_currency)
-                        
-                        if earned_points > 0:
-                            # 更新會員帳戶點數
-                            loyalty_account.available_points += earned_points
-                            loyalty_account.total_points += earned_points
-                            loyalty_account.save()
-                            
-                            # 創建點數交易記錄
-                            PointTransaction.objects.create(
-                                account=loyalty_account,
-                                points=earned_points,
-                                transaction_type='earn',
-                                description=f'內用訂單消費 ${total_amount} 元獲得點數'
-                            )
-                            
-                            logger.info(f"用戶 {user.email} 在店家 {store.name} 獲得 {earned_points} 點")
-            except Exception as e:
-                logger.error(f"計算點數時發生錯誤: {e}")
-        
-        # 綠色點數獎勵：內用使用環保餐具
-        if user and validated_data.get('use_eco_tableware', False):
-            try:
-                from apps.surplus_food.models import GreenPointRule, UserGreenPoints
-                
-                # 查找該店家的「內用自備環保餐具」規則
-                rule = GreenPointRule.objects.filter(
-                    store=store,
-                    action_type='dine_in_eco',
-                    is_active=True
-                ).first()
-                
-                if rule:
-                    # 獲取或創建用戶點數餘額
-                    balance = UserGreenPoints.get_or_create_balance(user, store)
-                    balance.add_points(
-                        amount=rule.points_reward,
-                        reason='內用使用環保餐具',
-                        order=order
-                    )
-                    logger.info(f"用戶 {user.email} 獲得綠色點數 {rule.points_reward} 點（內用使用環保餐具）")
-            except Exception as e:
-                logger.error(f"綠色點數獎勵發放失敗: {e}")
-        
-        # 3. 寫入 Firestore - 即時訂單通知（非同步執行以加快回應速度）
-        def write_to_firestore():
-            try:
-                db.collection('orders').document(order_number).set({
-                    'store_id': store.id,
-                    'order_number': order_number,
-                    'pickup_number': order_number,
-                    'customer_name': validated_data.get('customer_name', ''),
-                    'customer_phone': validated_data.get('customer_phone', ''),
-                    'table_label': validated_data.get('table_label', ''),
-                    'payment_method': validated_data.get('payment_method', ''),
-                    'notes': validated_data.get('notes', ''),
-                    'channel': 'dine_in',
-                    'use_eco_tableware': validated_data.get('use_eco_tableware', False),
-                    'items': firestore_items,
-                    'status': 'pending',
-                    'created_at': firestore.SERVER_TIMESTAMP,
+
+            # 建立訂單項目並計算總金額
+            total_amount = 0
+            firestore_items = []
+            for item_data in items_data:
+                product = item_data['product']
+                quantity = item_data['quantity']
+                unit_price = item_data.get('unit_price') or product.price
+                specifications = item_data.get('specifications', [])
+
+                DineInOrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    specifications=specifications
+                )
+                total_amount += float(unit_price) * quantity
+
+                # 準備 Firestore 資料
+                firestore_items.append({
+                    'product_id': product.id,
+                    'product_name': product.name,
+                    'quantity': quantity,
+                    'unit_price': float(unit_price),
+                    'specifications': specifications
                 })
-            except Exception as exc:
-                logger.exception("Failed to write dinein order to Firestore")
-        
-        # 背景執行 Firestore 寫入
-        threading.Thread(target=write_to_firestore, daemon=True).start()
-        
+
+            # 處理兌換商品 - 加入 Firestore items 顯示
+            for redemption in product_redemptions:
+                firestore_items.append({
+                    'product_id': None,
+                    'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
+                    'quantity': redemption.get('quantity', 1),
+                    'unit_price': 0,
+                    'is_redemption': True,
+                    'required_points': redemption.get('required_points', 0)
+                })
+
+            # 2. 自動建立或更新會員帳戶（如果用戶已登入）
+            if user and store.enable_loyalty:
+                from apps.loyalty.models import CustomerLoyaltyAccount, PointRule, PointTransaction
+
+                loyalty_account, created = CustomerLoyaltyAccount.objects.get_or_create(
+                    user=user,
+                    store=store,
+                    defaults={'available_points': 0, 'total_points': 0}
+                )
+                if created:
+                    logger.info(f"為用戶 {user.email} 在店家 {store.name} 創建會員帳戶")
+
+                # 計算並累積點數（根據店家的點數規則）
+                try:
+                    point_rule = PointRule.objects.filter(
+                        store=store,
+                        active=True
+                    ).first()
+
+                    if point_rule:
+                        min_spend = point_rule.min_spend or Decimal('0')
+                        if total_amount >= min_spend:
+                            earned_points = int(total_amount * point_rule.points_per_currency)
+
+                            if earned_points > 0:
+                                loyalty_account.available_points += earned_points
+                                loyalty_account.total_points += earned_points
+                                loyalty_account.save()
+
+                                PointTransaction.objects.create(
+                                    account=loyalty_account,
+                                    points=earned_points,
+                                    transaction_type='earn',
+                                    description=f'內用訂單消費 ${total_amount} 元獲得點數'
+                                )
+
+                                logger.info(f"用戶 {user.email} 在店家 {store.name} 獲得 {earned_points} 點")
+                except Exception as e:
+                    logger.error(f"計算點數時發生錯誤: {e}")
+
+            # 綠色點數獎勵：內用使用環保餐具
+            if user and validated_data.get('use_eco_tableware', False):
+                try:
+                    from apps.surplus_food.models import GreenPointRule, UserGreenPoints
+
+                    rule = GreenPointRule.objects.filter(
+                        store=store,
+                        action_type='dine_in_eco',
+                        is_active=True
+                    ).first()
+
+                    if rule:
+                        balance = UserGreenPoints.get_or_create_balance(user, store)
+                        balance.add_points(
+                            amount=rule.points_reward,
+                            reason='內用使用環保餐具',
+                            order=order
+                        )
+                        logger.info(f"用戶 {user.email} 獲得綠色點數 {rule.points_reward} 點（內用使用環保餐具）")
+                except Exception as e:
+                    logger.error(f"綠色點數獎勵發放失敗: {e}")
+
+            # 3. 寫入 Firestore - 即時訂單通知（交易提交後再非同步執行）
+            def write_to_firestore():
+                try:
+                    db.collection('orders').document(order_number).set({
+                        'store_id': store.id,
+                        'order_number': order_number,
+                        'pickup_number': order_number,
+                        'customer_name': validated_data.get('customer_name', ''),
+                        'customer_phone': validated_data.get('customer_phone', ''),
+                        'table_label': validated_data.get('table_label', ''),
+                        'payment_method': validated_data.get('payment_method', ''),
+                        'notes': validated_data.get('notes', ''),
+                        'channel': 'dine_in',
+                        'use_eco_tableware': validated_data.get('use_eco_tableware', False),
+                        'items': firestore_items,
+                        'status': 'pending',
+                        'created_at': firestore.SERVER_TIMESTAMP,
+                    })
+                except Exception:
+                    logger.exception("Failed to write dinein order to Firestore")
+
+            transaction.on_commit(lambda: threading.Thread(target=write_to_firestore, daemon=True).start())
+
         return order
 
     def generate_order_number(self, store):

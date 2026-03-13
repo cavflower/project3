@@ -276,7 +276,7 @@ function OrderManagementPage() {
 
   if (loading) {
     return (
-      <div className="order-page container text-center py-5">
+      <div className={`${styles.orderPage} container text-center py-5`}>
         <div className="spinner-border text-primary" role="status" />
         <p className="mt-3">載入中...</p>
       </div>
@@ -285,7 +285,7 @@ function OrderManagementPage() {
 
   if (error) {
     return (
-      <div className="order-page container py-5">
+      <div className={`${styles.orderPage} container py-5`}>
         <div className="alert alert-danger">
           {error}
           <div className="small text-muted mt-2">
@@ -297,7 +297,7 @@ function OrderManagementPage() {
   }
 
   return (
-    <div className="order-page container py-4">
+    <div className={`${styles.orderPage} container py-4`}>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h2 className="mb-1">訂單管理</h2>
@@ -365,7 +365,7 @@ function OrderManagementPage() {
       {sortedOrders.length === 0 ? (
         <div className="alert alert-secondary">目前沒有訂單</div>
       ) : (
-        <div className="orders-list">
+        <div className={styles.ordersList}>
           {pagedOrders.map((order) => (
             <OrderCard
               key={order.id}
@@ -426,9 +426,9 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
   };
 
   return (
-    <div className="order-card">
-      <div className="order-body">
-        <div className="order-info">
+    <div className={styles.orderCard}>
+      <div className={styles.orderBody}>
+        <div className={styles.orderInfo}>
           <p><strong>取餐號碼：</strong>{order.pickup_number || order.id}</p>
           <p><strong>客戶：</strong>{order.customer_name}</p>
           <p><strong>電話：</strong>{order.customer_phone}</p>
@@ -496,11 +496,11 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
           )}
         </div>
       </div>
-      <div className="order-actions">
+      <div className={styles.orderActions}>
         {status === 'pending' && (
           <>
             <button
-              className="surplus-btn-sm btn-success btn-accept"
+              className={`surplus-btn-sm btn-success ${styles.btnAccept}`}
               disabled={updating}
               onClick={() => onUpdateStatus(order.pickup_number || order.id, 'accepted')}
             >
@@ -518,7 +518,7 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
         {status === 'accepted' && (
           <>
             <button
-              className="surplus-btn-sm surplus-btn-primary btn-accept"
+              className={`surplus-btn-sm surplus-btn-primary ${styles.btnAccept}`}
               disabled={updating}
               onClick={() => onUpdateStatus(
                 order.pickup_number || order.id,

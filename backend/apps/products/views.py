@@ -4,8 +4,8 @@ from django.db.models import Prefetch
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from .models import Product, ProductCategory, ProductSpecification, SpecificationGroup
-from .serializers import ProductSerializer, PublicProductSerializer, ProductCategorySerializer, ProductSpecificationSerializer, SpecificationGroupSerializer
+from .models import Product, ProductCategory, ProductSpecification, SpecificationGroup, ProductIngredient
+from .serializers import ProductSerializer, PublicProductSerializer, ProductCategorySerializer, ProductSpecificationSerializer, SpecificationGroupSerializer, ProductIngredientSerializer
 from rest_framework import generics, permissions
 from django.shortcuts import get_object_or_404
 from apps.orders.serializers import TakeoutOrderSerializer
@@ -82,7 +82,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         merchant = getattr(self.request.user, 'merchant_profile', None)
         if not merchant or not hasattr(merchant, 'store'):
             return Product.objects.none()
-        return Product.objects.filter(store=merchant.store)
+        return Product.objects.filter(store=merchant.store).prefetch_related('ingredient_links__ingredient')
 
     def perform_create(self, serializer):
         merchant = getattr(self.request.user, 'merchant_profile', None)
@@ -98,7 +98,7 @@ class PublicProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         # 優化查詢：預載入類別和店家資料
-        qs = super().get_queryset().select_related('category', 'store')
+        qs = super().get_queryset().select_related('category', 'store').prefetch_related('ingredient_links__ingredient')
         
         store_id = self.request.query_params.get('store')
         service_type = self.request.query_params.get('service_type')
@@ -207,6 +207,54 @@ class ProductSpecificationViewSet(viewsets.ModelViewSet):
         if group.product.store != merchant.store:
             raise serializers.ValidationError('無權限操作此規格類別的選項')
         
+        serializer.save()
+
+
+class ProductIngredientViewSet(viewsets.ModelViewSet):
+    """
+    商品配方 CRUD API
+    用於管理商品與原物料的對應關係。
+    """
+    queryset = ProductIngredient.objects.all()
+    serializer_class = ProductIngredientSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        merchant = getattr(self.request.user, 'merchant_profile', None)
+        if not merchant or not hasattr(merchant, 'store'):
+            return ProductIngredient.objects.none()
+
+        queryset = ProductIngredient.objects.filter(
+            product__store=merchant.store
+        ).select_related('product', 'ingredient')
+
+        product_id = self.request.query_params.get('product')
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+
+        return queryset
+
+    def _validate_product_and_ingredient_store(self, product, ingredient):
+        merchant = getattr(self.request.user, 'merchant_profile', None)
+        if not merchant or not hasattr(merchant, 'store'):
+            raise serializers.ValidationError('用戶不是商家或沒有店舖')
+
+        if product.store_id != merchant.store_id:
+            raise serializers.ValidationError('無權限操作此商品')
+
+        if ingredient.store_id != merchant.store_id:
+            raise serializers.ValidationError('原物料不屬於此店家')
+
+    def perform_create(self, serializer):
+        product = serializer.validated_data.get('product')
+        ingredient = serializer.validated_data.get('ingredient')
+        self._validate_product_and_ingredient_store(product, ingredient)
+        serializer.save()
+
+    def perform_update(self, serializer):
+        product = serializer.validated_data.get('product', serializer.instance.product)
+        ingredient = serializer.validated_data.get('ingredient', serializer.instance.ingredient)
+        self._validate_product_and_ingredient_store(product, ingredient)
         serializer.save()
 
 

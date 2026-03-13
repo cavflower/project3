@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaTimes, FaTag } from 'react-icons/fa';
 import styles from './ProductForm.module.css';
 import { createProduct, updateProduct } from '../../../api/productApi';
+import { getIngredients } from '../../../api/inventoryApi';
 
 const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,10 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
   });
   const [error, setError] = useState('');
   const [tagInput, setTagInput] = useState('');
+  const [ingredients, setIngredients] = useState([]);
+  const [recipeIngredients, setRecipeIngredients] = useState([]);
+  const [selectedIngredientId, setSelectedIngredientId] = useState('');
+  const [selectedIngredientUsage, setSelectedIngredientUsage] = useState('');
 
   useEffect(() => {
     // 滾動到表單位置
@@ -33,8 +38,33 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
         service_type: product.service_type || 'both',
         food_tags: product.food_tags || [],
       });
+
+      const existingRecipe = Array.isArray(product.ingredient_links)
+        ? product.ingredient_links.map(link => ({
+            ingredient: link.ingredient,
+            ingredient_name: link.ingredient_name,
+            ingredient_unit_display: link.ingredient_unit_display,
+            quantity_used: String(link.quantity_used),
+          }))
+        : [];
+      setRecipeIngredients(existingRecipe);
+    } else {
+      setRecipeIngredients([]);
     }
   }, [product]);
+
+  useEffect(() => {
+    const loadIngredients = async () => {
+      try {
+        const ingredientData = await getIngredients();
+        setIngredients(ingredientData || []);
+      } catch (err) {
+        console.error('[ProductForm] Failed to load ingredients:', err);
+      }
+    };
+
+    loadIngredients();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -84,6 +114,56 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
     }
   };
 
+  const handleAddRecipeIngredient = () => {
+    if (!selectedIngredientId) {
+      setError('請先選擇原物料');
+      return;
+    }
+
+    const usage = Number(selectedIngredientUsage);
+    if (!selectedIngredientUsage || Number.isNaN(usage) || usage <= 0) {
+      setError('請輸入有效的每份使用量（需大於 0）');
+      return;
+    }
+
+    const ingredientId = Number(selectedIngredientId);
+    const picked = ingredients.find(item => item.id === ingredientId);
+    if (!picked) {
+      setError('找不到該原物料');
+      return;
+    }
+
+    if (recipeIngredients.some(item => item.ingredient === ingredientId)) {
+      setError('此原物料已在配方中');
+      return;
+    }
+
+    setRecipeIngredients(prev => [
+      ...prev,
+      {
+        ingredient: ingredientId,
+        ingredient_name: picked.name,
+        ingredient_unit_display: picked.unit_display,
+        quantity_used: usage.toString(),
+      },
+    ]);
+    setSelectedIngredientId('');
+    setSelectedIngredientUsage('');
+    setError('');
+  };
+
+  const handleRemoveRecipeIngredient = (ingredientId) => {
+    setRecipeIngredients(prev => prev.filter(item => item.ingredient !== ingredientId));
+  };
+
+  const handleRecipeUsageChange = (ingredientId, value) => {
+    setRecipeIngredients(prev =>
+      prev.map(item => (
+        item.ingredient === ingredientId ? { ...item, quantity_used: value } : item
+      ))
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -118,6 +198,21 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
         data.append('food_tags', tag);
       });
 
+      const normalizedRecipe = recipeIngredients.map(item => ({
+        ingredient: Number(item.ingredient),
+        quantity_used: Number(item.quantity_used),
+      }));
+
+      const hasInvalidRecipe = normalizedRecipe.some(
+        item => Number.isNaN(item.quantity_used) || item.quantity_used <= 0
+      );
+      if (hasInvalidRecipe) {
+        setError('配方中的每份使用量必須是大於 0 的數字');
+        return;
+      }
+
+      data.append('recipe_ingredients', JSON.stringify(normalizedRecipe));
+
       if (formData.image) {
         data.append('image', formData.image);
       }
@@ -133,7 +228,21 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
         onSuccess(response.data, false);
       }
     } catch (err) {
-      setError('提交失敗，請稍後再試。');
+      const data = err?.response?.data;
+      if (typeof data === 'string') {
+        setError(data);
+      } else if (data && typeof data === 'object') {
+        const firstEntry = Object.entries(data)[0];
+        if (firstEntry) {
+          const [field, value] = firstEntry;
+          const message = Array.isArray(value) ? value.join('、') : String(value);
+          setError(`${field}: ${message}`);
+        } else {
+          setError('提交失敗，請稍後再試。');
+        }
+      } else {
+        setError('提交失敗，請稍後再試。');
+      }
       console.error(err);
     }
   };
@@ -262,6 +371,72 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
                       ×
                     </button>
                   </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>商品原物料配方（每售出 1 份自動扣庫存）</label>
+            <p className={styles.formHint}>設定每份商品會使用的原物料和數量，建立訂單時會自動扣減。</p>
+
+            <div className={styles.recipeAddRow}>
+              <select
+                value={selectedIngredientId}
+                onChange={(e) => setSelectedIngredientId(e.target.value)}
+              >
+                <option value="">請選擇原物料</option>
+                {ingredients.map((ingredient) => (
+                  <option key={ingredient.id} value={ingredient.id}>
+                    {ingredient.name}（目前庫存: {ingredient.quantity} {ingredient.unit_display}）
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={selectedIngredientUsage}
+                onChange={(e) => setSelectedIngredientUsage(e.target.value)}
+                placeholder="每份使用量"
+              />
+
+              <button
+                type="button"
+                className={styles.addTagBtn}
+                onClick={handleAddRecipeIngredient}
+              >
+                加入配方
+              </button>
+            </div>
+
+            {recipeIngredients.length > 0 && (
+              <div className={styles.recipeList}>
+                {recipeIngredients.map((item) => (
+                  <div key={item.ingredient} className={styles.recipeItem}>
+                    <div className={styles.recipeItemName}>
+                      {item.ingredient_name}
+                    </div>
+                    <div className={styles.recipeItemUsage}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.quantity_used}
+                        onChange={(e) => handleRecipeUsageChange(item.ingredient, e.target.value)}
+                      />
+                      <span>{item.ingredient_unit_display}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.removeTagBtn}
+                      onClick={() => handleRemoveRecipeIngredient(item.ingredient)}
+                      title="移除原物料"
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

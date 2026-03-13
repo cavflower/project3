@@ -133,20 +133,20 @@ const ReservationCard = ({
         )}
 
         {/* 日期 */}
-        <div className="info-row">
-          <FaCalendarAlt className="info-icon" />
+        <div className={styles['info-row']}>
+          <FaCalendarAlt className={styles['info-icon']} />
           <span>{formatDate(displayDate)}</span>
         </div>
 
         {/* 時段 */}
-        <div className="info-row">
-          <FaClock className="info-icon" />
+        <div className={styles['info-row']}>
+          <FaClock className={styles['info-icon']} />
           <span>{time_slot}</span>
         </div>
 
         {/* 人數 */}
-        <div className="info-row">
-          <FaUsers className="info-icon" />
+        <div className={styles['info-row']}>
+          <FaUsers className={styles['info-icon']} />
           <span>
             {party_size} 位大人
             {children_count > 0 && ` + ${children_count} 位小孩`}

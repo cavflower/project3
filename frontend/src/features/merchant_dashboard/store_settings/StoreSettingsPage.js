@@ -997,12 +997,12 @@ const StoreSettingsPage = () => {
                 </label>
               </div>
 
-              <div className="feature-toggle-item">
-                <div className="toggle-info">
+              <div className={styles.featureToggleItem}>
+                <div className={styles.toggleInfo}>
                   <label htmlFor="enable_loyalty">會員功能</label>
                   <small>啟用會員計劃與點數系統</small>
                 </div>
-                <label className="toggle-switch">
+                <label className={styles.toggleSwitch}>
                   <input
                     type="checkbox"
                     id="enable_loyalty"

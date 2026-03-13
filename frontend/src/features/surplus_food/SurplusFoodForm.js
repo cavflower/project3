@@ -26,6 +26,7 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [maxQuantityByIngredients, setMaxQuantityByIngredients] = useState(null);
 
   useEffect(() => {
     loadInitialData();
@@ -52,6 +53,57 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
       }
     }
   }, [item, type]);
+
+  useEffect(() => {
+    if (!formData.product) {
+      setMaxQuantityByIngredients(null);
+      return;
+    }
+
+    const selectedProduct = products.find((p) => p.id === parseInt(formData.product, 10));
+    if (!selectedProduct) {
+      setMaxQuantityByIngredients(null);
+      return;
+    }
+
+    const ingredientLinks = selectedProduct.ingredient_links || [];
+    if (!ingredientLinks.length) {
+      setMaxQuantityByIngredients(null);
+      return;
+    }
+
+    const maxList = ingredientLinks
+      .map((link) => {
+        const used = parseFloat(link.quantity_used);
+        const stock = parseFloat(link.ingredient_current_stock);
+        if (!Number.isFinite(used) || used <= 0 || !Number.isFinite(stock)) {
+          return null;
+        }
+        return Math.floor(stock / used);
+      })
+      .filter((value) => value !== null);
+
+    if (!maxList.length) {
+      setMaxQuantityByIngredients(null);
+      return;
+    }
+
+    const nextMax = Math.min(...maxList);
+    setMaxQuantityByIngredients(nextMax);
+
+    if (type !== 'editFood') {
+      setFormData((prev) => {
+        const currentQty = parseInt(prev.quantity, 10) || 1;
+        if (nextMax <= 0) {
+          return { ...prev, quantity: 1 };
+        }
+        if (currentQty > nextMax) {
+          return { ...prev, quantity: nextMax };
+        }
+        return prev;
+      });
+    }
+  }, [formData.product, products, type]);
 
   const loadInitialData = async () => {
     try {
@@ -168,6 +220,17 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
       newErrors.quantity = '數量必須至少為 1';
     }
 
+    if (
+      maxQuantityByIngredients !== null &&
+      parseInt(formData.quantity, 10) > maxQuantityByIngredients
+    ) {
+      newErrors.quantity = `超過原料可售最大份數，最多可設定 ${maxQuantityByIngredients} 份`;
+    }
+
+    if (maxQuantityByIngredients !== null && maxQuantityByIngredients <= 0) {
+      newErrors.product = '此商品原物料不足，暫時無法轉為惜福品';
+    }
+
     if (formData.condition === 'near_expiry' && !formData.expiry_date) {
       newErrors.expiry_date = '即期品必須填寫到期日';
     }
@@ -222,8 +285,27 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
       }
     } catch (error) {
       console.error('提交失敗:', error);
+      const serverData = error.response?.data;
+      const nextErrors = {};
+
+      if (serverData && typeof serverData === 'object') {
+        Object.keys(serverData).forEach((key) => {
+          const value = serverData[key];
+          if (Array.isArray(value)) {
+            nextErrors[key] = value.join(' ');
+          } else if (typeof value === 'string') {
+            nextErrors[key] = value;
+          }
+        });
+      }
+
       setErrors({
-        submit: error.response?.data?.message || '提交失敗，請稍後再試'
+        ...nextErrors,
+        submit:
+          nextErrors.non_field_errors ||
+          nextErrors.detail ||
+          error.response?.data?.message ||
+          '提交失敗，請稍後再試'
       });
     } finally {
       setLoading(false);
@@ -304,6 +386,19 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                 <small className={styles.formHint}>
                   可從現有商品自動帶入資訊，或手動填寫
                 </small>
+                {maxQuantityByIngredients !== null && (
+                  <small
+                    className={styles.formHint}
+                    style={{ color: maxQuantityByIngredients > 0 ? '#198754' : '#dc3545' }}
+                  >
+                    {maxQuantityByIngredients > 0
+                      ? `依原物料庫存，最多可設定 ${maxQuantityByIngredients} 份`
+                      : '原物料不足，無法上架此商品為惜福品'}
+                  </small>
+                )}
+                {errors.product && (
+                  <span className={styles.errorMessage}>{errors.product}</span>
+                )}
               </div>
             )}
 
@@ -435,12 +530,18 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
                   onChange={handleChange}
                   onWheel={(e) => e.target.blur()}
                   min="1"
+                  max={maxQuantityByIngredients !== null && maxQuantityByIngredients > 0 ? maxQuantityByIngredients : undefined}
                   className={errors.quantity ? styles.inputError : ''}
-                  disabled={type === 'editFood'}
+                  disabled={type === 'editFood' || (maxQuantityByIngredients !== null && maxQuantityByIngredients <= 0)}
                   required
                 />
                 {errors.quantity && (
                   <span className={styles.errorMessage}>{errors.quantity}</span>
+                )}
+                {maxQuantityByIngredients !== null && maxQuantityByIngredients > 0 && (
+                  <small className={styles.formHint}>
+                    目前原物料最多可供應 {maxQuantityByIngredients} 份
+                  </small>
                 )}
                 {type === 'editFood' && (
                   <small className={styles.formHint} style={{ color: '#ff6b6b' }}>
@@ -602,7 +703,14 @@ const SurplusFoodForm = ({ type, item, initialCategory, onClose, onSuccess }) =>
             <button type="button" className={styles.btnCancel} onClick={onClose} disabled={loading}>
               取消
             </button>
-            <button type="submit" className={styles.btnSubmit} disabled={loading}>
+            <button
+              type="submit"
+              className={styles.btnSubmit}
+              disabled={
+                loading ||
+                (type !== 'editFood' && maxQuantityByIngredients !== null && maxQuantityByIngredients <= 0)
+              }
+            >
               {loading ? '處理中...' : (type === 'editFood' ? '更新' : '新增')}
             </button>
           </div>

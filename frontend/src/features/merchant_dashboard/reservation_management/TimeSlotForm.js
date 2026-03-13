@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
+import styles from './ReservationManagementPage.module.css';
 
 const TimeSlotForm = ({ slot, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -80,18 +81,18 @@ const TimeSlotForm = ({ slot, onSubmit, onCancel }) => {
   const timeOptions = generateTimeOptions();
 
   return (
-    <div className="time-slot-form-modal">
-      <div className="modal-content">
-        <div className="modal-header">
+    <div className={styles.timeSlotFormModal}>
+      <div className={styles.modalContent}>
+        <div className={styles.modalHeader}>
           <h2>{slot ? '編輯時段' : '新增時段'}</h2>
-          <button className="btn-close" onClick={onCancel}>
+          <button className={styles.btnClose} onClick={onCancel}>
             <FaTimes />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="form-body">
-            <div className="form-group">
+          <div className={styles.formBody}>
+            <div className={styles.formGroup}>
               <label htmlFor="day_of_week">星期 *</label>
               <select
                 id="day_of_week"
@@ -108,8 +109,8 @@ const TimeSlotForm = ({ slot, onSubmit, onCancel }) => {
               </select>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
                 <label htmlFor="start_time">開始時間 *</label>
                 <select
                   id="start_time"
@@ -126,7 +127,7 @@ const TimeSlotForm = ({ slot, onSubmit, onCancel }) => {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label htmlFor="end_time">結束時間</label>
                 <select
                   id="end_time"
@@ -142,12 +143,12 @@ const TimeSlotForm = ({ slot, onSubmit, onCancel }) => {
                   ))}
                 </select>
                 {errors.end_time && (
-                  <span className="error-message">{errors.end_time}</span>
+                  <span className={styles.errorMessage}>{errors.end_time}</span>
                 )}
               </div>
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="max_capacity">人數上限 *</label>
               <input
                 type="number"
@@ -160,14 +161,14 @@ const TimeSlotForm = ({ slot, onSubmit, onCancel }) => {
                 required
               />
               {errors.max_capacity && (
-                <span className="error-message">{errors.max_capacity}</span>
+                <span className={styles.errorMessage}>{errors.max_capacity}</span>
               )}
-              <small className="form-hint">
+              <small className={styles.formHint}>
                 此時段可容納的最大人數（包含所有訂位）
               </small>
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="max_party_size">單筆訂位最多人數 *</label>
               <input
                 type="number"
@@ -180,15 +181,15 @@ const TimeSlotForm = ({ slot, onSubmit, onCancel }) => {
                 required
               />
               {errors.max_party_size && (
-                <span className="error-message">{errors.max_party_size}</span>
+                <span className={styles.errorMessage}>{errors.max_party_size}</span>
               )}
-              <small className="form-hint">
+              <small className={styles.formHint}>
                 單筆訂位可接受的最多人數（大人+小孩）
               </small>
             </div>
 
-            <div className="form-group checkbox-group">
-              <label className="checkbox-label">
+            <div className={`${styles.formGroup} ${styles.checkboxGroup}`}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   name="is_active"
@@ -197,17 +198,17 @@ const TimeSlotForm = ({ slot, onSubmit, onCancel }) => {
                 />
                 <span>啟用此時段</span>
               </label>
-              <small className="form-hint">
+              <small className={styles.formHint}>
                 停用後顧客將無法預訂此時段
               </small>
             </div>
           </div>
 
-          <div className="modal-footer">
-            <button type="button" className="btn-cancel" onClick={onCancel}>
+          <div className={styles.modalFooter}>
+            <button type="button" className={styles.btnCancel} onClick={onCancel}>
               取消
             </button>
-            <button type="submit" className="btn-submit">
+            <button type="submit" className={styles.btnSubmit}>
               {slot ? '更新' : '新增'}
             </button>
           </div>

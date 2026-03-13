@@ -13,10 +13,12 @@ from .serializers import (
     SurplusFoodSerializer,
     SurplusFoodListSerializer,
     SurplusFoodOrderSerializer,
+    restore_surplus_order_ingredient_stock,
     SurplusFoodCategorySerializer,
     GreenPointRuleSerializer,
     PointRedemptionRuleSerializer
 )
+from django.db import transaction
 
 # Firestore 初始化
 try:
@@ -443,16 +445,25 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
     def cancel(self, request, pk=None):
         """取消訂單並恢復庫存，從 Firestore 刪除"""
         order = self.get_object()
-        
-        # 恢復所有品項的庫存
-        for item in order.items.all():
-            surplus_food = item.surplus_food
-            surplus_food.remaining_quantity += item.quantity
-            surplus_food.orders_count -= 1
-            surplus_food.save()
-        
-        order.status = 'cancelled'
-        order.save()
+
+        with transaction.atomic():
+            # 避免重複取消導致重複回補
+            if order.status in ['cancelled', 'rejected']:
+                serializer = self.get_serializer(order)
+                return Response(serializer.data)
+
+            # 恢復所有品項的庫存
+            for item in order.items.select_related('surplus_food').all():
+                surplus_food = item.surplus_food
+                surplus_food.remaining_quantity += item.quantity
+                if surplus_food.orders_count > 0:
+                    surplus_food.orders_count -= 1
+                surplus_food.save()
+
+            restore_surplus_order_ingredient_stock(order)
+
+            order.status = 'cancelled'
+            order.save()
         
         # 更新 Firestore 狀態為 cancelled（讓顧客端即時收到通知）
         # 不直接刪除，讓顧客端有時間看到狀態變更
@@ -469,16 +480,25 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
     def reject(self, request, pk=None):
         """拒絕訂單並恢復庫存，更新 Firestore 狀態"""
         order = self.get_object()
-        
-        # 恢復所有品項的庫存
-        for item in order.items.all():
-            surplus_food = item.surplus_food
-            surplus_food.remaining_quantity += item.quantity
-            surplus_food.orders_count -= 1
-            surplus_food.save()
-        
-        order.status = 'rejected'  # 使用 rejected 狀態表示拒絕
-        order.save()
+
+        with transaction.atomic():
+            # 避免重複拒絕導致重複回補
+            if order.status in ['cancelled', 'rejected']:
+                serializer = self.get_serializer(order)
+                return Response(serializer.data)
+
+            # 恢復所有品項的庫存
+            for item in order.items.select_related('surplus_food').all():
+                surplus_food = item.surplus_food
+                surplus_food.remaining_quantity += item.quantity
+                if surplus_food.orders_count > 0:
+                    surplus_food.orders_count -= 1
+                surplus_food.save()
+
+            restore_surplus_order_ingredient_stock(order)
+
+            order.status = 'rejected'  # 使用 rejected 狀態表示拒絕
+            order.save()
         
         # 更新 Firestore 狀態為 rejected（讓顧客端即時收到通知）
         # 不直接刪除，讓顧客端有時間看到狀態變更

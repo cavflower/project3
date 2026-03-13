@@ -242,6 +242,54 @@
     margin-bottom: 0;
 }
 
+.recipeAddRow {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr auto;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.recipeList {
+    margin-top: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.recipeItem {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.recipeItem:last-child {
+    border-bottom: none;
+}
+
+.recipeItemName {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.recipeItemUsage {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.recipeItemUsage input {
+    width: 100%;
+}
+
+.recipeItemUsage span {
+    color: #6b7280;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
 /* 響應式設計 */
 @media (max-width: 640px) {
     .modalOverlay {
@@ -278,5 +326,13 @@
 
     .addTagBtn {
         width: 100%;
+    }
+
+    .recipeAddRow {
+        grid-template-columns: 1fr;
+    }
+
+    .recipeItem {
+        grid-template-columns: 1fr;
     }
 }

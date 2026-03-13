@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ReservationCard from '../../../components/reservations/ReservationCard';
+import styles from './ReservationManagementPage.module.css';
 
 const ReservationList = ({ reservations, onAccept, onCancel, onComplete, onDelete }) => {
   const [activeStatusTab, setActiveStatusTab] = useState('all'); // 'all', 'pending', 'confirmed', 'completed', 'cancelled'
@@ -26,43 +27,43 @@ const ReservationList = ({ reservations, onAccept, onCancel, onComplete, onDelet
   });
 
   return (
-    <div className="reservation-list-container">
+    <div className={styles.reservationListContainer}>
       {/* 狀態分類導覽 */}
-      <div className="status-tabs">
+      <div className={styles.statusTabs}>
         <button
-          className={`status-tab ${activeStatusTab === 'all' ? 'active' : ''}`}
+          className={activeStatusTab === 'all' ? styles.statusTabActive : styles.statusTab}
           onClick={() => setActiveStatusTab('all')}
         >
           全部
         </button>
         <button
-          className={`status-tab ${activeStatusTab === 'pending' ? 'active' : ''}`}
+          className={activeStatusTab === 'pending' ? styles.statusTabActive : styles.statusTab}
           onClick={() => setActiveStatusTab('pending')}
         >
           待確認
         </button>
         <button
-          className={`status-tab ${activeStatusTab === 'confirmed' ? 'active' : ''}`}
+          className={activeStatusTab === 'confirmed' ? styles.statusTabActive : styles.statusTab}
           onClick={() => setActiveStatusTab('confirmed')}
         >
           已確認
         </button>
         <button
-          className={`status-tab ${activeStatusTab === 'completed' ? 'active' : ''}`}
+          className={activeStatusTab === 'completed' ? styles.statusTabActive : styles.statusTab}
           onClick={() => setActiveStatusTab('completed')}
         >
           已完成
         </button>
         <button
-          className={`status-tab ${activeStatusTab === 'cancelled' ? 'active' : ''}`}
+          className={activeStatusTab === 'cancelled' ? styles.statusTabActive : styles.statusTab}
           onClick={() => setActiveStatusTab('cancelled')}
         >
           已取消
         </button>
       </div>
 
-      <div className="list-controls">
-        <div className="sort-group">
+      <div className={styles.listControls}>
+        <div className={styles.sortGroup}>
           <label>排序：</label>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
             <option value="date">訂位日期</option>
@@ -72,11 +73,11 @@ const ReservationList = ({ reservations, onAccept, onCancel, onComplete, onDelet
       </div>
 
       {sortedReservations.length === 0 ? (
-        <div className="empty-state">
+        <div className={styles.emptyState}>
           <p>目前沒有訂位記錄</p>
         </div>
       ) : (
-        <div className="reservations-grid">
+        <div className={styles.reservationsGrid}>
           {sortedReservations.map((reservation) => (
             <ReservationCard
               key={reservation.id}

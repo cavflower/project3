@@ -1,6 +1,7 @@
 from django.db import models
 from apps.users.models import Merchant
 from apps.stores.models import Store
+from apps.inventory.models import Ingredient
 
 
 class ProductCategory(models.Model):
@@ -134,6 +135,43 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.merchant.user.username})"
+
+
+class ProductIngredient(models.Model):
+    """
+    商品配方模型
+    定義每售出 1 份商品時，應扣除的原物料用量。
+    """
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='ingredient_links',
+        verbose_name='商品'
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name='product_links',
+        verbose_name='原物料'
+    )
+    quantity_used = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='每份使用量',
+        help_text='每售出 1 份商品會扣除的原物料數量'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
+
+    class Meta:
+        db_table = 'product_ingredients'
+        verbose_name = '商品配方'
+        verbose_name_plural = '商品配方'
+        unique_together = ['product', 'ingredient']
+        ordering = ['product_id', 'ingredient_id']
+
+    def __str__(self):
+        return f"{self.product.name} -> {self.ingredient.name} ({self.quantity_used})"
 
 
 class SpecificationGroup(models.Model):

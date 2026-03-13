@@ -2,6 +2,9 @@ from rest_framework import serializers
 from .models import SurplusTimeSlot, SurplusFood, SurplusFoodOrder, SurplusFoodCategory, SurplusFoodOrderItem, GreenPointRule, PointRedemptionRule
 from datetime import time
 from decimal import Decimal
+from django.db import transaction
+from apps.products.models import ProductIngredient
+from apps.inventory.models import Ingredient
 
 
 class SurplusFoodCategorySerializer(serializers.ModelSerializer):
@@ -119,6 +122,7 @@ class SurplusFoodSerializer(serializers.ModelSerializer):
     is_near_sold_out = serializers.ReadOnlyField()
     time_slot_detail = SurplusTimeSlotSerializer(source='time_slot', read_only=True)
     category_detail = SurplusFoodCategorySerializer(source='category', read_only=True)
+    max_quantity_by_ingredients = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = SurplusFood
@@ -130,6 +134,7 @@ class SurplusFoodSerializer(serializers.ModelSerializer):
             'expiry_date', 'time_slot', 'time_slot_detail', 'image', 'status', 'status_display',
             'pickup_instructions', 'tags', 'code',
             'views_count', 'orders_count', 'is_available', 'is_near_sold_out',
+            'max_quantity_by_ingredients',
             'created_at', 'updated_at', 'published_at'
         ]
         read_only_fields = [
@@ -174,8 +179,41 @@ class SurplusFoodSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'time_slot': '必須選擇惜福時段'
             })
+
+        # 若有關聯商品，數量不可超過原料短板可售份數
+        product = data.get('product') if 'product' in data else getattr(self.instance, 'product', None)
+        quantity = data.get('quantity') if 'quantity' in data else getattr(self.instance, 'quantity', None)
+
+        if product and quantity is not None:
+            max_qty = self._get_product_max_quantity_by_ingredients(product)
+            if max_qty is not None and int(quantity) > max_qty:
+                raise serializers.ValidationError({
+                    'quantity': f'超過原料可售最大份數，最多可設定 {max_qty} 份'
+                })
         
         return data
+
+    def _get_product_max_quantity_by_ingredients(self, product):
+        links = list(product.ingredient_links.select_related('ingredient').all())
+        if not links:
+            return None
+
+        max_quantities = []
+        for link in links:
+            if link.quantity_used <= 0:
+                continue
+            max_by_ingredient = int(link.ingredient.quantity // link.quantity_used)
+            max_quantities.append(max_by_ingredient)
+
+        if not max_quantities:
+            return None
+
+        return min(max_quantities)
+
+    def get_max_quantity_by_ingredients(self, obj):
+        if not obj.product_id:
+            return None
+        return self._get_product_max_quantity_by_ingredients(obj.product)
 
 
 class SurplusFoodListSerializer(serializers.ModelSerializer):
@@ -312,6 +350,106 @@ class SurplusFoodOrderItemSerializer(serializers.ModelSerializer):
         return data
 
 
+def _build_required_ingredients_from_surplus_items(items_payload):
+    """
+    根據惜福品訂單項目計算應扣除的原物料總量。
+    僅當惜福品有關聯 product 且該 product 有配方時才會扣料。
+    """
+    product_quantity_map = {}
+    for row in items_payload:
+        surplus_food = row['surplus_food']
+        quantity = int(row['quantity'])
+        if not surplus_food.product_id:
+            continue
+        product_quantity_map[surplus_food.product_id] = product_quantity_map.get(surplus_food.product_id, 0) + quantity
+
+    if not product_quantity_map:
+        return {}
+
+    recipe_links = ProductIngredient.objects.select_related('ingredient').filter(
+        product_id__in=product_quantity_map.keys()
+    )
+
+    required_by_ingredient = {}
+    for link in recipe_links:
+        sold_quantity = product_quantity_map.get(link.product_id, 0)
+        if sold_quantity <= 0:
+            continue
+        required_amount = link.quantity_used * Decimal(sold_quantity)
+        required_by_ingredient[link.ingredient_id] = required_by_ingredient.get(link.ingredient_id, Decimal('0')) + required_amount
+
+    return required_by_ingredient
+
+
+def _consume_ingredients_for_surplus_order(store, items_payload):
+    required_by_ingredient = _build_required_ingredients_from_surplus_items(items_payload)
+    if not required_by_ingredient:
+        return
+
+    ingredients = list(
+        Ingredient.objects.select_for_update().filter(
+            store=store,
+            id__in=required_by_ingredient.keys(),
+        )
+    )
+    ingredients_by_id = {ingredient.id: ingredient for ingredient in ingredients}
+
+    missing_ids = [
+        ingredient_id
+        for ingredient_id in required_by_ingredient.keys()
+        if ingredient_id not in ingredients_by_id
+    ]
+    if missing_ids:
+        raise serializers.ValidationError({
+            'inventory': f'配方中的原物料不存在或不屬於此店家: {missing_ids}'
+        })
+
+    insufficient = []
+    for ingredient in ingredients:
+        required_amount = required_by_ingredient[ingredient.id]
+        if ingredient.quantity < required_amount:
+            insufficient.append(
+                f"{ingredient.name} 庫存不足（需要 {required_amount} {ingredient.get_unit_display()}，目前 {ingredient.quantity} {ingredient.get_unit_display()}）"
+            )
+
+    if insufficient:
+        raise serializers.ValidationError({'inventory': insufficient})
+
+    for ingredient in ingredients:
+        ingredient.quantity = ingredient.quantity - required_by_ingredient[ingredient.id]
+
+    Ingredient.objects.bulk_update(ingredients, ['quantity', 'updated_at'])
+
+
+def restore_surplus_order_ingredient_stock(order):
+    """
+    取消/拒絕惜福品訂單時，回補關聯商品配方的原物料庫存。
+    """
+    items_payload = [
+        {
+            'surplus_food': item.surplus_food,
+            'quantity': item.quantity,
+        }
+        for item in order.items.select_related('surplus_food', 'surplus_food__product').all()
+    ]
+
+    required_by_ingredient = _build_required_ingredients_from_surplus_items(items_payload)
+    if not required_by_ingredient:
+        return
+
+    ingredients = list(
+        Ingredient.objects.select_for_update().filter(
+            store=order.store,
+            id__in=required_by_ingredient.keys(),
+        )
+    )
+
+    for ingredient in ingredients:
+        ingredient.quantity = ingredient.quantity + required_by_ingredient.get(ingredient.id, Decimal('0'))
+
+    Ingredient.objects.bulk_update(ingredients, ['quantity', 'updated_at'])
+
+
 # 更新原有的序列化器以支援多品項
 class SurplusFoodOrderSerializer(serializers.ModelSerializer):
     """惜福食品訂單序列化器 - 支援多品項"""
@@ -357,41 +495,57 @@ class SurplusFoodOrderSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('items', None)
         surplus_food = validated_data.pop('surplus_food', None)
         quantity = validated_data.pop('quantity', 1)
-        
-        order = SurplusFoodOrder.objects.create(**validated_data)
-        
+
+        normalized_items = []
         if items_data:
-            # 新格式：多品項
-            for item_data in items_data:
-                sf = item_data['surplus_food']
-                qty = item_data['quantity']
-                
+            normalized_items = [
+                {
+                    'surplus_food': item['surplus_food'],
+                    'quantity': int(item['quantity']),
+                }
+                for item in items_data
+            ]
+        elif surplus_food:
+            normalized_items = [{'surplus_food': surplus_food, 'quantity': int(quantity)}]
+
+        with transaction.atomic():
+            # 鎖住惜福品列，避免併發超賣
+            surplus_food_ids = list({row['surplus_food'].id for row in normalized_items})
+            locked_surplus_foods = SurplusFood.objects.select_for_update().filter(id__in=surplus_food_ids)
+            locked_by_id = {sf.id: sf for sf in locked_surplus_foods}
+
+            # 重新檢查庫存（以鎖定後資料為準）
+            for row in normalized_items:
+                sf = locked_by_id.get(row['surplus_food'].id)
+                if not sf:
+                    raise serializers.ValidationError({'items': '惜福品不存在'})
+                if sf.status != 'active':
+                    raise serializers.ValidationError({'items': f'{sf.title} 目前無法訂購'})
+                if row['quantity'] > sf.remaining_quantity:
+                    raise serializers.ValidationError({'items': f'{sf.title} 庫存不足，目前剩餘 {sf.remaining_quantity} 份'})
+
+            _consume_ingredients_for_surplus_order(validated_data['store'], normalized_items)
+
+            order = SurplusFoodOrder.objects.create(**validated_data)
+
+            for row in normalized_items:
+                sf = locked_by_id[row['surplus_food'].id]
+                qty = row['quantity']
+
                 SurplusFoodOrderItem.objects.create(
                     order=order,
                     surplus_food=sf,
                     quantity=qty,
                     unit_price=sf.surplus_price
                 )
-                
+
                 sf.remaining_quantity -= qty
                 sf.orders_count += 1
-                sf.save()
-        elif surplus_food:
-            # 舊格式：單一品項
-            SurplusFoodOrderItem.objects.create(
-                order=order,
-                surplus_food=surplus_food,
-                quantity=quantity,
-                unit_price=surplus_food.surplus_price
-            )
-            
-            surplus_food.remaining_quantity -= quantity
-            surplus_food.orders_count += 1
-            surplus_food.save()
-        
-        # 更新訂單總價
-        order.update_total_price()
-        
+
+            SurplusFood.objects.bulk_update(locked_surplus_foods, ['remaining_quantity', 'orders_count', 'updated_at'])
+
+            order.update_total_price()
+
         return order
     
     def validate(self, data):
