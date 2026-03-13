@@ -3,8 +3,15 @@
 }
 
 .home-header {
+  position: relative; /* Essential for containing the absolute carousel */
   padding: 6rem 2rem;
-  background: linear-gradient(135deg, var(--secondary-color), var(--bg-color));
+  background: var(--secondary-color); /* Fallback background */
+  overflow: hidden; /* Ensure carousel doesn't overflow */
+}
+
+.header-content {
+  position: relative; /* Ensure content is above the carousel background */
+  z-index: 10;
 }
 
 .home-container {
@@ -14,14 +21,16 @@
 
 .home-header h1 {
   font-size: 3rem;
-  color: var(--primary-color);
+  color: white; /* Changed specifically for better contrast over carousel images */
   margin-bottom: 1rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5); /* Improve readability */
 }
 
 .home-header p {
   font-size: 1.2rem;
-  color: var(--text-color);
+  color: #f0f0f0; /* Lighter text for dark overlay */
   margin-bottom: 2.5rem;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
 .button-container {

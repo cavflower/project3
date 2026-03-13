@@ -11,8 +11,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    height: 100%;
+    justify-content: flex-start;
+    height: auto;
+    min-height: 220px;
     position: relative;
 }
 
@@ -84,4 +85,27 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+}
+
+.compactCard {
+    padding: 14px 12px;
+    height: 170px;
+    min-height: 170px;
+    max-height: 170px;
+    flex: 0 0 auto;
+}
+
+.compactCard .featureIcon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.compactCard .featureName {
+    font-size: 1.05rem;
+    margin-bottom: 6px;
+}
+
+.compactCard .featureDescription {
+    font-size: 0.82rem;
+    line-height: 1.35;
 }

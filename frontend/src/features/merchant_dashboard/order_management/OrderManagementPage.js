@@ -297,15 +297,15 @@ function OrderManagementPage() {
   }
 
   return (
-    <div className="order-page container py-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
+    <div className={styles.orderPage}>
+      <div className={styles.pageHeader}>
         <div>
-          <h2 className="mb-1">訂單管理</h2>
-          <p className="text-muted mb-0">店家 ID：{storeId}</p>
+          <h1 className={styles.pageTitle}>訂單管理</h1>
+          <p className={styles.pageSubtitle}>店家 ID：{storeId}</p>
         </div>
       </div>
 
-      <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+      <div className={styles.filterBar}>
         {[
           { key: 'all', label: '全部' },
           { key: 'pending', label: '待處理' },
@@ -316,7 +316,7 @@ function OrderManagementPage() {
         ].map((opt) => (
           <button
             key={opt.key}
-            className={`btn btn-sm ${statusFilter === opt.key ? styles.filterBtnActive : styles.filterBtn}`}
+            className={statusFilter === opt.key ? styles.filterBtnActive : styles.filterBtn}
             onClick={() => {
               setStatusFilter(opt.key);
               setPage(1);
@@ -327,7 +327,7 @@ function OrderManagementPage() {
         ))}
       </div>
 
-      <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+      <div className={styles.filterBar}>
         {[
           { key: 'all', label: '全部' },
           { key: 'dine_in', label: '內用' },
@@ -335,7 +335,7 @@ function OrderManagementPage() {
         ].map((opt) => (
           <button
             key={opt.key}
-            className={`btn btn-sm ${channelFilter === opt.key ? styles.filterBtnActive : styles.filterBtn}`}
+            className={channelFilter === opt.key ? styles.filterBtnActive : styles.filterBtn}
             onClick={() => {
               setChannelFilter(opt.key);
               setPage(1);
@@ -344,10 +344,8 @@ function OrderManagementPage() {
             {opt.label}
           </button>
         ))}
-        {/* 月份篩選 */}
         <select
-          className="form-select form-select-sm"
-          style={{ width: 'auto', marginLeft: 'auto' }}
+          className={styles.monthSelect}
           value={monthFilter}
           onChange={(e) => {
             setMonthFilter(e.target.value);
@@ -363,46 +361,50 @@ function OrderManagementPage() {
       </div>
 
       {sortedOrders.length === 0 ? (
-        <div className="alert alert-secondary">目前沒有訂單</div>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateIcon}>📭</div>
+          <p>目前沒有訂單</p>
+        </div>
       ) : (
-        <div className="orders-list">
-          {pagedOrders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              productMap={productMap}
-              formatUtensils={formatUtensils}
-              statusLabels={statusLabels}
-              updating={updating}
-              onUpdateStatus={handleUpdateStatus}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
-      )}
+        <>
+          <div className={styles.ordersList}>
+            {pagedOrders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                productMap={productMap}
+                formatUtensils={formatUtensils}
+                statusLabels={statusLabels}
+                updating={updating}
+                onUpdateStatus={handleUpdateStatus}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
 
-      {/* 分頁控制 */}
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        <div className="text-muted">
-          第 {currentPage} / {totalPages} 頁（共 {filteredOrders.length} 筆）
-        </div>
-        <div className="d-flex gap-2">
-          <button
-            className="btn btn-sm btn-outline-secondary"
-            disabled={currentPage === 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            上一頁
-          </button>
-          <button
-            className="btn btn-sm btn-outline-secondary"
-            disabled={currentPage === totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          >
-            下一頁
-          </button>
-        </div>
-      </div>
+          <div className={styles.pagination}>
+            <div className={styles.pageInfo}>
+              第 {currentPage} / {totalPages} 頁（共 {filteredOrders.length} 筆）
+            </div>
+            <div className={styles.paginationBtns}>
+              <button
+                className={styles.paginBtn}
+                disabled={currentPage === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                上一頁
+              </button>
+              <button
+                className={styles.paginBtn}
+                disabled={currentPage === totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                下一頁
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -425,89 +427,109 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
     });
   };
 
-  return (
-    <div className="order-card">
-      <div className="order-body">
-        <div className="order-info">
-          <p><strong>取餐號碼：</strong>{order.pickup_number || order.id}</p>
-          <p><strong>客戶：</strong>{order.customer_name}</p>
-          <p><strong>電話：</strong>{order.customer_phone}</p>
-          <p><strong>類型：</strong>{orderType}</p>
-          {order.channel === 'takeout' && order.pickup_at && (
-            <p><strong>取餐時間：</strong>{formatPickupTime(order.pickup_at)}</p>
-          )}
-          <p><strong>訂單狀態：</strong>{statusLabels[status] || status}</p>
-          <p><strong>付款方式：</strong>{order.payment_method}</p>
-          <p><strong>備註：</strong>{order.notes || '—'}</p>
-          <p><strong>餐具需求：</strong>{formatUtensils(order)}</p>
-          {order.table_label && <p><strong>桌號：</strong>{order.table_label}</p>}
-          {Array.isArray(order.items) && order.items.length > 0 && (
-            <div className="mt-2">
-              <strong>品項：</strong>
-              <ul className="mb-0">
-                {order.items.map((it, idx) => {
-                  // 優先使用 product_name（兌換商品會有此欄位）
-                  const itemName = it.product_name ||
-                    productMap[it.product_id || it.product] ||
-                    `商品ID: ${it.product_id || it.product}`;
-                  const isRedemption = it.is_redemption || itemName.startsWith('【兌換】');
+  const getStatusBadgeClass = () => {
+    switch (status) {
+      case 'pending':
+        return styles.badgeStatus;
+      case 'accepted':
+        return styles.badgeStatusAccepted;
+      case 'ready_for_pickup':
+        return styles.badgeStatusReady;
+      case 'completed':
+        return styles.badgeStatusCompleted;
+      case 'rejected':
+        return styles.badgeStatus;
+      default:
+        return styles.badgeStatus;
+    }
+  };
 
-                  return (
-                    <li key={idx} style={isRedemption ? { color: '#4CAF50' } : {}}>
-                      {itemName} × {it.quantity}
-                      {it.unit_price !== undefined && it.unit_price !== null && (
-                        <span className="text-muted ms-1">
-                          (NT$ {Math.round(it.unit_price)})
-                        </span>
-                      )}
-                      {/* 顯示規格 - 按類別分組 */}
-                      {it.specifications && it.specifications.length > 0 && (
-                        <div className="ms-3 small text-secondary">
-                          {/* 按 groupName 分組 */}
-                          {Object.entries(
-                            it.specifications.reduce((groups, spec) => {
-                              const group = spec.groupName || '其他';
-                              if (!groups[group]) groups[group] = [];
-                              groups[group].push(spec);
-                              return groups;
-                            }, {})
-                          ).map(([groupName, specs], groupIdx) => (
-                            <span key={groupIdx} className="me-2">
-                              {groupName}: {specs.map((spec, specIdx) => (
-                                <span key={specIdx}>
-                                  {specIdx > 0 && '、'}
-                                  {spec.optionName}
-                                  {spec.priceAdjustment !== 0 && (
-                                    <span className={spec.priceAdjustment > 0 ? 'text-danger' : 'text-success'}>
-                                      {spec.priceAdjustment > 0 ? ` +$${spec.priceAdjustment}` : ` -$${Math.abs(spec.priceAdjustment)}`}
-                                    </span>
-                                  )}
-                                </span>
-                              ))}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
+  const items = Array.isArray(order.items) ? order.items : [];
+
+  return (
+    <div className={styles.orderCard}>
+      <div className={styles.cardHeader}>
+        <div className={styles.orderNumber}>#{order.pickup_number || order.id}</div>
+        <div className={styles.badgeGroup}>
+          <span className={`${styles.badge} ${styles.badgeChannel}`}>
+            {order.channel === 'takeout' ? '外帶' : '內用'}
+          </span>
+          <span className={`${styles.badge} ${getStatusBadgeClass()}`}>
+            {statusLabels[status] || status}
+          </span>
         </div>
+        {order.table_label && (
+          <span className={`${styles.badge} ${styles.badgeChannel}`}>
+            桌 {order.table_label}
+          </span>
+        )}
       </div>
-      <div className="order-actions">
+
+      <div className={styles.cardBody}>
+        <div className={styles.infoGroup}>
+          <span className={styles.infoLabel}>客戶</span>
+          <span className={styles.infoValue}>{order.customer_name}</span>
+        </div>
+        <div className={styles.infoGroup}>
+          <span className={styles.infoLabel}>電話</span>
+          <span className={styles.infoValue}>{order.customer_phone || '—'}</span>
+        </div>
+
+        {order.channel === 'takeout' && order.pickup_at && (
+          <div className={styles.infoGroup}>
+            <span className={styles.infoLabel}>取餐時間</span>
+            <span className={styles.infoValue}>{formatPickupTime(order.pickup_at)}</span>
+          </div>
+        )}
+
+        <div className={styles.infoGroup}>
+          <span className={styles.infoLabel}>付款方式</span>
+          <span className={styles.infoValue}>{order.payment_method || '—'}</span>
+        </div>
+
+        {order.notes && (
+          <div className={styles.infoGroup}>
+            <span className={styles.infoLabel}>備註</span>
+            <span className={styles.infoValue} style={{ fontSize: '0.9rem' }}>{order.notes}</span>
+          </div>
+        )}
+
+        <div className={styles.infoGroup}>
+          <span className={styles.infoLabel}>餐具</span>
+          <span className={styles.infoValue}>{formatUtensils(order)}</span>
+        </div>
+
+        {items.length > 0 && (
+          <div className={styles.itemsList}>
+            <div className={styles.itemsLabel}>品項明細</div>
+            <div className={styles.itemsContent}>
+              {items.map((item, idx) => {
+                const itemName = item.product_name ||
+                  productMap[item.product_id || item.product] ||
+                  `商品ID: ${item.product_id || item.product}`;
+                return (
+                  <span key={idx} className={styles.itemTag}>
+                    {itemName} ×{item.quantity}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.cardFooter}>
         {status === 'pending' && (
           <>
             <button
-              className="surplus-btn-sm btn-success btn-accept"
+              className={styles.actionBtn + ' ' + styles.btnAccept}
               disabled={updating}
               onClick={() => onUpdateStatus(order.pickup_number || order.id, 'accepted')}
             >
               接受
             </button>
             <button
-              className="surplus-btn-sm btn-danger"
+              className={styles.actionBtn + ' ' + styles.btnReject}
               disabled={updating}
               onClick={() => onUpdateStatus(order.pickup_number || order.id, 'rejected')}
             >
@@ -518,17 +540,14 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
         {status === 'accepted' && (
           <>
             <button
-              className="surplus-btn-sm surplus-btn-primary btn-accept"
+              className={styles.actionBtn + ' ' + styles.btnReady}
               disabled={updating}
-              onClick={() => onUpdateStatus(
-                order.pickup_number || order.id,
-                'ready_for_pickup'
-              )}
+              onClick={() => onUpdateStatus(order.pickup_number || order.id, 'ready_for_pickup')}
             >
               可取餐
             </button>
             <button
-              className="surplus-btn-sm btn-danger"
+              className={styles.actionBtn + ' ' + styles.btnReject}
               disabled={updating}
               onClick={() => onUpdateStatus(order.pickup_number || order.id, 'rejected')}
             >
@@ -538,7 +557,7 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
         )}
         {status === 'ready_for_pickup' && (
           <button
-            className="surplus-btn-sm btn-success"
+            className={styles.actionBtn + ' ' + styles.btnComplete}
             disabled={updating}
             onClick={() => onUpdateStatus(order.pickup_number || order.id, 'completed')}
           >
@@ -547,7 +566,7 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
         )}
         {(status === 'completed' || status === 'rejected') && (
           <button
-            className="surplus-btn-sm btn-danger"
+            className={styles.actionBtn + ' ' + styles.btnDelete}
             disabled={updating}
             onClick={() => onDelete(order.pickup_number || order.id)}
           >
