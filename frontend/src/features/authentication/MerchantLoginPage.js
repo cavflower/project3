@@ -5,9 +5,18 @@ import { auth } from '../../lib/firebase';
 import { authApi } from '../../api/authApi';
 import styles from './LoginPage.module.css';
 import { Link } from 'react-router-dom';
+import ImageCarousel from '../../components/common/ImageCarousel';
 
 const MerchantLoginPage = () => {
+  // 背景圖片
+  const merchantImages = [
+    'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80', // Kitchen Team/Cooking
+    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80', // Restaurant
+    'https://images.unsplash.com/photo-1514933651103-005eec06c04b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80'  // Drink
+  ];
+
   const [formData, setFormData] = useState({ email: '', password: '' });
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -123,6 +132,7 @@ const MerchantLoginPage = () => {
 
   return (
     <div className={styles['auth-page']}>
+      <ImageCarousel images={merchantImages} interval={6000} className={styles['auth-carousel']} />
       <div className={`${styles['auth-container']} ${styles['merchant-theme']}`}>
         <form className={styles['auth-form']} onSubmit={handleSubmit}>
           <h2>店家管理登入</h2>

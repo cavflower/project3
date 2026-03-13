@@ -36,24 +36,53 @@
 .statusPending {
     background-color: #fff3cd;
     color: #856404;
+
 }
 
-.statusAccepted {
-    background-color: #d4edda;
-    color: #155724;
+.pageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
 }
 
-.statusRejected {
-    background-color: #f8d7da;
-    color: #721c24;
+.pageTitle {
+    margin: 0;
+    font-size: 1.75rem;
+    color: #2f3b3e;
+    font-weight: 700;
+}
+
+.pageSubtitle {
+    margin: 6px 0 0;
+    color: #667f82;
+    font-size: 0.9rem;
+}
+
+/* 篩選栏 */
+.filterBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
 }
 
 .filterBtn {
     border-radius: 999px;
-    border: 1px solid #f19173;
-    color: #f19173;
-    background: #fff;
-    padding: 6px 14px;
+    border: 1px solid #dae4e1;
+    color: #5f7477;
+    background: #ffffff;
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+}
+
+.filterBtn:hover {
+    border-color: #1abc9c;
+    color: #1abc9c;
 }
 
 .filterBtnActive {
@@ -64,37 +93,339 @@
     color: #fff;
 }
 
-.btnAccept:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.monthSelect {
+    margin-left: auto;
+    padding: 8px 12px;
+    border: 1px solid #dae4e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #2f3b3e;
+    font-size: 0.9rem;
+    cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.btnAccept:active:not(:disabled) {
-    transform: translateY(0);
+.monthSelect:focus {
+    outline: none;
+    border-color: #1abc9c;
+    box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.1);
 }
 
-.modalBackdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.35);
-    display: flex;
+/* 訂單列表 */
+.ordersList {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.orderCard {
+    background: #ffffff;
+    border: 1px solid #e3ecea;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(22, 41, 46, 0.04);
+}
+
+.orderCard:hover {
+    border-color: #1abc9c;
+    box-shadow: 0 4px 12px rgba(26, 188, 156, 0.08);
+}
+
+.cardHeader {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 12px;
     align-items: center;
-    justify-content: center;
-    z-index: 1050;
+    padding: 12px 14px;
+    background: #fafbfb;
+    border-bottom: 1px solid #e9f1ef;
 }
 
-.modalCard {
-    background: #fff;
-    border-radius: 10px;
-    max-width: 520px;
-    width: 92%;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+.orderNumber {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #2f3b3e;
 }
 
-.modalBody p {
-    margin-bottom: 8px;
+.badgeGroup {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badgeChannel {
+    background: rgba(26, 188, 156, 0.1);
+    color: #167d68;
+}
+
+.badgeStatus {
+    background: rgba(244, 67, 54, 0.1);
+    color: #c62828;
+}
+
+.badgeStatusAccepted {
+    background: rgba(76, 175, 80, 0.1);
+    color: #2e7d3a;
+}
+
+.badgeStatusReady {
+    background: rgba(33, 150, 243, 0.1);
+    color: #1565c0;
+}
+
+.badgeStatusCompleted {
+    background: rgba(156, 39, 176, 0.1);
+    color: #6a1b9a;
+}
+
+.cardBody {
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.infoGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.infoLabel {
+    font-size: 0.75rem;
+    color: #667f82;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.infoValue {
+    font-size: 0.95rem;
+    color: #2f3b3e;
+    font-weight: 600;
+}
+
+.itemsList {
+    grid-column: 1 / -1;
+    padding-top: 8px;
+    border-top: 1px solid #e9f1ef;
+}
+
+.itemsLabel {
+    font-size: 0.75rem;
+    color: #667f82;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 6px;
+}
+
+.itemsContent {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.itemTag {
+    background: #f0f8f6;
+    border: 1px solid #d0ede8;
+    color: #2f3b3e;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.cardFooter {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #fafbfb;
+    border-top: 1px solid #e9f1ef;
+    justify-content: flex-end;
+}
+
+.actionBtn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btnAccept {
+    background: linear-gradient(135deg, #1abc9c, #20c4a3);
+    color: #ffffff;
+}
+
+.btnAccept:hover:not(:disabled) {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26, 188, 156, 0.3);
+}
+
+.btnReady {
+    background: linear-gradient(135deg, #2196f3, #42a5f5);
+    color: #ffffff;
+}
+
+.btnReady:hover:not(:disabled) {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.btnComplete {
+    background: linear-gradient(135deg, #9c27b0, #ab47bc);
+    color: #ffffff;
+}
+
+.btnComplete:hover:not(:disabled) {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+}
+
+.btnReject {
+    background: linear-gradient(135deg, #f44336, #ef5350);
+    color: #ffffff;
+}
+
+.btnReject:hover:not(:disabled) {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
+
+.btnDelete {
+    background: linear-gradient(135deg, #d32f2f, #e53935);
+    color: #ffffff;
+}
+
+.btnDelete:hover:not(:disabled) {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+}
+
+.actionBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 分頁 */
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #e3ecea;
+    border-radius: 12px;
+}
+
+.pageInfo {
+    color: #667f82;
+    font-size: 0.9rem;
+}
+
+.paginationBtns {
+    display: flex;
+    gap: 8px;
+}
+
+.paginBtn {
+    padding: 8px 12px;
+    border: 1px solid #dae4e1;
+    background: #ffffff;
+    color: #2f3b3e;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.paginBtn:hover:not(:disabled) {
+    border-color: #1abc9c;
+    color: #1abc9c;
+}
+
+.paginBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 空狀態 */
+.emptyState {
+    background: #ffffff;
+    border: 1px dashed #dae4e1;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    color: #667f82;
+}
+
+.emptyStateIcon {
+    font-size: 3rem;
+    margin-bottom: 12px;
+}
+
+/* 響應式 */
+@media (max-width: 768px) {
+    .orderPage {
+        padding: 16px;
+    }
+
+    .cardHeader {
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+    }
+
+    .badgeGroup {
+        grid-column: 1 / -1;
+    }
+
+    .cardBody {
+        grid-template-columns: 1fr;
+    }
+
+    .itemsList {
+        grid-column: 1;
+    }
+
+    .cardFooter {
+        flex-direction: column;
+    }
+
+    .actionBtn {
+        width: 100%;
+    }
+
+    .monthSelect {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .filterBar {
+        flex-direction: column;
+    }
+
+    .filterBtn,
+    .filterBtnActive {
+        width: 100%;
+        text-align: center;
+    }
 }

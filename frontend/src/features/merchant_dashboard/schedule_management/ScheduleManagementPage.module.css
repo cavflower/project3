@@ -1,407 +1,428 @@
-/* 排班管理頁面 - CSS Module */
+/* 排班管理頁面 - 沿用店務設定橘白風格 */
 
 .schedulePage {
-    padding: 2rem;
+    min-height: calc(100vh - 80px);
+    background: #ffffff;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 16px;
 }
 
 .scheduleHeader {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 1.5rem;
+    gap: 16px;
+    background: linear-gradient(90deg, #ff6f61, #ff8e53);
+    border-radius: 8px;
+    padding: 16px 18px;
+}
+
+.scheduleHeader h1 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.6rem;
+}
+
+.pageSubtitle {
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 600;
+    margin: 0 0 4px;
+    font-size: 0.86rem;
+}
+
+.pageDescription {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 6px 0 0;
+    font-size: 0.92rem;
 }
 
 .headerActions {
     display: flex;
-    gap: 0.75rem;
-}
-
-.pageSubtitle {
-    color: #ff8c82;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
+    gap: 8px;
+    align-items: center;
 }
 
 .saveStatus {
-    background: #ecfdf5;
-    color: #0f766e;
-    padding: 0.6rem 1rem;
-    border-radius: 0.75rem;
-    width: fit-content;
+    background: #eefaf6;
+    color: #1f7a69;
+    border: 1px solid #cde9e1;
+    border-radius: 6px;
+    padding: 10px 12px;
     font-weight: 600;
-}
-
-.pageDescription {
-    color: #6f6f6f;
-    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    width: fit-content;
 }
 
 .primaryBtn {
     border: none;
-    background: #ff8c82;
-    color: #fff;
-    border-radius: 999px;
-    padding: 0.75rem 1.75rem;
-    font-weight: 600;
+    background: #ffffff;
+    color: #e85b4a;
+    border-radius: 6px;
+    padding: 9px 14px;
+    font-weight: 700;
+    font-size: 0.9rem;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, filter 0.2s ease;
+    white-space: nowrap;
 }
 
 .primaryBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(255, 140, 130, 0.3);
+    transform: translateY(-1px);
+    filter: brightness(0.98);
 }
 
 .primaryBtnFill {
-    composes: primaryBtn;
+    border: none;
+    background: linear-gradient(90deg, #ff6f61, #ff8e53);
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.2s ease;
     width: 100%;
-    border-radius: 1rem;
-    margin-top: 0.5rem;
+}
+
+.primaryBtnFill:hover {
+    transform: translateY(-1px);
+    filter: brightness(0.98);
+}
+
+.ghostBtn {
+    border: 1px solid #d9e4e1;
+    background: #ffffff;
+    color: #53666a;
+    border-radius: 6px;
+    padding: 9px 14px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.ghostBtn:hover {
+    border-color: #ff9e91;
+    color: #c85445;
 }
 
 .summaryGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .summaryCard {
-    background: #fff;
-    border-radius: 1rem;
-    padding: 1.25rem;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    background: #ffffff;
+    border: 1px solid #ecf1ef;
+    border-radius: 8px;
+    padding: 14px;
 }
 
 .summaryLabel {
-    color: #9aa5b1;
-    font-size: 0.9rem;
+    margin: 0;
+    color: #6d8387;
+    font-size: 0.86rem;
 }
 
-.summaryBadge {
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-    width: fit-content;
-}
-
-.summaryBadgeNeutral {
-    composes: summaryBadge;
-    background: #f3f4f6;
-    color: #4b5563;
-}
-
-.summaryBadgeSuccess {
-    composes: summaryBadge;
-    background: #def7ec;
-    color: #087f5b;
-}
-
-.summaryBadgeWarning {
-    composes: summaryBadge;
-    background: #fff8e1;
-    color: #b45309;
-}
-
-.summaryBadgeInfo {
-    composes: summaryBadge;
-    background: #e0f2fe;
-    color: #0369a1;
+.summaryCard h2 {
+    margin: 8px 0 0;
+    color: #2f3f42;
+    font-size: 1.45rem;
 }
 
 .textWarning {
-    color: #dc2626;
-}
-
-.scheduleGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.25rem;
+    color: #d94e3b;
 }
 
 .manageGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
-.scheduleCard {
-    background: #fff;
-    border-radius: 1.25rem;
-    padding: 1.5rem;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+.scheduleCard,
+.scheduleCardFullWidth {
+    background: #ffffff;
+    border: 1px solid #ecf1ef;
+    border-radius: 8px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-}
-
-.scheduleCardLarge {
-    composes: scheduleCard;
-    min-height: 360px;
+    gap: 12px;
 }
 
 .scheduleCardFullWidth {
-    composes: scheduleCard;
     width: 100%;
+}
+
+.scheduleCardLarge {
+    min-height: 360px;
+}
+
+.cardHeader {
+    border-bottom: 1px solid #f0f3f2;
+    padding-bottom: 8px;
 }
 
 .cardHeader h3 {
     margin: 0;
+    color: #263b3f;
+    font-size: 1.04rem;
 }
 
 .cardHeader p {
-    margin: 0.25rem 0 0;
-    color: #6b7280;
+    margin: 4px 0 0;
+    color: #6f8589;
+    font-size: 0.88rem;
 }
 
 .shiftForm {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
-.shiftForm label {
+.shiftForm label,
+.staffForm label {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 6px;
     font-weight: 600;
-    color: #344054;
+    color: #465f63;
+    font-size: 0.9rem;
 }
 
 .shiftForm input,
 .shiftForm select,
 .staffForm input {
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    padding: 0.65rem 0.85rem;
-    font-size: 0.95rem;
+    border: 1px solid #dfe8e5;
+    border-radius: 6px;
+    padding: 9px 10px;
+    font-size: 0.92rem;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.shiftForm input:focus,
+.shiftForm select:focus,
+.staffForm input:focus,
+.staffMultiSelect:focus {
+    border-color: #ff9f93;
+    box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.12);
 }
 
 .timeInputs .timePickers {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 6px;
 }
 
 .timePickers input {
-    width: 70px;
+    width: 64px;
+    text-align: center;
 }
 
 .staffSelect {
-    margin-top: 0.35rem;
+    margin-top: 4px;
 }
 
 .staffMultiSelect {
     width: 100%;
     min-height: 120px;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    padding: 0.5rem;
-    font-size: 0.95rem;
+    border: 1px solid #dfe8e5;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 0.92rem;
+    outline: none;
 }
 
 .helperText {
-    margin-top: 0.35rem;
-    color: #9aa5b1;
-    font-size: 0.85rem;
+    margin-top: 4px;
+    color: #8a9c9f;
+    font-size: 0.82rem;
 }
 
 .noStaffBox {
-    border: 1px dashed #e5e7eb;
-    border-radius: 0.75rem;
-    padding: 0.75rem;
-    color: #9aa5b1;
+    border: 1px dashed #d7e4e0;
+    border-radius: 6px;
+    padding: 12px;
+    color: #85989b;
     text-align: center;
+    background: #fbfdfc;
 }
 
 .selectedStaff {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
+    gap: 6px;
+    margin-top: 8px;
 }
 
 .staffChip {
-    border: 1px solid transparent;
     border-radius: 999px;
-    padding: 0.35rem 0.85rem;
-    background: #ff8c82;
-    color: #fff;
-    font-weight: 600;
+    padding: 5px 10px;
+    background: #ffe9e5;
+    color: #c84f40;
+    font-weight: 700;
+    font-size: 0.82rem;
 }
 
 .staffForm {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 12px;
 }
 
 .formActions {
     display: flex;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-}
-
-.ghostBtn {
-    border: 1px solid #e5e7eb;
-    background: #fff;
-    color: #4b5563;
-    border-radius: 999px;
-    padding: 0.6rem 1.25rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.ghostBtn:hover {
-    border-color: #cbd5f5;
-}
-
-.staffList {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-}
-
-.staffList li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.staffName {
-    font-weight: 600;
-}
-
-.staffRole {
-    font-size: 0.85rem;
-    color: #9aa5b1;
-}
-
-.staffStatus {
-    font-size: 0.85rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-    background: #f3f4f6;
-    color: #4b5563;
+    gap: 8px;
+    margin-top: 2px;
 }
 
 .tableWrapper {
     overflow-x: auto;
+    border: 1px solid #edf2f0;
+    border-radius: 8px;
+}
+
+.tableWrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 820px;
+}
+
+.tableWrapper thead {
+    background: #f8fbfa;
+}
+
+.tableWrapper th,
+.tableWrapper td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid #edf2f0;
+    font-size: 0.9rem;
+    color: #33484b;
+    vertical-align: middle;
+}
+
+.tableWrapper th {
+    font-weight: 700;
+    color: #486267;
 }
 
 .tableShiftName {
     margin: 0;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .tableShiftTime {
-    margin: 0.15rem 0 0;
-    color: #9aa5b1;
-    font-size: 0.85rem;
+    margin: 2px 0 0;
+    color: #7e9498;
+    font-size: 0.82rem;
 }
 
 .tableActions {
     display: flex;
-    gap: 0.5rem;
+    gap: 8px;
 }
 
 .textBtn {
     background: transparent;
     border: none;
-    color: #2563eb;
+    color: #2f74d0;
     cursor: pointer;
     padding: 0;
+    font-weight: 600;
 }
 
 .textBtnDanger {
-    composes: textBtn;
-    color: #dc2626;
+    background: transparent;
+    border: none;
+    color: #d24a3a;
+    cursor: pointer;
+    padding: 0;
+    font-weight: 600;
 }
 
 .empty {
     text-align: center;
-    color: #94a3b8;
+    color: #8ea0a3;
+    padding: 20px 12px !important;
 }
 
-.statusChip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.8rem;
-    border-radius: 999px;
-    font-size: 0.85rem;
-    font-weight: 600;
+/* 保留未使用 class，避免既有程式引用中斷 */
+.scheduleGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
 }
 
-.statusChipSuccess {
-    composes: statusChip;
-    background: #ecfdf5;
-    color: #0f766e;
+.summaryBadge,
+.summaryBadgeNeutral,
+.summaryBadgeSuccess,
+.summaryBadgeWarning,
+.summaryBadgeInfo,
+.statusChip,
+.statusChipSuccess,
+.statusChipInfo,
+.statusChipWarning,
+.suggestionList,
+.dot,
+.suggestionTitle,
+.suggestionText,
+.staffList,
+.staffName,
+.staffRole,
+.staffStatus {
+    all: unset;
 }
 
-.statusChipInfo {
-    composes: statusChip;
-    background: #e0f2fe;
-    color: #0369a1;
-}
+@media (max-width: 1024px) {
+    .manageGrid {
+        grid-template-columns: 1fr;
+    }
 
-.statusChipWarning {
-    composes: statusChip;
-    background: #fff8e1;
-    color: #b45309;
-}
-
-.suggestionList {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.suggestionList li {
-    display: flex;
-    gap: 0.85rem;
-    align-items: center;
-}
-
-.dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #ff8c82;
-}
-
-.suggestionTitle {
-    font-weight: 600;
-}
-
-.suggestionText {
-    margin: 0.15rem 0 0;
-    color: #6b7280;
+    .summaryGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
+    .schedulePage {
+        padding: 14px;
+    }
+
     .scheduleHeader {
         flex-direction: column;
         align-items: flex-start;
+        padding: 14px;
+    }
+
+    .headerActions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .headerActions button {
+        width: 100%;
+    }
+
+    .summaryGrid {
+        grid-template-columns: 1fr;
     }
 
     .shiftForm {
         grid-template-columns: 1fr;
     }
 
-    .headerActions {
-        width: 100%;
+    .formActions {
         flex-direction: column;
+    }
+
+    .formActions button {
+        width: 100%;
     }
 }

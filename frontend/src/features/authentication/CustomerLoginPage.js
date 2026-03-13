@@ -5,10 +5,19 @@ import { auth } from '../../lib/firebase';
 import { authApi } from '../../api/authApi';
 import styles from './LoginPage.module.css';
 import { Link, useSearchParams } from 'react-router-dom';
+import ImageCarousel from '../../components/common/ImageCarousel';
 
 const CustomerLoginPage = () => {
+  // 背景圖片
+  const customerImages = [
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80', // Food
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80', // Restaurant interior
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80'  // Dish
+  ];
+
   // 使用多種方式獲取 redirect 參數
   const [searchParams] = useSearchParams();
+
   const urlParams = new URLSearchParams(window.location.search);
   const redirectUrl = searchParams.get('redirect') || urlParams.get('redirect');
   
@@ -135,6 +144,7 @@ const CustomerLoginPage = () => {
 
   return (
     <div className={styles['auth-page']}>
+      <ImageCarousel images={customerImages} interval={6000} className={styles['auth-carousel']} />
       <div className={`${styles['auth-container']} ${styles['customer-theme']}`}>
         <form className={styles['auth-form']} onSubmit={handleSubmit}>
           <h2>會員登入</h2>

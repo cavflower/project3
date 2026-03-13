@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useStore } from '../../../store/StoreContext';
 import { getMyStore, createStore, updateStore, uploadStoreImages, deleteStoreImage, publishStore, unpublishStore, uploadMenuImages, deleteMenuImage } from '../../../api/storeApi';
 import styles from './StoreSettingsPage.module.css';
 
 const StoreSettingsPage = () => {
   const navigate = useNavigate();
+  const { store: contextStore, loading: storeLoading, error: storeContextError } = useStore();
   const creditCardOptions = ['Visa', 'MasterCard', 'American Express', 'JCB', 'UnionPay'];
   const [formData, setFormData] = useState({
     name: '',
@@ -56,6 +58,23 @@ const StoreSettingsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPublished, setIsPublished] = useState(false);
   const [selectedCreditCards, setSelectedCreditCards] = useState([]);
+  const hasTriedDirectLoadRef = useRef(false);
+  const [showRetryLoad, setShowRetryLoad] = useState(false);
+
+  // 防止任何請求卡住造成整頁一直停在灰色載入畫面
+  useEffect(() => {
+    if (!isLoading) {
+      return;
+    }
+
+    const hardTimeoutId = setTimeout(() => {
+      setIsLoading(false);
+      setShowRetryLoad(true);
+      setError((prev) => prev || '載入逾時，您可以先編輯資料或點擊重新載入。');
+    }, 5000);
+
+    return () => clearTimeout(hardTimeoutId);
+  }, [isLoading]);
 
   const parseCreditCards = (value) =>
     value
@@ -75,73 +94,78 @@ const StoreSettingsPage = () => {
     sunday: '星期日',
   };
 
-  useEffect(() => {
-    loadStoreData();
+  const hydrateStoreData = useCallback((store) => {
+    setStoreId(store.id);
+    setFormData({
+      name: store.name || '',
+      cuisine_type: store.cuisine_type || 'other',
+      description: store.description || '',
+      address: store.address || '',
+      phone: store.phone || '',
+      email: store.email || '',
+      line_friend_url: store.line_friend_url || '',
+      website: store.website || '',
+      transportation: store.transportation || '',
+      fixed_holidays: store.fixed_holidays || '',
+      is_open: store.is_open !== undefined ? store.is_open : true,
+      is_published: store.is_published || false,
+      budget_lunch: store.budget_lunch || '',
+      budget_dinner: store.budget_dinner || '',
+      budget_banquet: store.budget_banquet || '',
+      credit_cards: store.credit_cards || '',
+      has_wifi: store.has_wifi || false,
+      parking_info: store.parking_info || '',
+      has_english_menu: store.has_english_menu || false,
+      smoking_policy: store.smoking_policy || 'no_smoking',
+      suitable_for_children: store.suitable_for_children || false,
+      remarks: store.remarks || '',
+      menu_type: store.menu_type || 'text',
+      menu_text: store.menu_text || '',
+      enable_reservation: store.enable_reservation !== undefined ? store.enable_reservation : true,
+      enable_loyalty: store.enable_loyalty !== undefined ? store.enable_loyalty : true,
+      enable_surplus_food: store.enable_surplus_food !== undefined ? store.enable_surplus_food : true,
+    });
+
+    setSelectedCreditCards(parseCreditCards(store.credit_cards || ''));
+
+    if (store.opening_hours) {
+      setOpeningHours((prev) => ({ ...prev, ...store.opening_hours }));
+    }
+
+    if (store.images && store.images.length > 0) {
+      const images = store.images.map((img) => ({
+        id: img.id,
+        url: img.image.startsWith('http') ? img.image : `http://127.0.0.1:8000${img.image}`,
+        order: img.order,
+      }));
+      setStoreImages(images);
+    } else {
+      setStoreImages([]);
+    }
+
+    if (store.menu_images && store.menu_images.length > 0) {
+      const images = store.menu_images.map((img) => ({
+        id: img.id,
+        url: img.image.startsWith('http') ? img.image : `http://127.0.0.1:8000${img.image}`,
+        order: img.order,
+      }));
+      setMenuImages(images);
+    } else {
+      setMenuImages([]);
+    }
+
+    setIsPublished(store.is_published || false);
   }, []);
 
-  const loadStoreData = async () => {
+  const loadStoreData = useCallback(async () => {
     try {
       setIsLoading(true);
-      console.log('[StoreSettings] Loading store data...');
       const response = await getMyStore();
       const store = response.data;
-      console.log('[StoreSettings] Store loaded:', store);
-      setStoreId(store.id);
-      setFormData({
-        name: store.name || '',
-        cuisine_type: store.cuisine_type || 'other',
-        description: store.description || '',
-        address: store.address || '',
-        phone: store.phone || '',
-        email: store.email || '',
-        line_friend_url: store.line_friend_url || '',
-        website: store.website || '',
-        transportation: store.transportation || '',
-        fixed_holidays: store.fixed_holidays || '',
-        is_open: store.is_open !== undefined ? store.is_open : true,
-        is_published: store.is_published || false,
-        budget_lunch: store.budget_lunch || '',
-        budget_dinner: store.budget_dinner || '',
-        budget_banquet: store.budget_banquet || '',
-        credit_cards: store.credit_cards || '',
-        has_wifi: store.has_wifi || false,
-        parking_info: store.parking_info || '',
-        has_english_menu: store.has_english_menu || false,
-        smoking_policy: store.smoking_policy || 'no_smoking',
-        suitable_for_children: store.suitable_for_children || false,
-        remarks: store.remarks || '',
-        menu_type: store.menu_type || 'text',
-        menu_text: store.menu_text || '',
-        enable_reservation: store.enable_reservation !== undefined ? store.enable_reservation : true,
-        enable_loyalty: store.enable_loyalty !== undefined ? store.enable_loyalty : true,
-        enable_surplus_food: store.enable_surplus_food !== undefined ? store.enable_surplus_food : true,
-      });
-      setSelectedCreditCards(parseCreditCards(store.credit_cards || ''));
-      if (store.opening_hours) {
-        setOpeningHours({ ...openingHours, ...store.opening_hours });
-      }
-      if (store.images && store.images.length > 0) {
-        const images = store.images.map(img => ({
-          id: img.id,
-          url: img.image.startsWith('http') ? img.image : `http://127.0.0.1:8000${img.image}`,
-          order: img.order,
-        }));
-        setStoreImages(images);
-      }
-      if (store.menu_images && store.menu_images.length > 0) {
-        const images = store.menu_images.map(img => ({
-          id: img.id,
-          url: img.image.startsWith('http') ? img.image : `http://127.0.0.1:8000${img.image}`,
-          order: img.order,
-        }));
-        setMenuImages(images);
-      }
-      setIsPublished(store.is_published || false);
+      hydrateStoreData(store);
     } catch (err) {
       console.error('[StoreSettings] Error loading store:', err);
-      console.error('[StoreSettings] Error response:', err.response);
       if (err.response?.status === 404) {
-        console.log('[StoreSettings] Store not found - this is normal for new merchants');
         // 店家不存在，這是正常情況（第一次使用）
         // 不顯示錯誤，保持預設的空白表單
         setStoreId(null);
@@ -155,6 +179,50 @@ const StoreSettingsPage = () => {
     } finally {
       setIsLoading(false);
     }
+  }, [hydrateStoreData]);
+
+  useEffect(() => {
+    if (storeLoading) {
+      setIsLoading(true);
+      const timeoutId = setTimeout(() => {
+        if (!contextStore && !hasTriedDirectLoadRef.current) {
+          hasTriedDirectLoadRef.current = true;
+          setShowRetryLoad(true);
+          loadStoreData();
+        }
+      }, 1800);
+
+      return () => clearTimeout(timeoutId);
+    }
+
+    setShowRetryLoad(false);
+
+    // 優先使用 StoreContext 的資料，避免重複呼叫 API
+    if (contextStore) {
+      hydrateStoreData(contextStore);
+      hasTriedDirectLoadRef.current = true;
+      setIsLoading(false);
+      return;
+    }
+
+    // context 已完成但沒有 store 時，嘗試一次直接載入，避免 context 快取為空導致舊店家資料無法顯示
+    if (!hasTriedDirectLoadRef.current) {
+      hasTriedDirectLoadRef.current = true;
+      loadStoreData();
+      return;
+    }
+
+    // 已嘗試過直接載入後仍無資料，視為新商家首次設定
+    if (!storeContextError) {
+      setIsLoading(false);
+    }
+  }, [contextStore, storeLoading, storeContextError, hydrateStoreData, loadStoreData]);
+
+  const handleRetryLoadStore = async () => {
+    setError('');
+    setShowRetryLoad(false);
+    hasTriedDirectLoadRef.current = true;
+    await loadStoreData();
   };
 
   const handleChange = (e) => {
@@ -466,7 +534,14 @@ const StoreSettingsPage = () => {
   if (isLoading) {
     return (
       <div className={styles.storeSettingsPage}>
-        <div className={styles.loading}>載入中...</div>
+        <div className={styles.loadingWrap}>
+          <div className={styles.loading}>載入中...</div>
+          {showRetryLoad && (
+            <button type="button" className={styles.btnRetryLoad} onClick={handleRetryLoadStore}>
+              重新載入餐廳設定
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -884,7 +959,7 @@ const StoreSettingsPage = () => {
                     <h3>現有菜單圖片</h3>
                     {menuImages.map((img) => (
                       <div key={img.id} className={styles.imageItem}>
-                        <img src={img.url} alt={`菜單圖片 ${img.order + 1}`} />
+                        <img src={img.url} alt={`菜單圖片 ${img.order + 1}`} loading="lazy" decoding="async" />
                         <button
                           type="button"
                           className={styles.btnDeleteImage}
@@ -903,7 +978,7 @@ const StoreSettingsPage = () => {
                     <h3>新上傳的菜單圖片（待儲存）</h3>
                     {menuImagePreviews.map((item, index) => (
                       <div key={index} className={styles.imageItem}>
-                        <img src={item.preview} alt={`預覽 ${index + 1}`} />
+                        <img src={item.preview} alt={`預覽 ${index + 1}`} loading="lazy" decoding="async" />
                         <button
                           type="button"
                           className={styles.btnDeleteImage}
@@ -941,7 +1016,7 @@ const StoreSettingsPage = () => {
                 <h3>現有圖片</h3>
                 {storeImages.map((img) => (
                   <div key={img.id} className={styles.imageItem}>
-                    <img src={img.url} alt={`餐廳圖片 ${img.order + 1}`} />
+                    <img src={img.url} alt={`餐廳圖片 ${img.order + 1}`} loading="lazy" decoding="async" />
                     <button
                       type="button"
                       className={styles.btnDeleteImage}
@@ -960,7 +1035,7 @@ const StoreSettingsPage = () => {
                 <h3>新上傳的圖片（待儲存）</h3>
                 {imagePreviews.map((item, index) => (
                   <div key={index} className={styles.imageItem}>
-                    <img src={item.preview} alt={`預覽 ${index + 1}`} />
+                    <img src={item.preview} alt={`預覽 ${index + 1}`} loading="lazy" decoding="async" />
                     <button
                       type="button"
                       className={styles.btnDeleteImage}

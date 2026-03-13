@@ -7,6 +7,7 @@ const FeatureCard = ({
   description,
   path,
   onClick,
+  compact = false,
   isDisabled = false,
   disabledMessage = ''
 }) => {
@@ -18,7 +19,7 @@ const FeatureCard = ({
 
   return (
     <div
-      className={isDisabled ? styles.featureCardDisabled : styles.featureCard}
+      className={`${isDisabled ? styles.featureCardDisabled : styles.featureCard} ${compact ? styles.compactCard : ''}`}
       onClick={handleClick}
       title={isDisabled ? disabledMessage : ''}
     >

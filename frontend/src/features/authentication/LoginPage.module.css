@@ -4,18 +4,32 @@
   justify-content: center;
   align-items: center;
   padding: 4rem 2rem;
-  min-height: 80vh;
-  background-color: #f4f7f6;
+  min-height: 100vh; /* Changed to full viewport height */
+  /* Remove background-color to rely on carousel background */
+  position: relative; /* Container for absolute carousel */
+  overflow: hidden; 
+}
+
+.auth-carousel {
+  position: fixed !important; /* Force to be fixed to viewport */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
 }
 
 .auth-container {
   width: 100%;
   max-width: 450px;
-  background-color: #fff;
+  background-color: rgba(255, 255, 255, 0.95); /* Slightly transparent white for better blend */
   padding: 2.5rem;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow */
   transition: all 0.3s ease-in-out;
+  position: relative; /* Ensure it stays on top */
+  z-index: 10;
+  backdrop-filter: blur(5px); /* Nice blur effect behind the form */
 }
 
 /* --- Color Themes using CSS Variables --- */
