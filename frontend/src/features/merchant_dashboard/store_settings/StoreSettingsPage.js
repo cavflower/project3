@@ -1092,7 +1092,7 @@ const StoreSettingsPage = () => {
               <div className={styles.featureToggleItem}>
                 <div className={styles.toggleInfo}>
                   <label htmlFor="enable_surplus_food">惜福品功能</label>
-                  <small>提供惜福食品販売服務</small>
+                  <small>提供惜福食品販賣服務</small>
                 </div>
                 <label className={styles.toggleSwitch}>
                   <input

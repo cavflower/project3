@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getPublishedStores } from '../../api/storeApi';
 import { getRecommendedStores, getUserPreferences } from '../../api/recommendationApi';
 import { useAuth } from '../../store/AuthContext';
+import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
 import styles from './CustomerHomePage.module.css';
 
 const categories = [
@@ -84,6 +85,7 @@ function CustomerHomePage() {
             enable_reservation: store.enable_reservation,
             enable_loyalty: store.enable_loyalty,
             enable_surplus_food: store.enable_surplus_food,
+            opening_hours: store.opening_hours,
             isRecommended: true,
           }));
           setStores(formattedStores);
@@ -118,6 +120,7 @@ function CustomerHomePage() {
             enable_reservation: store.enable_reservation,
             enable_loyalty: store.enable_loyalty,
             enable_surplus_food: store.enable_surplus_food,
+            opening_hours: store.opening_hours,
           }));
           setStores(formattedStores);
         }
@@ -147,6 +150,7 @@ function CustomerHomePage() {
           enable_reservation: store.enable_reservation,
           enable_loyalty: store.enable_loyalty,
           enable_surplus_food: store.enable_surplus_food,
+          opening_hours: store.opening_hours,
         }));
         setStores(formattedStores);
       }
@@ -399,6 +403,9 @@ function CustomerHomePage() {
             <div className="row g-4">
               {stores.map(store => (
                 <div key={store.id} className="col-md-6 col-lg-4">
+                  {(() => {
+                    const businessStatus = getStoreBusinessStatus(store);
+                    return (
                   <Link
                     to={`/store/${store.id}`}
                     className="text-decoration-none"
@@ -413,10 +420,10 @@ function CustomerHomePage() {
                             為你推薦
                           </span>
                         )}
-                        {store.is_open ? (
+                        {businessStatus.isOpenNow ? (
                           <span className={`${styles['badge-status']} ${styles.open}`}>營業中</span>
                         ) : (
-                          <span className={`${styles['badge-status']} ${styles.closed}`}>休息中</span>
+                          <span className={`${styles['badge-status']} ${styles.closed}`}>{businessStatus.statusText}</span>
                         )}
                       </div>
                       <div className={styles['store-card-body']}>
@@ -457,6 +464,8 @@ function CustomerHomePage() {
                       </div>
                     </div>
                   </Link>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

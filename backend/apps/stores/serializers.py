@@ -17,6 +17,7 @@ class PublishedStoreSerializer(serializers.ModelSerializer):
             'address',
             'phone',
             'cuisine_type',
+            'opening_hours',
             'is_open',
             'enable_reservation',
             'enable_loyalty',
@@ -58,7 +59,8 @@ class MenuImageSerializer(serializers.ModelSerializer):
 class StoreSerializer(serializers.ModelSerializer):
     images = StoreImageSerializer(many=True, read_only=True)
     menu_images = MenuImageSerializer(many=True, read_only=True)
-    surplus_order_count = serializers.IntegerField(read_only=True, required=False)  # 允許從 annotate 讀取
+    # 優先讀取 annotate 的值，沒有 annotate 時回退為即時計算
+    surplus_order_count = serializers.SerializerMethodField()
     plan = serializers.SerializerMethodField()
     platform_fee_discount = serializers.SerializerMethodField()
     discount_reason = serializers.SerializerMethodField()

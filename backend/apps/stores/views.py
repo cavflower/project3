@@ -281,7 +281,16 @@ class StoreViewSet(viewsets.ModelViewSet):
         獲取所有店家資料（供管理員查看）
         不需要認證，簡化管理員系統
         """
-        stores = Store.objects.all().select_related('merchant', 'merchant__user').order_by('-created_at')
+        from django.db.models import Count, Q
+
+        stores = Store.objects.all().select_related(
+            'merchant', 'merchant__user'
+        ).annotate(
+            surplus_order_count=Count(
+                'surplus_orders',
+                filter=Q(surplus_orders__status='completed')
+            )
+        ).order_by('-created_at')
         serializer = self.get_serializer(stores, many=True)
         return Response(serializer.data)
 

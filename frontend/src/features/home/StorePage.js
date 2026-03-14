@@ -5,6 +5,7 @@ import { getStore } from '../../api/storeApi';
 import { useAuth } from '../../store/AuthContext';
 import { getTakeoutProducts } from '../../api/orderApi';
 import api from '../../api/api';
+import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
 import styles from './StorePage.module.css';
 
 function StorePage() {
@@ -146,6 +147,7 @@ function StorePage() {
   }
 
   const openingHoursList = formatOpeningHours(store.opening_hours);
+  const businessStatus = getStoreBusinessStatus(store);
 
   // 計算平均預算
   const budgets = [];
@@ -221,9 +223,9 @@ function StorePage() {
               <button className="btn-favorite">
                 <i className="bi bi-heart"></i>
               </button>
-              <span className={`store-status-badge ${store.is_open ? 'bg-success' : 'bg-secondary'}`}>
+              <span className={`store-status-badge ${businessStatus.isOpenNow ? 'bg-success' : 'bg-secondary'}`}>
                 <i className="bi bi-clock"></i>
-                {store.is_open ? '營業中' : '休息中'}
+                {businessStatus.statusText}
               </span>
             </div>
           </div>
@@ -619,7 +621,7 @@ function StorePage() {
                 <div className={`${styles['booking-info']} mt-3`}>
                   <div className={styles['booking-info-item']}>
                     <i className="bi bi-clock"></i>
-                    <span>營業時間：{store.is_open ? '營業中' : '休息中'}</span>
+                    <span>營業時間：{businessStatus.statusText}</span>
                   </div>
                   {store.phone && (
                     <div className={styles['booking-info-item']}>

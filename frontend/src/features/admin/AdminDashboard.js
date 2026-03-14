@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getAvailableStores, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast } from '../../api/adminApi';
+import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
 import styles from './AdminDashboard.module.css';
 
 const AdminDashboard = () => {
@@ -325,7 +326,12 @@ const AdminDashboard = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
-  const sortedStores = [...stores].sort((a, b) => {
+  const storesWithBusinessStatus = stores.map((store) => ({
+    ...store,
+    businessStatus: getStoreBusinessStatus(store),
+  }));
+
+  const sortedStores = [...storesWithBusinessStatus].sort((a, b) => {
     return sortOrder === 'asc' ? a.id - b.id : b.id - a.id;
   });
 
@@ -420,7 +426,7 @@ const AdminDashboard = () => {
             <p>總商家數</p>
           </div>
           <div className={styles.statCard}>
-            <h3>{stores.filter(s => s.is_open).length}</h3>
+            <h3>{storesWithBusinessStatus.filter((store) => store.businessStatus.isOpenNow).length}</h3>
             <p>營業中</p>
           </div>
           <div className={styles.statCard}>
@@ -503,8 +509,8 @@ const AdminDashboard = () => {
                         </span>
                       </td>
                       <td>
-                        <span className={`${styles.statusBadge} ${store.is_open ? styles.statusOpen : styles.statusClosed}`}>
-                          {store.is_open ? '營業中' : '已打烊'}
+                        <span className={`${styles.statusBadge} ${store.businessStatus.isOpenNow ? styles.statusOpen : styles.statusClosed}`}>
+                          {store.businessStatus.statusText}
                         </span>
                       </td>
                       <td>

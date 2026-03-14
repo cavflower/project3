@@ -41,9 +41,10 @@ const ReservationPage = () => {
 
   // 可用時段
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
-  const [availableDates, setAvailableDates] = useState([]);
+  const [openWeekdays, setOpenWeekdays] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [dateRange, setDateRange] = useState({ min: '' });
 
   // 使用 useCallback 避免不必要的重新渲染
   const fetchAvailableTimeSlots = useCallback(async (date) => {
@@ -116,16 +117,35 @@ const ReservationPage = () => {
   }, [storeId]);
 
   useEffect(() => {
-    // 生成未來7天的日期
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() + i);
-      dates.push(date.toISOString().split('T')[0]);
-    }
-    setAvailableDates(dates);
-    console.log('📅 Available dates generated:', dates);
+    const today = new Date();
+    setDateRange({
+      min: today.toISOString().split('T')[0],
+    });
   }, []);
+
+  useEffect(() => {
+    const fetchOpenWeekdays = async () => {
+      if (!storeId) return;
+
+      try {
+        const response = await getPublicTimeSlots(storeId);
+        const allSlots = response.data.results || response.data;
+        const weekdays = Array.from(
+          new Set(
+            (allSlots || [])
+              .filter((slot) => slot.is_active)
+              .map((slot) => slot.day_of_week)
+          )
+        );
+
+        setOpenWeekdays(weekdays);
+      } catch (err) {
+        console.error('Failed to fetch open weekdays:', err);
+      }
+    };
+
+    fetchOpenWeekdays();
+  }, [storeId]);
 
   useEffect(() => {
     console.log('🔄 useEffect triggered - reservationData.date:', reservationData.date, 'storeId:', storeId);
@@ -139,7 +159,39 @@ const ReservationPage = () => {
 
   const handleDateSelect = (date) => {
     console.log('📆 handleDateSelect called with:', date);
-    setReservationData({ ...reservationData, date });
+    if (!date) {
+      setReservationData({
+        ...reservationData,
+        date: '',
+        timeSlot: '',
+        selectedSlotId: null,
+      });
+      setError(null);
+      return;
+    }
+
+    const selectedDate = new Date(`${date}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDate < today) {
+      setError('僅可預約今天之後的日期，請重新選擇。');
+      return;
+    }
+
+    const selectedWeekday = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][selectedDate.getDay()];
+    if (openWeekdays.length > 0 && !openWeekdays.includes(selectedWeekday)) {
+      setError('該日期為店家未營業時段，請選擇其他日期。');
+      return;
+    }
+
+    setError(null);
+    setReservationData({
+      ...reservationData,
+      date,
+      timeSlot: '',
+      selectedSlotId: null,
+    });
   };
 
   const handlePartySizeChange = (size) => {
@@ -325,18 +377,16 @@ const ReservationPage = () => {
               <div className={styles.sectionBlock}>
                 <h3 className={styles.sectionTitle}>用餐日期</h3>
                 <div>
-                  <select
+                  <input
+                    type="date"
                     className={styles.customSelect}
                     value={reservationData.date}
                     onChange={(e) => handleDateSelect(e.target.value)}
-                  >
-                    <option value="">請選擇日期</option>
-                    {availableDates.map((date) => (
-                      <option key={date} value={date}>
-                        {formatDate(date)}
-                      </option>
-                    ))}
-                  </select>
+                    min={dateRange.min}
+                  />
+                  <small className={styles.formHint}>
+                    可預約今天之後的日期，並僅開放有營業時段的日期。
+                  </small>
                 </div>
               </div>
 
@@ -458,7 +508,7 @@ const ReservationPage = () => {
                       />
                       <span className={styles.genderLabel}>先生</span>
                     </label>
-                    <label className="gender-option">
+                    <label className={styles.genderOption}>
                       <input
                         type="radio"
                         name="gender"
@@ -483,7 +533,7 @@ const ReservationPage = () => {
                   required
                 />
               </div>
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label>Email</label>
                 <input
                   type="email"
@@ -495,7 +545,7 @@ const ReservationPage = () => {
               </div>
 
               {/* 特殊需求 */}
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label>特殊需求</label>
                 <textarea
                   className={styles.specialRequestsTextarea}
@@ -567,7 +617,7 @@ const ReservationPage = () => {
                         </span>
                       )}
                       {!user && reservationData.guestInfo.gender && (
-                        <span className="gender-suffix">
+                        <span className={styles.genderSuffix}>
                           {reservationData.guestInfo.gender === 'female' ? ' 小姐' :
                             reservationData.guestInfo.gender === 'male' ? ' 先生' : ''}
                         </span>
