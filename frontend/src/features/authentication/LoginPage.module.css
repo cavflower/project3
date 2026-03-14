@@ -1,35 +1,91 @@
 /* --- Base Styles & Layout --- */
 .auth-page {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
   align-items: center;
-  padding: 4rem 2rem;
-  min-height: 100vh; /* Changed to full viewport height */
-  /* Remove background-color to rely on carousel background */
-  position: relative; /* Container for absolute carousel */
-  overflow: hidden; 
+  width: 100%;
+  max-width: 100%;
+  min-height: 100dvh;
+  height: auto;
+  box-sizing: border-box;
+  padding: 2rem 1rem 2.5rem;
+  position: relative;
+  background-color: #000000;
+  overflow-y: auto;
+  overflow-x: clip;
+}
+
+.auth-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.82) 0%, rgba(22, 28, 36, 0.56) 42%, rgba(125, 133, 145, 0.28) 76%, rgba(255, 255, 255, 0.2) 100%),
+    radial-gradient(circle at 16% 12%, rgba(54, 112, 171, 0.16), rgba(54, 112, 171, 0) 48%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.auth-hero {
+  width: min(920px, calc(100% - 2rem));
+  margin-top: clamp(1rem, 3vh, 2.5rem);
+  margin-bottom: clamp(1.25rem, 5vh, 3.75rem);
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  color: #f5fbff;
+}
+
+.auth-hero h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3.8vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-shadow: 0 8px 28px rgba(7, 17, 27, 0.52);
+}
+
+.auth-hero p {
+  margin: 0.8rem auto 0;
+  max-width: 720px;
+  font-size: clamp(0.95rem, 1.45vw, 1.18rem);
+  color: rgba(239, 247, 255, 0.9);
+  line-height: 1.6;
+  text-shadow: 0 6px 20px rgba(6, 15, 24, 0.42);
 }
 
 .auth-carousel {
   position: fixed !important; /* Force to be fixed to viewport */
-  top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  right: 0;
+  top: clamp(12px, 2.2vh, 24px);
+  bottom: clamp(12px, 2.2vh, 24px);
+  width: auto;
+  height: auto;
   z-index: 0;
 }
 
 .auth-container {
   width: 100%;
-  max-width: 450px;
-  background-color: rgba(255, 255, 255, 0.95); /* Slightly transparent white for better blend */
-  padding: 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow */
+  max-width: 560px;
+  min-height: auto;
+  display: flex;
+  align-items: center;
+  margin: 0 auto;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: clamp(1.5rem, 2.5vw, 2.5rem);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 22px 56px rgba(7, 17, 29, 0.28);
   transition: all 0.3s ease-in-out;
-  position: relative; /* Ensure it stays on top */
+  position: relative;
   z-index: 10;
-  backdrop-filter: blur(5px); /* Nice blur effect behind the form */
+  backdrop-filter: blur(8px);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: none;
 }
 
 /* --- Color Themes using CSS Variables --- */
@@ -143,4 +199,46 @@
   border-radius: 8px;
   text-align: center;
   margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .auth-page {
+    justify-content: flex-start;
+    min-height: 100dvh;
+    height: auto;
+    padding: 1rem 0.75rem 1.75rem;
+  }
+
+  .auth-page::before {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(24, 31, 40, 0.58) 56%, rgba(148, 156, 168, 0.3) 100%);
+  }
+
+  .auth-hero {
+    width: calc(100% - 0.5rem);
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .auth-hero h1 {
+    font-size: clamp(1.45rem, 7vw, 2.1rem);
+  }
+
+  .auth-hero p {
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  .auth-container {
+    max-width: none;
+    margin: 0 auto;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+    padding: 1.5rem 1.25rem;
+    background-color: rgba(255, 255, 255, 0.93);
+    border-radius: 14px;
+  }
+
+  .auth-carousel {
+    top: 10px;
+    bottom: 10px;
+  }
 }

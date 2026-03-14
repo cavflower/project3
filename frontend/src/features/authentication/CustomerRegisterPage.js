@@ -3,8 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import styles from './LoginPage.module.css';
+import ImageCarousel from '../../components/common/ImageCarousel';
 
 const CustomerRegisterPage = () => {
+  const customerRegisterImages = [
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?auto=format&fit=crop&w=1920&q=80'
+  ];
+
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -87,6 +94,7 @@ const CustomerRegisterPage = () => {
 
   return (
     <div className={styles['auth-page']}>
+      <ImageCarousel images={customerRegisterImages} interval={9000} className={styles['auth-carousel']} />
       <div className={`${styles['auth-container']} ${styles['customer-theme']}`}>
         <form className={styles['auth-form']} onSubmit={handleSubmit}>
           <h2>建立新帳戶</h2>

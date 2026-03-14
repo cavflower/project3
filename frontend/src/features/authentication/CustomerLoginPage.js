@@ -10,9 +10,9 @@ import ImageCarousel from '../../components/common/ImageCarousel';
 const CustomerLoginPage = () => {
   // 背景圖片
   const customerImages = [
-    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80', // Food
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80', // Restaurant interior
-    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80'  // Dish
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?auto=format&fit=crop&w=1920&q=80'
   ];
 
   // 使用多種方式獲取 redirect 參數
@@ -144,7 +144,7 @@ const CustomerLoginPage = () => {
 
   return (
     <div className={styles['auth-page']}>
-      <ImageCarousel images={customerImages} interval={6000} className={styles['auth-carousel']} />
+      <ImageCarousel images={customerImages} interval={9000} className={styles['auth-carousel']} />
       <div className={`${styles['auth-container']} ${styles['customer-theme']}`}>
         <form className={styles['auth-form']} onSubmit={handleSubmit}>
           <h2>會員登入</h2>
