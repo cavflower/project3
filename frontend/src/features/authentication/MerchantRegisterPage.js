@@ -3,8 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import styles from './LoginPage.module.css';
+import ImageCarousel from '../../components/common/ImageCarousel';
 
 const MerchantRegisterPage = () => {
+  const merchantRegisterImages = [
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1920&q=80'
+  ];
+
   const [formData, setFormData] = useState({
     storeName: '',
     companyAccount: '', // 新增公司統編欄位
@@ -89,6 +96,7 @@ const MerchantRegisterPage = () => {
 
   return (
     <div className={styles['auth-page']}>
+      <ImageCarousel images={merchantRegisterImages} interval={9000} className={styles['auth-carousel']} />
       <div className={`${styles['auth-container']} ${styles['merchant-theme']}`}>
         <form className={styles['auth-form']} onSubmit={handleSubmit}>
           <h2>成為合作夥伴</h2>

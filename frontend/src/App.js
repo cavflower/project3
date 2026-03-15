@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 // 1. 將 react-router-dom 的 imports 合併
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // 佈局元件
 import Navbar from './components/layout/Navbar';
@@ -114,6 +114,11 @@ function ProtectedRoute({ children }) {
 function App() {
   // Sidebar 狀態
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  const isAuthLayoutRoute =
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/register');
 
   const toggleSidebar = () => {
     setSidebarOpen(!isSidebarOpen);
@@ -123,10 +128,10 @@ function App() {
     // 2. 必須用 <BrowserRouter> 包裹整個應用程式
 
     <div className="App">
-      <Navbar toggleSidebar={toggleSidebar} />
-      <Sidebar isOpen={isSidebarOpen} />
-      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-        <main>
+      {!isAuthLayoutRoute && <Navbar toggleSidebar={toggleSidebar} />}
+      {!isAuthLayoutRoute && <Sidebar isOpen={isSidebarOpen} />}
+      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''} ${isAuthLayoutRoute ? 'auth-layout' : ''}`}>
+        <main className={isAuthLayoutRoute ? 'auth-main' : ''}>
           {/* 3. 路由配置 */}
           <Routes>
 
@@ -447,7 +452,7 @@ function App() {
 
           </Routes>
         </main>
-        <Footer />
+        {!isAuthLayoutRoute && <Footer />}
       </div>
     </div>
 

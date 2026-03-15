@@ -10,9 +10,9 @@ import ImageCarousel from '../../components/common/ImageCarousel';
 const MerchantLoginPage = () => {
   // 背景圖片
   const merchantImages = [
-    'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80', // Kitchen Team/Cooking
-    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80', // Restaurant
-    'https://images.unsplash.com/photo-1514933651103-005eec06c04b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80'  // Drink
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=1920&q=80'
   ];
 
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -132,9 +132,12 @@ const MerchantLoginPage = () => {
 
   return (
     <div className={styles['auth-page']}>
-      <ImageCarousel images={merchantImages} interval={6000} className={styles['auth-carousel']} />
+      <ImageCarousel images={merchantImages} interval={9000} className={styles['auth-carousel']} />
       <div className={`${styles['auth-container']} ${styles['merchant-theme']}`}>
         <form className={styles['auth-form']} onSubmit={handleSubmit}>
+          <div className={styles['form-top-row']}>
+            <Link to="/" className={styles['back-home-link']}>返回首頁</Link>
+          </div>
           <h2>店家管理登入</h2>
           <p className={styles['form-subtitle']}>
             還沒有店家帳號？ <Link to="/register/merchant">立即註冊</Link>
