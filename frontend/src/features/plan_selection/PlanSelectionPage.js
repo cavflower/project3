@@ -31,7 +31,7 @@ const PlanSelectionPage = () => {
       const updatedUser = await updateMerchantPlan(user.firebase_uid, selectedPlan);
 
       // 更新 AuthContext 中的使用者狀態
-      login(updatedUser, localStorage.getItem('accessToken'));
+      login(updatedUser);
 
       // 導向到儀表板
       navigate('/dashboard');

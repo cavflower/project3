@@ -378,7 +378,11 @@ class MerchantPendingOrdersView(APIView):
             merchant = user.merchant_profile
             store = merchant.store
         except Exception:
-            return Response({'detail': '找不到店家資料'}, status=http_status.HTTP_404_NOT_FOUND)
+            return Response({
+                'pending_orders': [],
+                'total_count': 0,
+                'detail': '尚未建立店家資料'
+            }, status=http_status.HTTP_200_OK)
         
         pending_orders = []
         

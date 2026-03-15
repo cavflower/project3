@@ -14,10 +14,14 @@ class MerchantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Merchant
         fields = ['company_account', 'plan', 'platform_fee_discount', 'discount_reason']
+        extra_kwargs = {
+            'company_account': {'required': False, 'allow_blank': True},
+            'plan': {'required': False, 'allow_null': True},
+        }
 
 class UserSerializer(serializers.ModelSerializer):
     # 讓 merchant_profile 在讀取時可見，但在寫入(註冊)時是可選的
-    merchant_profile = MerchantSerializer(required=False, read_only=True, allow_null=True)
+    merchant_profile = MerchantSerializer(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -34,6 +38,51 @@ class UserSerializer(serializers.ModelSerializer):
         if not hasattr(instance, 'merchant_profile') or instance.merchant_profile is None:
             representation['merchant_profile'] = None
         return representation
+
+    def _build_unique_company_account(self, user, preferred_account=''):
+        """Build a non-empty unique company_account for Merchant profile."""
+        normalized = normalize_tax_id(preferred_account)
+        if normalized and not Merchant.objects.filter(company_account=normalized).exclude(user=user).exists():
+            return normalized
+
+        fallback_base = f"{user.id:08d}"
+        if not Merchant.objects.filter(company_account=fallback_base).exclude(user=user).exists():
+            return fallback_base
+
+        suffix = 1
+        while True:
+            candidate = f"{user.id:06d}{suffix % 100:02d}"[-8:]
+            if not Merchant.objects.filter(company_account=candidate).exclude(user=user).exists():
+                return candidate
+            suffix += 1
+
+    def _ensure_merchant_profile(self, user, merchant_data=None):
+        """Ensure merchant users always have a Merchant profile."""
+        merchant_data = merchant_data or {}
+        preferred_account = merchant_data.get('company_account') or user.company_tax_id or ''
+        company_account = self._build_unique_company_account(user, preferred_account)
+        incoming_plan = merchant_data.get('plan', None)
+
+        merchant, created = Merchant.objects.get_or_create(
+            user=user,
+            defaults={
+                'company_account': company_account,
+                'plan': incoming_plan,
+            }
+        )
+
+        if not created:
+            has_changes = False
+            if not merchant.company_account:
+                merchant.company_account = company_account
+                has_changes = True
+            if incoming_plan is not None and merchant.plan != incoming_plan:
+                merchant.plan = incoming_plan
+                has_changes = True
+            if has_changes:
+                merchant.save()
+
+        return merchant
 
     def create(self, validated_data):
         """
@@ -73,26 +122,10 @@ class UserSerializer(serializers.ModelSerializer):
             # 重新拋出異常，讓視圖層處理
             raise e
 
-        # 如果使用者類型是 'merchant' 且有商家資料，則建立 Merchant 物件
-        if user.user_type == 'merchant' and merchant_data:
+        # 如果使用者類型是 merchant，確保一定有 Merchant 物件
+        if user.user_type == 'merchant':
             try:
-                # 確保 plan 欄位不會在註冊時被強制要求
-                merchant_data.pop('plan', None)
-                
-                # 統一統編格式（去除空格、轉為大寫）
-                company_account = normalize_tax_id(merchant_data.get('company_account', ''))
-                merchant_data['company_account'] = company_account
-                
-                # 如果提供了統編，確保對應的 Company 記錄存在
-                if company_account:
-                    company, created = Company.objects.get_or_create(
-                        tax_id=company_account,
-                        defaults={'name': f"公司 {company_account}"}
-                    )
-                    if created:
-                        print(f"[DEBUG] 自動創建公司記錄: {company.name} ({company.tax_id})")
-                
-                Merchant.objects.create(user=user, **merchant_data)
+                self._ensure_merchant_profile(user, merchant_data)
             except Exception as e:
                 # 如果創建 Merchant 失敗，刪除已創建的 User
                 user.delete()
@@ -133,10 +166,8 @@ class UserSerializer(serializers.ModelSerializer):
         
         instance.save()
 
-        # Update nested Merchant profile if data is provided
-        if merchant_data and hasattr(instance, 'merchant_profile'):
-            merchant_profile = instance.merchant_profile
-            merchant_profile.plan = merchant_data.get('plan', merchant_profile.plan)
-            merchant_profile.save()
+        # Update or create nested Merchant profile if needed
+        if instance.user_type == 'merchant' and merchant_data:
+            self._ensure_merchant_profile(instance, merchant_data)
 
         return instance
