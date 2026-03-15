@@ -1,6 +1,15 @@
 from rest_framework import serializers
 from .models import User, Merchant, Company
 
+
+def normalize_tax_id(value):
+    """Normalize optional tax id values and safely handle null/non-string input."""
+    if value is None:
+        return ''
+    if isinstance(value, str):
+        return value.strip().upper()
+    return str(value).strip().upper()
+
 class MerchantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Merchant
@@ -43,7 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
         validated_data.setdefault('company_tax_id', '')
         
         # 處理統編：如果提供了統編，檢查是否對應到某間公司
-        company_tax_id = validated_data.get('company_tax_id', '').strip().upper()
+        company_tax_id = normalize_tax_id(validated_data.get('company_tax_id', ''))
         if company_tax_id:
             # 統一統編格式（去除空格、轉為大寫）
             validated_data['company_tax_id'] = company_tax_id
@@ -71,7 +80,7 @@ class UserSerializer(serializers.ModelSerializer):
                 merchant_data.pop('plan', None)
                 
                 # 統一統編格式（去除空格、轉為大寫）
-                company_account = merchant_data.get('company_account', '').strip().upper()
+                company_account = normalize_tax_id(merchant_data.get('company_account', ''))
                 merchant_data['company_account'] = company_account
                 
                 # 如果提供了統編，確保對應的 Company 記錄存在
@@ -107,14 +116,14 @@ class UserSerializer(serializers.ModelSerializer):
         # 處理 company_tax_id 更新
         if 'company_tax_id' in validated_data:
             company_tax_id = validated_data.get('company_tax_id')
-            if company_tax_id:
+            normalized_company_tax_id = normalize_tax_id(company_tax_id)
+            if normalized_company_tax_id:
                 # 統一格式（去除空格、轉為大寫）
-                company_tax_id = company_tax_id.strip().upper()
-                instance.company_tax_id = company_tax_id
+                instance.company_tax_id = normalized_company_tax_id
                 # 自動創建對應的 Company 記錄
                 company, created = Company.objects.get_or_create(
-                    tax_id=company_tax_id,
-                    defaults={'name': f"公司 {company_tax_id}"}
+                    tax_id=normalized_company_tax_id,
+                    defaults={'name': f"公司 {normalized_company_tax_id}"}
                 )
                 if created:
                     print(f"[DEBUG] 自動創建公司記錄（更新用戶）: {company.name} ({company.tax_id})")
