@@ -1,57 +1,107 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../store/AuthContext'; // 1. 引入 useAuth
-import { FaBell } from 'react-icons/fa';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { FaBell, FaSearch, FaUtensils } from 'react-icons/fa';
+import { useAuth } from '../../store/AuthContext';
 import styles from './Navbar.module.css';
 import logo from '../../assets/logo.png';
 
 const Navbar = ({ toggleSidebar }) => {
-  const { isLoggedIn, user, logout, loading } = useAuth(); // 2. 取得認證狀態、使用者資料、登出函式和載入狀態
-  const [dropdownOpen, setDropdownOpen] = useState(false); // 3. 管理下拉選單的狀態
-  const location = useLocation(); // 取得當前位置
+  const { isLoggedIn, user, logout, loading } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [quickSearchOpen, setQuickSearchOpen] = useState(false);
+  const [quickSearchKeyword, setQuickSearchKeyword] = useState('');
+  const quickSearchRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // 根據使用者角色決定主頁路徑
   let homePath = '/';
   if (isLoggedIn && user) {
     homePath = user.user_type === 'merchant' ? '/dashboard' : '/customer-home';
   }
 
-  // 檢查是否在內用菜單頁面
   const isDineInPage = location.pathname.includes('/dine-in/menu') || location.pathname.includes('/dine-in/order');
 
-  // 如果在內用菜單頁面，首頁應該是當前的內用菜單
   if (isDineInPage) {
     const pathParts = location.pathname.split('/');
-    const storeId = pathParts[2]; // /store/{storeId}/dine-in/...
-    const tableParam = location.search; // 保留桌號參數
+    const storeId = pathParts[2];
+    const tableParam = location.search;
     homePath = `/store/${storeId}/dine-in/menu${tableParam}`;
   }
 
-  const handleLogout = () => {
-    setDropdownOpen(false); // 關閉選單
+  useEffect(() => {
+    setQuickSearchOpen(false);
+  }, [location.pathname, location.search]);
 
-    // 如果在內用菜單頁面，登出後返回內用菜單
+  useEffect(() => {
+    if (!quickSearchOpen) return undefined;
+
+    const handleOutsideClick = (e) => {
+      if (quickSearchRef.current && !quickSearchRef.current.contains(e.target)) {
+        setQuickSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [quickSearchOpen]);
+
+  const handleLogout = () => {
+    setDropdownOpen(false);
+
     if (isDineInPage) {
       const pathParts = location.pathname.split('/');
       const storeId = pathParts[2];
       const tableParam = location.search;
       const redirectPath = `/store/${storeId}/dine-in/menu${tableParam}`;
       logout(redirectPath);
-    } else {
-      logout();
+      return;
     }
+
+    logout();
+  };
+
+  const handleQuickSearchSubmit = (e) => {
+    e.preventDefault();
+    const keyword = quickSearchKeyword.trim();
+    navigate(keyword ? `/customer-home?q=${encodeURIComponent(keyword)}` : '/customer-home');
+    setQuickSearchOpen(false);
   };
 
   const renderUserSection = () => {
-    // 認證載入中時，不顯示任何內容，避免閃爍
-    if (loading) {
-      return null;
-    }
+    if (loading) return null;
 
     if (isLoggedIn) {
-      // 如果使用者已登入，顯示頭像和下拉選單
       return (
         <div className={styles['profile-section']}>
+          {user?.user_type === 'customer' && (
+            <div className={styles['quick-search-wrap']} ref={quickSearchRef}>
+              {!quickSearchOpen ? (
+                <button
+                  type="button"
+                  className={styles['quick-search-btn']}
+                  title="搜尋店家"
+                  onClick={() => setQuickSearchOpen(true)}
+                >
+                  <FaUtensils className={styles['quick-search-icon']} />
+                  Explore
+                </button>
+              ) : (
+                <form className={styles.searchBox} onSubmit={handleQuickSearchSubmit}>
+                  <input
+                    className={styles.searchInput}
+                    type="text"
+                    value={quickSearchKeyword}
+                    onChange={(e) => setQuickSearchKeyword(e.target.value)}
+                    placeholder="輸入店家或料理"
+                    autoFocus
+                  />
+                  <button className={styles.searchButton} type="submit" aria-label="搜尋">
+                    <FaSearch />
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
 
           {user?.user_type === 'customer' && (
             <Link
@@ -63,52 +113,53 @@ const Navbar = ({ toggleSidebar }) => {
               <FaBell />
             </Link>
           )}
-          <button className={styles['avatar-btn']} onClick={() => setDropdownOpen(!dropdownOpen)}>
+
+          <button className={styles['avatar-btn']} onClick={() => setDropdownOpen((prev) => !prev)}>
             {user?.avatar_url && user.avatar_url.startsWith('data:image') ? (
               <img src={user.avatar_url} alt={user.username} className={styles['avatar-img']} />
             ) : (
               user?.username?.charAt(0).toUpperCase() || 'U'
             )}
           </button>
+
           {dropdownOpen && (
             <ul className={styles['profile-dropdown']}>
-              <li><Link to="/profile" onClick={() => setDropdownOpen(false)}>編輯資料</Link></li>
+              <li><Link to="/profile" onClick={() => setDropdownOpen(false)}>個人資料</Link></li>
               {user?.user_type === 'customer' && (
-                <li><Link to="/customer/loyalty" onClick={() => setDropdownOpen(false)}>會員中心</Link></li>
+                <li><Link to="/customer/loyalty" onClick={() => setDropdownOpen(false)}>我的會員</Link></li>
               )}
               <li><button onClick={handleLogout}>登出</button></li>
             </ul>
           )}
         </div>
       );
-    } else {
-      // 如果使用者未登入，顯示登入和註冊按鈕
-      // 構建登入 URL，如果在特定頁面則帶上 redirect 參數
-      const currentPath = location.pathname + location.search;
-      const shouldRedirect = location.pathname.includes('/store/') ||
-        location.pathname.includes('/dine-in/') ||
-        location.pathname.includes('/takeout/');
-      const loginPath = shouldRedirect
-        ? `/login/customer?redirect=${encodeURIComponent(currentPath)}`
-        : '/login/customer';
-
-      return (
-        <ul className={styles['navbar-links']}>
-          <li><Link to={loginPath}>登入</Link></li>
-          <li><Link to="/register/customer" className={styles['register-btn']}>註冊</Link></li>
-        </ul>
-      );
     }
+
+    const currentPath = location.pathname + location.search;
+    const shouldRedirect =
+      location.pathname.includes('/store/') ||
+      location.pathname.includes('/dine-in/') ||
+      location.pathname.includes('/takeout/');
+    const loginPath = shouldRedirect
+      ? `/login/customer?redirect=${encodeURIComponent(currentPath)}`
+      : '/login/customer';
+
+    return (
+      <ul className={styles['navbar-links']}>
+        <li><Link to={loginPath}>登入</Link></li>
+        <li><Link to="/register/customer" className={styles['register-btn']}>註冊</Link></li>
+      </ul>
+    );
   };
 
   return (
     <nav className={styles.navbar}>
       <div className={styles['navbar-left']}>
-        <button className={styles['sidebar-toggle']} onClick={toggleSidebar}>
+        <button className={styles['sidebar-toggle']} onClick={toggleSidebar} aria-label="Toggle sidebar menu">
           ☰
         </button>
         <div className={styles['navbar-logo']}>
-          <Link to={homePath}><img src={logo} alt="Dineverse" className={styles['navbar-logo']}></img></Link>
+          <Link to={homePath}><img src={logo} alt="Dineverse" className={styles['navbar-logo']} /></Link>
         </div>
       </div>
       {renderUserSection()}

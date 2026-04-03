@@ -1,0 +1,43 @@
+.magic-bento-card-shell {
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.magic-bento-card-shell::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+  background: radial-gradient(
+    circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(var(--glow-color, 255, 107, 53), calc(var(--glow-intensity, 0) * 0.28)) 0%,
+    rgba(var(--glow-color, 255, 107, 53), calc(var(--glow-intensity, 0) * 0.1)) 24%,
+    transparent var(--glow-radius, 240px)
+  );
+  transition: opacity 0.2s ease;
+}
+
+.magic-bento-card-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.magic-bento-particle {
+  position: absolute;
+  pointer-events: none;
+}
+
+.magic-bento-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.magic-bento-global-spotlight {
+  pointer-events: none;
+}

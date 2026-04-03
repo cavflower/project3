@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
-import { updateMerchantPlan } from '../../api/authApi';
-import { getMyStore } from '../../api/storeApi';
 import { bindLine } from '../../api/lineLoginApi';
 import PaymentCards from './PaymentCards';
 import LineBinding from '../../components/user/LineBinding';
@@ -10,7 +8,7 @@ import MerchantLineBinding from '../../components/merchant/MerchantLineBinding';
 import styles from './ProfilePage.module.css';
 
 const ProfilePage = () => {
-  const { user, updateUser, login, loading } = useAuth();
+  const { user, updateUser, logout, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
@@ -19,132 +17,183 @@ const ProfilePage = () => {
     phone_number: '',
     gender: 'female',
   });
-  const [selectedPlan, setSelectedPlan] = useState('');
   const [currentPlan, setCurrentPlan] = useState('');
-  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
-  const [platformFeeDiscount, setPlatformFeeDiscount] = useState(0);
-  const [discountReason, setDiscountReason] = useState('');
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        username: user.username || '',
-        email: user.email || '',
-        phone_number: user.phone_number || '',
-        gender: user.gender || 'female',
-      });
-      // 如果使用者有頭像 URL，則使用它，否則使用預設圖片
-      setAvatarPreview(user.avatar_url || 'https://via.placeholder.com/150');
+  const personalSectionRef = useRef(null);
+  const lineSectionRef = useRef(null);
+  const companySectionRef = useRef(null);
+  const paymentCardsRef = useRef(null);
+  const merchantLineSectionRef = useRef(null);
 
-      // 如果是商家，設定方案並載入折扣資訊
-      if (user.user_type === 'merchant' && user.merchant_profile) {
-        const plan = user.merchant_profile.plan || '';
-        setCurrentPlan(plan);
-        setSelectedPlan(plan);
-        // 直接從 merchant_profile 讀取折扣資訊
-        setPlatformFeeDiscount(user.merchant_profile.platform_fee_discount || 0);
-        setDiscountReason(user.merchant_profile.discount_reason || '');
-      }
+  useEffect(() => {
+    if (!user) return;
+
+    setFormData({
+      username: user.username || '',
+      email: user.email || '',
+      phone_number: user.phone_number || '',
+      gender: user.gender || 'female',
+    });
+    setAvatarPreview(user.avatar_url || 'https://via.placeholder.com/150');
+
+    if (user.user_type === 'merchant' && user.merchant_profile) {
+      setCurrentPlan(user.merchant_profile.plan || '');
     }
   }, [user]);
 
-  // 處理 LINE 綁定回調
   useEffect(() => {
     const lineUserId = searchParams.get('line_user_id');
     const displayName = searchParams.get('display_name');
     const pictureUrl = searchParams.get('picture_url');
 
-    if (lineUserId && user) {
-      // 有 LINE 資料，執行綁定
-      const doBind = async () => {
-        try {
-          await bindLine({
-            line_user_id: lineUserId,
-            display_name: displayName || '',
-            picture_url: pictureUrl || '',
-          });
-          // 清除 URL 參數
-          window.history.replaceState({}, '', window.location.pathname);
-          alert('LINE 帳號綁定成功！');
-        } catch (err) {
-          alert(err.response?.data?.detail || 'LINE 綁定失敗');
-        }
-      };
-      doBind();
-    }
+    if (!lineUserId || !user) return;
+
+    const doBind = async () => {
+      try {
+        await bindLine({
+          line_user_id: lineUserId,
+          display_name: displayName || '',
+          picture_url: pictureUrl || '',
+        });
+        window.history.replaceState({}, '', window.location.pathname);
+        alert('LINE 綁定成功');
+      } catch (err) {
+        alert(err.response?.data?.detail || 'LINE 綁定失敗');
+      }
+    };
+
+    doBind();
   }, [searchParams, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result);
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 建立一個純粹的 JavaScript 物件來存放要提交的資料
     const submissionData = {};
 
-    // 1. 處理頭像檔案 (Base64)
     if (avatarPreview && avatarPreview !== (user.avatar_url || 'https://via.placeholder.com/150')) {
       submissionData.avatar_url = avatarPreview;
     }
 
-    // 2. 處理其他文字欄位
     Object.keys(formData).forEach((key) => {
       const initialValue = user[key] || '';
-      if (formData[key] !== initialValue) {
-        submissionData[key] = formData[key];
-      }
+      if (formData[key] !== initialValue) submissionData[key] = formData[key];
     });
 
-    // 檢查是否有任何資料需要更新
-    if (Object.keys(submissionData).length > 0) {
-      try {
-        await updateUser(submissionData);
-        alert('個人資料更新成功！');
-      } catch (error) {
-        console.error('更新失敗:', error);
-        alert(`更新失敗：${error.response?.data?.detail || error.message || '請稍後再試。'}`);
-      }
-    } else {
-      alert('沒有偵測到任何變更。');
+    if (Object.keys(submissionData).length === 0) {
+      alert('沒有資料需要更新');
+      return;
+    }
+
+    try {
+      await updateUser(submissionData);
+      alert('個人資料更新成功');
+    } catch (error) {
+      console.error('更新個人資料失敗:', error);
+      alert(`更新失敗：${error.response?.data?.detail || error.message || '未知錯誤'}`);
     }
   };
 
   const getPlanName = (plan) => {
     const planNames = {
-      'basic': '基本方案',
-      'premium': '進階方案',
-      'enterprise': '企業方案'
+      basic: '基本方案',
+      premium: '進階方案',
+      enterprise: '企業方案',
     };
-    return planNames[plan] || '未設定';
+    return planNames[plan] || '尚未選擇方案';
   };
 
-  const handleChangePlan = () => {
-    navigate('/select-plan');
+  const handleChangePlan = () => navigate('/select-plan');
+
+  const scrollToSection = (ref) => {
+    ref?.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
   };
 
-  if (loading || !user) {
-    return <div>正在載入使用者資料...</div>;
-  }
+  const handleQuickAction = (action) => {
+    switch (action) {
+      case 'profile':
+        scrollToSection(personalSectionRef);
+        break;
+      case 'cards':
+        if (user.user_type === 'customer') scrollToSection(paymentCardsRef);
+        break;
+      case 'line':
+        if (user.user_type === 'merchant') {
+          scrollToSection(merchantLineSectionRef);
+        } else {
+          scrollToSection(lineSectionRef);
+        }
+        break;
+      case 'company':
+        scrollToSection(companySectionRef);
+        break;
+      case 'orders':
+        navigate('/customer/orders');
+        break;
+      case 'favorites':
+        navigate('/customer-home');
+        break;
+      case 'loyalty':
+        navigate('/customer/loyalty');
+        break;
+      case 'faq':
+        alert('常見問題功能準備中');
+        break;
+      case 'feedback':
+        alert('意見回饋功能準備中');
+        break;
+      case 'logout':
+        logout();
+        break;
+      default:
+        break;
+    }
+  };
+
+  if (loading || !user) return <div>載入個人資料中...</div>;
+
+  const membershipLabel = user.user_type === 'merchant' ? '店家會員' : '一般會員';
+  const accountTypeLabel = user.user_type === 'merchant' ? '商家帳號' : '一般帳號';
+
+  const quickActions =
+    user.user_type === 'customer'
+      ? [
+          { key: 'profile', label: '個人資料設定' },
+          { key: 'cards', label: '信用卡管理' },
+          { key: 'line', label: 'LINE 綁定' },
+          { key: 'company', label: '公司加入' },
+          { key: 'orders', label: '訂單管理' },
+          { key: 'favorites', label: '最愛店家' },
+          { key: 'loyalty', label: '會員卡' },
+          { key: 'faq', label: '常見問題' },
+          { key: 'feedback', label: '意見回饋' },
+          { key: 'logout', label: '登出', danger: true },
+        ]
+      : [
+          { key: 'profile', label: '個人資料設定' },
+          { key: 'line', label: 'LINE 綁定' },
+          { key: 'company', label: '公司資訊' },
+          { key: 'faq', label: '常見問題' },
+          { key: 'logout', label: '登出', danger: true },
+        ];
 
   return (
     <div className={styles['profile-page']}>
@@ -153,16 +202,49 @@ const ProfilePage = () => {
           <form onSubmit={handleSubmit} className={styles['profile-form']}>
             <div className={styles['profile-sidebar']}>
               <h1>編輯個人資料</h1>
-              <div className={styles['avatar-upload-container']} onClick={() => fileInputRef.current.click()}>
-                <img
-                  src={avatarPreview}
-                  alt="Avatar"
-                  className={styles['avatar-preview']}
-                />
-                <div className={styles['avatar-edit-overlay']}>
-                  <span>更換頭像</span>
+
+              <div className={styles['avatar-shell']}>
+                <div className={styles['avatar-upload-container']} onClick={() => fileInputRef.current.click()}>
+                  <img src={avatarPreview} alt="Avatar" className={styles['avatar-preview']} />
+                  <div className={styles['avatar-edit-overlay']}>
+                    <span>更換頭貼</span>
+                  </div>
                 </div>
               </div>
+
+              <div className={styles['sidebar-profile-card']}>
+                <p className={styles['sidebar-name']}>{formData.username || '使用者'}</p>
+                <p className={styles['sidebar-subtitle']}>{accountTypeLabel}</p>
+                <div className={styles['sidebar-level-chip']}>{membershipLabel}</div>
+                <div className={styles['sidebar-meta-grid']}>
+                  <div className={styles['meta-tile']}>
+                    <span className={styles['meta-label']}>信箱綁定</span>
+                    <span className={styles['meta-value']}>{formData.email ? '已完成' : '未綁定'}</span>
+                  </div>
+                  <div className={styles['meta-tile']}>
+                    <span className={styles['meta-label']}>公司狀態</span>
+                    <span className={styles['meta-value']}>{user.company_tax_id ? '已加入' : '未加入'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles['sidebar-quick-panel']}>
+                <p className={styles['quick-title']}>快速功能</p>
+                <div className={styles['sidebar-quick-list']}>
+                  {quickActions.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`${styles['quick-action-btn']} ${item.danger ? styles['quick-action-danger'] : ''}`}
+                      onClick={() => handleQuickAction(item.key)}
+                    >
+                      <span className={styles['quick-dot']} />
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <input
                 type="file"
                 ref={fileInputRef}
@@ -172,194 +254,129 @@ const ProfilePage = () => {
               />
             </div>
 
-            <div className={styles['profile-main']}>
+            <div className={styles['profile-main']} ref={personalSectionRef}>
               <div className={styles['form-group']}>
                 <label htmlFor="username">名稱</label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  required
-                />
+                <input type="text" id="username" name="username" value={formData.username} onChange={handleChange} required />
               </div>
+
               <div className={styles['form-group']}>
-                <label htmlFor="email">電子郵件 (無法修改)</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  readOnly
-                />
+                <label htmlFor="email">電子郵件（無法修改）</label>
+                <input type="email" id="email" name="email" value={formData.email} readOnly />
               </div>
+
               <div className={styles['form-group']}>
                 <label htmlFor="phone_number">電話號碼</label>
-                <input
-                  type="tel"
-                  id="phone_number"
-                  name="phone_number"
-                  value={formData.phone_number}
-                  onChange={handleChange}
-                />
+                <input type="tel" id="phone_number" name="phone_number" value={formData.phone_number} onChange={handleChange} />
               </div>
 
               <div className={styles['form-group']}>
                 <label htmlFor="gender">性別</label>
                 <div className={styles['gender-radio-group']}>
                   <label className={styles['radio-option']}>
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="female"
-                      checked={formData.gender === 'female'}
-                      onChange={handleChange}
-                    />
+                    <input type="radio" name="gender" value="female" checked={formData.gender === 'female'} onChange={handleChange} />
                     <span>小姐</span>
                   </label>
                   <label className={styles['radio-option']}>
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="male"
-                      checked={formData.gender === 'male'}
-                      onChange={handleChange}
-                    />
+                    <input type="radio" name="gender" value="male" checked={formData.gender === 'male'} onChange={handleChange} />
                     <span>先生</span>
                   </label>
                   <label className={styles['radio-option']}>
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="other"
-                      checked={formData.gender === 'other'}
-                      onChange={handleChange}
-                    />
+                    <input type="radio" name="gender" value="other" checked={formData.gender === 'other'} onChange={handleChange} />
                     <span>其他</span>
                   </label>
                 </div>
               </div>
 
-              <button type="submit" className={styles['submit-btn']}>
-                儲存變更
-              </button>
+              <button type="submit" className={styles['submit-btn']}>儲存變更</button>
+
+              {user.user_type === 'customer' && (
+                <section className={styles['inline-tools-section']}>
+                  <div className={styles['inline-tools-grid']}>
+                    <div className={styles['line-inline-tool']} ref={lineSectionRef}>
+                      <LineBinding compact />
+                    </div>
+                    <div className={styles['company-inline-tool']} ref={companySectionRef}>
+                      <JoinCompanySection user={user} updateUser={updateUser} compact />
+                    </div>
+                  </div>
+                </section>
+              )}
             </div>
           </form>
         </div>
 
         {user.user_type === 'merchant' && (
-          <div className={styles['plan-sidebar']}>
-            <h2>現在選擇的方案</h2>
+          <div className={styles['plan-sidebar']} ref={companySectionRef}>
+            <h2>目前方案資訊</h2>
             <div className={styles['current-plan-display']}>
-              <div className={styles['plan-badge']}>
-                {getPlanName(currentPlan)}
-              </div>
+              <div className={styles['plan-badge']}>{getPlanName(currentPlan)}</div>
+
               {currentPlan === 'basic' && (
                 <div className={styles['plan-details']}>
-                  <p className={styles['plan-price']}>NT$ 499/月</p>
+                  <p className={styles['plan-price']}>NT$ 499 / 月</p>
                   <ul className={styles['plan-features']}>
-                    <li>平台基礎功能(販賣、排班...)</li>
-                    <li>基本訂單管理+惜福品</li>
-                    <li>營運報表</li>
+                    <li>基本流量曝光與訂單管理</li>
+                    <li>一般客服支援</li>
+                    <li>可查看基本營運數據</li>
                   </ul>
                 </div>
               )}
+
               {currentPlan === 'premium' && (
                 <div className={styles['plan-details']}>
-                  <p className={styles['plan-price']}>NT$ 999/月</p>
+                  <p className={styles['plan-price']}>NT$ 999 / 月</p>
                   <ul className={styles['plan-features']}>
-                    <li>包含基本方案所有功能</li>
-                    <li>開放特殊功能(訂位、會員)</li>
-                    <li>中優先級別</li>
+                    <li>提升曝光與活動推播</li>
+                    <li>進階報表與成效分析</li>
+                    <li>優先客服支援</li>
                   </ul>
                 </div>
               )}
+
               {currentPlan === 'enterprise' && (
                 <div className={styles['plan-details']}>
-                  <p className={styles['plan-price']}>NT$ 2,499/月</p>
+                  <p className={styles['plan-price']}>NT$ 2,499 / 月</p>
                   <ul className={styles['plan-features']}>
-                    <li>包含進階方案所有功能</li>
-                    <li>LINE BOT個人化推播</li>
-                    <li>高優先級別</li>
+                    <li>完整企業功能與專屬設定</li>
+                    <li>高階資料分析與 API 整合</li>
+                    <li>專屬客戶成功經理</li>
                   </ul>
                 </div>
               )}
+
               {!currentPlan && (
                 <div className={styles['plan-details']}>
-                  <p className={styles['no-plan-text']}>您尚未選擇方案</p>
+                  <p className={styles['no-plan-text']}>尚未選擇方案</p>
                 </div>
               )}
             </div>
-            <button className={styles['change-plan-btn']} onClick={handleChangePlan}>
-              更改方案
-            </button>
 
-            {/* 方案費用折扣資訊 */}
-            <div className={styles['discount-info-section']}>
-              <h2>方案費用折扣</h2>
-              <div className={styles['discount-info-display']}>
-                {platformFeeDiscount > 0 ? (
-                  <>
-                    <div className={styles['discount-badge-large']}>
-                      折抵{platformFeeDiscount}%費用
-                    </div>
-                    <div className={styles['discount-details']}>
-                      <p className={styles['discount-label']}>目前折扣：</p>
-                      <p className={styles['discount-value']}>{platformFeeDiscount}%</p>
-
-                      <p className={styles['discount-label']}>折扣後方案費用：</p>
-                      <p className={styles['discount-value']}>
-                        {currentPlan === 'basic' && `NT$ ${(499 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
-                        {currentPlan === 'premium' && `NT$ ${(999 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
-                        {currentPlan === 'enterprise' && `NT$ ${(2499 * (1 - platformFeeDiscount / 100)).toFixed(0)}/月`}
-                        {!currentPlan && 'N/A'}
-                      </p>
-
-                      {discountReason && (
-                        <>
-                          <p className={styles['discount-label']}>折扣原因：</p>
-                          <p className={styles['discount-reason']}>{discountReason}</p>
-                        </>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className={styles['no-discount-text']}>
-                    <p>目前沒有方案費用折扣</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <button className={styles['change-plan-btn']} onClick={handleChangePlan}>變更方案</button>
           </div>
         )}
 
-        {/* 信用卡管理區域 - 僅顧客端顯示 */}
-        {user.user_type === 'customer' && <PaymentCards />}
-
-        {/* LINE 綁定區塊 */}
-        {user.user_type === 'customer' && <LineBinding />}
-        {user.user_type === 'merchant' && <MerchantLineBinding />}
-
-        {/* 加入公司區塊 - 僅顧客端顯示 */}
         {user.user_type === 'customer' && (
-          <JoinCompanySection user={user} updateUser={updateUser} />
+          <div ref={paymentCardsRef} className={styles['payment-column']}>
+            <PaymentCards stretch />
+          </div>
+        )}
+        {user.user_type === 'merchant' && (
+          <div ref={merchantLineSectionRef}>
+            <MerchantLineBinding />
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-// 加入公司區塊元件
-const JoinCompanySection = ({ user, updateUser }) => {
+const JoinCompanySection = ({ user, updateUser, compact = false }) => {
   const navigate = useNavigate();
   const [companyTaxId, setCompanyTaxId] = useState(user.company_tax_id || '');
   const [saving, setSaving] = useState(false);
+  const hasJoinedCompany = Boolean(user.company_tax_id);
 
-  // 判斷是否已加入公司
-  const hasJoinedCompany = !!user.company_tax_id;
-
-  // 當 user.company_tax_id 變化時同步更新本地狀態
   useEffect(() => {
     setCompanyTaxId(user.company_tax_id || '');
   }, [user.company_tax_id]);
@@ -371,26 +388,24 @@ const JoinCompanySection = ({ user, updateUser }) => {
     }
 
     if (companyTaxId.length !== 8 || !/^\d+$/.test(companyTaxId)) {
-      alert('公司統編必須為8位數字');
+      alert('公司統編必須為 8 位數字');
       return;
     }
 
     setSaving(true);
     try {
       await updateUser({ company_tax_id: companyTaxId.trim() });
-      alert('加入公司成功！現在可以前往「排班申請」頁面申請排班。');
+      alert('加入公司成功');
     } catch (error) {
-      console.error('更新失敗:', error);
-      alert(`加入失敗：${error.response?.data?.detail || error.message || '請稍後再試。'}`);
+      console.error('加入公司失敗:', error);
+      alert(`加入公司失敗：${error.response?.data?.detail || error.message || '未知錯誤'}`);
     } finally {
       setSaving(false);
     }
   };
 
   const handleLeaveCompany = async () => {
-    if (!window.confirm('確定要離開公司嗎？離開後將無法申請排班。')) {
-      return;
-    }
+    if (!window.confirm('確定要離開目前公司嗎？')) return;
 
     setSaving(true);
     try {
@@ -398,55 +413,41 @@ const JoinCompanySection = ({ user, updateUser }) => {
       setCompanyTaxId('');
       alert('已離開公司');
     } catch (error) {
-      console.error('更新失敗:', error);
-      alert(`操作失敗：${error.response?.data?.detail || error.message || '請稍後再試。'}`);
+      console.error('離開公司失敗:', error);
+      alert(`離開公司失敗：${error.response?.data?.detail || error.message || '未知錯誤'}`);
     } finally {
       setSaving(false);
     }
   };
 
-  const goToScheduleApplication = () => {
-    navigate('/layout-application');
-  };
+  const goToScheduleApplication = () => navigate('/layout-application');
 
   return (
-    <div className={styles['join-company-section']}>
-      <h2>🏢 {hasJoinedCompany ? '公司資訊' : '加入公司'}</h2>
+    <div className={`${styles['join-company-section']} ${compact ? styles.compact : ''}`}>
+      <h2>{hasJoinedCompany ? '公司資訊' : '加入公司'}</h2>
       <p className={styles['section-description']}>
-        {hasJoinedCompany
-          ? '您已加入公司，可以前往「排班申請」頁面申請排班。'
-          : '輸入公司統編後，即可前往「排班申請」頁面向該公司的店家申請排班。'
-        }
+        {hasJoinedCompany ? '已完成公司綁定，可前往排班申請頁面。' : ''}
       </p>
 
       {hasJoinedCompany ? (
-        // 已加入公司狀態 - 顯示統編和退出按鈕
         <div className={styles['company-info']}>
           <div className={styles['company-status']}>
-            <span className={`${styles['status-badge']} ${styles.success}`}>✓ 已加入公司</span>
+            <span className={`${styles['status-badge']} ${styles.success}`}>已加入公司</span>
           </div>
           <div className={styles['company-detail']}>
-            <label>公司統編：</label>
+            <label>公司統編</label>
             <span className={styles['company-tax-id']}>{user.company_tax_id}</span>
           </div>
           <div className={styles['company-actions']}>
-            <button
-              className={styles['btn-schedule']}
-              onClick={goToScheduleApplication}
-            >
-              前往排班申請
+            <button type="button" className={styles['btn-schedule']} onClick={goToScheduleApplication}>
+              前往排班
             </button>
-            <button
-              className={styles['btn-leave']}
-              onClick={handleLeaveCompany}
-              disabled={saving}
-            >
-              {saving ? '處理中...' : '退出公司'}
+            <button type="button" className={styles['btn-leave']} onClick={handleLeaveCompany} disabled={saving}>
+              {saving ? '處理中...' : '離開公司'}
             </button>
           </div>
         </div>
       ) : (
-        // 尚未加入公司 - 顯示輸入框
         <div className={styles['company-form']}>
           <div className={styles['form-group']}>
             <label htmlFor="companyTaxId">公司統編</label>
@@ -455,18 +456,19 @@ const JoinCompanySection = ({ user, updateUser }) => {
               id="companyTaxId"
               value={companyTaxId}
               onChange={(e) => setCompanyTaxId(e.target.value)}
-              placeholder="請輸入8位數公司統編"
+              placeholder="請輸入 8 位數統編"
               maxLength={8}
               disabled={saving}
             />
           </div>
           <div className={styles['form-actions']}>
             <button
+              type="button"
               className={styles['btn-save']}
               onClick={handleJoinCompany}
               disabled={saving || !companyTaxId.trim()}
             >
-              {saving ? '儲存中...' : '加入公司'}
+              {saving ? '加入中...' : '加入公司'}
             </button>
           </div>
         </div>

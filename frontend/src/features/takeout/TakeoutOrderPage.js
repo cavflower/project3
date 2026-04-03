@@ -88,6 +88,7 @@ function TakeoutOrderPage() {
   // 規格選擇 Modal 狀態
   const [showSpecModal, setShowSpecModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productSpecMap, setProductSpecMap] = useState({});
 
   // 如果從購物車頁面返回，恢復購物車狀態
   const initialCartState = location.state?.cart || initialCart;
@@ -102,8 +103,10 @@ function TakeoutOrderPage() {
     try {
       const response = await getPublicSpecificationGroups(product.id);
       const specs = response.data || [];
+      const hasSpecs = specs.length > 0 && specs.some(g => g.options && g.options.length > 0);
+      setProductSpecMap(prev => ({ ...prev, [product.id]: hasSpecs }));
 
-      if (specs.length > 0 && specs.some(g => g.options && g.options.length > 0)) {
+      if (hasSpecs) {
         // 有規格，顯示 Modal
         setSelectedProduct(product);
         setShowSpecModal(true);
@@ -220,6 +223,99 @@ function TakeoutOrderPage() {
     // 不彈窗提示，直接加入購物車
   };
 
+  const renderMenuItemCard = (item) => {
+    const cartItemsForProduct = cart.items.filter((ci) => ci.id === item.id);
+    const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
+    const lastCartItem = cartItemsForProduct[cartItemsForProduct.length - 1];
+    const isLinkedToSurplus = item.is_linked_to_surplus || false;
+    const isSoldOutByIngredients = item.is_sold_out_by_ingredients || false;
+    const isOrderable = item.is_orderable !== false;
+    const isUnavailable = isLinkedToSurplus || !isOrderable;
+    const imageUrl = item.image
+      ? (item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`)
+      : '';
+    const hasSpecs = productSpecMap[item.id] === true || cartItemsForProduct.some(ci => ci.specKey);
+    const subtitle = item.category_name || item.category?.name || store?.name || 'DineVerse';
+    const metaText = item.description
+      ? item.description
+      : (isSoldOutByIngredients ? '原物料不足，暫時無法供應' : '精選餐點');
+
+    return (
+      <article
+        key={item.id}
+        className={`${styles['menu-product-card']} ${isUnavailable ? styles['menu-product-card-disabled'] : ''}`}
+      >
+        <span className={styles['card-shine']} aria-hidden="true" />
+        <span className={styles['card-glow']} aria-hidden="true" />
+        {!isUnavailable && <span className={styles['card-badge']}>HOT</span>}
+
+        <div className={styles['menu-product-content']}>
+          <div className={styles['menu-product-image-wrap']}>
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={item.name}
+                className={styles['menu-product-image']}
+              />
+            ) : (
+              <div className={styles['menu-product-image-fallback']} aria-hidden="true">DV</div>
+            )}
+          </div>
+
+          <div className={styles['menu-product-info']}>
+            <h5 className={styles['menu-product-title']}>{item.name}</h5>
+            <p className={styles['menu-product-subtitle']}>{subtitle}</p>
+            <p className={styles['menu-product-description']}>{metaText}</p>
+            {isLinkedToSurplus && <span className={styles['menu-product-meta']}>(已轉為惜福品)</span>}
+            {!isLinkedToSurplus && isSoldOutByIngredients && <span className="badge bg-secondary ms-2">已售完</span>}
+            <div className={styles['menu-product-footer']}>
+              <strong className={styles['menu-product-price']}>NT$ {formatPrice(item.price)}</strong>
+              {!isUnavailable && (
+                hasSpecs ? (
+                  <div className={styles['spec-action-wrap']}>
+                    <button
+                      className={`btn ${styles['spec-action-btn']}`}
+                      onClick={() => handleProductClick(item)}
+                      title="選擇"
+                    >
+                      <FaShoppingCart className={styles['spec-action-icon']} />
+                      選擇
+                    </button>
+                    {quantity > 0 && <span className={styles['spec-selected-count']}>已選 {quantity}</span>}
+                  </div>
+                ) : quantity === 0 ? (
+                  <button
+                    className={`btn rounded-circle ${styles['card-action-btn']}`}
+                    onClick={() => handleProductClick(item)}
+                    title="加入購物車"
+                  >
+                    <FaPlus />
+                  </button>
+                ) : (
+                  <div className={`${styles['product-qty-control']} d-flex align-items-center gap-2`}>
+                    <button
+                      className={`btn rounded-circle ${styles['product-qty-btn']}`}
+                      onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: lastCartItem?.cartKey })}
+                    >
+                      <FaMinus />
+                    </button>
+                    <span className={styles['quantity-display']}>{quantity}</span>
+                    <button
+                      className={`btn rounded-circle ${styles['product-qty-btn']}`}
+                      onClick={() => handleProductClick(item)}
+                    >
+                      <FaPlus />
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      </article>
+    );
+  };
+
   if (loading) {
     return (
       <div className={`${styles['takeout-page']} container py-5 text-center`}>
@@ -238,7 +334,7 @@ function TakeoutOrderPage() {
   }
 
   return (
-    <div className={`${styles['takeout-page']} container`} style={{ marginTop: "70px" }}>
+    <div className={`${styles['takeout-page']} container`} style={{ marginTop: "8px" }}>
       <div className="row mb-4">
         <div className="col-12">
           <div className="card shadow-sm">
@@ -416,70 +512,9 @@ function TakeoutOrderPage() {
                 {menuItems.length === 0 && (
                   <p className="text-muted">目前尚無外帶餐點。</p>
                 )}
-                {menuItems.map((item) => {
-                  // 計算該商品的總數量（所有規格組合加總）
-                  const cartItemsForProduct = cart.items.filter(ci => ci.id === item.id);
-                  const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
-                  const lastCartItem = cartItemsForProduct[cartItemsForProduct.length - 1];
-                  const isLinkedToSurplus = item.is_linked_to_surplus || false;
-                  const isSoldOutByIngredients = item.is_sold_out_by_ingredients || false;
-                  const isOrderable = item.is_orderable !== false;
-                  const isUnavailable = isLinkedToSurplus || !isOrderable;
-
-                  return (
-                    <div
-                      key={item.id}
-                      className="d-flex justify-content-between align-items-center border-bottom py-3"
-                      style={isUnavailable ? { opacity: 0.5 } : {}}
-                    >
-                      <div className="flex-grow-1">
-                        <h5 className="mb-1">
-                          {item.name}
-                          {isLinkedToSurplus && (
-                            <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
-                              (已轉為惜福品)
-                            </span>
-                          )}
-                          {!isLinkedToSurplus && isSoldOutByIngredients && (
-                            <span className="badge bg-secondary ms-2">已售完</span>
-                          )}
-                        </h5>
-                        <p className="text-muted mb-1">{item.description}</p>
-                        {!isLinkedToSurplus && isSoldOutByIngredients && (
-                          <small className="text-danger d-block mb-1">原物料不足，暫時無法供應</small>
-                        )}
-                        <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
-                      </div>
-                      {!isUnavailable && (
-                        quantity === 0 ? (
-                          <button
-                            className={`btn rounded-circle ${styles['add-btn']}`}
-                            onClick={() => handleProductClick(item)}
-                            title="加入購物車"
-                          >
-                            <FaPlus />
-                          </button>
-                        ) : (
-                          <div className={`${styles['quantity-control']} d-flex align-items-center gap-2`}>
-                            <button
-                              className={`btn rounded-circle ${styles['quantity-btn']}`}
-                              onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: lastCartItem?.cartKey })}
-                            >
-                              <FaMinus />
-                            </button>
-                            <span className={styles['quantity-display']}>{quantity}</span>
-                            <button
-                              className={`btn rounded-circle ${styles['quantity-btn']}`}
-                              onClick={() => handleProductClick(item)}
-                            >
-                              <FaPlus />
-                            </button>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  );
-                })}
+                <div className={styles['menu-product-grid']}>
+                  {menuItems.map(renderMenuItemCard)}
+                </div>
               </div>
             </div>
           ) : (
@@ -500,79 +535,9 @@ function TakeoutOrderPage() {
                     )}
                   </div>
                   <div className="card-body">
-                    {categoryProducts.map((item) => {
-                      // 計算該商品的總數量（所有規格組合加總）
-                      const cartItemsForProduct = cart.items.filter(ci => ci.id === item.id);
-                      const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
-                      const lastCartItem = cartItemsForProduct[cartItemsForProduct.length - 1];
-                      const isLinkedToSurplus = item.is_linked_to_surplus || false;
-                      const isSoldOutByIngredients = item.is_sold_out_by_ingredients || false;
-                      const isOrderable = item.is_orderable !== false;
-                      const isUnavailable = isLinkedToSurplus || !isOrderable;
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="d-flex justify-content-between align-items-center border-bottom py-3"
-                          style={isUnavailable ? { opacity: 0.5 } : {}}
-                        >
-                          {item.image && (
-                            <div className="me-3">
-                              <img
-                                src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
-                                alt={item.name}
-                                style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
-                              />
-                            </div>
-                          )}
-                          <div className="flex-grow-1">
-                            <h5 className="mb-1">
-                              {item.name}
-                              {isLinkedToSurplus && (
-                                <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
-                                  (已轉為惜福品)
-                                </span>
-                              )}
-                              {!isLinkedToSurplus && isSoldOutByIngredients && (
-                                <span className="badge bg-secondary ms-2">已售完</span>
-                              )}
-                            </h5>
-                            <p className="text-muted mb-1">{item.description}</p>
-                            {!isLinkedToSurplus && isSoldOutByIngredients && (
-                              <small className="text-danger d-block mb-1">原物料不足，暫時無法供應</small>
-                            )}
-                            <strong className="text-dark">NT$ {formatPrice(item.price)}</strong>
-                          </div>
-                          {!isUnavailable && (
-                            quantity === 0 ? (
-                              <button
-                              className={`btn rounded-circle ${styles['add-btn']}`}
-                                onClick={() => handleProductClick(item)}
-                                title="加入購物車"
-                              >
-                                <FaPlus />
-                              </button>
-                            ) : (
-                              <div className={`${styles['quantity-control']} d-flex align-items-center gap-2`}>
-                                <button
-                                  className={`btn rounded-circle ${styles['quantity-btn']}`}
-                                  onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: lastCartItem?.cartKey })}
-                                >
-                                  <FaMinus />
-                                </button>
-                                <span className={styles['quantity-display']}>{quantity}</span>
-                                <button
-                                  className={`btn rounded-circle ${styles['quantity-btn']}`}
-                                  onClick={() => handleProductClick(item)}
-                                >
-                                  <FaPlus />
-                                </button>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      );
-                    })}
+                    <div className={styles['menu-product-grid']}>
+                      {categoryProducts.map(renderMenuItemCard)}
+                    </div>
                   </div>
                 </div>
               );

@@ -1,620 +1,628 @@
-/* ProfilePage.css */
+﻿.profile-page {
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --card-soft: #f8fafc;
+  --line: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+  --primary: #2563eb;
+  --primary-strong: #1d4ed8;
+  --success: #16a34a;
+  --danger: #dc2626;
 
-.profile-page {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 2rem;
-  background-color: #f0f2f5;
   min-height: calc(100vh - 60px);
+  padding: 2rem;
+  background:
+    radial-gradient(circle at 0% 0%, #dbeafe 0, transparent 40%),
+    radial-gradient(circle at 100% 100%, #e2e8f0 0, transparent 40%),
+    var(--bg);
 }
 
 .profile-wrapper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  width: 100%;
-  max-width: 1400px;
-  align-items: flex-start;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.payment-column {
+  height: 100%;
+  min-height: 0;
+}
+
+.profile-container,
+.plan-sidebar,
+.join-company-section {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
 }
 
 .profile-container {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  flex: 1 1 450px;
-  min-width: 450px;
-  max-width: 600px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .profile-form {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
 }
 
-/* --- 左側邊欄 --- */
 .profile-sidebar {
-  background-color: #f8f9fa;
-  padding: 2rem 1.5rem;
+  background: linear-gradient(165deg, #f8fbff 0%, #eef3ff 100%);
+  border-right: 1px solid var(--line);
+  padding: 1.1rem 0.9rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 35%;
-  min-width: 150px;
-  border-right: 1px solid #e9ecef;
+  gap: 0.7rem;
 }
 
 .profile-sidebar h1 {
-  font-size: 1.5rem;
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text);
   font-weight: 700;
-  color: #343a40;
-  margin-bottom: 2rem;
   text-align: center;
+}
+
+.avatar-shell {
+  position: relative;
+  width: 116px;
+  display: flex;
+  justify-content: center;
 }
 
 .avatar-upload-container {
   position: relative;
-  cursor: pointer;
-  border-radius: 50%;
+  width: 112px;
+  height: 112px;
+  border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 1rem;
-  width: 120px;
-  height: 120px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  border: 4px solid #fff;
+  outline: 2px dashed #94a3b8;
+  outline-offset: 5px;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2);
 }
 
 .avatar-preview {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transition: transform 0.25s ease;
 }
 
 .avatar-edit-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.4);
-  color: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.5);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
   opacity: 0;
-  transition: opacity 0.3s ease;
-  font-size: 0.9rem;
-  font-weight: 500;
+  transition: opacity 0.2s ease;
 }
 
 .avatar-upload-container:hover .avatar-preview {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
 .avatar-upload-container:hover .avatar-edit-overlay {
   opacity: 1;
 }
 
-/* --- 右側主內容 --- */
+.sidebar-meta {
+  width: 100%;
+  margin-top: 0.15rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid #dbe5f4;
+  border-radius: 10px;
+  background: #f7fbff;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sidebar-profile-card {
+  width: 100%;
+  border: 1px solid #d5e0f2;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 90% -10%, rgba(37, 99, 235, 0.14) 0, transparent 42%),
+    linear-gradient(165deg, #ffffff 0%, #f4f8ff 100%);
+  padding: 0.78rem;
+  display: grid;
+  gap: 0.48rem;
+}
+
+.sidebar-name {
+  margin: 0;
+  color: #0b1220;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.sidebar-subtitle {
+  margin: 0;
+  color: #5f6f86;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.sidebar-level-chip {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 0.2rem 0.58rem;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: #ffffff;
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.sidebar-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.42rem;
+}
+
+.meta-tile {
+  border-radius: 11px;
+  border: 1px solid #dbe6f6;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.42rem 0.46rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.sidebar-quick-panel {
+  width: 100%;
+  border: 1px solid #dbe5f4;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0.72rem;
+}
+
+.quick-title {
+  margin: 0 0 0.45rem;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.sidebar-quick-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.quick-action-btn {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.46rem;
+  cursor: pointer;
+  transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
+}
+
+.quick-action-btn:hover {
+  transform: translateY(-1px);
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.quick-action-danger {
+  background: #fff7f7;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.quick-action-danger:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.quick-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #2563eb;
+}
+
+.quick-action-danger .quick-dot {
+  background: #dc2626;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.meta-label {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.meta-value {
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
 .profile-main {
-  padding: 2rem 2rem;
-  width: 65%;
-  min-width: 250px;
+  padding: 1.25rem;
 }
 
 .form-group {
-  margin-bottom: 1.8rem;
+  margin-bottom: 0.78rem;
 }
 
 .form-group label {
-  display: block;
-  margin-bottom: 0.6rem;
-  color: #495057;
+  display: inline-block;
+  margin-bottom: 0.34rem;
+  color: var(--muted);
+  font-size: 0.84rem;
   font-weight: 600;
-  font-size: 0.9rem;
 }
 
 .form-group input {
   width: 100%;
-  padding: 0.85rem 1.1rem;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 1rem;
-  background-color: #fff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.64rem 0.82rem;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.93rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .form-group input:focus {
-  outline: none;
-  border-color: #4dabf7;
-  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.2);
+  outline: 0;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .form-group input[readOnly] {
-  background-color: #f1f3f5;
-  color: #868e96;
-  cursor: not-allowed;
-  border-color: #dee2e6;
+  background: #f1f5f9;
+  color: #64748b;
 }
 
-/* 性別選擇 */
 .gender-radio-group {
   display: flex;
-  gap: 15px;
-  margin-top: 8px;
+  flex-wrap: wrap;
+  gap: 0.36rem;
 }
 
 .radio-option {
-  display: flex;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0.32rem 0.58rem;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 2px solid #ced4da;
-  border-radius: 8px;
-  background: white;
+  justify-content: center;
+  gap: 0.24rem;
+  min-width: 82px;
+  background: #fff;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.radio-option:hover {
-  border-color: #4dabf7;
-  background: #f1f9ff;
-}
-
-.radio-option input[type="radio"] {
-  cursor: pointer;
-  width: 12px;
-  height: 12px;
-  margin: 2px;
-  accent-color: #4dabf7;
-}
-
-.radio-option input[type="radio"]:checked {
-  border-color: #4dabf7;
-}
-
-.radio-option:has(input[type="radio"]:checked) {
-  border-color: #4dabf7;
-  background: #e7f5ff;
+.radio-option input[type='radio'] {
+  margin: 0;
+  accent-color: var(--primary);
+  transform: scale(0.86);
 }
 
 .radio-option span {
-  font-size: 15px;
-  color: #495057;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.radio-option:has(input[type="radio"]:checked) span {
-  color: #1971c2;
-}
-
-.submit-btn {
-  width: 100%;
-  padding: 0.9rem 1.5rem;
-  background: linear-gradient(90deg, #4dabf7, #364fc7);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  color: #334155;
+  font-size: 0.78rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 1rem;
-  box-shadow: 0 4px 15px rgba(54, 79, 199, 0.2);
 }
 
-.submit-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(54, 79, 199, 0.3);
+.radio-option:has(input[type='radio']:checked) {
+  border-color: #60a5fa;
+  background: #eff6ff;
 }
 
-.submit-btn:active {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 10px rgba(54, 79, 199, 0.2);
-}
-
-/* --- 右側方案區塊 --- */
-.plan-sidebar {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  padding: 2rem;
-  width: 350px;
-  display: flex;
-  flex-direction: column;
-}
-
-.plan-sidebar h2 {
-  font-size: 1.3rem;
+.submit-btn,
+.change-plan-btn,
+.join-company-section .btn-save,
+.join-company-section .btn-schedule {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.62rem 0.86rem;
+  color: #fff;
   font-weight: 700;
-  color: #343a40;
-  margin-bottom: 1.5rem;
-  text-align: center;
+  font-size: 0.86rem;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.2s ease;
+}
+
+.submit-btn,
+.change-plan-btn {
+  width: min(100%, 360px);
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0.26rem;
+}
+
+.submit-btn:hover,
+.change-plan-btn:hover,
+.join-company-section .btn-save:hover:not(:disabled),
+.join-company-section .btn-schedule:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.28);
+}
+
+.inline-tools-section {
+  margin-top: 0.8rem;
+  padding-top: 0.78rem;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.inline-tools-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 0.68rem;
+  align-items: stretch;
+}
+
+.line-inline-tool,
+.company-inline-tool {
+  background: var(--card-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.68rem;
+}
+
+.plan-sidebar,
+.join-company-section {
+  padding: 1.1rem;
+  height: fit-content;
+}
+
+.plan-sidebar h2,
+.join-company-section h2 {
+  margin: 0 0 0.62rem;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.current-plan-display,
+.discount-info-display,
+.join-company-section .company-info,
+.join-company-section .company-form {
+  background: var(--card-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.84rem;
 }
 
 .current-plan-display {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  flex: 1;
+  margin-bottom: 0.72rem;
 }
 
 .plan-badge {
-  background: #f8f9fa;
-  color: black;
-  padding: 0.8rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: 9px;
+  background: #e8efff;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+  font-weight: 800;
+  padding: 0.55rem;
+  margin-bottom: 0.68rem;
 }
 
 .plan-details {
-  margin-top: 1rem;
+  margin-top: 0.1rem;
 }
 
 .plan-price {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: black;
+  margin: 0 0 0.54rem;
+  font-size: 1.12rem;
+  font-weight: 800;
   text-align: center;
-  margin-bottom: 1.5rem;
+  color: #0f172a;
 }
 
 .plan-features {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.34rem;
 }
 
 .plan-features li {
-  padding: 0.6rem 0;
-  color: #495057;
-  font-size: 0.95rem;
   position: relative;
-  padding-left: 1.5rem;
+  padding-left: 1rem;
+  color: #334155;
+  font-size: 0.82rem;
+  line-height: 1.38;
 }
 
 .plan-features li::before {
-  content: '✓';
+  content: "•";
   position: absolute;
   left: 0;
-  color: #4dabf7;
+  top: 0;
+  color: #2563eb;
   font-weight: 700;
-  font-size: 1.1rem;
 }
 
-.no-plan-text {
+.no-plan-text,
+.no-discount-text {
   text-align: center;
-  color: #6c757d;
-  font-size: 1rem;
-  padding: 2rem 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin: 0;
 }
 
-.change-plan-btn {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(90deg, #4dabf7, #364fc7);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(54, 79, 199, 0.2);
-}
-
-.change-plan-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(54, 79, 199, 0.3);
-}
-
-.change-plan-btn:active {
-  transform: translateY(-1px);
-}
-
-/* 平台費折扣資訊區塊 */
 .discount-info-section {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 2px solid #e9ecef;
+  margin-top: 0.74rem;
+  padding-top: 0.74rem;
+  border-top: 1px dashed #cbd5e1;
 }
 
 .discount-info-section h2 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #343a40;
-  margin-bottom: 1.5rem;
-  text-align: center;
+  margin-bottom: 0.52rem;
 }
 
 .discount-info-display {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 12px;
-  padding: 1.5rem;
   text-align: center;
 }
 
 .discount-badge-large {
-  background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
-  color: white;
-  padding: 1.2rem 2rem;
-  border-radius: 12px;
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 15px rgba(55, 178, 77, 0.3);
-  text-transform: uppercase;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.93rem;
+  padding: 0.66rem;
+  margin-bottom: 0.6rem;
 }
 
 .discount-details {
-  background: white;
+  background: #fff;
   border-radius: 10px;
-  padding: 1.2rem;
-  margin-top: 1rem;
+  border: 1px solid #dcfce7;
+  padding: 0.66rem;
 }
 
 .discount-label {
-  font-size: 0.85rem;
-  color: #6c757d;
-  margin: 0.5rem 0 0.3rem 0;
-  font-weight: 500;
+  margin: 0.16rem 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
 }
 
 .discount-value {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #37b24d;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem;
+  color: var(--success);
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .discount-reason {
-  font-size: 0.95rem;
-  color: #495057;
-  background: #f8f9fa;
-  padding: 0.8rem;
+  margin: 0.32rem 0 0;
+  padding: 0.5rem;
   border-radius: 8px;
-  margin: 0.5rem 0 0 0;
-  line-height: 1.5;
-  font-style: italic;
-}
-
-.no-discount-text {
-  padding: 1.5rem;
-}
-
-.no-discount-text p {
-  color: #6c757d;
-  font-size: 1rem;
-  margin: 0.5rem 0;
-}
-
-.platform-fee-note {
-  font-size: 0.9rem;
-  color: #868e96;
-  font-weight: 500;
-}
-
-/* 響應式設計 */
-@media (max-width: 968px) {
-  .profile-wrapper {
-    flex-direction: column;
-  }
-
-  .plan-sidebar {
-    width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .profile-form {
-    flex-direction: column;
-  }
-
-  .profile-sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #e9ecef;
-  }
-
-  .profile-main {
-    width: 100%;
-  }
-}
-
-/* --- 加入公司區塊 --- */
-.join-company-section {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  padding: 2rem;
-  width: 350px;
-  display: flex;
-  flex-direction: column;
-}
-
-.join-company-section h2 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #343a40;
-  margin-bottom: 0.8rem;
-  text-align: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.8rem;
+  line-height: 1.38;
 }
 
 .join-company-section .section-description {
-  font-size: 0.9rem;
-  color: #6c757d;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-}
-
-.join-company-section .company-info {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.5rem;
+  margin: 0 0 0.58rem;
+  color: var(--muted);
+  font-size: 0.81rem;
+  line-height: 1.44;
 }
 
 .join-company-section .company-status {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.55rem;
 }
 
 .join-company-section .status-badge {
   display: inline-block;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
+  border-radius: 999px;
+  padding: 0.34rem 0.64rem;
+  font-size: 0.77rem;
+  font-weight: 700;
 }
 
 .join-company-section .status-badge.success {
-  background: linear-gradient(135deg, #d3f9d8 0%, #b2f2bb 100%);
-  color: #2f9e44;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .join-company-section .company-detail {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 0.56rem 0;
+  margin-bottom: 0.56rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem 0;
-  border-top: 1px solid #e9ecef;
-  border-bottom: 1px solid #e9ecef;
-  margin: 1rem 0;
+  justify-content: space-between;
+  gap: 0.42rem;
 }
 
 .join-company-section .company-detail label {
-  color: #6c757d;
-  font-size: 0.9rem;
+  color: #64748b;
+  font-size: 0.77rem;
 }
 
 .join-company-section .company-tax-id {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #343a40;
-  letter-spacing: 1px;
-}
-
-.join-company-section .company-actions {
-  display: flex;
-  gap: 0.8rem;
-}
-
-.join-company-section .btn-schedule,
-.join-company-section .btn-edit,
-.join-company-section .btn-leave {
-  flex: 1;
-  padding: 0.8rem;
-  border: none;
-  border-radius: 8px;
   font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #0f172a;
 }
 
-.join-company-section .btn-schedule {
-  background: linear-gradient(90deg, #51cf66, #37b24d);
-  color: white;
+.join-company-section .company-actions,
+.join-company-section .form-actions {
+  display: flex;
+  gap: 0.46rem;
 }
 
-.join-company-section .btn-schedule:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(55, 178, 77, 0.3);
-}
-
+.join-company-section .btn-leave,
+.join-company-section .btn-cancel,
 .join-company-section .btn-edit {
-  background: linear-gradient(90deg, #4dabf7, #364fc7);
-  color: white;
-}
-
-.join-company-section .btn-edit:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(54, 79, 199, 0.3);
-}
-
-.join-company-section .btn-leave {
-  background: #f1f3f5;
-  color: #868e96;
-  border: 1px solid #dee2e6;
+  flex: 1;
+  border-radius: 9px;
+  padding: 0.62rem 0.62rem;
+  font-size: 0.79rem;
+  font-weight: 700;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease, background-color 0.18s ease;
 }
 
 .join-company-section .btn-leave:hover {
+  border-color: #fecaca;
+  color: var(--danger);
   background: #fff5f5;
-  color: #e03131;
-  border-color: #e03131;
-}
-
-/* 表單樣式 */
-.join-company-section .company-form {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.5rem;
 }
 
 .join-company-section .company-form .form-group {
-  margin-bottom: 1.2rem;
-}
-
-.join-company-section .company-form .form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #495057;
-  font-weight: 600;
-  font-size: 0.9rem;
+  margin-bottom: 0.58rem;
 }
 
 .join-company-section .company-form .form-group input {
-  width: 100%;
-  padding: 0.85rem 1rem;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  font-weight: 700;
   text-align: center;
-  letter-spacing: 2px;
-  font-weight: 600;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.join-company-section .company-form .form-group input:focus {
-  outline: none;
-  border-color: #4dabf7;
-  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.2);
-}
-
-.join-company-section .form-actions {
-  display: flex;
-  gap: 0.8rem;
-}
-
-.join-company-section .btn-save,
-.join-company-section .btn-cancel {
-  flex: 1;
-  padding: 0.9rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.join-company-section .btn-save {
-  background: linear-gradient(90deg, #4dabf7, #364fc7);
-  color: white;
-  box-shadow: 0 4px 12px rgba(54, 79, 199, 0.2);
-}
-
-.join-company-section .btn-save:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(54, 79, 199, 0.3);
+  padding: 0.58rem 0.65rem;
 }
 
 .join-company-section .btn-save:disabled {
@@ -622,20 +630,55 @@
   cursor: not-allowed;
 }
 
-.join-company-section .btn-cancel {
-  background: white;
-  color: #868e96;
-  border: 1px solid #dee2e6;
+.join-company-section.compact {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
 }
 
-.join-company-section .btn-cancel:hover {
-  background: #f8f9fa;
-  color: #495057;
+.join-company-section.compact .company-form,
+.join-company-section.compact .company-info {
+  background: #fff;
 }
 
-/* 響應式 */
-@media (max-width: 968px) {
+@media (max-width: 1100px) {
+  .profile-wrapper {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plan-sidebar,
   .join-company-section {
     width: 100%;
   }
 }
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 1rem;
+  }
+
+  .profile-form {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 1rem;
+  }
+
+  .profile-main {
+    padding: 1rem;
+  }
+
+  .radio-option {
+    min-width: 78px;
+  }
+
+  .inline-tools-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+

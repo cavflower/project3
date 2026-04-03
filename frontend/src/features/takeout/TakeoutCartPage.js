@@ -16,18 +16,46 @@ const paymentOptionsList = [
 
 const formatPrice = (value) => Math.round(Number(value) || 0);
 
-const pickupSlots = () => {
-  const slots = [];
-  const now = new Date();
-  // 從現在開始加 20 分鐘為最快取餐時間
-  const startTime = new Date(now.getTime() + 20 * 60000);
-
-  // 每 5 分鐘一個選項，最多 10 項
-  for (let i = 0; i < 10; i++) {
-    const slot = new Date(startTime.getTime() + i * 5 * 60000);
-    slots.push(slot.toISOString());
+const roundUpToFiveMinutes = (date) => {
+  const rounded = new Date(date);
+  rounded.setSeconds(0, 0);
+  const minute = rounded.getMinutes();
+  const nextFive = Math.ceil(minute / 5) * 5;
+  if (nextFive === 60) {
+    rounded.setHours(rounded.getHours() + 1, 0, 0, 0);
+  } else {
+    rounded.setMinutes(nextFive, 0, 0);
   }
+  return rounded;
+};
+
+const getEarliestPickupTime = (now = new Date()) =>
+  roundUpToFiveMinutes(new Date(now.getTime() + 20 * 60000));
+
+const buildPickupSlots = (now = new Date()) => {
+  const slots = [];
+  const earliest = getEarliestPickupTime(now);
+  const endOfDay = new Date(earliest);
+  endOfDay.setHours(23, 55, 0, 0);
+
+  for (let cursor = new Date(earliest); cursor <= endOfDay; cursor = new Date(cursor.getTime() + 5 * 60000)) {
+    slots.push(new Date(cursor));
+  }
+
   return slots;
+};
+
+const getInitialPickupAt = (initialPickupAt) => {
+  const slots = buildPickupSlots(new Date());
+  if (slots.length === 0) return new Date().toISOString();
+
+  if (initialPickupAt) {
+    const parsed = new Date(initialPickupAt);
+    const matched = slots.find((slot) => slot.getTime() === parsed.getTime());
+    if (matched) return matched.toISOString();
+  }
+
+  return slots[0].toISOString();
 };
 
 function TakeoutCartPage() {
@@ -41,7 +69,7 @@ function TakeoutCartPage() {
   const [cartItems, setCartItems] = useState(initialCart?.items || []);
   const [contactName, setContactName] = useState(initialCart?.contact?.name || user?.username || "");
   const [contactPhone, setContactPhone] = useState(initialCart?.contact?.phone || user?.phone_number || "");
-  const [pickupAt, setPickupAt] = useState(initialCart?.pickupAt || pickupSlots()[0]);
+  const [pickupAt, setPickupAt] = useState(() => getInitialPickupAt(initialCart?.pickupAt));
   const [paymentMethod, setPaymentMethod] = useState(paymentOptionsList[0].value);
   const [useUtensils, setUseUtensils] = useState("yes");
   const [notes, setNotes] = useState(initialCart?.notes || "");
@@ -50,7 +78,48 @@ function TakeoutCartPage() {
   const [showCardSelector, setShowCardSelector] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
 
-  const slots = useMemo(pickupSlots, []);
+  const slots = useMemo(() => buildPickupSlots(new Date()), []);
+  const selectedPickupDate = useMemo(() => {
+    const current = new Date(pickupAt);
+    const matched = slots.find((slot) => slot.getTime() === current.getTime());
+    return matched || slots[0] || null;
+  }, [pickupAt, slots]);
+  const hourOptions = useMemo(
+    () => [...new Set(slots.map((slot) => slot.getHours()))],
+    [slots]
+  );
+  const minuteOptions = useMemo(() => {
+    if (!selectedPickupDate) return [];
+    const selectedHour = selectedPickupDate.getHours();
+    return [...new Set(
+      slots
+        .filter((slot) => slot.getHours() === selectedHour)
+        .map((slot) => slot.getMinutes())
+    )];
+  }, [selectedPickupDate, slots]);
+
+  const handlePickupHourChange = (hourValue) => {
+    if (!selectedPickupDate) return;
+    const nextHour = Number(hourValue);
+    const candidateMinutes = [...new Set(
+      slots
+        .filter((slot) => slot.getHours() === nextHour)
+        .map((slot) => slot.getMinutes())
+    )];
+    const currentMinute = selectedPickupDate.getMinutes();
+    const nextMinute = candidateMinutes.includes(currentMinute) ? currentMinute : candidateMinutes[0];
+    const next = slots.find((slot) => slot.getHours() === nextHour && slot.getMinutes() === nextMinute);
+    if (next) setPickupAt(next.toISOString());
+  };
+
+  const handlePickupMinuteChange = (minuteValue) => {
+    if (!selectedPickupDate) return;
+    const nextMinute = Number(minuteValue);
+    const next = slots.find(
+      (slot) => slot.getHours() === selectedPickupDate.getHours() && slot.getMinutes() === nextMinute
+    );
+    if (next) setPickupAt(next.toISOString());
+  };
 
   // 分離一般商品和惜福品
   const regularItems = useMemo(
@@ -132,6 +201,22 @@ function TakeoutCartPage() {
   };
 
   const handleSubmit = async () => {
+    const earliestPickup = getEarliestPickupTime(new Date());
+    const selectedPickup = new Date(pickupAt);
+    if (Number.isNaN(selectedPickup.getTime()) || selectedPickup < earliestPickup) {
+      setPickupAt(earliestPickup.toISOString());
+      alert(
+        `取餐時間需晚於現在 20 分鐘，已自動調整為 ${earliestPickup.toLocaleString("zh-TW", {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}`
+      );
+      return;
+    }
+
     if (!cartItems.length) {
       alert("購物車是空的。");
       return;
@@ -166,10 +251,10 @@ function TakeoutCartPage() {
     }
 
     // 其他付款方式或未登入直接執行訂單
-    await executeOrder(finalName, finalPhone);
+    await executeOrder(finalName, finalPhone, null);
   };
 
-  const executeOrder = async (finalName, finalPhone) => {
+  const executeOrder = async (finalName, finalPhone, cardForPayment = null) => {
 
     try {
       setSubmitting(true);
@@ -304,6 +389,24 @@ function TakeoutCartPage() {
       }
 
       // 清空購物車
+      const regularOrderItemsForReceipt = [
+        ...regularItems.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          amount: Number(item.finalPrice || item.price) * Number(item.quantity || 1),
+        })),
+        ...productRedemptionItems.map((item) => ({
+          name: item.redemptionRule?.product_name || item.name,
+          quantity: item.quantity || 1,
+          amount: 0,
+        })),
+      ];
+      const surplusOrderItemsForReceipt = surplusItems.map((item) => ({
+        name: item.title || item.name,
+        quantity: item.quantity,
+        amount: Number(item.price) * Number(item.quantity || 1),
+      }));
+
       setCartItems([]);
 
       const paymentLabel = paymentOptionsList.find((o) => o.value === paymentMethod)?.label;
@@ -313,24 +416,34 @@ function TakeoutCartPage() {
 
       // 如果有一般訂單，導向確認頁
       if (regularOrder && regularOrder.orderId) {
+        const cardInfo = cardForPayment || selectedCard;
         navigate(`/confirmation/${regularOrder.orderId}`, {
           state: {
             pickupNumber: regularOrder.pickupNumber || null,
             paymentMethod: paymentLabel || paymentMethod,
             hasSurplusOrders: surplusOrder ? true : false,
             surplusOrderNumbers: surplusOrder ? [surplusOrder.code] : [],
-            surplusPickupNumbers: surplusOrder ? [surplusOrder.pickupNumber] : []
+            surplusPickupNumbers: surplusOrder ? [surplusOrder.pickupNumber] : [],
+            selectedCard: cardInfo || null,
+            selectedCardName: cardInfo?.card_holder_name || null,
+            selectedCardLastFour: cardInfo?.card_last_four || null,
+            orderItems: regularOrderItemsForReceipt,
           },
         });
       } else if (surplusOrder) {
         // 只有惜福品訂單，導向惜福品確認頁
+        const cardInfo = cardForPayment || selectedCard;
         navigate(`/confirmation/surplus/${surplusOrder.orderId || 'success'}`, {
           state: {
             pickupNumber: surplusOrder.pickupNumber || null,
             orderNumber: surplusOrder.code || null,
             paymentMethod: paymentLabel || paymentMethod,
             isSurplusOnly: true,
-            isDineIn: false
+            isDineIn: false,
+            selectedCard: cardInfo || null,
+            selectedCardName: cardInfo?.card_holder_name || null,
+            selectedCardLastFour: cardInfo?.card_last_four || null,
+            orderItems: surplusOrderItemsForReceipt,
           },
         });
       } else {
@@ -362,11 +475,11 @@ function TakeoutCartPage() {
     }
 
     // 執行訂單
-    await executeOrder(finalName, finalPhone);
+    await executeOrder(finalName, finalPhone, card);
   };
 
   return (
-    <div className={`${styles['takeout-cart-page']} container`} style={{ marginTop: "70px", marginBottom: "40px" }}>
+    <div className={`${styles['takeout-cart-page']} container`} style={{ marginTop: "8px", marginBottom: "40px" }}>
       <div className="row mb-4">
         <div className="col-12">
           <button
@@ -630,13 +743,17 @@ function TakeoutCartPage() {
         </div>
 
         <div className="col-lg-4">
+          <div className="card shadow-sm mb-3">
+            <div className={`card-header ${styles['cart-header']}`}>
+              <strong>訂單資訊</strong>
+            </div>
+          </div>
+
           {/* 聯絡資訊 - 只在未登入時顯示 */}
           {!user && (
             <div className="card shadow-sm mb-3">
-              <div className={`card-header ${styles['cart-header']}`}>
-                <strong>聯絡資訊</strong>
-              </div>
               <div className="card-body">
+                <p className="fw-bold text-muted mb-2">聯絡資訊</p>
                 <div className="mb-3">
                   <label className="form-label">姓名 *</label>
                   <input
@@ -663,61 +780,60 @@ function TakeoutCartPage() {
 
           {/* 取餐時間 */}
           <div className="card shadow-sm mb-3">
-            <div className={`card-header ${styles['cart-header']}`}>
-              <strong>取餐時間</strong>
-            </div>
             <div className="card-body">
-              <select
-                className="form-select"
-                value={pickupAt}
-                onChange={(e) => setPickupAt(e.target.value)}
-              >
-                {slots.map((slot) => {
-                  const date = new Date(slot);
-                  const year = date.getFullYear();
-                  const month = String(date.getMonth() + 1).padStart(2, '0');
-                  const day = String(date.getDate()).padStart(2, '0');
-                  const hours = date.getHours();
-                  const minutes = String(date.getMinutes()).padStart(2, '0');
-                  const period = hours >= 12 ? '下午' : '上午';
-                  const displayHours = hours % 12 || 12;
-
-                  return (
-                    <option key={slot} value={slot}>
-                      {`${year}/${month}/${day} ${period}${displayHours}:${minutes}`}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          </div>
-
-          {/* 付款方式 */}
-          <div className="card shadow-sm mb-3">
-            <div className={`card-header ${styles['cart-header']}`}>
-              <strong>付款方式</strong>
-            </div>
-            <div className="card-body">
-              <select
-                className="form-select"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              >
-                {paymentOptionsList.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <p className="fw-bold text-muted mb-2">取餐時間</p>
+              {selectedPickupDate && (
+                <>
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <select
+                        className="form-select"
+                        value={selectedPickupDate.getHours()}
+                        onChange={(e) => handlePickupHourChange(e.target.value)}
+                      >
+                        {hourOptions.map((hour) => {
+                          const period = hour >= 12 ? '下午' : '上午';
+                          const displayHour = hour % 12 || 12;
+                          return (
+                            <option key={hour} value={hour}>
+                              {`${period}${displayHour}點`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                    <div className="col-6">
+                      <select
+                        className="form-select"
+                        value={selectedPickupDate.getMinutes()}
+                        onChange={(e) => handlePickupMinuteChange(e.target.value)}
+                      >
+                        {minuteOptions.map((minute) => (
+                          <option key={minute} value={minute}>
+                            {`${String(minute).padStart(2, '0')} 分`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <small className="text-muted d-block mt-2">
+                    最快可取餐時間：{slots[0].toLocaleString('zh-TW', {
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    })}
+                  </small>
+                </>
+              )}
             </div>
           </div>
 
           {/* 是否需要餐具 */}
           <div className="card shadow-sm mb-3">
-            <div className={`card-header ${styles['cart-header']}`}>
-              <strong>是否需要餐具</strong>
-            </div>
             <div className="card-body">
+              <p className="fw-bold text-muted mb-2">是否需要餐具</p>
               <select
                 className="form-select"
                 value={useUtensils}
@@ -732,10 +848,8 @@ function TakeoutCartPage() {
 
           {/* 備註 */}
           <div className="card shadow-sm mb-3">
-            <div className={`card-header ${styles['cart-header']}`}>
-              <strong>備註</strong>
-            </div>
             <div className="card-body">
+              <p className="fw-bold text-muted mb-2">備註</p>
               <textarea
                 className="form-control"
                 rows="3"
@@ -761,123 +875,102 @@ function TakeoutCartPage() {
       {showCheckoutModal && (
         <div className={styles['checkout-modal-overlay']} onClick={() => !submitting && setShowCheckoutModal(false)}>
           <div className={styles['checkout-modal']} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>確認訂單</h3>
-              <button
-                className="btn-close"
-                onClick={() => setShowCheckoutModal(false)}
-                disabled={submitting}
-              >
-                ×
-              </button>
-            </div>
+            <button
+              className={`btn-close ${styles['receipt-close']}`}
+              onClick={() => setShowCheckoutModal(false)}
+              disabled={submitting}
+            >
+              ×
+            </button>
 
             <div className="modal-body">
-              {/* 店家資訊 */}
-              <div className={styles['checkout-section']}>
-                <h5 className={styles['section-title']}>
-                  <i className="bi bi-shop me-2"></i>店家資訊
-                </h5>
-                <div className={styles['info-card']}>
-                  <strong>{store?.name}</strong>
-                  <p className="text-muted mb-0">{store?.address}</p>
-                </div>
-              </div>
-
-              {/* 訂單明細 */}
-              <div className={styles['checkout-section']}>
-                <h5 className={styles['section-title']}>
-                  <i className="bi bi-receipt me-2"></i>訂單明細
-                </h5>
-                <div className={styles['order-items']}>
-                  {regularItems.length > 0 && (
-                    <div className={styles['items-group']}>
-                      <div className={styles['group-label']}>一般外帶商品</div>
-                      {regularItems.map((item) => (
-                        <div key={item.id} className={styles['order-item']}>
-                          <span className={styles['item-name']}>{item.name}</span>
-                          <span className={styles['item-quantity']}>× {item.quantity}</span>
-                          <span className={styles['item-price']}>NT$ {formatPrice(item.price * item.quantity)}</span>
-                        </div>
-                      ))}
-                      <div className={styles.subtotal}>
-                        小計：NT$ {formatPrice(regularTotal)}
-                      </div>
-                    </div>
-                  )}
-
-                  {surplusItems.length > 0 && (
-                    <div className={`${styles['items-group']} ${styles['surplus-group']}`}>
-                      <div className={styles['group-label']}>
-                        <i className="bi bi-leaf me-1"></i>惜福品
-                      </div>
-                      {surplusItems.map((item) => (
-                        <div key={item.id} className={styles['order-item']}>
-                          <span className={styles['item-name']}>{item.name}</span>
-                          <span className={styles['item-quantity']}>× {item.quantity}</span>
-                          <span className={styles['item-price']}>NT$ {formatPrice(item.price * item.quantity)}</span>
-                        </div>
-                      ))}
-                      <div className={styles.subtotal}>
-                        小計：NT$ {formatPrice(surplusTotal)}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className={styles['total-section']}>
-                    <div className={styles['total-row']}>
-                      <span className={styles['total-label']}>總計</span>
-                      <span className={styles['total-amount']}>NT$ {formatPrice(total)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 取餐資訊 */}
-              <div className={styles['checkout-section']}>
-                <h5 className={styles['section-title']}>
-                  <i className="bi bi-clock me-2"></i>取餐資訊
-                </h5>
-                <div className={styles['info-grid']}>
-                  <div className={styles['info-item']}>
-                    <label>取餐時間</label>
-                    <span>{new Date(pickupAt).toLocaleString("zh-TW", {
-                      month: 'numeric',
-                      day: 'numeric',
+              <div className={styles['checkout-receipt']}>
+                <div className={styles['receipt-shop-name']}>{store?.name}</div>
+                <div className={styles['receipt-info']}>
+                  <div>{store?.address}</div>
+                  <div>
+                    取餐時間：{new Date(pickupAt).toLocaleString("zh-TW", {
+                      month: "numeric",
+                      day: "numeric",
                       hour: "2-digit",
                       minute: "2-digit",
-                    })}</span>
+                    })}
                   </div>
-                  <div className={styles['info-item']}>
+                </div>
+
+                <table className={styles['checkout-receipt-table']}>
+                  <thead>
+                    <tr>
+                      <th>品項</th>
+                      <th>數量</th>
+                      <th>金額</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {regularItems.map((item) => (
+                      <tr key={`regular-${item.cartKey || item.id}`}>
+                        <td>{item.name}</td>
+                        <td>{item.quantity}</td>
+                        <td>NT$ {formatPrice((item.finalPrice || item.price) * item.quantity)}</td>
+                      </tr>
+                    ))}
+                    {surplusItems.map((item) => (
+                      <tr key={`surplus-${item.cartKey || item.id}`}>
+                        <td>{item.name}</td>
+                        <td>{item.quantity}</td>
+                        <td>NT$ {formatPrice(item.price * item.quantity)}</td>
+                      </tr>
+                    ))}
+                    {actualDiscount > 0 && (
+                      <tr>
+                        <td>綠色點數折扣</td>
+                        <td>1</td>
+                        <td>-NT$ {formatPrice(actualDiscount)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+
+                <div className={styles['checkout-receipt-total']}>
+                  <span>總計</span>
+                  <span>NT$ {formatPrice(total)}</span>
+                </div>
+
+                <div className={styles['checkout-receipt-meta']}>
+                  <div>
                     <label>聯絡人</label>
                     <span>{user ? (user.username || user.email) : contactName}</span>
                   </div>
-                  <div className={styles['info-item']}>
+                  <div>
                     <label>聯絡電話</label>
                     <span>{user ? (user.phone_number || "未提供") : contactPhone}</span>
                   </div>
-                  <div className={styles['info-item']}>
+                  <div>
                     <label>餐具</label>
                     <span>{useUtensils === "yes" ? "需要" : "不需要"}</span>
                   </div>
                 </div>
+
                 {notes && (
-                  <div className={styles['notes-display']}>
+                  <div className={styles['checkout-receipt-notes']}>
                     <label>備註</label>
                     <p>{notes}</p>
                   </div>
                 )}
-              </div>
 
-              {/* 付款資訊 */}
-              <div className={styles['checkout-section']}>
-                <h5 className={styles['section-title']}>
-                  <i className="bi bi-credit-card me-2"></i>付款方式
-                </h5>
-                <div className={styles['payment-method']}>
-                  <div className={styles['payment-badge']}>
-                    {paymentOptionsList.find((o) => o.value === paymentMethod)?.label}
-                  </div>
+                <div className={styles['checkout-receipt-payment']}>
+                  <label>付款方式</label>
+                  <select
+                    className="form-select"
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                  >
+                    {paymentOptionsList.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                   {paymentMethod === "cash" && (
                     <small className="text-muted d-block mt-2">請於取餐時以現金付款</small>
                   )}
@@ -929,3 +1022,4 @@ function TakeoutCartPage() {
 }
 
 export default TakeoutCartPage;
+

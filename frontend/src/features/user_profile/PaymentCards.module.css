@@ -1,291 +1,619 @@
-/* 信用卡管理樣式 */
 .payment-cards-section {
+  width: 320px;
+  min-width: 280px;
+  max-height: min(880px, calc(100vh - 120px));
   background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  padding: 2rem;
-  width: 350px;
-  min-width: 300px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.stretch {
+  height: 100%;
+  max-height: none;
 }
 
 .section-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .section-header h2 {
-  font-size: 24px;
-  color: #333;
   margin: 0;
+  color: #0f172a;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .add-card-btn {
-  padding: 10px 20px;
-  background: #ff6b35;
-  color: white;
-  border: none;
-  border-radius: 8px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.55rem 0.82rem;
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.3s;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .add-card-btn:hover {
-  background: #e85a2a;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.28);
+}
+
+.wallet-shell {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.wallet {
+  position: relative;
+  width: 280px;
+  height: 230px;
+  cursor: pointer;
+  perspective: 1000px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  transition: transform 0.4s ease;
+}
+
+.wallet::after {
+  content: none;
+}
+
+@keyframes slideIntoPocket {
+  0% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.wallet-back {
+  position: absolute;
+  bottom: 0;
+  width: 280px;
+  height: 200px;
+  background: #1e341e;
+  border-radius: 22px 22px 60px 60px;
+  z-index: 5;
+  box-shadow:
+    inset 0 25px 35px rgba(0, 0, 0, 0.4),
+    inset 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.card {
+  position: absolute;
+  width: 260px;
+  height: 140px;
+  left: 10px;
+  border-radius: 16px;
+  padding: 18px;
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    0 -4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0s;
+  animation: slideIntoPocket 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+.card-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.chip {
+  width: 32px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.card-info {
+  overflow: hidden;
+  max-width: 50%;
+}
+
+.label {
+  font-size: 8px;
+  opacity: 0.72;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  display: block;
+}
+
+.value {
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  display: block;
+}
+
+.card-number-wrapper {
+  text-align: right;
+}
+
+.hidden-stars {
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+
+.card-number {
+  display: none;
+  font-size: 13px;
+  letter-spacing: 1px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.card-exp {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.stripe {
+  background: #635bff;
+  bottom: 90px;
+  z-index: 10;
+  animation-delay: 0.1s;
+}
+
+.wise {
+  background: #9bd86a;
+  color: #14240e;
+  bottom: 65px;
+  z-index: 20;
+  animation-delay: 0.2s;
+}
+
+.paypal {
+  background: #ffffff;
+  color: #003087;
+  bottom: 40px;
+  z-index: 30;
+  animation-delay: 0.3s;
+}
+
+.paypal .chip {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.paypal .label {
+  color: #6b7280;
+}
+
+.empty-preview {
+  bottom: 55px;
+  z-index: 20;
+}
+
+.default-preview {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: -3px;
+}
+
+.pocket {
+  position: absolute;
+  bottom: 0;
+  width: 280px;
+  height: 160px;
+  z-index: 40;
+  filter: drop-shadow(0 15px 25px rgba(20, 40, 20, 0.4));
+}
+
+.pocket-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pocket-content {
+  position: absolute;
+  top: 45px;
+  width: 100%;
+  text-align: center;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.balance-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 24px;
+}
+
+.balance-real {
+  color: #a7c59e;
+  font-size: 18px;
+  font-weight: 600;
+  opacity: 1;
+  position: static;
+  transform: none;
+  transition: none;
+}
+
+.wallet:hover {
+  transform: translateY(-5px);
+}
+
+.wallet:hover .stripe {
+  transform: translateY(-75px) rotate(-3deg);
+}
+
+.wallet:hover .wise {
+  transform: translateY(-45px) rotate(2deg);
+}
+
+.wallet:hover .paypal,
+.wallet:hover .empty-preview {
+  transform: translateY(-10px);
+}
+
+.card:hover {
+  z-index: 100 !important;
+  transition-delay: 0s !important;
+}
+
+.wallet:hover .stripe:hover,
+.wallet:hover .wise:hover,
+.wallet:hover .paypal:hover,
+.wallet:hover .empty-preview:hover {
+  transform: translateY(-60px) scale(1.05) rotate(0);
+}
+
+.card:hover .hidden-stars {
+  display: none;
+}
+
+.card:hover .card-number {
+  display: block;
+}
+
+
+.no-cards-message {
+  text-align: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 0.75rem;
+  color: #64748b;
+}
+
+.no-cards-message p {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
 }
 
 .cards-list {
   display: grid;
-  gap: 20px;
+  gap: 0.6rem;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 0.2rem;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.cards-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .card-item {
-  background: white;
-  padding: 25px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.card-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  padding: 0.78rem;
+  position: relative;
+  display: grid;
+  gap: 0.65rem;
 }
 
 .card-item.default {
-  border: 2px solid #ff6b35;
+  border-color: #60a5fa;
+  background: #f0f7ff;
 }
 
-.card-info {
-  flex: 1;
+.list-card-info {
+  display: grid;
+  gap: 0.3rem;
 }
 
-.card-number {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
-  letter-spacing: 2px;
-}
-
-.card-details {
-  display: flex;
-  gap: 20px;
-  color: #666;
-  font-size: 14px;
-}
-
-.card-holder {
-  font-weight: 500;
-}
-
-.card-expiry {
-  color: #999;
+.list-card-number {
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
 .default-badge {
   display: inline-block;
-  padding: 4px 12px;
-  background: #ff6b35;
-  color: white;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  margin-left: 10px;
+  margin-left: 0.45rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.card-details {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.card-holder {
+  font-weight: 600;
+  color: #334155;
+}
+
+.list-card-expiry {
+  color: #64748b;
 }
 
 .card-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.blur-preview-card {
+  overflow: hidden;
+}
+
+.blur-preview-card .list-card-info,
+.blur-preview-card .card-actions {
+  filter: blur(2.6px);
+  opacity: 0.72;
+  pointer-events: none;
+  user-select: none;
+}
+
+.more-cards-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.2), rgba(248, 250, 252, 0.9));
+}
+
+.show-more-btn,
+.collapse-cards-btn {
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: 0.42rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.show-more-btn:hover,
+.collapse-cards-btn:hover {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+
+.collapse-cards-btn {
+  align-self: center;
 }
 
 .set-default-btn,
 .edit-card-btn,
 .delete-card-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 8px;
+  padding: 0.42rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
 }
 
-.set-default-btn {
-  background: #e9ecef;
-  color: #495057;
+.action-placeholder {
+  width: 100%;
+  border-radius: 8px;
+  visibility: hidden;
 }
 
-.set-default-btn:hover {
-  background: #dee2e6;
-}
-
-.edit-card-btn {
-  background: #17a2b8;
-  color: white;
-}
-
+.set-default-btn:hover,
 .edit-card-btn:hover {
-  background: #138496;
-}
-
-.delete-card-btn {
-  background: #dc3545;
-  color: white;
+  border-color: #93c5fd;
+  color: #1d4ed8;
 }
 
 .delete-card-btn:hover {
-  background: #c82333;
+  border-color: #fecaca;
+  color: #dc2626;
+  background: #fff5f5;
 }
 
-.no-cards-message {
-  text-align: center;
-  padding: 40px;
-  color: #999;
-}
-
-/* 信用卡表單 Modal */
 .card-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(2, 6, 23, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .card-modal {
-  background: white;
-  padding: 40px;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 500px;
+  width: min(520px, 96vw);
   max-height: 90vh;
   overflow-y: auto;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+  padding: 1.2rem;
 }
 
 .card-modal h3 {
-  margin-top: 0;
-  margin-bottom: 25px;
-  color: #333;
+  margin: 0 0 0.8rem;
+  font-size: 1.05rem;
+  color: #0f172a;
 }
 
 .card-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0.8rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
+  gap: 0.35rem;
 }
 
 .form-group label {
-  margin-bottom: 8px;
-  color: #495057;
-  font-weight: 500;
-  font-size: 14px;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .form-group input {
-  padding: 12px;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border-color 0.3s;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.68rem 0.78rem;
+  font-size: 0.9rem;
+  color: #0f172a;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .form-group input:focus {
-  outline: none;
-  border-color: #ff6b35;
+  outline: 0;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.helper-text {
+  color: #64748b;
+  font-size: 0.74rem;
 }
 
 .form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
 }
 
 .checkbox-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  color: #334155;
 }
 
-.checkbox-group input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
+.checkbox-group input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: #2563eb;
 }
 
 .modal-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 25px;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
 }
 
 .submit-btn,
 .cancel-btn {
   flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
+  border-radius: 10px;
+  padding: 0.68rem;
+  font-size: 0.86rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s;
 }
 
 .submit-btn {
-  background: #ff6b35;
-  color: white;
-}
-
-.submit-btn:hover {
-  background: #e85a2a;
+  border: 0;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
 }
 
 .submit-btn:disabled {
-  background: #ccc;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
 .cancel-btn {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.cancel-btn:hover {
-  background: #dee2e6;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
 }
 
 @media (max-width: 768px) {
   .payment-cards-section {
     width: 100%;
-    min-width: auto;
+    min-width: 0;
+    max-height: none;
+    overflow: visible;
   }
 
-  .card-item {
+  .card-details {
     flex-direction: column;
     align-items: flex-start;
-    gap: 15px;
   }
 
-  .card-actions {
-    width: 100%;
-    justify-content: flex-end;
+  .cards-list {
+    overflow-y: visible;
+    padding-right: 0;
   }
 
   .form-row {

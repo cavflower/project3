@@ -301,7 +301,7 @@ function DineInOrderPage() {
   }
 
   return (
-    <div className="takeout-page container" style={{ marginTop: '70px' }}>
+    <div className="takeout-page container" style={{ marginTop: '8px' }}>
       <div className="row mb-4">
         <div className="col-12">
           <div className="card shadow-sm">

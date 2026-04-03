@@ -25,6 +25,13 @@
 .order-card {
   word-break: normal;
   padding: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
 
 .order-number {
@@ -201,6 +208,18 @@
   color: #666;
 }
 
+.value {
+  color: #2b2b2b;
+  font-weight: 500;
+}
+
+.detail-hint {
+  margin-top: 10px;
+  color: #4e74c9;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .unread {
   background: #f8f9fa;
   border-left: 4px solid #007bff;
@@ -322,4 +341,105 @@
 
 .delete-notification-btn:hover {
   color: #dc3545;
+}
+
+.order-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.order-modal {
+  width: min(760px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  padding: 22px 24px 20px;
+  position: relative;
+}
+
+.order-modal-close {
+  position: absolute;
+  right: 14px;
+  top: 10px;
+  border: none;
+  background: transparent;
+  font-size: 30px;
+  line-height: 1;
+  color: #8f8f8f;
+  cursor: pointer;
+}
+
+.order-modal-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #2a2a2a;
+}
+
+.order-modal-store {
+  margin-top: 6px;
+  margin-bottom: 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #3c3c3c;
+}
+
+.order-modal-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-modal-table th,
+.order-modal-table td {
+  border-bottom: 1px solid #ececec;
+  padding: 10px 6px;
+  font-size: 15px;
+}
+
+.order-modal-table th {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.order-modal-table th:nth-child(2),
+.order-modal-table td:nth-child(2) {
+  width: 92px;
+  text-align: center;
+}
+
+.order-modal-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 0 10px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.order-modal-meta {
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+  background: #fafafa;
+}
+
+.order-modal-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  color: #555;
+}
+
+.order-modal-meta strong {
+  color: #202020;
 }

@@ -605,7 +605,7 @@
 @media (max-width: 768px) {
     .reservationPage {
         padding: 10px;
-        padding-top: 70px;
+        padding-top: 24px;
     }
 
     .stepContent {

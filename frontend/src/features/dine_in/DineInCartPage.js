@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+﻿import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaArrowLeft, FaPlus, FaMinus, FaCoins } from "react-icons/fa";
 import { createDineInOrder } from "../../api/orderApi";
@@ -6,7 +6,7 @@ import api from "../../api/api";
 import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
 import CreditCardSelector from "../checkout/CreditCardSelector";
-import "../takeout/TakeoutCartPage.module.css";
+import styles from "../takeout/TakeoutCartPage.module.css";
 
 const paymentOptionsList = [
   { value: "cash", label: "現金" },
@@ -141,10 +141,10 @@ function DineInCartPage() {
     }
 
     // 其他付款方式或未登入直接執行訂單
-    await executeOrder(finalName, finalPhone);
+    await executeOrder(finalName, finalPhone, null);
   };
 
-  const executeOrder = async (finalName, finalPhone) => {
+  const executeOrder = async (finalName, finalPhone, cardForPayment = null) => {
 
     try {
       setSubmitting(true);
@@ -277,6 +277,24 @@ function DineInCartPage() {
       }
 
       // 清空購物車
+      const regularOrderItemsForReceipt = [
+        ...regularItems.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          amount: Number(item.finalPrice || item.price) * Number(item.quantity || 1),
+        })),
+        ...productRedemptionItems.map((item) => ({
+          name: item.redemptionRule?.product_name || item.name,
+          quantity: item.quantity || 1,
+          amount: 0,
+        })),
+      ];
+      const surplusOrderItemsForReceipt = surplusItems.map((item) => ({
+        name: item.title || item.name,
+        quantity: item.quantity,
+        amount: Number(item.price) * Number(item.quantity || 1),
+      }));
+
       setCartItems([]);
 
       const paymentLabel = paymentOptionsList.find((o) => o.value === paymentMethod)?.label;
@@ -286,6 +304,7 @@ function DineInCartPage() {
 
       // 如果有一般訂單，導向確認頁
       if (regularOrder && regularOrder.orderId) {
+        const cardInfo = cardForPayment || selectedCard;
         navigate(`/confirmation/${regularOrder.orderId}`, {
           state: {
             pickupNumber: regularOrder.pickupNumber || null,
@@ -294,12 +313,17 @@ function DineInCartPage() {
             surplusOrderNumbers: surplusOrders.map(o => o.code).filter(Boolean),
             surplusPickupNumbers: surplusOrders.map(o => o.pickupNumber).filter(Boolean),
             isDineIn: true,
-            tableLabel: tableLabel
+            tableLabel: tableLabel,
+            selectedCard: cardInfo || null,
+            selectedCardName: cardInfo?.card_holder_name || null,
+            selectedCardLastFour: cardInfo?.card_last_four || null,
+            orderItems: regularOrderItemsForReceipt,
           },
         });
       } else if (surplusOrders.length > 0) {
         // 只有惜福品訂單，導向惜福品確認頁
         const firstSurplusOrder = surplusOrders[0];
+        const cardInfo = cardForPayment || selectedCard;
         navigate(`/confirmation/surplus/${firstSurplusOrder.orderId || 'success'}`, {
           state: {
             pickupNumber: firstSurplusOrder.pickupNumber || null,
@@ -307,7 +331,11 @@ function DineInCartPage() {
             paymentMethod: paymentLabel || paymentMethod,
             isSurplusOnly: true,
             isDineIn: true,
-            tableLabel: tableLabel
+            tableLabel: tableLabel,
+            selectedCard: cardInfo || null,
+            selectedCardName: cardInfo?.card_holder_name || null,
+            selectedCardLastFour: cardInfo?.card_last_four || null,
+            orderItems: surplusOrderItemsForReceipt,
           },
         });
       } else {
@@ -334,11 +362,11 @@ function DineInCartPage() {
     }
 
     // 執行訂單
-    await executeOrder(finalName, finalPhone);
+    await executeOrder(finalName, finalPhone, card);
   };
 
   return (
-    <div className="takeout-cart-page container" style={{ marginTop: "70px", marginBottom: "40px" }}>
+    <div className="takeout-cart-page container" style={{ marginTop: "8px", marginBottom: "40px" }}>
       <div className="row mb-4">
         <div className="col-12">
           <button
@@ -536,13 +564,17 @@ function DineInCartPage() {
         </div>
 
         <div className="col-lg-4">
+          <div className="card shadow-sm mb-3">
+            <div className="card-header cart-header">
+              <strong>訂單資訊</strong>
+            </div>
+          </div>
+
           {/* 桌號資訊 */}
           {tableLabel && (
             <div className="card shadow-sm mb-3">
-              <div className="card-header cart-header">
-                <strong>用餐資訊</strong>
-              </div>
               <div className="card-body">
+                <p className="fw-bold text-muted mb-2">用餐資訊</p>
                 <div className="mb-0">
                   <label className="form-label">桌號</label>
                   <input
@@ -556,32 +588,10 @@ function DineInCartPage() {
             </div>
           )}
 
-          {/* 付款方式 */}
-          <div className="card shadow-sm mb-3">
-            <div className="card-header cart-header">
-              <strong>付款方式</strong>
-            </div>
-            <div className="card-body">
-              <select
-                className="form-select"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              >
-                {paymentOptionsList.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
           {/* 有無環保餐具 */}
           <div className="card shadow-sm mb-3">
-            <div className="card-header cart-header">
-              <strong>有無環保餐具</strong>
-            </div>
             <div className="card-body">
+              <p className="fw-bold text-muted mb-2">有無環保餐具</p>
               <select
                 className="form-select"
                 value={useEcoTableware}
@@ -595,10 +605,8 @@ function DineInCartPage() {
 
           {/* 備註 */}
           <div className="card shadow-sm mb-3">
-            <div className="card-header cart-header">
-              <strong>備註</strong>
-            </div>
             <div className="card-body">
+              <p className="fw-bold text-muted mb-2">備註</p>
               <textarea
                 className="form-control"
                 rows="3"
@@ -629,119 +637,97 @@ function DineInCartPage() {
 
       {/* 結帳確認Modal */}
       {showCheckoutModal && (
-        <div className="checkout-modal-overlay" onClick={() => !submitting && setShowCheckoutModal(false)}>
-          <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>確認訂單</h3>
-              <button
-                className="btn-close"
-                onClick={() => setShowCheckoutModal(false)}
-                disabled={submitting}
-              >
-                ×
-              </button>
-            </div>
+        <div className={styles['checkout-modal-overlay']} onClick={() => !submitting && setShowCheckoutModal(false)}>
+          <div className={styles['checkout-modal']} onClick={(e) => e.stopPropagation()}>
+            <button
+              className={`btn-close ${styles['receipt-close']}`}
+              onClick={() => setShowCheckoutModal(false)}
+              disabled={submitting}
+            >
+              ×
+            </button>
 
             <div className="modal-body">
-              {/* 店家資訊 */}
-              <div className="checkout-section">
-                <h5 className="section-title">
-                  <i className="bi bi-shop me-2"></i>店家資訊
-                </h5>
-                <div className="info-card">
-                  <strong>{store?.name}</strong>
-                  <p className="text-muted mb-0">{store?.address}</p>
-                  {tableLabel && (
-                    <p className="mb-0 mt-2"><strong>桌號：</strong>{tableLabel}</p>
-                  )}
+              <div className={styles['checkout-receipt']}>
+                <div className={styles['receipt-shop-name']}>{store?.name}</div>
+                <div className={styles['receipt-info']}>
+                  <div>{store?.address}</div>
+                  {tableLabel && <div>桌號：{tableLabel}</div>}
                 </div>
-              </div>
 
-              {/* 訂單明細 */}
-              <div className="checkout-section">
-                <h5 className="section-title">
-                  <i className="bi bi-receipt me-2"></i>訂單明細
-                </h5>
-                <div className="order-items">
-                  {regularItems.length > 0 && (
-                    <div className="items-group">
-                      <div className="group-label">一般內用商品</div>
-                      {regularItems.map((item) => (
-                        <div key={item.cartKey || item.id} className="order-item">
-                          <span className="item-name">{item.name}</span>
-                          <span className="item-quantity">× {item.quantity}</span>
-                          <span className="item-price">NT$ {formatPrice((item.finalPrice || item.price) * item.quantity)}</span>
-                        </div>
-                      ))}
-                      <div className="subtotal">
-                        小計：NT$ {formatPrice(regularTotal)}
-                      </div>
-                    </div>
-                  )}
+                <table className={styles['checkout-receipt-table']}>
+                  <thead>
+                    <tr>
+                      <th>品項</th>
+                      <th>數量</th>
+                      <th>金額</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {regularItems.map((item) => (
+                      <tr key={`regular-${item.cartKey || item.id}`}>
+                        <td>{item.name}</td>
+                        <td>{item.quantity}</td>
+                        <td>NT$ {formatPrice((item.finalPrice || item.price) * item.quantity)}</td>
+                      </tr>
+                    ))}
+                    {surplusItems.map((item) => (
+                      <tr key={`surplus-${item.cartKey || item.id}`}>
+                        <td>{item.name}</td>
+                        <td>{item.quantity}</td>
+                        <td>NT$ {formatPrice(item.price * item.quantity)}</td>
+                      </tr>
+                    ))}
+                    {actualDiscount > 0 && (
+                      <tr>
+                        <td>綠色點數折扣</td>
+                        <td>1</td>
+                        <td>-NT$ {formatPrice(actualDiscount)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
 
-                  {surplusItems.length > 0 && (
-                    <div className="items-group surplus-group">
-                      <div className="group-label">
-                        <i className="bi bi-leaf me-1"></i>惜福品
-                      </div>
-                      {surplusItems.map((item) => (
-                        <div key={item.id} className="order-item">
-                          <span className="item-name">{item.name}</span>
-                          <span className="item-quantity">× {item.quantity}</span>
-                          <span className="item-price">NT$ {formatPrice(item.price * item.quantity)}</span>
-                        </div>
-                      ))}
-                      <div className="subtotal">
-                        小計：NT$ {formatPrice(surplusTotal)}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="total-section">
-                    <div className="total-row">
-                      <span className="total-label">總計</span>
-                      <span className="total-amount">NT$ {formatPrice(total)}</span>
-                    </div>
-                  </div>
+                <div className={styles['checkout-receipt-total']}>
+                  <span>總計</span>
+                  <span>NT$ {formatPrice(total)}</span>
                 </div>
-              </div>
 
-              {/* 用餐資訊 */}
-              <div className="checkout-section">
-                <h5 className="section-title">
-                  <i className="bi bi-info-circle me-2"></i>用餐資訊
-                </h5>
-                <div className="info-grid">
-                  <div className="info-item">
+                <div className={styles['checkout-receipt-meta']}>
+                  <div>
                     <label>聯絡人</label>
-                    <span>{user ? (user.username || user.email) : '訪客'}</span>
+                    <span>{user ? (user.username || user.email) : "訪客"}</span>
                   </div>
-                  <div className="info-item">
+                  <div>
                     <label>聯絡電話</label>
-                    <span>{user ? (user.phone_number || "未提供") : '訪客'}</span>
+                    <span>{user ? (user.phone_number || "未提供") : "訪客"}</span>
                   </div>
-                  <div className="info-item">
+                  <div>
                     <label>環保餐具</label>
                     <span>{useEcoTableware === "yes" ? "有" : "無"}</span>
                   </div>
                 </div>
+
                 {notes && (
-                  <div className="notes-display">
+                  <div className={styles['checkout-receipt-notes']}>
                     <label>備註</label>
                     <p>{notes}</p>
                   </div>
                 )}
-              </div>
 
-              {/* 付款資訊 */}
-              <div className="checkout-section">
-                <h5 className="section-title">
-                  <i className="bi bi-credit-card me-2"></i>付款方式
-                </h5>
-                <div className="payment-method">
-                  <div className="payment-badge">
-                    {paymentOptionsList.find((o) => o.value === paymentMethod)?.label}
-                  </div>
+                <div className={styles['checkout-receipt-payment']}>
+                  <label>付款方式</label>
+                  <select
+                    className="form-select"
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                  >
+                    {paymentOptionsList.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                   {paymentMethod === "cash" && (
                     <small className="text-muted d-block mt-2">請以現金付款</small>
                   )}
@@ -781,3 +767,4 @@ function DineInCartPage() {
 }
 
 export default DineInCartPage;
+

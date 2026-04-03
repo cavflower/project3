@@ -32,7 +32,7 @@ function StoreBrowse() {
   };
 
   return (
-    <div className="container" style={{ marginTop: '70px', paddingTop: '20px', paddingBottom: '20px' }}>
+    <div className="container" style={{ marginTop: '8px', paddingTop: '8px', paddingBottom: '20px' }}>
       <div className="row mb-4">
         <div className="col-12">
           <h2 className="mb-3">歡迎光臨，{user?.name || '顧客'}

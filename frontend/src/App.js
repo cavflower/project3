@@ -130,7 +130,7 @@ function App() {
     <div className="App">
       {!isAuthLayoutRoute && <Navbar toggleSidebar={toggleSidebar} />}
       {!isAuthLayoutRoute && <Sidebar isOpen={isSidebarOpen} />}
-      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''} ${isAuthLayoutRoute ? 'auth-layout' : ''}`}>
+      <div className={`main-content ${isAuthLayoutRoute ? 'auth-layout' : ''}`}>
         <main className={isAuthLayoutRoute ? 'auth-main' : ''}>
           {/* 3. 路由配置 */}
           <Routes>

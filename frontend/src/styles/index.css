@@ -41,12 +41,7 @@ code {
 
 .main-content {
   padding-top: var(--navbar-height);
-  transition: margin-left 0.3s ease-in-out;
   min-height: 100vh;
-}
-
-.main-content.sidebar-open {
-  margin-left: var(--sidebar-width);
 }
 
 .main-content.auth-layout {
@@ -57,7 +52,7 @@ code {
 
 main {
   min-height: calc(100vh - var(--navbar-height) - 60px); /* 60px for footer */
-  padding: 2rem;
+  padding: 0.5rem 2rem 2rem;
 }
 
 .main-content.auth-layout .auth-main {
