@@ -170,7 +170,6 @@ class OrderStatusUpdateView(APIView):
     permission_classes = [permissions.AllowAny]
     VALID_TAKEOUT_STATUS = {'pending', 'accepted', 'ready_for_pickup', 'completed', 'rejected'}
     VALID_DINEIN_STATUS = {'pending', 'accepted', 'ready_for_pickup', 'completed', 'rejected'}
-
     def patch(self, request, pickup_number):
         new_status = request.data.get('status')
         
