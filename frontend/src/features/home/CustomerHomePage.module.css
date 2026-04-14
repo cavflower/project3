@@ -23,10 +23,10 @@
 }
 
 .container {
-  width: min(1200px, calc(100% - 32px));
+  width: min(1320px, calc(100% - 48px));
   margin: 0 auto;
   display: grid;
-  gap: 24px;
+  gap: 20px;
 }
 
 .hero {
@@ -549,7 +549,7 @@
 .grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 }
 
 .storeLink {
@@ -777,6 +777,91 @@
   .showcaseSecondary,
   .showcaseTertiary {
     height: 140px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .page {
+    --carousel-height: clamp(188px, 21.8vw, 272px);
+  }
+
+  .container {
+    width: min(1360px, calc(100% - 56px));
+    gap: 16px;
+  }
+
+  .heroContent {
+    padding: 22px;
+    gap: 10px;
+  }
+
+  .heroBadge {
+    padding: 7px 11px;
+    font-size: 11px;
+  }
+
+  .heroTitle {
+    font-size: clamp(22px, 2.35vw, 30px);
+  }
+
+  .heroText {
+    font-size: 15px;
+  }
+
+  .searchPanel {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .pillCategory {
+    padding: 9px 15px;
+    font-size: 13px;
+  }
+
+  .filterChip {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+
+  .showcasePrimary {
+    height: 220px;
+  }
+
+  .showcaseSecondary,
+  .showcaseTertiary {
+    height: 105px;
+  }
+
+  .storeImageWrap {
+    min-height: 154px;
+  }
+
+  .storeBody {
+    padding: 11px;
+    gap: 5px;
+  }
+
+  .storeTitleRow h3 {
+    font-size: 16px;
+  }
+
+  .cuisine {
+    font-size: 15px;
+  }
+
+  .address {
+    font-size: 13px;
+  }
+
+  .featureRow span {
+    font-size: 11px;
+    padding: 3px 9px;
+  }
+
+  .primaryBtn,
+  .secondaryBtn {
+    padding: 10px 16px;
+    font-size: 14px;
   }
 }
 

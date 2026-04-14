@@ -10,7 +10,9 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 2200;
+  transform: translateZ(0);
+  will-change: transform;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
