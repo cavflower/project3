@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FaClock, FaUsers, FaCalendarAlt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import TimeSlotSettings from './TimeSlotSettings';
 import ReservationList from './ReservationList';
 import styles from './ReservationManagementPage.module.css';
+import { getMyStore, getDineInLayout } from '../../../api/storeApi';
+import { normalizeDineInLayout } from '../../../utils/dineInLayout';
 import {
   getMerchantReservations,
   updateReservationStatus,
@@ -28,10 +30,71 @@ const ReservationManagementPage = () => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedReservationId, setSelectedReservationId] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [showAcceptDialog, setShowAcceptDialog] = useState(false);
+  const [selectedAcceptReservation, setSelectedAcceptReservation] = useState(null);
+  const [tableFloors, setTableFloors] = useState([]);
+  const [activeTableFloorId, setActiveTableFloorId] = useState('');
+  const [acceptForm, setAcceptForm] = useState({
+    tableLabel: '',
+    merchantNote: '',
+  });
+  const [isPanningTableMap, setIsPanningTableMap] = useState(false);
+  const [tableMapPanStart, setTableMapPanStart] = useState({
+    x: 0,
+    y: 0,
+    scrollLeft: 0,
+    scrollTop: 0,
+  });
+  const tableMapViewportRef = useRef(null);
+
+  const activeTableFloor = useMemo(
+    () => tableFloors.find((floor) => floor.id === activeTableFloorId) || tableFloors[0] || null,
+    [tableFloors, activeTableFloorId]
+  );
+
+  const tableMapSize = useMemo(() => {
+    const tables = activeTableFloor?.tables || [];
+
+    if (tables.length === 0) {
+      return { width: 720, height: 420 };
+    }
+
+    let maxX = 0;
+    let maxY = 0;
+
+    tables.forEach((table) => {
+      const width = table.shape === 'rectangle' ? 120 : 80;
+      const height = table.shape === 'rectangle' ? 72 : 80;
+      const right = (table.x || 0) + width;
+      const bottom = (table.y || 0) + height;
+
+      if (right > maxX) maxX = right;
+      if (bottom > maxY) maxY = bottom;
+    });
+
+    return {
+      width: Math.max(720, maxX + 80),
+      height: Math.max(420, maxY + 80),
+    };
+  }, [activeTableFloor]);
+
+  useEffect(() => {
+    if (!isPanningTableMap) return;
+
+    const stopPanning = () => {
+      setIsPanningTableMap(false);
+    };
+
+    window.addEventListener('mouseup', stopPanning);
+    return () => {
+      window.removeEventListener('mouseup', stopPanning);
+    };
+  }, [isPanningTableMap]);
 
   useEffect(() => {
     fetchReservations();
     fetchTimeSlots();
+    fetchConfiguredTables();
   }, []);
 
   const fetchReservations = async () => {
@@ -58,6 +121,34 @@ const ReservationManagementPage = () => {
     }
   };
 
+  const fetchConfiguredTables = async () => {
+    try {
+      const storeResponse = await getMyStore();
+      const storeId = storeResponse.data?.id;
+      if (!storeId) {
+        setTableFloors([]);
+        setActiveTableFloorId('');
+        return;
+      }
+
+      const layoutResponse = await getDineInLayout(storeId);
+      const normalizedLayout = normalizeDineInLayout(layoutResponse.data);
+      const floorsWithTables = normalizedLayout.floors
+        .map((floor) => ({
+          ...floor,
+          tables: (floor.tables || []).filter((table) => Boolean((table.label || '').trim())),
+        }))
+        .filter((floor) => floor.tables.length > 0);
+
+      setTableFloors(floorsWithTables);
+      setActiveTableFloorId(floorsWithTables[0]?.id || '');
+    } catch (error) {
+      console.error('Failed to fetch configured dine-in tables:', error);
+      setTableFloors([]);
+      setActiveTableFloorId('');
+    }
+  };
+
   const updateStats = (reservationList) => {
     const newStats = {
       pending: reservationList.filter(r => r.status === 'pending').length,
@@ -68,10 +159,79 @@ const ReservationManagementPage = () => {
     setStats(newStats);
   };
 
-  const handleAcceptReservation = async (reservationId) => {
+  const resetAcceptDialog = () => {
+    setShowAcceptDialog(false);
+    setSelectedAcceptReservation(null);
+    setAcceptForm({ tableLabel: '', merchantNote: '' });
+    setActiveTableFloorId(tableFloors[0]?.id || '');
+    setIsPanningTableMap(false);
+  };
+
+  const handleTableMapPointerDown = (e) => {
+    if (e.button !== 0) return;
+
+    // 桌位按鈕點擊時不啟動拖曳平移，避免影響選桌。
+    if (e.target.closest('[data-table-pick="true"]')) {
+      return;
+    }
+
+    const viewport = tableMapViewportRef.current;
+    if (!viewport) return;
+
+    setIsPanningTableMap(true);
+    setTableMapPanStart({
+      x: e.clientX,
+      y: e.clientY,
+      scrollLeft: viewport.scrollLeft,
+      scrollTop: viewport.scrollTop,
+    });
+  };
+
+  const handleTableMapPointerMove = (e) => {
+    if (!isPanningTableMap) return;
+
+    const viewport = tableMapViewportRef.current;
+    if (!viewport) return;
+
+    e.preventDefault();
+    const deltaX = e.clientX - tableMapPanStart.x;
+    const deltaY = e.clientY - tableMapPanStart.y;
+    viewport.scrollLeft = tableMapPanStart.scrollLeft - deltaX;
+    viewport.scrollTop = tableMapPanStart.scrollTop - deltaY;
+  };
+
+  const findFloorByTableLabel = (tableLabel) => {
+    if (!tableLabel) return null;
+    return tableFloors.find((floor) =>
+      (floor.tables || []).some((table) => table.label === tableLabel)
+    ) || null;
+  };
+
+  const handleAcceptClick = (reservation) => {
+    const initialTableLabel = reservation.table_label || '';
+    const selectedFloor = findFloorByTableLabel(initialTableLabel);
+
+    setSelectedAcceptReservation(reservation);
+    setAcceptForm({
+      tableLabel: selectedFloor ? initialTableLabel : '',
+      merchantNote: reservation.merchant_note || '',
+    });
+    setActiveTableFloorId(selectedFloor?.id || tableFloors[0]?.id || '');
+    setShowAcceptDialog(true);
+  };
+
+  const handleAcceptReservation = async () => {
+    if (!selectedAcceptReservation) return;
+
     try {
-      await updateReservationStatus(reservationId, 'confirmed');
+      await updateReservationStatus(selectedAcceptReservation.id, {
+        status: 'confirmed',
+        table_label: acceptForm.tableLabel || '',
+        merchant_note: acceptForm.merchantNote || '',
+      });
       await fetchReservations();
+
+      resetAcceptDialog();
       alert('訂位已確認！');
     } catch (error) {
       console.error('Failed to accept reservation:', error);
@@ -222,7 +382,7 @@ const ReservationManagementPage = () => {
         {activeTab === 'reservations' ? (
           <ReservationList
             reservations={reservations}
-            onAccept={handleAcceptReservation}
+            onAccept={handleAcceptClick}
             onCancel={handleCancelClick}
             onComplete={handleCompleteReservation}
             onDelete={handleDeleteReservation}
@@ -235,6 +395,123 @@ const ReservationManagementPage = () => {
           />
         )}
       </div>
+
+      {/* 接受訂位對話框 */}
+      {showAcceptDialog && (
+        <div className={styles.dialogOverlay} onClick={resetAcceptDialog}>
+          <div className={`${styles.dialogContent} ${styles.acceptDialogContent}`} onClick={(e) => e.stopPropagation()}>
+            <h3>確認訂位</h3>
+            <p>可直接點選桌位（分樓層）並填寫給顧客的備註。</p>
+
+            <div className={styles.dialogFormGroup}>
+              <label>指定桌位（選填）</label>
+
+              {tableFloors.length === 0 && (
+                <small className={styles.dialogHint}>尚未設定內用桌位，可先到「內用設定」建立桌位。</small>
+              )}
+
+              {tableFloors.length > 0 && (
+                <small className={styles.dialogHint}>可拖曳空白處平移地圖，或使用捲軸查看超出畫面的桌位。</small>
+              )}
+
+              {tableFloors.length > 0 && (
+                <>
+                  <div className={styles.tableFloorTabs}>
+                    {tableFloors.map((floor) => (
+                      <button
+                        key={floor.id}
+                        type="button"
+                        className={activeTableFloor?.id === floor.id ? styles.tableFloorTabActive : styles.tableFloorTab}
+                        onClick={() => setActiveTableFloorId(floor.id)}
+                      >
+                        {floor.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div
+                    ref={tableMapViewportRef}
+                    className={`${styles.tablePickViewport} ${isPanningTableMap ? styles.tablePickViewportPanning : ''}`}
+                    onMouseDown={handleTableMapPointerDown}
+                    onMouseMove={handleTableMapPointerMove}
+                    onMouseUp={() => setIsPanningTableMap(false)}
+                    onMouseLeave={() => setIsPanningTableMap(false)}
+                  >
+                    <div
+                      className={styles.tablePickCanvas}
+                      style={{ width: `${tableMapSize.width}px`, height: `${tableMapSize.height}px` }}
+                    >
+                      {(activeTableFloor?.tables || []).map((table) => {
+                        const shapeClass = table.shape === 'rectangle'
+                          ? styles.tablePickItemRectangle
+                          : table.shape === 'square'
+                            ? styles.tablePickItemSquare
+                            : styles.tablePickItemCircle;
+
+                        return (
+                          <button
+                            key={table.id}
+                            type="button"
+                            data-table-pick="true"
+                            className={`${shapeClass} ${acceptForm.tableLabel === table.label ? styles.tablePickItemSelected : ''}`}
+                            style={{ left: table.x, top: table.y }}
+                            onClick={() => setAcceptForm((prev) => ({ ...prev, tableLabel: table.label }))}
+                          >
+                            <span>{table.label}</span>
+                            <small>{table.seats} 人</small>
+                          </button>
+                        );
+                      })}
+
+                      {(activeTableFloor?.tables || []).length === 0 && (
+                        <div className={styles.tablePickEmpty}>此樓層尚未設定桌位</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={styles.tablePickActions}>
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      onClick={() => setAcceptForm((prev) => ({ ...prev, tableLabel: '' }))}
+                    >
+                      不指定桌位
+                    </button>
+                    {acceptForm.tableLabel && (
+                      <span className={styles.selectedTableText}>已選擇：{acceptForm.tableLabel}</span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className={styles.dialogFormGroup}>
+              <label>店家備註（選填）</label>
+              <textarea
+                value={acceptForm.merchantNote}
+                onChange={(e) => setAcceptForm((prev) => ({ ...prev, merchantNote: e.target.value }))}
+                placeholder="例如：已安排靠窗座位，請準時報到"
+                rows="4"
+              />
+            </div>
+
+            <div className={styles.dialogActions}>
+              <button
+                className={styles.btnSecondary}
+                onClick={resetAcceptDialog}
+              >
+                返回
+              </button>
+              <button
+                className={styles.btnDanger}
+                onClick={handleAcceptReservation}
+              >
+                確認受理
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 取消訂位對話框 */}
       {showCancelDialog && (

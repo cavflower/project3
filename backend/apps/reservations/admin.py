@@ -11,6 +11,7 @@ class ReservationAdmin(admin.ModelAdmin):
         'reservation_date',
         'time_slot',
         'party_size',
+        'table_label',
         'status',
         'is_guest_reservation',
         'created_at',
@@ -59,6 +60,8 @@ class ReservationAdmin(admin.ModelAdmin):
                 'party_size',
                 'children_count',
                 'special_requests',
+                'table_label',
+                'merchant_note',
             )
         }),
         ('取消資訊', {

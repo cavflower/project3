@@ -27,6 +27,32 @@ class Store(models.Model):
         ('desserts', '甜點'),
         ('other', '其他'),
     ]
+    REGION_CHOICES = [
+        ('', '未選擇'),
+        # 直轄市
+        ('臺北市', '臺北市'),
+        ('新北市', '新北市'),
+        ('桃園市', '桃園市'),
+        ('臺中市', '臺中市'),
+        ('臺南市', '臺南市'),
+        ('高雄市', '高雄市'),
+        # 縣
+        ('宜蘭縣', '宜蘭縣'),
+        ('新竹縣', '新竹縣'),
+        ('苗栗縣', '苗栗縣'),
+        ('彰化縣', '彰化縣'),
+        ('南投縣', '南投縣'),
+        ('雲林縣', '雲林縣'),
+        ('嘉義縣', '嘉義縣'),
+        ('屏東縣', '屏東縣'),
+        ('花蓮縣', '花蓮縣'),
+        ('臺東縣', '臺東縣'),
+        ('澎湖縣', '澎湖縣'),
+        # 市
+        ('基隆市', '基隆市'),
+        ('新竹市', '新竹市'),
+        ('嘉義市', '嘉義市'),
+    ]
     cuisine_type = models.CharField(
         max_length=20,
         choices=CUISINE_TYPE_CHOICES,
@@ -42,6 +68,14 @@ class Store(models.Model):
     address = models.TextField(
         verbose_name='地址',
         help_text="The address of the restaurant."
+    )
+    region = models.CharField(
+        max_length=10,
+        choices=REGION_CHOICES,
+        blank=True,
+        default='',
+        verbose_name='地區',
+        help_text="Administrative region for filtering, e.g. 臺北市."
     )
     phone = models.CharField(
         max_length=20,
@@ -196,6 +230,11 @@ class Store(models.Model):
         verbose_name='啟用惜福品功能',
         help_text="Enable or disable surplus food feature."
     )
+    enable_takeout = models.BooleanField(
+        default=True,
+        verbose_name='啟用外帶點餐功能',
+        help_text="Enable or disable takeout ordering feature."
+    )
     # 標籤（用於分類和搜尋）
     dine_in_layout = models.JSONField(
         default=list,
@@ -218,9 +257,11 @@ class Store(models.Model):
         verbose_name_plural = '店家資訊'
         indexes = [
             models.Index(fields=['is_published', 'cuisine_type']),  # 加速公開店家分類查詢
+            models.Index(fields=['is_published', 'region']),  # 加速地區篩選
             models.Index(fields=['is_published', 'enable_reservation']),  # 加速訂位功能篩選
             models.Index(fields=['is_published', 'enable_loyalty']),  # 加速會員功能篩選
             models.Index(fields=['is_published', 'enable_surplus_food']),  # 加速惜福功能篩選
+            models.Index(fields=['is_published', 'enable_takeout']),  # 加速外帶功能篩選
             models.Index(fields=['name']),  # 加速店名搜尋
             models.Index(fields=['created_at']),  # 加速時間排序
         ]

@@ -20,6 +20,13 @@ const categories = [
   { id: 'other', name: '其他', icon: 'three-dots' }
 ];
 
+const regionOptions = [
+  '臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市',
+  '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣',
+  '嘉義縣', '屏東縣', '花蓮縣', '臺東縣', '澎湖縣',
+  '基隆市', '新竹市', '嘉義市'
+];
+
 const copy = {
   heroBadge: 'DineVerse 顧客端',
   heroTitle: '探索你附近的風格餐廳',
@@ -31,6 +38,8 @@ const copy = {
   topPick: '精選推薦',
   allStores: '所有店家',
   clearFilters: '清除篩選',
+  region: '地區',
+  allRegions: '全部地區',
   openNow: '營業中',
   reservation: '訂位',
   loyalty: '會員',
@@ -57,6 +66,7 @@ function normalizeStore(store) {
     name: store.name,
     description: store.description || copy.defaultStoreDescription,
     address: store.address || copy.defaultAddress,
+    region: store.region || '',
     cuisine_type: store.cuisine_type,
     rating: 4.5,
     imageUrl: store.first_image
@@ -86,6 +96,7 @@ function CustomerHomePage() {
   const [heroIndex, setHeroIndex] = useState(0);
   const cardsGridRef = useRef(null);
   const [filters, setFilters] = useState({
+    region: '',
     has_reservation: false,
     has_loyalty: false,
     has_surplus_food: false
@@ -124,6 +135,9 @@ function CustomerHomePage() {
             nextStores = nextStores.filter((store) =>
               `${store.name} ${store.cuisine_type} ${store.address}`.toLowerCase().includes(normalizedKeyword)
             );
+          }
+          if (filters.region) {
+            nextStores = nextStores.filter((store) => store.region === filters.region);
           }
           setStores(nextStores);
         } catch (error) {
@@ -182,6 +196,7 @@ function CustomerHomePage() {
     setSelectedCategory('all');
     setSelectedTags([]);
     setFilters({
+      region: '',
       has_reservation: false,
       has_loyalty: false,
       has_surplus_food: false
@@ -289,6 +304,22 @@ function CustomerHomePage() {
             >
               <i className="bi bi-recycle" /> {copy.surplus}
             </button>
+          </div>
+
+          <div className={styles.regionFilterRow}>
+            <label htmlFor="regionFilter">{copy.region}</label>
+            <select
+              id="regionFilter"
+              value={filters.region}
+              onChange={(e) => setFilters((prev) => ({ ...prev, region: e.target.value }))}
+            >
+              <option value="">{copy.allRegions}</option>
+              {regionOptions.map((region) => (
+                <option key={region} value={region}>
+                  {region}
+                </option>
+              ))}
+            </select>
           </div>
 
           {selectedCategory === 'recommended' && user && userPreferences?.favorite_tags?.length > 1 && (

@@ -54,6 +54,9 @@ export const getPublishedStores = (filters = {}) => {
   if (filters.cuisine_type && filters.cuisine_type !== 'all') {
     params.append('cuisine_type', filters.cuisine_type);
   }
+  if (filters.region) {
+    params.append('region', filters.region);
+  }
   if (filters.has_reservation) {
     params.append('has_reservation', 'true');
   }

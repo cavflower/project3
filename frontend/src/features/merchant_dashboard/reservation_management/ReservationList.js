@@ -83,7 +83,7 @@ const ReservationList = ({ reservations, onAccept, onCancel, onComplete, onDelet
               reservation={reservation}
               viewMode="merchant"
               actions={{
-                onAccept,
+                onAccept: () => onAccept(reservation),
                 onCancel,
                 onComplete,
                 onDelete,

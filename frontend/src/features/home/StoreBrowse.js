@@ -61,10 +61,10 @@ function StoreBrowse() {
 
               <div className="d-grid gap-2">
                 <button
-                  className={`btn btn-lg mb-2 ${store?.enable_reservation ? styles['btn-orange'] : 'btn-secondary'}`}
-                  onClick={() => store?.enable_reservation && navigate(`/reservation/new/${storeId}`)}
-                  disabled={!store?.enable_reservation}
-                  style={!store?.enable_reservation ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
+                  className={`btn btn-lg mb-2 ${store?.enable_reservation === false ? 'btn-secondary' : styles['btn-orange']}`}
+                  onClick={() => store?.enable_reservation !== false && navigate(`/reservation/new/${storeId}`)}
+                  disabled={store?.enable_reservation === false}
+                  style={store?.enable_reservation === false ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
                 >
                   <i className="bi bi-calendar-plus me-2"></i>
                   立即訂位
@@ -95,8 +95,10 @@ function StoreBrowse() {
 
               <div className="d-grid gap-2">
                 <button
-                  className={`btn ${styles['btn-orange-gradient']} btn-lg mb-2`}
-                  onClick={() => navigate(`/store/${storeId}/takeout`)}
+                  className={`btn btn-lg mb-2 ${store?.enable_takeout === false ? 'btn-secondary' : styles['btn-orange-gradient']}`}
+                  onClick={() => store?.enable_takeout !== false && navigate(`/store/${storeId}/takeout`)}
+                  disabled={store?.enable_takeout === false}
+                  style={store?.enable_takeout === false ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
                 >
                   <i className="bi bi-arrow-right-circle me-2"></i>
                   立即點餐
@@ -105,7 +107,7 @@ function StoreBrowse() {
 
               <small className="text-muted">
                 <i className="bi bi-info-circle me-1"></i>
-                可線上付款，到店直接取餐
+                {store?.enable_takeout === false ? '店家目前暫停外帶點餐服務' : '可線上付款，到店直接取餐'}
               </small>
             </div>
           </div>

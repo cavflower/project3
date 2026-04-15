@@ -83,6 +83,19 @@ class Reservation(models.Model):
         blank=True,
         verbose_name='特殊需求'
     )
+    table_label = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        verbose_name='指定桌號',
+        help_text='商家為此訂位指定的內用桌號'
+    )
+    merchant_note = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='商家備註',
+        help_text='商家提供給顧客的訂位備註'
+    )
     
     # 訂位狀態
     status = models.CharField(

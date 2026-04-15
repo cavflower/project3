@@ -104,11 +104,14 @@ export const getMerchantReservations = (filters = {}) => {
 /**
  * 商家更新訂位狀態
  * @param {number} id - 訂位 ID
- * @param {string} status - 新狀態 (pending/confirmed/completed/no_show)
+ * @param {string|Object} statusOrPayload - 新狀態或完整更新資料
  * @returns {Promise}
  */
-export const updateReservationStatus = (id, status) => {
-  return api.post(`/merchant/reservations/${id}/update-status/`, { status });
+export const updateReservationStatus = (id, statusOrPayload) => {
+  const payload = typeof statusOrPayload === 'string'
+    ? { status: statusOrPayload }
+    : statusOrPayload;
+  return api.post(`/merchant/reservations/${id}/update-status/`, payload);
 };
 
 /**

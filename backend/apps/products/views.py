@@ -109,6 +109,8 @@ class PublicProductViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(store_id=store_id)
         if service_type in ('takeaway', 'dine_in'):
             qs = qs.filter(service_type__in=[service_type, 'both'])
+        if service_type == 'takeaway':
+            qs = qs.filter(store__enable_takeout=True)
         if category_id:
             qs = qs.filter(category_id=category_id)
         if food_tag:

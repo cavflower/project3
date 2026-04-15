@@ -131,6 +131,16 @@
   background: var(--bg-color, #FDF8F5);
 }
 
+.merchant-note {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-left: 3px solid #1f8a5d;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #37504b;
+  background: #eff8f3;
+}
+
 .cancel-reason {
   background: #fff3cd;
   border-left-color: #ffc107;
@@ -139,6 +149,13 @@
 .special-requests strong,
 .cancel-reason strong {
   color: var(--primary-color, #E87A5D);
+}
+
+.merchant-note strong {
+  color: #1f8a5d;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .cancel-reason strong {

@@ -8,9 +8,16 @@ const StoreSettingsPage = () => {
   const navigate = useNavigate();
   const { store: contextStore, loading: storeLoading, error: storeContextError } = useStore();
   const creditCardOptions = ['Visa', 'MasterCard', 'American Express', 'JCB', 'UnionPay'];
+  const regionOptions = [
+    '臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市',
+    '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣',
+    '嘉義縣', '屏東縣', '花蓮縣', '臺東縣', '澎湖縣',
+    '基隆市', '新竹市', '嘉義市'
+  ];
   const [formData, setFormData] = useState({
     name: '',
     cuisine_type: 'other',
+    region: '',
     description: '',
     address: '',
     phone: '',
@@ -99,6 +106,7 @@ const StoreSettingsPage = () => {
     setFormData({
       name: store.name || '',
       cuisine_type: store.cuisine_type || 'other',
+      region: store.region || '',
       description: store.description || '',
       address: store.address || '',
       phone: store.phone || '',
@@ -331,6 +339,7 @@ const StoreSettingsPage = () => {
     const dataToSend = new FormData();
     dataToSend.append('name', formData.name || '');
     dataToSend.append('cuisine_type', formData.cuisine_type || 'other');
+    dataToSend.append('region', formData.region || '');
     dataToSend.append('description', formData.description || '');
     dataToSend.append('address', formData.address || '');
     dataToSend.append('phone', formData.phone || '');
@@ -613,6 +622,23 @@ const StoreSettingsPage = () => {
                   <option value="beverages">飲料</option>
                   <option value="desserts">甜點</option>
                   <option value="other">其他</option>
+                </select>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="region">地區</label>
+                <select
+                  id="region"
+                  name="region"
+                  value={formData.region}
+                  onChange={handleChange}
+                >
+                  <option value="">請選擇地區（選填）</option>
+                  {regionOptions.map((region) => (
+                    <option key={region} value={region}>
+                      {region}
+                    </option>
+                  ))}
                 </select>
               </div>
 

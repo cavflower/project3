@@ -6,6 +6,8 @@ import {
   FaStore,
   FaPhone,
   FaUser,
+  FaChair,
+  FaCommentDots,
   FaEdit,
   FaTimes,
   FaCheck,
@@ -48,6 +50,8 @@ const ReservationCard = ({
     children_count = 0,
     status,
     special_requests,
+    table_label,
+    merchant_note,
     cancel_reason,
     created_at
   } = reservation;
@@ -155,10 +159,23 @@ const ReservationCard = ({
           </span>
         </div>
 
+        {table_label && (
+          <div className={styles['info-row']}>
+            <FaChair className={styles['info-icon']} />
+            <span>已安排桌位：{table_label}</span>
+          </div>
+        )}
+
         {/* 特殊需求 */}
         {special_requests && (
           <div className={styles['special-requests']}>
             <strong>特殊需求：</strong>{special_requests}
+          </div>
+        )}
+
+        {merchant_note && (
+          <div className={styles['merchant-note']}>
+            <strong><FaCommentDots /> 店家備註：</strong>{merchant_note}
           </div>
         )}
 

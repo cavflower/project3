@@ -59,6 +59,71 @@
     background: #fff9f5;
 }
 
+.floorConfig {
+    border: 1px solid #f1f3f8;
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #f9fbff;
+}
+
+.floorTabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.floorTab,
+.floorTabActive {
+    border: 1px solid #d6deec;
+    border-radius: 999px;
+    background: #fff;
+    color: #4d5b70;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+.floorTabActive {
+    border-color: #ff8a65;
+    color: #ff6f43;
+    background: rgba(255, 138, 101, 0.12);
+}
+
+.addFloorBtn {
+    border: 1px dashed #ff8a65;
+    border-radius: 999px;
+    background: #fff4ee;
+    color: #ff6f43;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+.addFloorBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.deleteFloorBtn {
+    padding: 9px 12px;
+    border: none;
+    border-radius: 10px;
+    background: #eef3ff;
+    color: #4f5f8f;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.deleteFloorBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .sectionLabel {
     font-size: 0.9rem;
     font-weight: 600;
@@ -215,9 +280,26 @@
     overflow: hidden;
 }
 
+.floorCanvasHeader {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(195, 205, 225, 0.9);
+    color: #485a76;
+    font-size: 0.84rem;
+    z-index: 2;
+}
+
 .dineinEmpty {
     position: absolute;
-    inset: 0;
+    inset: 56px 0 0 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -236,6 +318,7 @@
     cursor: grab;
     border: 2px solid transparent;
     transition: transform 0.15s ease, border-color 0.15s ease;
+    z-index: 1;
 }
 
 .tableItemRectangle {

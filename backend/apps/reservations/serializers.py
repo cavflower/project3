@@ -32,6 +32,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             'party_size',
             'children_count',
             'special_requests',
+            'table_label',
+            'merchant_note',
             'status',
             'cancelled_at',
             'cancelled_by',
@@ -455,6 +457,8 @@ class MerchantReservationSerializer(serializers.ModelSerializer):
             'party_size',
             'children_count',
             'special_requests',
+            'table_label',
+            'merchant_note',
             'status',
             'cancelled_at',
             'cancelled_by',
@@ -472,12 +476,66 @@ class MerchantReservationUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Reservation
-        fields = ['status', 'confirmed_at']
+        fields = ['status', 'confirmed_at', 'table_label', 'merchant_note']
+        read_only_fields = ['confirmed_at']
+
+    def validate_table_label(self, value):
+        """桌號必須存在於店家已設定的內用桌位配置中。"""
+        normalized_value = (value or '').strip()
+        if not normalized_value:
+            return ''
+
+        store = self.instance.store if self.instance else None
+        if not store:
+            return normalized_value
+
+        layout = store.dine_in_layout or []
+        configured_labels = []
+
+        def collect_labels_from_tables(tables):
+            if not isinstance(tables, list):
+                return
+            for table in tables:
+                if isinstance(table, dict):
+                    label = (table.get('label') or '').strip()
+                    if label:
+                        configured_labels.append(label)
+
+        if isinstance(layout, list):
+            # 相容舊格式（桌位列表）與列表型樓層格式
+            has_floor_tables = any(
+                isinstance(item, dict) and isinstance(item.get('tables'), list)
+                for item in layout
+            )
+
+            if has_floor_tables:
+                for floor in layout:
+                    if isinstance(floor, dict):
+                        collect_labels_from_tables(floor.get('tables'))
+            else:
+                collect_labels_from_tables(layout)
+
+        if isinstance(layout, dict):
+            floors = layout.get('floors')
+            if isinstance(floors, list):
+                for floor in floors:
+                    if isinstance(floor, dict):
+                        collect_labels_from_tables(floor.get('tables'))
+
+        if normalized_value not in configured_labels:
+            raise serializers.ValidationError('請從店家內用設定中已建立的桌位選擇桌號。')
+
+        return normalized_value
     
     def update(self, instance, validated_data):
         """更新訂位狀態"""
         from django.utils import timezone
-        
+
+        old_values = {
+            'status': instance.status,
+            'table_label': instance.table_label,
+            'merchant_note': instance.merchant_note,
+        }
         old_status = instance.status
         new_status = validated_data.get('status', instance.status)
         
@@ -495,9 +553,13 @@ class MerchantReservationUpdateSerializer(serializers.ModelSerializer):
             reservation=instance,
             changed_by='merchant',
             change_type='updated',
-            old_values={'status': old_status},
-            new_values={'status': new_status},
-            note=f'狀態變更: {old_status} -> {new_status}'
+            old_values=old_values,
+            new_values={
+                'status': instance.status,
+                'table_label': instance.table_label,
+                'merchant_note': instance.merchant_note,
+            },
+            note='商家更新訂位狀態/桌位/備註'
         )
         
         return instance

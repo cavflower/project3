@@ -6,6 +6,7 @@ import ProductSpecificationForm from './ProductSpecificationForm';
 import FoodTags from '../../../components/common/FoodTags';
 import styles from './ProductManagementPage.module.css';
 import { getProducts, deleteProduct, getProductCategories, deleteProductCategory } from '../../../api/productApi';
+import { getMyStore, updateStore } from '../../../api/storeApi';
 
 const ProductManagementPage = () => {
   const [products, setProducts] = useState([]);
@@ -18,13 +19,30 @@ const ProductManagementPage = () => {
   const [error, setError] = useState('');
   const [isSpecFormVisible, setIsSpecFormVisible] = useState(false);
   const [specProduct, setSpecProduct] = useState(null);
+  const [storeId, setStoreId] = useState(null);
+  const [enableTakeout, setEnableTakeout] = useState(true);
+  const [isTakeoutUpdating, setIsTakeoutUpdating] = useState(false);
+  const [takeoutError, setTakeoutError] = useState('');
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-    await Promise.all([fetchProducts(), fetchCategories()]);
+    await Promise.all([fetchProducts(), fetchCategories(), fetchStoreSettings()]);
+  };
+
+  const fetchStoreSettings = async () => {
+    try {
+      const response = await getMyStore();
+      setStoreId(response.data.id);
+      setEnableTakeout(response.data.enable_takeout !== false);
+      setTakeoutError('');
+    } catch (err) {
+      console.error('[ProductManagement] Error fetching store settings:', err);
+      setStoreId(null);
+      setTakeoutError('無法讀取店家外帶設定，請先完成店家資料設定。');
+    }
   };
 
   const fetchProducts = async () => {
@@ -122,6 +140,29 @@ const ProductManagementPage = () => {
     setEditingCategory(null);
   };
 
+  const handleToggleTakeout = async () => {
+    if (!storeId) {
+      setError('尚未建立店家資料，請先至店家設定完成基本資料。');
+      return;
+    }
+
+    const nextValue = !enableTakeout;
+    const data = new FormData();
+    data.append('enable_takeout', nextValue ? 'true' : 'false');
+
+    try {
+      setIsTakeoutUpdating(true);
+      await updateStore(storeId, data);
+      setEnableTakeout(nextValue);
+      setTakeoutError('');
+    } catch (err) {
+      console.error('[ProductManagement] Error updating takeout setting:', err);
+      setTakeoutError('更新外帶點餐開關失敗，請稍後再試。');
+    } finally {
+      setIsTakeoutUpdating(false);
+    }
+  };
+
   // 按類別分組產品
   const groupProductsByCategory = () => {
     const grouped = {};
@@ -210,10 +251,28 @@ const ProductManagementPage = () => {
       )}
 
       <div className={styles.productContentHeader}>
+        <div className={styles.featureToggleCard}>
+          <div className={styles.featureToggleText}>
+            <h3>外帶點餐功能</h3>
+            <p>{enableTakeout ? '顧客可進行外帶點餐' : '目前已暫停外帶點餐'}</p>
+          </div>
+          <button
+            type="button"
+            className={`${styles.toggleSwitch} ${enableTakeout ? styles.toggleOn : styles.toggleOff}`}
+            onClick={handleToggleTakeout}
+            disabled={isTakeoutUpdating || !storeId}
+            aria-pressed={enableTakeout}
+            title={enableTakeout ? '點擊可關閉外帶點餐' : '點擊可開啟外帶點餐'}
+          >
+            <span className={styles.toggleKnob} />
+          </button>
+        </div>
         <button className={styles.productBtnAdd} onClick={handleAddCategoryClick}>
           <FaPlus /> 新增類別
         </button>
       </div>
+
+      {takeoutError && <p className={styles.errorMessage}>{takeoutError}</p>}
 
       <div className={styles.categoriesSections}>
         {Object.values(groupProductsByCategory()).map(({ category, products: categoryProducts }) => (

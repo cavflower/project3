@@ -125,6 +125,12 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['pickup_number', 'user']
 
+    def validate(self, attrs):
+        store = attrs.get('store')
+        if store and not store.enable_takeout:
+            raise serializers.ValidationError({'store': '此店家目前已關閉外帶點餐功能。'})
+        return attrs
+
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])
         product_redemptions = validated_data.pop('product_redemptions', [])

@@ -184,6 +184,7 @@ class StoreViewSet(viewsets.ModelViewSet):
         獲取所有已上架的店家（公開 API，供顧客瀏覽）
         支援篩選參數：
         - cuisine_type: 餐廳類別
+        - region: 店家地區（縣市）
         - has_reservation: 是否提供訂位功能
         - has_loyalty: 是否提供會員功能
         - has_surplus_food: 是否提供惜福品功能
@@ -210,6 +211,11 @@ class StoreViewSet(viewsets.ModelViewSet):
         cuisine_type = request.query_params.get('cuisine_type')
         if cuisine_type and cuisine_type != 'all':
             stores = stores.filter(cuisine_type=cuisine_type)
+
+        # 地區篩選
+        region = request.query_params.get('region')
+        if region:
+            stores = stores.filter(region=region)
         
         # 功能篩選
         has_reservation = request.query_params.get('has_reservation')
@@ -399,11 +405,19 @@ class StoreViewSet(viewsets.ModelViewSet):
             )
 
         layout = request.data.get('layout', [])
-        if not isinstance(layout, list):
+        if not isinstance(layout, (list, dict)):
             return Response(
-                {"error": "Layout must be a list."},
+                {"error": "Layout must be a list or object."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        if isinstance(layout, dict):
+            floors = layout.get('floors', [])
+            if not isinstance(floors, list):
+                return Response(
+                    {"error": "When layout is object, floors must be a list."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         store.dine_in_layout = layout
         store.save(update_fields=['dine_in_layout', 'updated_at'])

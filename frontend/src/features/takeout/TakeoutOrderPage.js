@@ -133,13 +133,21 @@ function TakeoutOrderPage() {
       try {
         setLoading(true);
         setError("");
-        const [storeRes, productsRes, categoriesRes] = await Promise.all([
-          getStore(storeId),
+        const storeRes = await getStore(storeId);
+        setStore(storeRes.data);
+
+        if (storeRes.data.enable_takeout === false) {
+          setMenuItems([]);
+          setCategories([]);
+          setError('店家目前已關閉外帶點餐功能。');
+          return;
+        }
+
+        const [productsRes, categoriesRes] = await Promise.all([
           getTakeoutProducts(storeId),
           getPublicProductCategories(storeId)
         ]);
 
-        setStore(storeRes.data);
         setMenuItems(productsRes.data);
         setCategories(categoriesRes.data || []);
 

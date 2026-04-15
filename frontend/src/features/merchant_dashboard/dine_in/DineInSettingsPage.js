@@ -6,6 +6,11 @@ import {
   getDineInLayout,
   saveDineInLayout,
 } from '../../../api/storeApi';
+import {
+  getAllTables,
+  normalizeDineInLayout,
+  serializeDineInLayout,
+} from '../../../utils/dineInLayout';
 import styles from './DineInSettingsPage.module.css';
 
 const TABLE_SHAPES = [
@@ -19,20 +24,11 @@ const MAX_SEATS = 12;
 
 const clampSeats = (value) => Math.min(MAX_SEATS, Math.max(MIN_SEATS, value));
 
-const hydrateTable = (table, buildUrl) => ({
-  id: table.id || uuid(),
-  shape: table.shape || 'rectangle',
-  seats: table.seats || 4,
-  label: table.label || '',
-  x: typeof table.x === 'number' ? table.x : 60,
-  y: typeof table.y === 'number' ? table.y : 60,
-  qrUrl: buildUrl(table.label),
-});
-
 const DineInSettingsPage = () => {
   const [storeId, setStoreId] = useState(null);
   const [isLoadingStore, setIsLoadingStore] = useState(true);
-  const [tables, setTables] = useState([]);
+  const [floors, setFloors] = useState([]);
+  const [activeFloorId, setActiveFloorId] = useState('');
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [newTableConfig, setNewTableConfig] = useState({
     shape: 'rectangle',
@@ -66,40 +62,144 @@ const DineInSettingsPage = () => {
       )}`
       : '';
 
+  const withQrUrl = (table) => ({
+    ...table,
+    qrUrl: buildTableUrl(table.label),
+  });
+
+  const hydrateFloorsForView = (layout) => {
+    return (layout?.floors || []).map((floor) => ({
+      ...floor,
+      tables: (floor.tables || []).map(withQrUrl),
+    }));
+  };
+
   useEffect(() => {
     if (!storeId) return;
+
     async function loadLayout() {
       try {
         const res = await getDineInLayout(storeId);
-        if (Array.isArray(res.data)) {
-          setTables(res.data.map((table) => hydrateTable(table, buildTableUrl)));
-        }
+        const normalized = normalizeDineInLayout(res.data);
+        const hydratedFloors = hydrateFloorsForView(normalized);
+        setFloors(hydratedFloors);
+        setActiveFloorId(normalized.activeFloorId || hydratedFloors[0]?.id || '');
+        setSelectedTableId(null);
       } catch (err) {
         console.error('Failed to load dine-in layout', err);
       }
     }
+
     loadLayout();
   }, [storeId]);
 
-  const selectedTable = useMemo(
-    () => tables.find((table) => table.id === selectedTableId),
-    [selectedTableId, tables]
+  const activeFloor = useMemo(
+    () => floors.find((floor) => floor.id === activeFloorId) || floors[0] || null,
+    [floors, activeFloorId]
   );
 
-  const handleDrag = (e, id) => {
-    const canvasRect = e.currentTarget.parentElement.getBoundingClientRect();
-    const offsetX = e.clientX - canvasRect.left;
-    const offsetY = e.clientY - canvasRect.top;
-    setTables((prev) =>
-      prev.map((table) =>
-        table.id === id ? { ...table, x: offsetX - 40, y: offsetY - 40 } : table
-      )
+  const activeTables = activeFloor?.tables || [];
+
+  const selectedTable = useMemo(
+    () => activeTables.find((table) => table.id === selectedTableId),
+    [selectedTableId, activeTables]
+  );
+
+  const totalTables = useMemo(() => getAllTables(floors).length, [floors]);
+
+  const updateActiveFloor = (updater) => {
+    if (!activeFloorId) return;
+    setFloors((prev) =>
+      prev.map((floor) => {
+        if (floor.id !== activeFloorId) {
+          return floor;
+        }
+        return updater(floor);
+      })
     );
   };
 
+  const handleDrag = (e, id) => {
+    if (!activeFloorId) return;
+
+    const canvasRect = e.currentTarget.parentElement.getBoundingClientRect();
+    const offsetX = e.clientX - canvasRect.left;
+    const offsetY = e.clientY - canvasRect.top;
+
+    updateActiveFloor((floor) => ({
+      ...floor,
+      tables: floor.tables.map((table) =>
+        table.id === id ? { ...table, x: offsetX - 40, y: offsetY - 40 } : table
+      ),
+    }));
+  };
+
+  const getNextFloorName = () => {
+    const existingNames = new Set(floors.map((floor) => floor.name));
+    let number = floors.length + 1;
+    let candidate = `${number}F`;
+
+    while (existingNames.has(candidate)) {
+      number += 1;
+      candidate = `${number}F`;
+    }
+
+    return candidate;
+  };
+
+  const handleAddFloor = () => {
+    const newFloor = {
+      id: uuid(),
+      name: getNextFloorName(),
+      tables: [],
+    };
+
+    setFloors((prev) => [...prev, newFloor]);
+    setActiveFloorId(newFloor.id);
+    setSelectedTableId(null);
+  };
+
+  const handleDeleteActiveFloor = () => {
+    if (!activeFloor || floors.length <= 1) {
+      return;
+    }
+
+    if (!window.confirm(`確定要刪除 ${activeFloor.name} 嗎？此樓層桌位會一併刪除。`)) {
+      return;
+    }
+
+    const remainingFloors = floors.filter((floor) => floor.id !== activeFloor.id);
+    setFloors(remainingFloors);
+    setActiveFloorId(remainingFloors[0]?.id || '');
+    setSelectedTableId(null);
+  };
+
+  const handleActiveFloorNameBlur = () => {
+    if (!activeFloor) return;
+    const fallbackName = `${floors.findIndex((floor) => floor.id === activeFloor.id) + 1}F`;
+    updateActiveFloor((floor) => ({
+      ...floor,
+      name: (floor.name || '').trim() || fallbackName,
+    }));
+  };
+
+  const getNextTableLabel = () => {
+    const existing = new Set(getAllTables(floors).map((table) => table.label));
+    let number = getAllTables(floors).length + 1;
+    let candidate = `桌 ${number}`;
+
+    while (existing.has(candidate)) {
+      number += 1;
+      candidate = `桌 ${number}`;
+    }
+
+    return candidate;
+  };
+
   const handleAddTable = () => {
-    if (!storeId) return;
-    const baseLabel = `桌 ${tables.length + 1}`;
+    if (!storeId || !activeFloorId) return;
+
+    const baseLabel = getNextTableLabel();
     const table = {
       id: uuid(),
       shape: newTableConfig.shape,
@@ -109,23 +209,23 @@ const DineInSettingsPage = () => {
       y: 60,
       qrUrl: buildTableUrl(baseLabel),
     };
-    setTables((prev) => [...prev, table]);
+
+    updateActiveFloor((floor) => ({
+      ...floor,
+      tables: [...floor.tables, table],
+    }));
+
     setSelectedTableId(table.id);
   };
 
   const updateSelectedTable = (changes) => {
-    if (!selectedTableId) return;
-    setTables((prev) =>
-      prev.map((table) =>
-        table.id === selectedTableId ? { ...table, ...changes } : table
-      )
-    );
-  };
+    if (!selectedTableId || !activeFloorId) return;
 
-  const adjustNewSeatCount = (delta) => {
-    setNewTableConfig((prev) => ({
-      ...prev,
-      seats: clampSeats(prev.seats + delta),
+    updateActiveFloor((floor) => ({
+      ...floor,
+      tables: floor.tables.map((table) =>
+        table.id === selectedTableId ? { ...table, ...changes } : table
+      ),
     }));
   };
 
@@ -138,15 +238,9 @@ const DineInSettingsPage = () => {
 
   const handleSaveLayout = async () => {
     if (!storeId) return;
+
     try {
-      const payload = tables.map(({ id, shape, seats, label, x, y }) => ({
-        id,
-        shape,
-        seats,
-        label,
-        x,
-        y,
-      }));
+      const payload = serializeDineInLayout(floors, activeFloorId);
       await saveDineInLayout(storeId, payload);
       setSaveStatus('配置已儲存');
     } catch (err) {
@@ -164,7 +258,7 @@ const DineInSettingsPage = () => {
           className={styles.saveButton}
           type="button"
           onClick={handleSaveLayout}
-          disabled={!storeId || tables.length === 0}
+          disabled={!storeId}
         >
           儲存配置
         </button>
@@ -173,7 +267,57 @@ const DineInSettingsPage = () => {
       <div className={styles.dineinSettingsPage}>
         <div className={styles.dineinToolbox}>
           <h2>內用設定</h2>
-          <p>調整桌面形狀、位置與座位數，並產生可以列印的 QR 取餐碼。</p>
+          <p>可新增樓層分布圖，並在每層調整桌位形狀、位置與座位數。</p>
+
+          <section className={styles.floorConfig}>
+            <h4>樓層配置</h4>
+
+            <div className={styles.floorTabs}>
+              {floors.map((floor) => (
+                <button
+                  key={floor.id}
+                  type="button"
+                  className={activeFloorId === floor.id ? styles.floorTabActive : styles.floorTab}
+                  onClick={() => {
+                    setActiveFloorId(floor.id);
+                    setSelectedTableId(null);
+                  }}
+                >
+                  {floor.name}
+                </button>
+              ))}
+              <button
+                type="button"
+                className={styles.addFloorBtn}
+                onClick={handleAddFloor}
+                disabled={!storeId}
+              >
+                + 新增樓層
+              </button>
+            </div>
+
+            {activeFloor && (
+              <>
+                <label className={styles.sectionLabel}>目前樓層名稱</label>
+                <input
+                  type="text"
+                  value={activeFloor.name}
+                  onChange={(e) => updateActiveFloor((floor) => ({ ...floor, name: e.target.value }))}
+                  onBlur={handleActiveFloorNameBlur}
+                  placeholder="例如：1F"
+                />
+
+                <button
+                  type="button"
+                  className={styles.deleteFloorBtn}
+                  onClick={handleDeleteActiveFloor}
+                  disabled={floors.length <= 1}
+                >
+                  刪除目前樓層
+                </button>
+              </>
+            )}
+          </section>
 
           <section className={styles.tableConfig}>
             <h4>新增桌位</h4>
@@ -198,9 +342,9 @@ const DineInSettingsPage = () => {
               className={styles.addTableBtn}
               type="button"
               onClick={handleAddTable}
-              disabled={!storeId}
+              disabled={!storeId || !activeFloor}
             >
-              加入畫布
+              加入 {activeFloor?.name || ''} 畫布
             </button>
           </section>
 
@@ -277,7 +421,10 @@ const DineInSettingsPage = () => {
                 type="button"
                 onClick={() => {
                   if (window.confirm(`確定要刪除 ${selectedTable.label} 嗎？`)) {
-                    setTables((prev) => prev.filter((t) => t.id !== selectedTableId));
+                    updateActiveFloor((floor) => ({
+                      ...floor,
+                      tables: floor.tables.filter((table) => table.id !== selectedTableId),
+                    }));
                     setSelectedTableId(null);
                   }
                 }}
@@ -289,7 +436,12 @@ const DineInSettingsPage = () => {
         </div>
 
         <div className={styles.dineinCanvas} id="canvas">
-          {tables.map((table) => {
+          <div className={styles.floorCanvasHeader}>
+            <strong>{activeFloor?.name || '1F'} 分布圖</strong>
+            <span>桌位數：{activeTables.length} / 全店 {totalTables}</span>
+          </div>
+
+          {activeTables.map((table) => {
             const shapeClass = table.shape === 'rectangle' ? styles.tableItemRectangle
               : table.shape === 'square' ? styles.tableItemSquare
                 : styles.tableItemCircle;
@@ -311,6 +463,12 @@ const DineInSettingsPage = () => {
               </div>
             );
           })}
+
+          {activeFloor && activeTables.length === 0 && (
+            <div className={styles.dineinEmpty}>
+              <p>{activeFloor.name} 尚未新增桌位，點左側「加入畫布」即可建立。</p>
+            </div>
+          )}
 
           {!isLoadingStore && !storeId && (
             <div className={styles.dineinEmpty}>
