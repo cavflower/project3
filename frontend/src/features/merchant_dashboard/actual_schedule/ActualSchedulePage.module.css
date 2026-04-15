@@ -1,0 +1,305 @@
+.page {
+    padding: 1.25rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.kicker {
+    margin: 0;
+    color: #6a7d84;
+    font-size: 0.85rem;
+}
+
+.header h1 {
+    margin: 0.2rem 0;
+    color: #21373f;
+}
+
+.description {
+    margin: 0;
+    color: #526b73;
+}
+
+.errorMessage {
+    margin: 0 0 0.9rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    background: #ffe9e6;
+    color: #ba3f2e;
+    font-weight: 600;
+}
+
+.statusMessage {
+    margin: 0 0 0.9rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    background: #e8f7ef;
+    color: #256846;
+    font-weight: 600;
+}
+
+.mainGrid {
+    display: grid;
+    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.calendarPanel,
+.detailPanel {
+    border: 1px solid #e4ece8;
+    border-radius: 12px;
+    background: #fff;
+    padding: 1rem;
+}
+
+.calendarHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.7rem;
+}
+
+.calendarHeader strong {
+    color: #2d444c;
+}
+
+.weekdayRow,
+.calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+.weekdayRow {
+    margin-bottom: 0.4rem;
+}
+
+.weekdayRow span {
+    text-align: center;
+    color: #7a8d93;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.emptyCell {
+    min-height: 2.9rem;
+}
+
+.dateBtn {
+    border: 1px solid #dbe5e2;
+    border-radius: 8px;
+    min-height: 2.9rem;
+    background: #fff;
+    color: #385158;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.dateBtn small {
+    font-size: 0.7rem;
+    color: #94a9ae;
+}
+
+.dateBtnHasShift {
+    border-color: #ff8e66;
+    background: #fff3ec;
+    box-shadow: inset 0 0 0 1px rgba(255, 134, 84, 0.25);
+}
+
+.dateBtnSelected {
+    border-color: #f26b3a;
+    background: linear-gradient(180deg, #ffefe5, #ffd9c8);
+}
+
+.detailHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+.detailHeader h2 {
+    margin: 0;
+    color: #2f474f;
+    font-size: 1.1rem;
+}
+
+.detailHint {
+    margin: 0.3rem 0 0;
+    color: #60777f;
+    font-size: 0.9rem;
+}
+
+.slotFilterRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+}
+
+.slotFilterItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid #dce7e3;
+    border-radius: 999px;
+    padding: 0.28rem 0.68rem;
+    font-size: 0.84rem;
+    color: #38545b;
+    background: #fff;
+}
+
+.slotFilterItem input {
+    width: auto;
+    margin: 0;
+}
+
+.slotSectionList {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.slotCard {
+    border: 1px solid #ecf1ef;
+    border-radius: 10px;
+    padding: 0.85rem;
+    background: #fcfefd;
+}
+
+.slotCard h3 {
+    margin: 0 0 0.6rem;
+    color: #344d55;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}
+
+.slotCard table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.slotCard th,
+.slotCard td {
+    border-bottom: 1px solid #eef3f1;
+    padding: 0.55rem;
+    text-align: left;
+    font-size: 0.92rem;
+}
+
+.slotCard th {
+    color: #5f747b;
+    font-weight: 700;
+}
+
+.slotCard input,
+.slotCard select {
+    width: 100%;
+    border: 1px solid #d8e3df;
+    border-radius: 7px;
+    padding: 0.38rem 0.45rem;
+    outline: none;
+    font-size: 0.9rem;
+}
+
+.slotCard input:focus,
+.slotCard select:focus {
+    border-color: #f57b50;
+    box-shadow: 0 0 0 2px rgba(245, 123, 80, 0.15);
+}
+
+.halfHourPicker {
+    display: grid;
+    grid-template-columns: 72px minmax(60px, 1fr) auto minmax(60px, 1fr);
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.periodSelect {
+    width: 100%;
+    border: 1px solid #d8e3df;
+    border-radius: 7px;
+    padding: 0.38rem 0.45rem;
+    background: #eef5f2;
+    color: #3f5960;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.pickerColon {
+    color: #59747c;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.mutedText {
+    color: #94a3a8;
+    font-size: 0.9rem;
+}
+
+.attendanceDisabled {
+    background: #f2f4f5;
+    color: #85949a;
+    cursor: not-allowed;
+}
+
+.placeholder {
+    margin: 0;
+    color: #7c8e95;
+}
+
+.ghostBtn,
+.primaryBtn {
+    border: 1px solid #d8e2de;
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ghostBtn {
+    background: #fff;
+    color: #35535c;
+}
+
+.primaryBtn {
+    border-color: #f57144;
+    background: linear-gradient(135deg, #f57144, #f28f57);
+    color: #fff;
+}
+
+.ghostBtn:disabled,
+.primaryBtn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+@media (max-width: 980px) {
+    .mainGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .header {
+        flex-direction: column;
+    }
+
+    .detailHeader {
+        flex-direction: column;
+    }
+
+    .halfHourPicker {
+        grid-template-columns: 60px minmax(56px, 1fr) auto minmax(56px, 1fr);
+    }
+}

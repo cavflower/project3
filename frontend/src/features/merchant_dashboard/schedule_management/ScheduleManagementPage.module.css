@@ -329,6 +329,212 @@
     gap: 8px;
 }
 
+.roleInput {
+    width: 100%;
+    border: 1px solid #dfe8e5;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.88rem;
+}
+
+.slotChecklist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.slotChecklistItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid #e4ecea;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 0.82rem;
+    color: #3a5358;
+    background: #fff;
+}
+
+.slotChecklistItem input {
+    margin: 0;
+}
+
+.slotRoleGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.slotRoleItem {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 8px;
+    align-items: center;
+}
+
+.slotRoleItem span {
+    font-size: 0.84rem;
+    color: #496267;
+    font-weight: 700;
+}
+
+.assignmentStatusBadge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.assignmentStatuspending {
+    background: #fff4df;
+    color: #a37000;
+}
+
+.assignmentStatusscheduled {
+    background: #e8f8f1;
+    color: #1f7a69;
+}
+
+.assignmentStatusrejected {
+    background: #ffe9e7;
+    color: #c94a40;
+}
+
+.requestFilterPanel {
+    display: grid;
+    grid-template-columns: minmax(340px, 1.2fr) minmax(260px, 1fr);
+    gap: 14px;
+    margin-bottom: 8px;
+}
+
+.requestCalendarBlock,
+.requestFiltersBlock {
+    border: 1px solid #edf2f0;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fcfefd;
+}
+
+.requestCalendarHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 8px;
+}
+
+.requestCalendarHeader strong {
+    color: #2f4346;
+    font-size: 0.98rem;
+}
+
+.requestCalendarHeader .ghostBtn {
+    padding: 7px 10px;
+    font-size: 0.82rem;
+}
+
+.requestCalendarWeekdays,
+.requestCalendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.requestCalendarWeekdays {
+    margin-bottom: 6px;
+}
+
+.requestCalendarWeekdays span {
+    text-align: center;
+    color: #789194;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.requestCalendarEmptyCell {
+    min-height: 52px;
+}
+
+.requestCalendarDateBtn {
+    border: 1px solid #e2ebe8;
+    border-radius: 8px;
+    background: #ffffff;
+    min-height: 52px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: #385255;
+    font-weight: 600;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.requestCalendarDateBtn:hover {
+    border-color: #ffa297;
+    transform: translateY(-1px);
+}
+
+.requestCalendarDateBtn small {
+    color: #94a7ab;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.requestCalendarDateBtnHasData {
+    border-color: #ffbe9f;
+    background: #fff7f2;
+}
+
+.requestCalendarDateBtnSelected {
+    border-color: #ff7f6f;
+    background: linear-gradient(180deg, #fff4ef, #ffe8dc);
+    box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.15);
+}
+
+.requestFiltersBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.requestFilterItem {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.requestFilterItem label {
+    font-weight: 700;
+    color: #476165;
+    font-size: 0.86rem;
+}
+
+.requestFilterItem input,
+.requestFilterItem select {
+    border: 1px solid #dfe8e5;
+    border-radius: 6px;
+    padding: 9px 10px;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.requestFilterItem input:focus,
+.requestFilterItem select:focus {
+    border-color: #ff9f93;
+    box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.12);
+}
+
+.requestFilterSummary {
+    margin: 4px 0 0;
+    color: #677f83;
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
 .textBtn {
     background: transparent;
     border: none;
@@ -388,6 +594,10 @@
     .summaryGrid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+
+    .requestFilterPanel {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
@@ -424,5 +634,10 @@
 
     .formActions button {
         width: 100%;
+    }
+
+    .requestCalendarDateBtn,
+    .requestCalendarEmptyCell {
+        min-height: 44px;
     }
 }

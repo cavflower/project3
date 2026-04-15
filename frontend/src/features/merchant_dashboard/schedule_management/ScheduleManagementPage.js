@@ -1,385 +1,668 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../store/AuthContext';
-import { getScheduleData, saveScheduleData, exportScheduleCSV, getEmployeeRequests } from '../../../api/scheduleApi';
+import {
+  getScheduleData,
+  saveScheduleData,
+  exportScheduleCSV,
+  getEmployeeRequests,
+  updateScheduleRequest,
+  getJobRoles,
+  createJobRole,
+  updateJobRole,
+  deleteJobRole,
+} from '../../../api/scheduleApi';
 import styles from './ScheduleManagementPage.module.css';
 
-const shiftPresets = {
-  morning: {
-    label: '早班',
-    defaultStart: { hour: 8, minute: 0 },
-    defaultEnd: { hour: 12, minute: 0 },
-  },
-  noon: {
-    label: '午班',
-    defaultStart: { hour: 12, minute: 0 },
-    defaultEnd: { hour: 17, minute: 0 },
-  },
-  evening: {
-    label: '晚班',
-    defaultStart: { hour: 17, minute: 0 },
-    defaultEnd: { hour: 22, minute: 0 },
-  },
+const calendarWeekdayLabels = ['日', '一', '二', '三', '四', '五', '六'];
+
+const requestShiftOptions = [
+  { value: 'full_day', label: '整天' },
+  { value: 'midnight', label: '凌晨' },
+  { value: 'morning', label: '早上' },
+  { value: 'afternoon', label: '下午' },
+  { value: 'evening', label: '晚上' },
+];
+
+const requestShiftLabelMap = requestShiftOptions.reduce((acc, item) => {
+  acc[item.value] = item.label;
+  return acc;
+}, {});
+
+const assignmentStatusLabelMap = {
+  pending: '待安排',
+  scheduled: '已排班',
+  rejected: '已排休',
 };
 
-const formatTwoDigits = (value) => String(value).padStart(2, '0');
-
-const defaultShiftForm = {
-  date: '',
-  shiftType: 'morning',
-  role: '',
-  staffNeeded: 1,
-  startHour: shiftPresets.morning.defaultStart.hour,
-  startMinute: shiftPresets.morning.defaultStart.minute,
-  endHour: shiftPresets.morning.defaultEnd.hour,
-  endMinute: shiftPresets.morning.defaultEnd.minute,
-  assignedStaffIds: [],
-  status: 'pending',
-};
+const staffStatusOptions = ['在職', '休假', '離職'];
 
 const defaultStaffForm = {
   name: '',
+  nickname: '',
   role: '',
-  status: '',
+  status: '在職',
 };
 
-const initialStaff = [
-  { id: 1, name: '小美', role: '外場', status: '本週可排' },
-  { id: 2, name: '阿強', role: '外場', status: '可支援午班' },
-  { id: 3, name: '庭瑜', role: '吧台', status: '夜班首選' },
-  { id: 4, name: '阿傑', role: '主廚', status: '午班固定' },
-  { id: 5, name: '心怡', role: '甜點', status: '可支援任何時段' },
-];
-
-const buildShiftName = ({ shiftType, startHour, startMinute, endHour, endMinute }) => {
-  const presetLabel = shiftPresets[shiftType]?.label || '';
-  return `${presetLabel} (${formatTwoDigits(startHour)}:${formatTwoDigits(startMinute)} - ${formatTwoDigits(
-    endHour
-  )}:${formatTwoDigits(endMinute)})`;
+const defaultRoleForm = {
+  name: '',
+  description: '',
 };
 
-const initialShifts = [
-  {
-    id: 1,
-    date: '2025-11-21',
-    shiftType: 'morning',
-    role: '外場服務',
-    staffNeeded: 3,
-    startHour: shiftPresets.morning.defaultStart.hour,
-    startMinute: shiftPresets.morning.defaultStart.minute,
-    endHour: shiftPresets.morning.defaultEnd.hour,
-    endMinute: shiftPresets.morning.defaultEnd.minute,
-    assignedStaffIds: [],
-    status: 'pending',
-    shiftName: buildShiftName({
-      shiftType: 'morning',
-      startHour: shiftPresets.morning.defaultStart.hour,
-      startMinute: shiftPresets.morning.defaultStart.minute,
-      endHour: shiftPresets.morning.defaultEnd.hour,
-      endMinute: shiftPresets.morning.defaultEnd.minute,
-    }),
-  },
-  {
-    id: 2,
-    date: '2025-11-21',
-    shiftType: 'evening',
-    role: '內場廚房',
-    staffNeeded: 2,
-    startHour: shiftPresets.evening.defaultStart.hour,
-    startMinute: shiftPresets.evening.defaultStart.minute,
-    endHour: shiftPresets.evening.defaultEnd.hour,
-    endMinute: shiftPresets.evening.defaultEnd.minute,
-    assignedStaffIds: [],
-    status: 'pending',
-    shiftName: buildShiftName({
-      shiftType: 'evening',
-      startHour: shiftPresets.evening.defaultStart.hour,
-      startMinute: shiftPresets.evening.defaultStart.minute,
-      endHour: shiftPresets.evening.defaultEnd.hour,
-      endMinute: shiftPresets.evening.defaultEnd.minute,
-    }),
-  },
-];
+const monthTitleFormatter = new Intl.DateTimeFormat('zh-TW', {
+  year: 'numeric',
+  month: 'long',
+});
 
-const statusOptions = [
-  { value: 'ready', label: '準備就緒' },
-  { value: 'ongoing', label: '進行中' },
-  { value: 'pending', label: '待排班' },
-];
+const dateToString = (dateObj) => (
+  `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(
+    dateObj.getDate()
+  ).padStart(2, '0')}`
+);
+
+const addDays = (dateValue, days) => {
+  const source = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(source.getTime())) return dateValue;
+  source.setDate(source.getDate() + days);
+  return dateToString(source);
+};
+
+const buildCalendarCells = (baseMonthDate) => {
+  const year = baseMonthDate.getFullYear();
+  const month = baseMonthDate.getMonth();
+  const firstDayWeek = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+
+  for (let i = 0; i < firstDayWeek; i += 1) {
+    cells.push(null);
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const cellDate = new Date(year, month, day);
+    cells.push({
+      day,
+      value: dateToString(cellDate),
+    });
+  }
+
+  while (cells.length % 7 !== 0) {
+    cells.push(null);
+  }
+
+  return cells;
+};
+
+const formatPeriodDate = (periodType, dateValue) => {
+  if (!dateValue) return '-';
+  if (periodType === 'week') return `${dateValue} (週起始)`;
+  if (periodType === 'month') return `${dateValue} (月)`;
+  return dateValue;
+};
+
+const requestMatchesDate = (request, selectedDate) => {
+  if (!selectedDate || !request?.date) return false;
+
+  if (request.period_type === 'week') {
+    const weekStart = request.week_start_date || request.date;
+    const weekEnd = addDays(weekStart, 6);
+    return selectedDate >= weekStart && selectedDate <= weekEnd;
+  }
+
+  return request.date === selectedDate;
+};
+
+const normalizeAssignedSlots = (request) => {
+  if (Array.isArray(request.assigned_shift_types) && request.assigned_shift_types.length > 0) {
+    return request.assigned_shift_types.filter((slot) => requestShiftLabelMap[slot]);
+  }
+
+  if (request.shift_type && request.shift_type !== 'full_day') {
+    return [request.shift_type];
+  }
+
+  return [];
+};
+
+const normalizeAssignedSlotRoles = (request) => {
+  if (request && request.assigned_slot_roles && typeof request.assigned_slot_roles === 'object') {
+    return Object.entries(request.assigned_slot_roles).reduce((acc, [slot, roleName]) => {
+      if (!requestShiftLabelMap[slot]) return acc;
+      const normalizedRole = String(roleName || '').trim();
+      if (normalizedRole) {
+        acc[slot] = normalizedRole;
+      }
+      return acc;
+    }, {});
+  }
+
+  return {};
+};
+
+const normalizeEmployeeUserId = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const dedupeStaffBeforeSave = (staffList) => {
+  const byEmployeeUserId = new Map();
+  const byName = new Map();
+
+  staffList.forEach((member) => {
+    if (!member.name || !member.role) return;
+
+    const normalized = {
+      id: member.id,
+      name: String(member.name).trim(),
+      nickname: String(member.nickname || '').trim(),
+      employee_user_id: normalizeEmployeeUserId(member.employee_user_id),
+      role: String(member.role).trim(),
+      status: String(member.status || '在職').trim() || '在職',
+    };
+
+    if (!normalized.name || !normalized.role) return;
+
+    if (normalized.employee_user_id) {
+      byEmployeeUserId.set(normalized.employee_user_id, normalized);
+      return;
+    }
+
+    byName.set(normalized.name.toLowerCase(), normalized);
+  });
+
+  const namesOwnedByUserId = new Set(
+    Array.from(byEmployeeUserId.values()).map((member) => member.name.toLowerCase())
+  );
+
+  const dedupedByName = Array.from(byName.values()).filter(
+    (member) => !namesOwnedByUserId.has(member.name.toLowerCase())
+  );
+
+  return [
+    ...Array.from(byEmployeeUserId.values()),
+    ...dedupedByName,
+  ];
+};
 
 const ScheduleManagementPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const todayDate = useMemo(() => new Date(), []);
+  const todayDateValue = useMemo(() => dateToString(todayDate), [todayDate]);
+
   const [shifts, setShifts] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [jobRoles, setJobRoles] = useState([]);
   const [employeeRequests, setEmployeeRequests] = useState([]);
-  const [shiftForm, setShiftForm] = useState(defaultShiftForm);
+  const [requestRoleDrafts, setRequestRoleDrafts] = useState({});
+  const [requestAssignedSlotsDrafts, setRequestAssignedSlotsDrafts] = useState({});
+  const [requestSlotRoleDrafts, setRequestSlotRoleDrafts] = useState({});
+
   const [staffForm, setStaffForm] = useState(defaultStaffForm);
-  const [editingShiftId, setEditingShiftId] = useState(null);
+  const [roleForm, setRoleForm] = useState(defaultRoleForm);
   const [editingStaffId, setEditingStaffId] = useState(null);
+  const [editingRoleId, setEditingRoleId] = useState(null);
+
+  const [selectedRequestDate, setSelectedRequestDate] = useState(todayDateValue);
+  const [requestCalendarMonth, setRequestCalendarMonth] = useState(
+    () => new Date(todayDate.getFullYear(), todayDate.getMonth(), 1)
+  );
+  const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [shiftFilter, setShiftFilter] = useState('all');
+
   const [saveStatus, setSaveStatus] = useState('');
 
-  // 載入員工申請列表
-  const loadEmployeeRequests = async () => {
+  const loadScheduleData = useCallback(async () => {
+    try {
+      const response = await getScheduleData();
+      const data = response.data || {};
+
+      const formattedShifts = (data.shifts || []).map((shift) => {
+        let assignedStaffIds = [];
+        if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
+          assignedStaffIds = shift.assigned_staff
+            .map((item) => (typeof item === 'object' ? item.id : item))
+            .filter((id) => id !== null && id !== undefined);
+        }
+
+        return {
+          ...shift,
+          assignedStaffIds,
+          periodType: shift.period_type || 'day',
+          staffNeeded: shift.staff_needed,
+          startHour: shift.start_hour,
+          startMinute: shift.start_minute,
+          endHour: shift.end_hour,
+          endMinute: shift.end_minute,
+          shiftType: shift.shift_type,
+        };
+      });
+
+      setShifts(formattedShifts);
+      const mappedStaff = (data.staff || []).map((member) => ({
+        ...member,
+        nickname: member.nickname || '',
+        employee_user_id: normalizeEmployeeUserId(member.employee_user_id),
+        status: member.status || '在職',
+      }));
+      setStaff(mappedStaff);
+    } catch (error) {
+      console.error('載入排班資料失敗:', error);
+      setShifts([]);
+      setStaff([]);
+    }
+  }, []);
+
+  const loadJobRoleList = useCallback(async () => {
+    try {
+      const response = await getJobRoles();
+      setJobRoles(response.data || []);
+    } catch (error) {
+      console.error('載入職務清單失敗:', error);
+      setJobRoles([]);
+    }
+  }, []);
+
+  const loadEmployeeRequests = useCallback(async () => {
     try {
       const response = await getEmployeeRequests();
-      setEmployeeRequests(response.data || []);
-    } catch (err) {
-      console.error('載入員工申請失敗:', err);
-    }
-  };
+      const requestList = response.data || [];
+      setEmployeeRequests(requestList);
 
-  // 當用戶改變時，從 API 載入該店家的資料
+      setRequestRoleDrafts(
+        requestList.reduce((acc, request) => {
+          acc[request.id] = request.role || '';
+          return acc;
+        }, {})
+      );
+
+      setRequestAssignedSlotsDrafts(
+        requestList.reduce((acc, request) => {
+          acc[request.id] = normalizeAssignedSlots(request);
+          return acc;
+        }, {})
+      );
+
+      setRequestSlotRoleDrafts(
+        requestList.reduce((acc, request) => {
+          const normalizedRoles = normalizeAssignedSlotRoles(request);
+          if (Object.keys(normalizedRoles).length > 0) {
+            acc[request.id] = normalizedRoles;
+          } else if (request.shift_type !== 'full_day' && (request.role || '').trim()) {
+            acc[request.id] = {
+              [request.shift_type]: String(request.role || '').trim(),
+            };
+          } else {
+            acc[request.id] = {};
+          }
+          return acc;
+        }, {})
+      );
+
+    } catch (error) {
+      console.error('載入員工申請失敗:', error);
+      setEmployeeRequests([]);
+      setRequestRoleDrafts({});
+      setRequestAssignedSlotsDrafts({});
+      setRequestSlotRoleDrafts({});
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) {
       setShifts([]);
       setStaff([]);
-      setShiftForm(defaultShiftForm);
+      setJobRoles([]);
+      setEmployeeRequests([]);
+      setRequestRoleDrafts({});
+      setRequestAssignedSlotsDrafts({});
+      setRequestSlotRoleDrafts({});
       setStaffForm(defaultStaffForm);
-      setEditingShiftId(null);
+      setRoleForm(defaultRoleForm);
       setEditingStaffId(null);
+      setEditingRoleId(null);
       return;
     }
 
-    const loadScheduleData = async () => {
-      try {
-        const response = await getScheduleData();
-        const data = response.data;
-
-        // 轉換 API 資料格式為前端格式
-        if (data.shifts) {
-          const formattedShifts = data.shifts.map(shift => {
-            // 確保 assignedStaffIds 正確設置
-            let assignedStaffIds = [];
-            if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
-              assignedStaffIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s)).filter(id => id != null && id !== undefined);
-            }
-
-            return {
-              ...shift,
-              assignedStaffIds: assignedStaffIds,
-              staffNeeded: shift.staff_needed,
-              startHour: shift.start_hour,
-              startMinute: shift.start_minute,
-              endHour: shift.end_hour,
-              endMinute: shift.end_minute,
-              shiftType: shift.shift_type,
-              // 保留 assigned_staff 以便向後兼容，但優先使用 assignedStaffIds
-            };
-          });
-          setShifts(formattedShifts);
-        } else {
-          setShifts([]);
-        }
-
-        if (data.staff) {
-          setStaff(data.staff);
-        } else {
-          setStaff([]);
-        }
-      } catch (error) {
-        console.error('載入排班資料失敗:', error);
-        console.error('錯誤詳情:', error.response?.data);
-        // 如果是 401 或 403 錯誤，顯示特定訊息
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          // 權限錯誤，但不顯示在頁面上，只在控制台記錄
-          console.warn('權限不足，請確認您已登入店家帳號');
-        } else if (error.response?.status === 404) {
-          // API 不存在，但不顯示錯誤
-          console.warn('API 路徑不存在');
-        } else if (error.response?.status === 500) {
-          // 500 錯誤可能是資料表不存在，不顯示錯誤，只記錄
-          console.warn('伺服器錯誤（可能是資料表尚未建立）:', error.response?.data?.error);
-        } else {
-          // 其他錯誤，只在控制台記錄，不顯示在頁面上
-          console.warn('載入資料時發生錯誤:', error.response?.data?.error || error.message);
-        }
-        // 無論如何都設置為空資料，不顯示錯誤訊息
-        setShifts([]);
-        setStaff([]);
-      }
-      // 注意：不在載入資料後重置表單，避免用戶輸入時被清空
-      // 表單狀態應該由用戶操作來控制，而不是由資料載入來控制
+    const initializePageData = async () => {
+      await loadScheduleData();
+      await loadJobRoleList();
+      await loadEmployeeRequests();
     };
 
-    loadScheduleData();
-    loadEmployeeRequests();
+    initializePageData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]); // 只依賴 user.id，避免 user 對象變化時重新執行
-
-  const staffIdSet = useMemo(() => new Set(staff.map((member) => member.id)), [staff]);
+  }, [user?.id]);
 
   const summary = useMemo(() => {
-    const totalNeeded = shifts.reduce((sum, shift) => sum + (shift.staffNeeded || shift.staff_needed || 0), 0);
-    const assignedIds = shifts.reduce((acc, shift) => {
-      const ids = shift.assignedStaffIds || (shift.assigned_staff ? shift.assigned_staff.map(s => s.id) : []);
-      return acc.concat(ids);
-    }, []);
-    const totalAssigned = assignedIds.filter((id) => staffIdSet.has(id)).length;
-    return {
-      totalNeeded,
-      totalAssigned,
-      shortage: Math.max(totalNeeded - totalAssigned, 0),
-    };
-  }, [shifts, staffIdSet]);
+    const pending = employeeRequests.filter((request) => (request.assignment_status || 'pending') === 'pending').length;
+    const scheduled = employeeRequests.filter((request) => request.assignment_status === 'scheduled').length;
+    const rejected = employeeRequests.filter((request) => request.assignment_status === 'rejected').length;
 
-  const handleShiftFormChange = (event) => {
-    const { name, value } = event.target;
-    setShiftForm((prev) => ({
-      ...prev,
-      [name]:
-        name === 'staffNeeded' ||
-          name === 'startHour' ||
-          name === 'startMinute' ||
-          name === 'endHour' ||
-          name === 'endMinute'
-          ? Number(value)
-          : value,
-    }));
+    return {
+      pending,
+      scheduled,
+      rejected,
+    };
+  }, [employeeRequests]);
+
+  const roleNameOptions = useMemo(
+    () => jobRoles.map((role) => role.name),
+    [jobRoles]
+  );
+
+  const requestCalendarCells = useMemo(
+    () => buildCalendarCells(requestCalendarMonth),
+    [requestCalendarMonth]
+  );
+
+  const requestsBySelectedDate = useMemo(
+    () => employeeRequests.filter((request) => requestMatchesDate(request, selectedRequestDate)),
+    [employeeRequests, selectedRequestDate]
+  );
+
+  const employeeFilterOptions = useMemo(() => {
+    const uniqueEmployees = Array.from(
+      new Set(requestsBySelectedDate.map((request) => request.employee_name).filter(Boolean))
+    );
+    return uniqueEmployees.sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+  }, [requestsBySelectedDate]);
+
+  const shiftFilterOptions = useMemo(() => {
+    const options = requestsBySelectedDate.reduce((acc, request) => {
+      const value = request.shift_type || '';
+      const label = request.shift_type_display || requestShiftLabelMap[value] || value || '-';
+      if (value && !acc.some((item) => item.value === value)) {
+        acc.push({ value, label });
+      }
+      return acc;
+    }, []);
+
+    return options.sort((a, b) => a.label.localeCompare(b.label, 'zh-Hant'));
+  }, [requestsBySelectedDate]);
+
+  const filteredEmployeeRequests = useMemo(
+    () => requestsBySelectedDate.filter((request) => {
+      const employeeMatched = employeeFilter === 'all' || request.employee_name === employeeFilter;
+      const shiftMatched = shiftFilter === 'all' || request.shift_type === shiftFilter;
+      return employeeMatched && shiftMatched;
+    }),
+    [requestsBySelectedDate, employeeFilter, shiftFilter]
+  );
+
+  useEffect(() => {
+    if (employeeFilter !== 'all' && !employeeFilterOptions.includes(employeeFilter)) {
+      setEmployeeFilter('all');
+    }
+  }, [employeeFilter, employeeFilterOptions]);
+
+  useEffect(() => {
+    if (shiftFilter !== 'all' && !shiftFilterOptions.some((item) => item.value === shiftFilter)) {
+      setShiftFilter('all');
+    }
+  }, [shiftFilter, shiftFilterOptions]);
+
+  const goToRequestCalendarMonth = (offset) => {
+    setRequestCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
   };
+
+  const handleRequestDateSelect = (dateValue) => {
+    if (!dateValue) return;
+    setSelectedRequestDate(dateValue);
+    const nextDate = new Date(`${dateValue}T00:00:00`);
+    if (!Number.isNaN(nextDate.getTime())) {
+      setRequestCalendarMonth(new Date(nextDate.getFullYear(), nextDate.getMonth(), 1));
+    }
+  };
+
+  const hasRequestsOnDate = (dateValue) => employeeRequests.some(
+    (request) => requestMatchesDate(request, dateValue)
+  );
 
   const handleStaffFormChange = (event) => {
     const { name, value } = event.target;
     setStaffForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleTimeInputChange = (field, value, max) => {
-    const sanitized = value.replace(/[^\d]/g, '');
-    const numeric = sanitized === '' ? 0 : Math.min(max, Math.max(0, Number(sanitized)));
-    setShiftForm((prev) => ({
-      ...prev,
-      [field]: numeric,
-    }));
-  };
-
-  const handleShiftSubmit = (event) => {
-    event.preventDefault();
-    if (!shiftForm.date || !shiftForm.role) return;
-
-    const shiftName = buildShiftName(shiftForm);
-    // 確保 assignedStaffIds 是陣列
-    const assignedStaffIds = Array.isArray(shiftForm.assignedStaffIds)
-      ? shiftForm.assignedStaffIds.filter(id => id != null && id !== undefined)
-      : [];
-
-    if (editingShiftId) {
-      setShifts((prev) =>
-        prev.map((shift) =>
-          shift.id === editingShiftId
-            ? {
-              ...shift,
-              ...shiftForm,
-              shiftName,
-              assignedStaffIds: assignedStaffIds,
-              // 確保移除舊的 assigned_staff 欄位，避免混淆
-              assigned_staff: undefined
-            }
-            : shift
-        )
-      );
-    } else {
-      setShifts((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          ...shiftForm,
-          shiftName,
-          assignedStaffIds: assignedStaffIds,
-        },
-      ]);
-    }
-
-    setShiftForm(defaultShiftForm);
-    setEditingShiftId(null);
-  };
-
   const handleStaffSubmit = (event) => {
     event.preventDefault();
-    if (!staffForm.name || !staffForm.role) return;
+    const normalizedForm = {
+      name: String(staffForm.name || '').trim(),
+      nickname: String(staffForm.nickname || '').trim(),
+      role: String(staffForm.role || '').trim(),
+      status: String(staffForm.status || '在職').trim() || '在職',
+    };
+
+    if (!normalizedForm.name || !normalizedForm.role) {
+      setSaveStatus('請輸入員工姓名與職稱');
+      setTimeout(() => setSaveStatus(''), 2500);
+      return;
+    }
 
     if (editingStaffId) {
-      setStaff((prev) =>
-        prev.map((member) =>
-          member.id === editingStaffId ? { ...member, ...staffForm } : member
-        )
-      );
+      setStaff((prev) => prev.map((member) => (
+        member.id === editingStaffId
+          ? { ...member, ...normalizedForm, status: member.status || '在職' }
+          : member
+      )));
+      setSaveStatus('員工資料已更新，記得按「儲存最新資料」');
     } else {
-      setStaff((prev) => [
-        ...prev,
-        { id: Date.now(), ...staffForm },
-      ]);
+      setStaff((prev) => [...prev, {
+        id: Date.now(),
+        ...normalizedForm,
+        status: normalizedForm.status || '在職',
+        employee_user_id: null,
+      }]);
+      setSaveStatus('員工已新增，記得按「儲存最新資料」');
     }
 
     setStaffForm(defaultStaffForm);
     setEditingStaffId(null);
-  };
-
-  const handleShiftEdit = (shift) => {
-    // 確保 assignedStaffIds 正確讀取
-    let assignedStaffIds = [];
-    if (Array.isArray(shift.assignedStaffIds)) {
-      assignedStaffIds = shift.assignedStaffIds.filter(id => id != null && id !== undefined);
-    } else if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
-      assignedStaffIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s)).filter(id => id != null && id !== undefined);
-    }
-
-    setShiftForm({
-      date: shift.date,
-      shiftType: shift.shiftType || shift.shift_type,
-      role: shift.role,
-      staffNeeded: shift.staffNeeded || shift.staff_needed,
-      startHour: shift.startHour || shift.start_hour,
-      startMinute: shift.startMinute || shift.start_minute,
-      endHour: shift.endHour || shift.end_hour,
-      endMinute: shift.endMinute || shift.end_minute,
-      assignedStaffIds: assignedStaffIds,
-      status: shift.status,
-    });
-    setEditingShiftId(shift.id);
+    setTimeout(() => setSaveStatus(''), 3000);
   };
 
   const handleStaffEdit = (member) => {
     setStaffForm({
-      name: member.name,
-      role: member.role,
-      status: member.status,
+      name: member.name || '',
+      nickname: member.nickname || '',
+      role: member.role || '',
+      status: member.status || '在職',
     });
     setEditingStaffId(member.id);
   };
 
-  const handleShiftDelete = (id) => {
-    setShifts((prev) => prev.filter((shift) => shift.id !== id));
-    if (editingShiftId === id) {
-      setShiftForm(defaultShiftForm);
-      setEditingShiftId(null);
+  const handleStaffStatusChange = (id, nextStatus) => {
+    setStaff((prev) => prev.map((member) => (
+      member.id === id ? { ...member, status: nextStatus } : member
+    )));
+  };
+
+  const handleStaffTerminate = (id) => {
+    if (!window.confirm('確定要解雇此員工嗎？\n儲存最新資料後將從員工列表移除並解除其公司統編綁定。')) {
+      return;
+    }
+
+    const targetMember = staff.find((member) => member.id === id);
+    const shouldUnbindCompany = Boolean(normalizeEmployeeUserId(targetMember?.employee_user_id));
+
+    setStaff((prev) => prev.filter((member) => member.id !== id));
+    if (editingStaffId === id) {
+      setEditingStaffId(null);
+      setStaffForm(defaultStaffForm);
+    }
+    setSaveStatus(
+      shouldUnbindCompany
+        ? '員工已從列表移除，儲存後將解除該員工的統編綁定'
+        : '員工已從列表移除，記得按「儲存最新資料」'
+    );
+    setTimeout(() => setSaveStatus(''), 3000);
+  };
+
+  const handleRoleFormChange = (event) => {
+    const { name, value } = event.target;
+    setRoleForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRoleSubmit = async (event) => {
+    event.preventDefault();
+    const payload = {
+      name: roleForm.name.trim(),
+      description: roleForm.description.trim(),
+    };
+
+    if (!payload.name) {
+      setSaveStatus('請輸入職務名稱');
+      setTimeout(() => setSaveStatus(''), 2500);
+      return;
+    }
+
+    try {
+      if (editingRoleId) {
+        await updateJobRole(editingRoleId, payload);
+        setSaveStatus('職務已更新');
+      } else {
+        await createJobRole(payload);
+        setSaveStatus('職務已新增');
+      }
+
+      setRoleForm(defaultRoleForm);
+      setEditingRoleId(null);
+      await loadJobRoleList();
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (error) {
+      console.error('儲存職務失敗:', error);
+      const errMsg = error.response?.data?.detail || error.response?.data?.name?.[0] || '儲存職務失敗';
+      setSaveStatus(errMsg);
+      setTimeout(() => setSaveStatus(''), 3500);
     }
   };
 
-  const handleStaffDelete = (id) => {
-    setStaff((prev) => prev.filter((member) => member.id !== id));
-    setShifts((prev) =>
-      prev.map((shift) => {
-        // 確保正確讀取和更新 assignedStaffIds
-        let assignedIds = [];
-        if (Array.isArray(shift.assignedStaffIds)) {
-          assignedIds = shift.assignedStaffIds;
-        } else if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
-          assignedIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s));
-        }
+  const handleRoleEdit = (roleItem) => {
+    setRoleForm({
+      name: roleItem.name || '',
+      description: roleItem.description || '',
+    });
+    setEditingRoleId(roleItem.id);
+  };
 
-        return {
-          ...shift,
-          assignedStaffIds: assignedIds.filter((staffId) => staffId !== id),
-          assigned_staff: undefined, // 移除舊的 assigned_staff 欄位
-        };
-      })
-    );
-    if (editingStaffId === id) {
-      setStaffForm(defaultStaffForm);
-      setEditingStaffId(null);
+  const handleRoleDelete = async (roleId) => {
+    if (!window.confirm('確定要刪除此職務嗎？')) {
+      return;
     }
+
+    try {
+      await deleteJobRole(roleId);
+      await loadJobRoleList();
+
+      if (editingRoleId === roleId) {
+        setEditingRoleId(null);
+        setRoleForm(defaultRoleForm);
+      }
+
+      setSaveStatus('職務已刪除');
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (error) {
+      console.error('刪除職務失敗:', error);
+      setSaveStatus('刪除職務失敗，請稍後再試');
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    if (!user) {
+      setSaveStatus('請先登入店家帳號');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+
+    try {
+      const formattedShifts = shifts
+        .map((shift) => ({
+          id: shift.id,
+          date: shift.date || '',
+          period_type: shift.periodType || shift.period_type || 'day',
+          shift_type: shift.shiftType || shift.shift_type || 'morning',
+          role: shift.role || '',
+          staff_needed: parseInt(shift.staffNeeded ?? shift.staff_needed ?? 1, 10),
+          start_hour: parseInt(shift.startHour ?? shift.start_hour ?? 8, 10),
+          start_minute: parseInt(shift.startMinute ?? shift.start_minute ?? 0, 10),
+          end_hour: parseInt(shift.endHour ?? shift.end_hour ?? 12, 10),
+          end_minute: parseInt(shift.endMinute ?? shift.end_minute ?? 0, 10),
+          assigned_staff_ids: Array.isArray(shift.assignedStaffIds)
+            ? shift.assignedStaffIds
+            : Array.isArray(shift.assigned_staff)
+              ? shift.assigned_staff
+                .map((item) => (typeof item === 'object' ? item.id : item))
+                .filter((id) => id !== null && id !== undefined)
+              : [],
+          status: shift.status || 'pending',
+        }))
+        .filter((shift) => shift.date && shift.role);
+
+      const cleanedStaff = dedupeStaffBeforeSave(staff);
+
+      await saveScheduleData({
+        shifts: formattedShifts,
+        staff: cleanedStaff,
+      });
+
+      await loadScheduleData();
+      setSaveStatus('已儲存最新資料');
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (error) {
+      console.error('儲存排班資料失敗:', error);
+      const errMsg = error.response?.data?.error || error.message || '儲存失敗';
+      setSaveStatus(`儲存失敗: ${errMsg}`);
+      setTimeout(() => setSaveStatus(''), 4000);
+    }
+  };
+
+  const buildSchedulePayload = (requestItem) => {
+    let assignedSlots = requestAssignedSlotsDrafts[requestItem.id] || [];
+    let roleName = (requestRoleDrafts[requestItem.id] || '').trim();
+    let assignedSlotRoles = {};
+
+    if (requestItem.shift_type === 'full_day') {
+      if (assignedSlots.length === 0) {
+        return { error: '整天申請需至少選擇一個排班時段' };
+      }
+
+      const slotRoleDraft = requestSlotRoleDrafts[requestItem.id] || {};
+      const missingRoleSlots = assignedSlots.filter((slot) => !(slotRoleDraft[slot] || '').trim());
+      if (missingRoleSlots.length > 0) {
+        const slotText = missingRoleSlots.map((slot) => requestShiftLabelMap[slot] || slot).join('、');
+        return { error: `以下時段尚未選擇職稱：${slotText}` };
+      }
+
+      assignedSlotRoles = assignedSlots.reduce((acc, slot) => {
+        acc[slot] = String(slotRoleDraft[slot] || '').trim();
+        return acc;
+      }, {});
+
+      roleName = Array.from(new Set(Object.values(assignedSlotRoles))).join(' / ');
+    } else {
+      if (!roleName) {
+        return { error: '請先選擇職稱後再排班' };
+      }
+
+      assignedSlots = [requestItem.shift_type];
+      assignedSlotRoles = {
+        [requestItem.shift_type]: roleName,
+      };
+    }
+
+    return {
+      payload: {
+        role: roleName,
+        assignment_status: 'scheduled',
+        assigned_shift_types: assignedSlots,
+        assigned_slot_roles: assignedSlotRoles,
+      },
+    };
   };
 
   const handleExport = async () => {
-    if (!shifts.length) return;
     try {
       const response = await exportScheduleCSV();
       const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8-sig' });
@@ -392,268 +675,85 @@ const ScheduleManagementPage = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export schedule:', error);
+      console.error('匯出失敗:', error);
       setSaveStatus('匯出失敗，請稍後再試');
       setTimeout(() => setSaveStatus(''), 3000);
     }
   };
 
-  const assignedIdsExceptCurrent = useMemo(() => {
-    const ids = new Set();
-    shifts.forEach((shift) => {
-      if (shift.id === editingShiftId) return;
-      // 確保正確讀取 assignedStaffIds
-      let assignedIds = [];
-      if (Array.isArray(shift.assignedStaffIds)) {
-        assignedIds = shift.assignedStaffIds;
-      } else if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
-        assignedIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s));
-      }
-      assignedIds.forEach((id) => ids.add(id));
-    });
-    return ids;
-  }, [shifts, editingShiftId]);
-
-  const availableStaffForForm = staff.filter(
-    (member) => !assignedIdsExceptCurrent.has(member.id) || shiftForm.assignedStaffIds.includes(member.id)
-  );
-
-  const handleStaffSelectChange = (event) => {
-    const values = Array.from(event.target.selectedOptions).map((option) => Number(option.value));
-    setShiftForm((prev) => ({
+  const handleRequestRoleDraftChange = (requestId, roleValue) => {
+    setRequestRoleDrafts((prev) => ({
       ...prev,
-      assignedStaffIds: values,
+      [requestId]: roleValue,
     }));
   };
 
-  const formatTimeRange = (shift) => {
-    const startHour = shift.startHour ?? shift.start_hour ?? 0;
-    const startMinute = shift.startMinute ?? shift.start_minute ?? 0;
-    const endHour = shift.endHour ?? shift.end_hour ?? 0;
-    const endMinute = shift.endMinute ?? shift.end_minute ?? 0;
-    return `${formatTwoDigits(startHour)}:${formatTwoDigits(startMinute)} - ${formatTwoDigits(endHour)}:${formatTwoDigits(endMinute)}`;
+  const handleRequestSlotRoleDraftChange = (requestId, slotValue, roleValue) => {
+    setRequestSlotRoleDrafts((prev) => ({
+      ...prev,
+      [requestId]: {
+        ...(prev[requestId] || {}),
+        [slotValue]: roleValue,
+      },
+    }));
   };
 
-  const handleSaveAll = async () => {
-    if (!user) {
-      setSaveStatus('請先登入店家帳號');
+  const toggleAssignedSlotDraft = (requestId, slotValue) => {
+    setRequestAssignedSlotsDrafts((prev) => {
+      const current = prev[requestId] || [];
+      const exists = current.includes(slotValue);
+      const next = exists ? current.filter((item) => item !== slotValue) : [...current, slotValue];
+
+      return {
+        ...prev,
+        [requestId]: next,
+      };
+    });
+  };
+
+  const handleScheduleRequest = async (requestItem) => {
+    const { payload, error } = buildSchedulePayload(requestItem);
+    if (!payload) {
+      setSaveStatus(error || '排班資料不完整');
       setTimeout(() => setSaveStatus(''), 3000);
       return;
     }
 
     try {
-      // 轉換前端格式為 API 格式
-      // 只發送有真實資料庫 ID 的資料（臨時 ID 會被當作新資料處理）
-      // 去重：根據 date, shift_type, role, start_hour, start_minute, end_hour, end_minute 組合去重
-      const uniqueShifts = [];
-      const shiftKeys = new Set();
+      await updateScheduleRequest(requestItem.id, payload);
 
-      for (const shift of shifts) {
-        if (!shift.id && !shift.date) continue; // 跳過無效資料
-
-        // 為每個排班創建唯一鍵（用於去重）
-        const key = `${shift.date}_${shift.shiftType || shift.shift_type}_${shift.role}_${shift.startHour || shift.start_hour}_${shift.startMinute || shift.start_minute}_${shift.endHour || shift.end_hour}_${shift.endMinute || shift.end_minute}`;
-
-        // 如果已經有相同的排班（除了 ID），只保留有 ID 的那個，或者第一個
-        if (!shiftKeys.has(key)) {
-          shiftKeys.add(key);
-          uniqueShifts.push(shift);
-        } else {
-          // 如果已經存在，保留有資料庫 ID 的那個（ID 較小的通常是資料庫 ID）
-          const existingIndex = uniqueShifts.findIndex(s => {
-            const existingKey = `${s.date}_${s.shiftType || s.shift_type}_${s.role}_${s.startHour || s.start_hour}_${s.startMinute || s.start_minute}_${s.endHour || s.end_hour}_${s.endMinute || s.end_minute}`;
-            return existingKey === key;
-          });
-
-          if (existingIndex !== -1) {
-            const existing = uniqueShifts[existingIndex];
-            // 如果新的有 ID 且舊的沒有，或者新的 ID 更小（更可能是資料庫 ID），則替換
-            if (shift.id && (!existing.id || (existing.id > 1000000000000 && shift.id < 1000000000000))) {
-              uniqueShifts[existingIndex] = shift;
-            }
-          }
-        }
-      }
-
-      console.log(`去重前: ${shifts.length} 個排班, 去重後: ${uniqueShifts.length} 個排班`);
-
-      const formattedShifts = uniqueShifts
-        .filter(shift => {
-          // 過濾掉沒有 ID 且沒有必填欄位的資料
-          const id = shift.id;
-          if (!id && (!shift.date || !shift.role)) return false;
-          return true;
-        })
-        .map(shift => {
-          // 確保所有必填欄位都有正確的值和類型
-          const startHour = parseInt(shift.startHour ?? shift.start_hour ?? 0, 10);
-          const startMinute = parseInt(shift.startMinute ?? shift.start_minute ?? 0, 10);
-          const endHour = parseInt(shift.endHour ?? shift.end_hour ?? 0, 10);
-          const endMinute = parseInt(shift.endMinute ?? shift.end_minute ?? 0, 10);
-          const staffNeeded = parseInt(shift.staffNeeded ?? shift.staff_needed ?? 1, 10);
-
-          return {
-            id: shift.id,
-            date: shift.date || '',
-            shift_type: shift.shiftType || shift.shift_type || 'morning',
-            role: shift.role || '',
-            staff_needed: staffNeeded,
-            start_hour: startHour,
-            start_minute: startMinute,
-            end_hour: endHour,
-            end_minute: endMinute,
-            assigned_staff_ids: (() => {
-              // 確保 assigned_staff_ids 總是陣列格式
-              if (Array.isArray(shift.assignedStaffIds)) {
-                return shift.assignedStaffIds.filter(id => id != null && id !== undefined);
-              }
-              if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
-                return shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s)).filter(id => id != null && id !== undefined);
-              }
-              return [];
-            })(),
-            status: shift.status || 'pending',
-          };
-        })
-        .filter(shift => {
-          // 驗證必填欄位
-          return shift.date && shift.shift_type && shift.role;
-        });
-
-      // 清理 staff 資料，移除不需要的欄位，並去重
-      const uniqueStaff = [];
-      const staffKeys = new Set();
-
-      for (const s of staff) {
-        if (!s.id) continue;
-
-        // 根據 ID 去重
-        if (!staffKeys.has(s.id)) {
-          staffKeys.add(s.id);
-          uniqueStaff.push(s);
-        }
-      }
-
-      console.log(`員工去重前: ${staff.length} 個, 去重後: ${uniqueStaff.length} 個`);
-
-      const cleanedStaff = uniqueStaff.map(s => ({
-        id: s.id,
-        name: s.name,
-        role: s.role,
-        status: s.status || '',
-      }));
-
-      const payload = {
-        shifts: formattedShifts,
-        staff: cleanedStaff,
-      };
-
-      // 調試日誌：檢查發送的資料
-      console.log('準備儲存的資料:', JSON.stringify(payload, null, 2));
-      console.log('排班資料中的 assigned_staff_ids:', formattedShifts.map(s => ({ id: s.id, assigned_staff_ids: s.assigned_staff_ids })));
-
-      const response = await saveScheduleData(payload);
-
-      // 強制重新載入資料，確保取得最新的資料庫狀態（避免重複）
-      let data;
-      try {
-        const reloadResponse = await getScheduleData();
-        data = reloadResponse.data;
-      } catch (reloadError) {
-        console.warn('重新載入資料失敗:', reloadError);
-        // 如果重新載入失敗，嘗試使用後端返回的資料
-        data = response?.data;
-      }
-
-      // 轉換 API 資料格式為前端格式，並去重
-      if (data && data.shifts) {
-        console.log('後端返回的 shifts 資料:', JSON.stringify(data.shifts, null, 2));
-
-        // 先轉換格式
-        const formattedShifts = data.shifts.map(shift => {
-          // 確保 assignedStaffIds 正確設置
-          let assignedStaffIds = [];
-          if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
-            assignedStaffIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s)).filter(id => id != null && id !== undefined);
-          }
-
-          return {
-            ...shift,
-            assignedStaffIds: assignedStaffIds,
-            staffNeeded: shift.staff_needed,
-            startHour: shift.start_hour,
-            startMinute: shift.start_minute,
-            endHour: shift.end_hour,
-            endMinute: shift.end_minute,
-            shiftType: shift.shift_type,
-          };
-        });
-
-        // 根據 ID 去重（保留最後一個）
-        const uniqueShiftsMap = new Map();
-        formattedShifts.forEach(shift => {
-          if (shift.id) {
-            uniqueShiftsMap.set(shift.id, shift);
-          }
-        });
-        const uniqueShifts = Array.from(uniqueShiftsMap.values());
-
-        console.log(`去重前: ${formattedShifts.length} 個排班, 去重後: ${uniqueShifts.length} 個排班`);
-        setShifts(uniqueShifts);
-      } else {
-        setShifts([]);
-      }
-
-      if (data && data.staff) {
-        // 根據 ID 去重員工（保留最後一個）
-        const uniqueStaffMap = new Map();
-        data.staff.forEach(member => {
-          if (member.id) {
-            uniqueStaffMap.set(member.id, member);
-          }
-        });
-        const uniqueStaff = Array.from(uniqueStaffMap.values());
-        console.log(`員工去重前: ${data.staff.length} 個, 去重後: ${uniqueStaff.length} 個`);
-        setStaff(uniqueStaff);
-      } else {
-        setStaff([]);
-      }
-
-      setSaveStatus('已儲存最新資料');
+      setSaveStatus('排班成功');
+      await loadEmployeeRequests();
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (error) {
-      console.error('儲存排班資料失敗:', error);
-      console.error('錯誤詳情:', error.response?.data);
-      // 顯示詳細錯誤訊息
-      if (error.response?.status === 400) {
-        const errorData = error.response.data;
-        let errorMsg = '';
+      console.error('排班失敗:', error);
+      const errMsg = error.response?.data?.detail || error.response?.data?.error || '排班失敗，請稍後再試';
+      setSaveStatus(errMsg);
+      setTimeout(() => setSaveStatus(''), 3500);
+    }
+  };
 
-        if (typeof errorData === 'string') {
-          errorMsg = errorData;
-        } else if (errorData.details) {
-          // 如果有詳細的驗證錯誤，顯示具體的欄位錯誤
-          const details = errorData.details;
-          const fieldErrors = Object.entries(details)
-            .map(([field, errors]) => {
-              const fieldName = field === 'shifts' ? '排班時段' : field === 'staff' ? '員工' : field;
-              const errorList = Array.isArray(errors) ? errors.join(', ') : String(errors);
-              return `${fieldName}: ${errorList}`;
-            })
-            .join('; ');
-          errorMsg = fieldErrors || errorData.error || errorData.detail || '資料格式錯誤';
-        } else {
-          errorMsg = errorData.error || errorData.detail || JSON.stringify(errorData);
-        }
+  const handleExecuteSchedule = () => {
+    navigate('/merchant/actual-schedule');
+  };
 
-        setSaveStatus(`儲存失敗: ${errorMsg}`);
-      } else if (error.response?.status === 401 || error.response?.status === 403) {
-        setSaveStatus('權限不足，請確認您已登入店家帳號');
-      } else {
-        const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message || '儲存失敗，請稍後再試';
-        setSaveStatus(`儲存失敗: ${errorMsg}`);
-      }
-      setTimeout(() => setSaveStatus(''), 5000);
+  const handleRejectRequest = async (requestId) => {
+    try {
+      await updateScheduleRequest(requestId, {
+        role: '',
+        assignment_status: 'rejected',
+        assigned_shift_types: [],
+        assigned_slot_roles: {},
+      });
+
+      setSaveStatus('已排休');
+      await loadEmployeeRequests();
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (error) {
+      console.error('排休失敗:', error);
+      const errMsg = error.response?.data?.detail || error.response?.data?.error || '排休失敗，請稍後再試';
+      setSaveStatus(errMsg);
+      setTimeout(() => setSaveStatus(''), 3500);
     }
   };
 
@@ -663,198 +763,302 @@ const ScheduleManagementPage = () => {
         <div>
           <p className={styles.pageSubtitle}>店家管理 / 排班管理</p>
           <h1>排班管理</h1>
-          <p className={styles.pageDescription}>規劃日常班表、管理員工資料並可匯出班表。</p>
+          <p className={styles.pageDescription}>管理職務、員工與排班申請（可排班或排休）。</p>
         </div>
         <div className={styles.headerActions}>
           <button className={styles.ghostBtn} onClick={handleSaveAll}>
             儲存最新資料
+          </button>
+          <button className={styles.ghostBtn} onClick={handleExecuteSchedule}>
+            實際班表
           </button>
           <button className={styles.primaryBtn} onClick={handleExport}>
             匯出班表 (CSV)
           </button>
         </div>
       </header>
+
       {saveStatus && <p className={styles.saveStatus}>{saveStatus}</p>}
 
       <section className={styles.summaryGrid}>
         <div className={styles.summaryCard}>
-          <p className={styles.summaryLabel}>需求人數</p>
-          <h2>{summary.totalNeeded} 位</h2>
+          <p className={styles.summaryLabel}>待安排申請</p>
+          <h2>{summary.pending} 筆</h2>
         </div>
         <div className={styles.summaryCard}>
-          <p className={styles.summaryLabel}>已排人數</p>
-          <h2>{summary.totalAssigned} 位</h2>
+          <p className={styles.summaryLabel}>已排班</p>
+          <h2>{summary.scheduled} 筆</h2>
         </div>
         <div className={styles.summaryCard}>
-          <p className={styles.summaryLabel}>缺口</p>
-          <h2 className={summary.shortage ? styles.textWarning : ''}>
-            {summary.shortage ? `缺 ${summary.shortage} 位` : '0'}
-          </h2>
+          <p className={styles.summaryLabel}>已排休</p>
+          <h2>{summary.rejected} 筆</h2>
+        </div>
+      </section>
+
+      <section className={styles.scheduleCardFullWidth}>
+        <div className={styles.cardHeader}>
+          <h3>員工排班申請</h3>
+        </div>
+        <div className={styles.requestFilterPanel}>
+          <div className={styles.requestCalendarBlock}>
+            <div className={styles.requestCalendarHeader}>
+              <button
+                type="button"
+                className={styles.ghostBtn}
+                onClick={() => goToRequestCalendarMonth(-1)}
+              >
+                上個月
+              </button>
+              <strong>{monthTitleFormatter.format(requestCalendarMonth)}</strong>
+              <button
+                type="button"
+                className={styles.ghostBtn}
+                onClick={() => goToRequestCalendarMonth(1)}
+              >
+                下個月
+              </button>
+            </div>
+
+            <div className={styles.requestCalendarWeekdays}>
+              {calendarWeekdayLabels.map((label) => (
+                <span key={label}>{label}</span>
+              ))}
+            </div>
+
+            <div className={styles.requestCalendarGrid}>
+              {requestCalendarCells.map((cell, index) => {
+                if (!cell) {
+                  return <div key={`empty-${index}`} className={styles.requestCalendarEmptyCell} />;
+                }
+
+                const isSelected = cell.value === selectedRequestDate;
+                const isToday = cell.value === todayDateValue;
+                const hasRequests = hasRequestsOnDate(cell.value);
+
+                return (
+                  <button
+                    type="button"
+                    key={cell.value}
+                    className={`${styles.requestCalendarDateBtn} ${
+                      isSelected ? styles.requestCalendarDateBtnSelected : ''
+                    } ${hasRequests ? styles.requestCalendarDateBtnHasData : ''}`}
+                    onClick={() => handleRequestDateSelect(cell.value)}
+                  >
+                    <span>{cell.day}</span>
+                    {isToday && <small>今天</small>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className={styles.requestFiltersBlock}>
+            <div className={styles.requestFilterItem}>
+              <label htmlFor="request_date">已選日期</label>
+              <input
+                id="request_date"
+                type="date"
+                value={selectedRequestDate}
+                onChange={(e) => handleRequestDateSelect(e.target.value)}
+              />
+            </div>
+            <div className={styles.requestFilterItem}>
+              <label htmlFor="employee_filter">篩選員工</label>
+              <select
+                id="employee_filter"
+                value={employeeFilter}
+                onChange={(e) => setEmployeeFilter(e.target.value)}
+              >
+                <option value="all">全部員工</option>
+                {employeeFilterOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.requestFilterItem}>
+              <label htmlFor="shift_filter">篩選時段</label>
+              <select
+                id="shift_filter"
+                value={shiftFilter}
+                onChange={(e) => setShiftFilter(e.target.value)}
+              >
+                <option value="all">全部時段</option>
+                {shiftFilterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className={styles.requestFilterSummary}>
+              {selectedRequestDate} 共 {requestsBySelectedDate.length} 筆，篩選後 {filteredEmployeeRequests.length} 筆
+            </p>
+          </div>
+        </div>
+
+        <div className={styles.tableWrapper}>
+          <table>
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>可上班時間</th>
+                <th>員工可排時段</th>
+                <th>店家排班時段</th>
+                <th>職務安排</th>
+                <th>排班狀態</th>
+                <th>備註</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEmployeeRequests.length === 0 && (
+                <tr>
+                  <td colSpan="8" className={styles.empty}>
+                    所選日期沒有符合篩選條件的排班申請
+                  </td>
+                </tr>
+              )}
+              {filteredEmployeeRequests.map((request) => {
+                const assignedSlots = requestAssignedSlotsDrafts[request.id] || [];
+                const slotRoleDraft = requestSlotRoleDrafts[request.id] || {};
+                const assignmentStatus = request.assignment_status || 'pending';
+
+                return (
+                  <tr key={request.id}>
+                    <td>{request.employee_name}</td>
+                    <td>{formatPeriodDate(request.period_type, request.date)}</td>
+                    <td>{request.shift_type_display || requestShiftLabelMap[request.shift_type] || request.shift_type || '-'}</td>
+                    <td>
+                      {request.shift_type === 'full_day' ? (
+                        <div className={styles.slotChecklist}>
+                          {requestShiftOptions.map((slotOption) => {
+                            const checked = assignedSlots.includes(slotOption.value);
+                            return (
+                              <label key={`${request.id}-${slotOption.value}`} className={styles.slotChecklistItem}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleAssignedSlotDraft(request.id, slotOption.value)}
+                                />
+                                <span>{slotOption.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span>{request.shift_type_display || requestShiftLabelMap[request.shift_type] || '-'}</span>
+                      )}
+                    </td>
+                    <td>
+                      {request.shift_type === 'full_day' ? (
+                        <div className={styles.slotRoleGrid}>
+                          {assignedSlots.length === 0 && (
+                            <p className={styles.helperText}>請先勾選店家排班時段</p>
+                          )}
+                          {assignedSlots.map((slotValue) => (
+                            <label key={`${request.id}-role-${slotValue}`} className={styles.slotRoleItem}>
+                              <span>{requestShiftLabelMap[slotValue] || slotValue}</span>
+                              <select
+                                className={styles.roleInput}
+                                value={slotRoleDraft[slotValue] || ''}
+                                onChange={(e) => handleRequestSlotRoleDraftChange(request.id, slotValue, e.target.value)}
+                              >
+                                <option value="">請選擇職務</option>
+                                {roleNameOptions.map((roleName) => (
+                                  <option key={`${request.id}-${slotValue}-${roleName}`} value={roleName}>
+                                    {roleName}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <select
+                          className={styles.roleInput}
+                          value={requestRoleDrafts[request.id] ?? ''}
+                          onChange={(e) => handleRequestRoleDraftChange(request.id, e.target.value)}
+                        >
+                          <option value="">請選擇職務</option>
+                          {roleNameOptions.map((roleName) => (
+                            <option key={`${request.id}-${roleName}`} value={roleName}>
+                              {roleName}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`${styles.assignmentStatusBadge} ${styles[`assignmentStatus${assignmentStatus}`] || ''}`}>
+                        {request.assignment_status_display || assignmentStatusLabelMap[assignmentStatus] || assignmentStatus}
+                      </span>
+                    </td>
+                    <td>{request.notes || '-'}</td>
+                    <td className={styles.tableActions}>
+                      <button
+                        className={styles.textBtn}
+                        onClick={() => handleScheduleRequest(request)}
+                      >
+                        排班
+                      </button>
+                      <button
+                        className={styles.textBtnDanger}
+                        onClick={() => handleRejectRequest(request.id)}
+                      >
+                        排休
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </section>
 
       <section className={styles.manageGrid}>
         <div className={styles.scheduleCard}>
           <div className={styles.cardHeader}>
-            <h3>{editingShiftId ? '編輯排班時段' : '新增排班時段'}</h3>
+            <h3>{editingRoleId ? '編輯職務' : '新增職務'}</h3>
           </div>
-          <form className={styles.shiftForm} onSubmit={handleShiftSubmit}>
+          <form className={styles.staffForm} onSubmit={handleRoleSubmit}>
             <label>
-              日期
-              <input type="date" name="date" value={shiftForm.date} onChange={handleShiftFormChange} />
-            </label>
-            <label>
-              時段名稱
-              <select
-                name="shiftType"
-                value={shiftForm.shiftType}
-                onChange={(e) => {
-                  const type = e.target.value;
-                  setShiftForm((prev) => ({
-                    ...prev,
-                    shiftType: type,
-                    startHour: shiftPresets[type].defaultStart.hour,
-                    startMinute: shiftPresets[type].defaultStart.minute,
-                    endHour: shiftPresets[type].defaultEnd.hour,
-                    endMinute: shiftPresets[type].defaultEnd.minute,
-                  }));
-                }}
-              >
-                {Object.entries(shiftPresets).map(([value, info]) => (
-                  <option key={value} value={value}>
-                    {info.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              需求職務
+              職務名稱
               <input
                 type="text"
-                name="role"
-                value={shiftForm.role}
-                placeholder="外場／內場／外送"
-                onChange={handleShiftFormChange}
+                name="name"
+                value={roleForm.name}
+                placeholder="例如：外場、吧台、內場"
+                onChange={handleRoleFormChange}
               />
             </label>
-            <label className={styles.timeInputs}>
-              開始時間
-              <div className={styles.timePickers}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  min="0"
-                  max="23"
-                  name="startHour"
-                  value={formatTwoDigits(shiftForm.startHour)}
-                  onChange={(e) => handleTimeInputChange('startHour', e.target.value, 23)}
-                />
-                <span>:</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  min="0"
-                  max="59"
-                  name="startMinute"
-                  value={formatTwoDigits(shiftForm.startMinute)}
-                  onChange={(e) => handleTimeInputChange('startMinute', e.target.value, 59)}
-                />
-              </div>
-            </label>
-            <label className={styles.timeInputs}>
-              結束時間
-              <div className={styles.timePickers}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  min="0"
-                  max="23"
-                  name="endHour"
-                  value={formatTwoDigits(shiftForm.endHour)}
-                  onChange={(e) => handleTimeInputChange('endHour', e.target.value, 23)}
-                />
-                <span>:</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  min="0"
-                  max="59"
-                  name="endMinute"
-                  value={formatTwoDigits(shiftForm.endMinute)}
-                  onChange={(e) => handleTimeInputChange('endMinute', e.target.value, 59)}
-                />
-              </div>
-            </label>
             <label>
-              需求人數
+              職務說明（可選）
               <input
-                type="number"
-                min="1"
-                name="staffNeeded"
-                value={shiftForm.staffNeeded}
-                onChange={handleShiftFormChange}
+                type="text"
+                name="description"
+                value={roleForm.description}
+                placeholder="例如：負責點餐與收銀"
+                onChange={handleRoleFormChange}
               />
-            </label>
-            <label>
-              已指派員工
-              {availableStaffForForm.length === 0 && shiftForm.assignedStaffIds.length === 0 ? (
-                <div className={styles.noStaffBox}>目前沒有可指派員工</div>
-              ) : (
-                <>
-                  <select
-                    multiple
-                    className={styles.staffMultiSelect}
-                    value={shiftForm.assignedStaffIds.map(String)}
-                    onChange={handleStaffSelectChange}
-                  >
-                    {availableStaffForForm.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name}（{member.role}）
-                      </option>
-                    ))}
-                  </select>
-                  <p className={styles.helperText}>提示：按住 Ctrl 或 ⌘ 可多選員工</p>
-                </>
-              )}
-              {shiftForm.assignedStaffIds.length > 0 && (
-                <div className={styles.selectedStaff}>
-                  {shiftForm.assignedStaffIds.map((staffId) => {
-                    const member = staff.find((item) => item.id === staffId);
-                    if (!member) return null;
-                    return (
-                      <span key={member.id} className={styles.staffChip}>
-                        {member.name}
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-            </label>
-            <label>
-              狀態
-              <select name="status" value={shiftForm.status} onChange={handleShiftFormChange}>
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
             </label>
             <div className={styles.formActions}>
-              {editingShiftId && (
+              {editingRoleId && (
                 <button
                   type="button"
                   className={styles.ghostBtn}
                   onClick={() => {
-                    setShiftForm(defaultShiftForm);
-                    setEditingShiftId(null);
+                    setEditingRoleId(null);
+                    setRoleForm(defaultRoleForm);
                   }}
                 >
                   取消編輯
                 </button>
               )}
               <button type="submit" className={styles.primaryBtnFill}>
-                {editingShiftId ? '更新時段' : '新增時段'}
+                {editingRoleId ? '更新職務' : '新增職務'}
               </button>
             </div>
           </form>
@@ -870,12 +1074,12 @@ const ScheduleManagementPage = () => {
               <input type="text" name="name" value={staffForm.name} onChange={handleStaffFormChange} />
             </label>
             <label>
-              職務
-              <input type="text" name="role" value={staffForm.role} onChange={handleStaffFormChange} />
+              暱稱
+              <input type="text" name="nickname" value={staffForm.nickname} onChange={handleStaffFormChange} />
             </label>
             <label>
-              備註／出勤狀態
-              <input type="text" name="status" value={staffForm.status} onChange={handleStaffFormChange} />
+              職稱
+              <input type="text" name="role" value={staffForm.role} onChange={handleStaffFormChange} />
             </label>
             <div className={styles.formActions}>
               {editingStaffId && (
@@ -900,61 +1104,36 @@ const ScheduleManagementPage = () => {
 
       <section className={styles.scheduleCardFullWidth}>
         <div className={styles.cardHeader}>
-          <h3>排班列表</h3>
+          <h3>職務列表</h3>
         </div>
         <div className={styles.tableWrapper}>
           <table>
             <thead>
               <tr>
-                <th>日期</th>
-                <th>時段</th>
-                <th>職務 / 時間</th>
-                <th>需求人數</th>
-                <th>已排人員</th>
-                <th>狀態</th>
+                <th>職務名稱</th>
+                <th>說明</th>
+                <th>建立時間</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              {shifts.length === 0 && (
+              {jobRoles.length === 0 && (
                 <tr>
-                  <td colSpan="7" className={styles.empty}>
-                    尚未建立任何班表
+                  <td colSpan="4" className={styles.empty}>
+                    尚未新增職務
                   </td>
                 </tr>
               )}
-              {shifts.map((shift) => (
-                <tr key={shift.id}>
-                  <td>{shift.date}</td>
-                  <td>
-                    <p className={styles.tableShiftName}>{shiftPresets[shift.shiftType || shift.shift_type].label}</p>
-                    <p className={styles.tableShiftTime}>{formatTimeRange(shift)}</p>
-                  </td>
-                  <td>{shift.role}</td>
-                  <td>{shift.staffNeeded || shift.staff_needed}</td>
-                  <td>
-                    {(() => {
-                      // 確保正確讀取 assignedStaffIds
-                      let assignedIds = [];
-                      if (Array.isArray(shift.assignedStaffIds)) {
-                        assignedIds = shift.assignedStaffIds;
-                      } else if (Array.isArray(shift.assigned_staff) && shift.assigned_staff.length > 0) {
-                        assignedIds = shift.assigned_staff.map(s => (typeof s === 'object' ? s.id : s));
-                      }
-
-                      const names = assignedIds
-                        .map((id) => staff.find((member) => member.id === id)?.name)
-                        .filter(Boolean);
-
-                      return names.length > 0 ? names.join(', ') : '-';
-                    })()}
-                  </td>
-                  <td>{statusOptions.find((opt) => opt.value === shift.status)?.label || shift.status}</td>
+              {jobRoles.map((roleItem) => (
+                <tr key={roleItem.id}>
+                  <td>{roleItem.name}</td>
+                  <td>{roleItem.description || '-'}</td>
+                  <td>{String(roleItem.created_at || '').slice(0, 10) || '-'}</td>
                   <td className={styles.tableActions}>
-                    <button className={styles.textBtn} onClick={() => handleShiftEdit(shift)}>
+                    <button className={styles.textBtn} onClick={() => handleRoleEdit(roleItem)}>
                       編輯
                     </button>
-                    <button className={styles.textBtnDanger} onClick={() => handleShiftDelete(shift.id)}>
+                    <button className={styles.textBtnDanger} onClick={() => handleRoleDelete(roleItem.id)}>
                       刪除
                     </button>
                   </td>
@@ -974,7 +1153,8 @@ const ScheduleManagementPage = () => {
             <thead>
               <tr>
                 <th>姓名</th>
-                <th>職務</th>
+                <th>暱稱</th>
+                <th>職稱</th>
                 <th>狀態</th>
                 <th>操作</th>
               </tr>
@@ -982,7 +1162,7 @@ const ScheduleManagementPage = () => {
             <tbody>
               {staff.length === 0 && (
                 <tr>
-                  <td colSpan="4" className={styles.empty}>
+                  <td colSpan="5" className={styles.empty}>
                     尚未新增員工
                   </td>
                 </tr>
@@ -990,53 +1170,29 @@ const ScheduleManagementPage = () => {
               {staff.map((member) => (
                 <tr key={member.id}>
                   <td>{member.name}</td>
+                  <td>{member.nickname || '-'}</td>
                   <td>{member.role}</td>
-                  <td>{member.status || '-'}</td>
+                  <td>
+                    <select
+                      className={styles.roleInput}
+                      value={member.status || '在職'}
+                      onChange={(e) => handleStaffStatusChange(member.id, e.target.value)}
+                    >
+                      {staffStatusOptions.map((statusOption) => (
+                        <option key={`${member.id}-${statusOption}`} value={statusOption}>
+                          {statusOption}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
                   <td className={styles.tableActions}>
                     <button className={styles.textBtn} onClick={() => handleStaffEdit(member)}>
                       編輯
                     </button>
-                    <button className={styles.textBtnDanger} onClick={() => handleStaffDelete(member.id)}>
-                      刪除
+                    <button className={styles.textBtnDanger} onClick={() => handleStaffTerminate(member.id)}>
+                      解雇
                     </button>
                   </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className={styles.scheduleCardFullWidth}>
-        <div className={styles.cardHeader}>
-          <h3>員工排班申請</h3>
-        </div>
-        <div className={styles.tableWrapper}>
-          <table>
-            <thead>
-              <tr>
-                <th>姓名</th>
-                <th>日期</th>
-                <th>時段</th>
-                <th>職務</th>
-                <th>備註</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employeeRequests.length === 0 && (
-                <tr>
-                  <td colSpan="5" className={styles.empty}>
-                    尚無員工排班申請
-                  </td>
-                </tr>
-              )}
-              {employeeRequests.map((request) => (
-                <tr key={request.id}>
-                  <td>{request.employee_name}</td>
-                  <td>{request.date}</td>
-                  <td>{request.shift_type_display}</td>
-                  <td>{request.role}</td>
-                  <td>{request.notes || '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -1048,4 +1204,3 @@ const ScheduleManagementPage = () => {
 };
 
 export default ScheduleManagementPage;
-

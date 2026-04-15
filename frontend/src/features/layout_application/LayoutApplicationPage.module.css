@@ -10,6 +10,8 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .layoutApplicationPage h1 {
@@ -55,6 +57,14 @@
     margin-bottom: 2rem;
 }
 
+.requestsSection {
+    order: 1;
+}
+
+.formSection {
+    order: 2;
+}
+
 .formSection h2,
 .requestsSection h2 {
     color: #333;
@@ -91,6 +101,221 @@
     border-color: #ff6b35;
 }
 
+.calendarBox {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 0.75rem;
+    background: #fff;
+}
+
+.weekdayRow {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.weekdayCell {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 600;
+}
+
+.calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.35rem;
+}
+
+.emptyDateCell {
+    min-height: 2.4rem;
+}
+
+.dateCell {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    min-height: 2.4rem;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dateCell:hover:not(:disabled) {
+    border-color: #ff6b35;
+}
+
+.dateCellSelected {
+    background: #ff6b35;
+    color: #fff;
+    border-color: #ff6b35;
+    font-weight: 700;
+}
+
+.dateCellDisabled {
+    background: #f4f4f4;
+    color: #aaa;
+    border-color: #e8e8e8;
+    cursor: not-allowed;
+}
+
+.selectedHint {
+    margin-top: 0.5rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.slotCalendarGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.slotCalendarCard {
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 0.8rem;
+    background: #fafafa;
+}
+
+.slotCalendarHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+
+.slotCalendarHeader h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #333;
+}
+
+.slotCalendarHeader span {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.slotFilterRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.slotFilterItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #f6f6f6;
+    border: 1px solid #e4e4e4;
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.92rem;
+    color: #333;
+}
+
+.slotFilterItem input {
+    width: auto;
+    margin: 0;
+}
+
+.requestHistoryPanel {
+    border: 1px solid #eceff1;
+    border-radius: 12px;
+    background: #fafcfd;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.historyCalendarHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.historyCalendarHeader strong {
+    color: #2e4750;
+    font-size: 1.05rem;
+}
+
+.btnMonthNav {
+    background: #fff;
+    border: 1px solid #d6dfe3;
+    color: #395766;
+    border-radius: 8px;
+    padding: 0.45rem 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btnMonthNav:hover {
+    border-color: #ff9d7b;
+    color: #d35c34;
+}
+
+.historyCalendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.35rem;
+}
+
+.historyEmptyDateCell {
+    min-height: 2.7rem;
+}
+
+.historyDateCell {
+    border: 1px solid #d8e1e5;
+    border-radius: 9px;
+    min-height: 2.7rem;
+    background: #fff;
+    color: #344f5c;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.historyDateCell:hover {
+    border-color: #ff9a73;
+}
+
+.historyDateCell span {
+    font-weight: 700;
+}
+
+.historyDateCell small {
+    color: #8ca0ab;
+    font-size: 0.72rem;
+    margin-top: 0.1rem;
+}
+
+.historyDateCellHasRequest {
+    border-color: #ffb998;
+    background: #fff3ec;
+}
+
+.historyDateCellSelected {
+    border-color: #ff6b35;
+    background: linear-gradient(180deg, #ffe9df, #ffd8c8);
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.15);
+}
+
+.requestHistorySummary {
+    margin: 0.9rem 0 0;
+    color: #5f7683;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.requestsTableWrapper {
+    overflow-x: auto;
+}
+
 .btnSubmit {
     background: linear-gradient(135deg, #ff6b35, #ff8c61);
     color: white;
@@ -122,6 +347,7 @@
 .requestsTable {
     width: 100%;
     border-collapse: collapse;
+    min-width: 1200px;
 }
 
 .requestsTable thead {
@@ -134,11 +360,27 @@
     font-weight: 600;
     color: #333;
     border-bottom: 2px solid #ddd;
+    white-space: nowrap;
+    vertical-align: middle;
 }
 
 .requestsTable td {
     padding: 1rem;
     border-bottom: 1px solid #eee;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.slotStatusList {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.slotStatusLine {
+    color: #4f666f;
+    font-size: 0.88rem;
+    line-height: 1.35;
+    white-space: nowrap;
 }
 
 .requestsTable tbody tr:hover {
@@ -171,4 +413,14 @@
 .errorMessage p {
     color: #c33;
     font-size: 1.1rem;
+}
+
+@media (max-width: 900px) {
+    .slotCalendarGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .historyCalendarHeader {
+        flex-wrap: wrap;
+    }
 }

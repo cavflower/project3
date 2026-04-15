@@ -94,6 +94,42 @@ export const deleteShift = (id) => {
 };
 
 /**
+ * 取得店家職務清單
+ * @returns {Promise}
+ */
+export const getJobRoles = () => {
+  return api.get('/schedules/job-roles/');
+};
+
+/**
+ * 建立店家職務
+ * @param {Object} roleData - 職務資料
+ * @returns {Promise}
+ */
+export const createJobRole = (roleData) => {
+  return api.post('/schedules/job-roles/', roleData);
+};
+
+/**
+ * 更新店家職務
+ * @param {number} id - 職務 ID
+ * @param {Object} roleData - 職務資料
+ * @returns {Promise}
+ */
+export const updateJobRole = (id, roleData) => {
+  return api.patch(`/schedules/job-roles/${id}/`, roleData);
+};
+
+/**
+ * 刪除店家職務
+ * @param {number} id - 職務 ID
+ * @returns {Promise}
+ */
+export const deleteJobRole = (id) => {
+  return api.delete(`/schedules/job-roles/${id}/`);
+};
+
+/**
  * 匯出班表為 CSV
  * @returns {Promise}
  */
@@ -138,6 +174,16 @@ export const getMyScheduleRequests = () => {
  */
 export const getEmployeeRequests = () => {
   return api.get('/schedules/employee-requests/');
+};
+
+/**
+ * 更新員工排班申請（店家可安排職務）
+ * @param {number} id - 申請 ID
+ * @param {Object} requestData - 更新資料
+ * @returns {Promise}
+ */
+export const updateScheduleRequest = (id, requestData) => {
+  return api.patch(`/schedules/employee-requests/${id}/`, requestData);
 };
 
 /**

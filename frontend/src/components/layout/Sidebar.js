@@ -75,7 +75,7 @@ const Sidebar = ({ isOpen }) => {
             { key: 'customer-loyalty', to: '/customer/loyalty', label: '我的會員', index: '05' },
             { key: 'reviews', to: '/reviews', label: '我的評論', index: '06' },
             ...(user?.company_tax_id
-              ? [{ key: 'layout-application', to: '/layout-application', label: '版型申請', index: '07' }]
+              ? [{ key: 'layout-application', to: '/layout-application', label: '排班申請', index: '07' }]
               : [])
           ]
         }
@@ -95,8 +95,9 @@ const Sidebar = ({ isOpen }) => {
         title: '營運管理',
         items: [
           { key: 'merchant-schedule', to: '/merchant/schedule', label: '排班管理', index: '04' },
-          { key: 'merchant-inventory', to: '/merchant/inventory', label: '庫存管理', index: '05' },
-          { key: 'merchant-reports', to: '/merchant/reports', label: '財務報表', index: '06' }
+          { key: 'merchant-actual-schedule', to: '/merchant/actual-schedule', label: '實際班表', index: '05' },
+          { key: 'merchant-inventory', to: '/merchant/inventory', label: '庫存管理', index: '06' },
+          { key: 'merchant-reports', to: '/merchant/reports', label: '財務報表', index: '07' }
         ]
       },
       {
@@ -112,21 +113,21 @@ const Sidebar = ({ isOpen }) => {
           {
             key: 'merchant-reservations',
             to: '/merchant/reservations',
-            label: '訂位模組',
+            label: '訂位管理',
             index: '09',
             disabled: !storeSettings.enable_reservation
           },
           {
             key: 'merchant-loyalty',
             to: '/merchant/loyalty',
-            label: '會員模組',
+            label: '會員管理',
             index: '10',
             disabled: !storeSettings.enable_loyalty
           },
           {
             key: 'merchant-surplus-food',
             to: '/merchant/surplus-food',
-            label: '惜食模組',
+            label: '惜食愛地球',
             index: '11',
             disabled: !storeSettings.enable_surplus_food
           }

@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from apps.stores.models import Store
 from apps.products.models import Product, ProductCategory, SpecificationGroup, ProductSpecification
+from apps.reservations.models import TimeSlot
 from apps.users.models import Merchant
 from .models import LineUserBinding, StoreFAQ, ConversationLog, BroadcastMessage, StoreLineBotConfig, MerchantLineBinding, PlatformBroadcast
 from .serializers import (
@@ -274,6 +275,45 @@ def handle_message_event(event: dict, store_id: int = None):
         line_api = LineMessagingAPI(bot_config)
         message_handler = MessageHandler(bot_config)
         
+        max_menu_categories = 6
+        max_products_per_category = 8
+        max_spec_groups_per_product = 3
+        max_spec_options_per_group = 6
+        max_description_length = 80
+
+        # 整理可供 AI 使用的訂位資訊（限制筆數避免 prompt 過長）
+        day_order = {
+            'monday': 0,
+            'tuesday': 1,
+            'wednesday': 2,
+            'thursday': 3,
+            'friday': 4,
+            'saturday': 5,
+            'sunday': 6,
+        }
+        reservation_slots = []
+        try:
+            active_slots = list(
+                TimeSlot.objects.filter(store=store, is_active=True)
+            )
+            active_slots.sort(
+                key=lambda s: (
+                    day_order.get(s.day_of_week, 99),
+                    s.start_time,
+                )
+            )
+            for slot in active_slots[:20]:
+                reservation_slots.append({
+                    'day': slot.get_day_of_week_display(),
+                    'start_time': slot.start_time.strftime('%H:%M'),
+                    'end_time': slot.end_time.strftime('%H:%M') if slot.end_time else '',
+                    'max_party_size': slot.max_party_size,
+                    'max_capacity': slot.max_capacity,
+                })
+        except Exception as e:
+            if settings.DEBUG:
+                print(f"[LINE Webhook] Error fetching reservation slots: {e}")
+
         store_info = {
             'id': store.id,
             'name': store.name,
@@ -282,34 +322,47 @@ def handle_message_event(event: dict, store_id: int = None):
             'phone': store.phone,
             'opening_hours': store.opening_hours,
             'description': store.description,
+            'fixed_holidays': store.fixed_holidays,
+            'website': store.website,
+            'line_friend_url': store.line_friend_url,
+            'reservation': {
+                'enabled': store.enable_reservation,
+                'fixed_holidays': store.fixed_holidays,
+                'time_slots': reservation_slots,
+                'contact_phone': store.phone,
+            },
         }
         
         # 取得菜單資料
         menu_data = []
         try:
-            categories = ProductCategory.objects.filter(store=store, is_active=True).order_by('display_order')
+            categories = ProductCategory.objects.filter(store=store, is_active=True).order_by('display_order')[:max_menu_categories]
             for category in categories:
                 products = Product.objects.filter(
                     store=store, 
                     category=category, 
                     is_available=True
-                ).prefetch_related('specification_groups__options')
+                ).prefetch_related('specification_groups__options').order_by('id')[:max_products_per_category]
                 
                 category_products = []
                 for product in products:
+                    description = (product.description or '').strip()
+                    if len(description) > max_description_length:
+                        description = f"{description[:max_description_length]}..."
+
                     product_info = {
                         'name': product.name,
                         'price': float(product.price),
-                        'description': product.description,
+                        'description': description,
                     }
                     # 加入規格資訊
                     specs = []
-                    for group in product.specification_groups.filter(is_active=True):
+                    for group in product.specification_groups.filter(is_active=True).order_by('display_order')[:max_spec_groups_per_product]:
                         options = [
                             f"{opt.name}(+${opt.price_adjustment})" if opt.price_adjustment > 0 
                             else f"{opt.name}(-${abs(opt.price_adjustment)})" if opt.price_adjustment < 0 
                             else opt.name
-                            for opt in group.options.filter(is_active=True)
+                            for opt in group.options.filter(is_active=True).order_by('display_order')[:max_spec_options_per_group]
                         ]
                         if options:
                             specs.append(f"{group.name}: {', '.join(options)}")
@@ -328,15 +381,19 @@ def handle_message_event(event: dict, store_id: int = None):
                 store=store, 
                 category__isnull=True, 
                 is_available=True
-            ).prefetch_related('specification_groups__options')
+            ).prefetch_related('specification_groups__options').order_by('id')[:max_products_per_category]
             
             if uncategorized.exists():
                 uncategorized_products = []
                 for product in uncategorized:
+                    description = (product.description or '').strip()
+                    if len(description) > max_description_length:
+                        description = f"{description[:max_description_length]}..."
+
                     product_info = {
                         'name': product.name,
                         'price': float(product.price),
-                        'description': product.description,
+                        'description': description,
                     }
                     uncategorized_products.append(product_info)
                 menu_data.append({

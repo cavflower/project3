@@ -34,6 +34,7 @@ import MyReservationsPage from './features/reservations/MyReservationsPage'; // 
 import EditReservationPage from './features/reservations/EditReservationPage'; // 導入編輯訂位頁面
 import GuestReservationLookup from './features/reservations/GuestReservationLookup'; // 導入訪客查詢頁面
 import ScheduleManagementPage from './features/merchant_dashboard/schedule_management/ScheduleManagementPage';
+import ActualSchedulePage from './features/merchant_dashboard/actual_schedule/ActualSchedulePage';
 import StoreBrowse from './features/home/StoreBrowse';
 import StorePage from './features/home/StorePage';
 import ConfirmationPage from './features/checkout/ConfirmationPage';
@@ -315,6 +316,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ScheduleManagementPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/merchant/actual-schedule"
+              element={
+                <ProtectedRoute>
+                  <ActualSchedulePage />
                 </ProtectedRoute>
               }
             />

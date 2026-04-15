@@ -84,6 +84,62 @@ class UserSerializer(serializers.ModelSerializer):
 
         return merchant
 
+    def _sync_staff_records_by_company_binding(self, user, previous_company_tax_id=''):
+        """根據員工統編綁定同步 schedules 的 staff 資料。"""
+        from apps.schedules.models import Staff
+        from apps.stores.models import Store
+
+        current_company_tax_id = normalize_tax_id(user.company_tax_id)
+        previous_company_tax_id = normalize_tax_id(previous_company_tax_id)
+
+        if previous_company_tax_id and previous_company_tax_id != current_company_tax_id:
+            Staff.objects.filter(
+                employee_user_id=user.id,
+                store__merchant__company_account=previous_company_tax_id,
+            ).delete()
+
+        if not current_company_tax_id:
+            Staff.objects.filter(employee_user_id=user.id).delete()
+            return
+
+        stores = Store.objects.filter(merchant__company_account=current_company_tax_id).select_related('merchant')
+        if not stores.exists():
+            return
+
+        display_name = (user.username or user.email or f"員工{user.id}").strip()
+
+        for store in stores:
+            staff_obj, created = Staff.objects.get_or_create(
+                store=store,
+                employee_user_id=user.id,
+                defaults={
+                    'name': display_name,
+                    'nickname': display_name,
+                    'role': '員工',
+                    'status': '在職',
+                }
+            )
+
+            if created:
+                continue
+
+            fields_to_update = []
+            if not (staff_obj.name or '').strip():
+                staff_obj.name = display_name
+                fields_to_update.append('name')
+            if not (staff_obj.nickname or '').strip():
+                staff_obj.nickname = display_name
+                fields_to_update.append('nickname')
+            if not (staff_obj.role or '').strip():
+                staff_obj.role = '員工'
+                fields_to_update.append('role')
+            if not (staff_obj.status or '').strip():
+                staff_obj.status = '在職'
+                fields_to_update.append('status')
+
+            if fields_to_update:
+                staff_obj.save(update_fields=fields_to_update)
+
     def create(self, validated_data):
         """
         Create and return a new `User` instance, given the validated data.
@@ -130,6 +186,8 @@ class UserSerializer(serializers.ModelSerializer):
                 # 如果創建 Merchant 失敗，刪除已創建的 User
                 user.delete()
                 raise e
+
+            self._sync_staff_records_by_company_binding(user)
             
         return user
 
@@ -138,6 +196,7 @@ class UserSerializer(serializers.ModelSerializer):
         Update and return an existing `User` instance, given the validated data.
         """
         merchant_data = validated_data.pop('merchant_profile', None)
+        previous_company_tax_id = normalize_tax_id(instance.company_tax_id)
 
         # Update User fields
         instance.username = validated_data.get('username', instance.username)
@@ -169,5 +228,10 @@ class UserSerializer(serializers.ModelSerializer):
         # Update or create nested Merchant profile if needed
         if instance.user_type == 'merchant' and merchant_data:
             self._ensure_merchant_profile(instance, merchant_data)
+
+        self._sync_staff_records_by_company_binding(
+            instance,
+            previous_company_tax_id=previous_company_tax_id,
+        )
 
         return instance

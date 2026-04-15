@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from typing import List, Dict, Optional
 from django.conf import settings
@@ -98,6 +99,184 @@ class AIReplyService:
         self.temperature = 0.7
         self.max_tokens = 500
         self.using_platform_ai = False
+
+        # Prompt / 回覆長度控制，避免上下文過長造成不穩定
+        self.max_prompt_chars = 3600
+        self.max_history_messages = 2
+        self.max_history_message_chars = 120
+        self.max_output_tokens_cap = 450
+
+    @staticmethod
+    def _truncate_text(text: str, max_chars: int) -> str:
+        """裁切字串以控制 prompt 長度。"""
+        if text is None:
+            return ''
+        text = str(text).strip()
+        if len(text) <= max_chars:
+            return text
+        return f"{text[:max_chars]}..."
+
+    @staticmethod
+    def _format_opening_hours(opening_hours) -> str:
+        """將 opening_hours 轉成穩定可讀字串。"""
+        if not opening_hours:
+            return '未提供'
+
+        if isinstance(opening_hours, str):
+            return opening_hours
+
+        if isinstance(opening_hours, dict):
+            day_alias = {
+                'monday': '星期一',
+                'tuesday': '星期二',
+                'wednesday': '星期三',
+                'thursday': '星期四',
+                'friday': '星期五',
+                'saturday': '星期六',
+                'sunday': '星期日',
+            }
+            day_order = {
+                'monday': 0,
+                'tuesday': 1,
+                'wednesday': 2,
+                'thursday': 3,
+                'friday': 4,
+                'saturday': 5,
+                'sunday': 6,
+            }
+
+            lines = []
+            for day_key, value in sorted(opening_hours.items(), key=lambda item: day_order.get(item[0], 99)):
+                label = day_alias.get(day_key, day_key)
+                if isinstance(value, dict):
+                    if value.get('is_closed') is True:
+                        lines.append(f"{label}: 休息")
+                        continue
+
+                    open_time = value.get('open') or value.get('start') or value.get('open_time')
+                    close_time = value.get('close') or value.get('end') or value.get('close_time')
+                    if open_time and close_time:
+                        lines.append(f"{label}: {open_time}-{close_time}")
+                    else:
+                        lines.append(f"{label}: {value}")
+                else:
+                    lines.append(f"{label}: {value}")
+
+            if lines:
+                return '\n'.join(lines)
+
+        return str(opening_hours)
+
+    @staticmethod
+    def _format_reservation_info(reservation_info: Dict) -> str:
+        """整理訂位資訊供固定回覆和 prompt 共用。"""
+        if not isinstance(reservation_info, dict):
+            return '未提供'
+
+        enabled = reservation_info.get('enabled')
+        if enabled is False:
+            return '本店目前未開放訂位。'
+
+        phone = reservation_info.get('contact_phone') or '未提供'
+        fixed_holidays = reservation_info.get('fixed_holidays') or '未提供'
+        slots = reservation_info.get('time_slots') or []
+
+        slot_lines = []
+        for slot in slots[:12]:
+            day = slot.get('day', '未知')
+            start = slot.get('start_time', '')
+            end = slot.get('end_time', '')
+            max_party = slot.get('max_party_size')
+            time_range = f"{start}-{end}" if end else start
+            if max_party:
+                slot_lines.append(f"- {day} {time_range}（單筆最多 {max_party} 人）")
+            else:
+                slot_lines.append(f"- {day} {time_range}")
+
+        if slot_lines:
+            slots_text = '\n'.join(slot_lines)
+        else:
+            slots_text = '目前未設定固定訂位時段，請來電洽詢。'
+
+        return f"開放訂位。訂位聯絡電話：{phone}\n固定休息日：{fixed_holidays}\n可預約時段：\n{slots_text}"
+
+    @staticmethod
+    def _format_fixed_holidays(store_info: Dict) -> str:
+        """固定休息日優先從 opening_hours 的非營業日推導，避免依賴手填文字。"""
+        opening_hours = store_info.get('opening_hours')
+        day_alias = {
+            'monday': '星期一',
+            'tuesday': '星期二',
+            'wednesday': '星期三',
+            'thursday': '星期四',
+            'friday': '星期五',
+            'saturday': '星期六',
+            'sunday': '星期日',
+        }
+        day_order = [
+            'monday',
+            'tuesday',
+            'wednesday',
+            'thursday',
+            'friday',
+            'saturday',
+            'sunday',
+        ]
+
+        # 1) 由營業時間推導非營業日
+        if isinstance(opening_hours, dict) and opening_hours:
+            closed_days = []
+            for day_key in day_order:
+                value = opening_hours.get(day_key)
+                if not isinstance(value, dict):
+                    continue
+
+                is_closed = value.get('is_closed') is True
+                open_time = value.get('open') or value.get('start') or value.get('open_time')
+                close_time = value.get('close') or value.get('end') or value.get('close_time')
+
+                # 店家設定為休息，或未提供時段都視為非營業
+                if is_closed or not (open_time and close_time):
+                    closed_days.append(day_alias.get(day_key, day_key))
+
+            if closed_days:
+                return '、'.join(closed_days)
+
+        # 2) 若營業時間無法推導，嘗試由訂位時段反推（有設定的日子視為營業）
+        reservation = store_info.get('reservation') if isinstance(store_info.get('reservation'), dict) else {}
+        slots = reservation.get('time_slots') if isinstance(reservation, dict) else []
+        if isinstance(slots, list) and slots:
+            open_days = {
+                str(slot.get('day', '')).strip()
+                for slot in slots
+                if isinstance(slot, dict) and slot.get('day')
+            }
+            all_days_zh = [day_alias[day_key] for day_key in day_order]
+            inferred_closed = [day for day in all_days_zh if day not in open_days]
+            if inferred_closed:
+                return '、'.join(inferred_closed)
+
+        # 3) 最後才回退到原文字欄位
+        return store_info.get('fixed_holidays') or reservation.get('fixed_holidays') or '未提供'
+
+    def _get_effective_max_tokens(self) -> int:
+        """限制單次輸出 token，避免過長與成本暴增。"""
+        configured = self.max_tokens if isinstance(self.max_tokens, int) else 500
+        configured = max(120, configured)
+        return min(configured, self.max_output_tokens_cap)
+
+    def _compact_history(self, conversation_history: Optional[List[Dict]]) -> List[Dict]:
+        """壓縮對話歷史，避免 token 無限制成長。"""
+        if not conversation_history:
+            return []
+
+        compacted = []
+        for msg in conversation_history[-self.max_history_messages:]:
+            compacted.append({
+                'role': msg.get('role', 'user'),
+                'content': self._truncate_text(msg.get('content', ''), self.max_history_message_chars)
+            })
+        return compacted
     
     def is_available(self):
         """檢查 AI 服務是否可用"""
@@ -143,15 +322,18 @@ class AIReplyService:
             # 準備對話內容
             full_prompt = f"{system_prompt}\n\n"
             
-            # 加入對話歷史（最多 3 則，減少 token 用量）
+            # 加入對話歷史（限制則數與單則長度，控制 token）
             enable_history = getattr(self.store_config, 'enable_conversation_history', True) if self.store_config else True
             if conversation_history and enable_history:
-                for msg in conversation_history[-3:]:  # 從 5 則改為 3 則
+                for msg in self._compact_history(conversation_history):
                     role = "顧客" if msg.get("role") == "user" else "助手"
                     full_prompt += f"{role}: {msg.get('content', '')}\n"
             
             # 加入當前問題
             full_prompt += f"顧客: {user_message}\n助手: "
+
+            # 最終 prompt 長度控制
+            full_prompt = self._truncate_text(full_prompt, self.max_prompt_chars)
             
             # 呼叫 Gemini API
             # 處理模型名稱：確保格式正確
@@ -180,7 +362,7 @@ class AIReplyService:
                 }],
                 "generationConfig": {
                     "temperature": self.temperature,
-                    "maxOutputTokens": self.max_tokens,
+                    "maxOutputTokens": self._get_effective_max_tokens(),
                 }
             }
             
@@ -218,10 +400,10 @@ class AIReplyService:
                 {"role": "system", "content": system_prompt}
             ]
             
-            # 加入對話歷史（最多 5 則）
+            # 加入對話歷史（限制則數與單則長度，控制 token）
             enable_history = getattr(self.store_config, 'enable_conversation_history', True) if self.store_config else True
             if conversation_history and enable_history:
-                for msg in conversation_history[-5:]:
+                for msg in self._compact_history(conversation_history):
                     messages.append({
                         "role": msg.get("role", "user"),
                         "content": msg.get("content", "")
@@ -238,7 +420,7 @@ class AIReplyService:
                 model=self.model,
                 messages=messages,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens
+                max_tokens=self._get_effective_max_tokens()
             )
             
             reply = response.choices[0].message.content.strip()
@@ -269,10 +451,10 @@ class AIReplyService:
                 {"role": "system", "content": system_prompt}
             ]
             
-            # 加入對話歷史（最多 3 則）
+            # 加入對話歷史（限制則數與單則長度，控制 token）
             enable_history = getattr(self.store_config, 'enable_conversation_history', True) if self.store_config else True
             if conversation_history and enable_history:
-                for msg in conversation_history[-3:]:
+                for msg in self._compact_history(conversation_history):
                     messages.append({
                         "role": msg.get("role", "user"),
                         "content": msg.get("content", "")
@@ -289,7 +471,7 @@ class AIReplyService:
                 model=self.model,
                 messages=messages,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                max_tokens=self._get_effective_max_tokens(),
                 top_p=1,
                 stream=False,  # 使用非串流模式以簡化處理
                 stop=None
@@ -325,13 +507,21 @@ class AIReplyService:
                 for product in category_data.get('products', []):
                     product_line = f"- {product['name']} ${product['price']}"
                     if product.get('description'):
-                        product_line += f" ({product['description']})"
+                        product_line += f" ({self._truncate_text(product['description'], 60)})"
                     menu_lines.append(product_line)
                     # 加入規格資訊
                     if product.get('specifications'):
-                        for spec in product['specifications']:
+                        for spec in product['specifications'][:3]:
                             menu_lines.append(f"  └ {spec}")
             menu_text = "\n".join(menu_lines)
+
+        fixed_holidays = self._format_fixed_holidays(store_info)
+        opening_hours_text = self._format_opening_hours(store_info.get('opening_hours'))
+        reservation_context = dict(store_info.get('reservation', {}) or {})
+        reservation_context['fixed_holidays'] = fixed_holidays
+        reservation_info_text = self._format_reservation_info(reservation_context)
+        website = store_info.get('website') or '未提供'
+        line_friend_url = store_info.get('line_friend_url') or '未提供'
         
         # 建立基本提示詞（包含菜單資料）
         base_prompt = f"""你是 {store_name} 的智能客服助手。
@@ -340,11 +530,20 @@ class AIReplyService:
 - 餐廳類型：{store_info.get('cuisine_type', '未提供')}
 - 地址：{store_info.get('address', '未提供')}
 - 電話：{store_info.get('phone', '未提供')}
-- 營業時間：{store_info.get('opening_hours', '未提供')}
+- 營業時間：\n{opening_hours_text}
 - 餐廳介紹：{store_info.get('description', '未提供')}"""
+
+        base_prompt += f"""
+- 固定休息日：{fixed_holidays}
+- 官方網站：{website}
+- LINE 好友連結：{line_friend_url}
+
+訂位資訊：
+{reservation_info_text}"""
 
         # 如果有菜單資料，加入提示詞
         if menu_text:
+            menu_text = self._truncate_text(menu_text, 1400)
             base_prompt += f"""
 
 菜單資訊：{menu_text}"""
@@ -357,16 +556,17 @@ class AIReplyService:
 3. 保持回覆簡潔明瞭
 4. 當顧客詢問菜單時，根據上方菜單資訊回答
 5. 可以推薦餐點並說明價格和規格
-6. 如果問題超出你的知識範圍，建議顧客直接聯繫店家"""
+6. 如果問題超出你的知識範圍，建議顧客直接聯繫店家
+7. 對於電話、營業時間、訂位規則，僅能引用上述資料，不可自行猜測或改寫"""
 
         # 如果店家有自訂提示詞，附加在後面
         if self.store_config and self.store_config.custom_system_prompt:
             base_prompt += f"""
 
 店家額外指示：
-{self.store_config.custom_system_prompt}"""
-        
-        return base_prompt
+        {self._truncate_text(self.store_config.custom_system_prompt, 400)}"""
+
+        return self._truncate_text(base_prompt, self.max_prompt_chars)
 
 
 class MessageHandler:
@@ -411,6 +611,16 @@ class MessageHandler:
         Returns:
             dict: 包含回覆內容和相關資訊
         """
+        # 對關鍵事實問題優先使用固定回覆，避免 AI 幻覺
+        direct_fact_reply = self._build_direct_fact_reply(message, store_info)
+        if direct_fact_reply:
+            return {
+                'reply': direct_fact_reply,
+                'used_ai': False,
+                'matched_faq_id': None,
+                'ai_model': None
+            }
+
         # 先嘗試 FAQ 匹配
         matched_faq = self.faq_matcher.find_best_match(store_id, message)
         
@@ -424,7 +634,7 @@ class MessageHandler:
             }
         else:
             # 使用 AI 生成回覆（如果已啟用）
-            if self.ai_service:
+            if self.ai_service and getattr(self.config, 'enable_ai_reply', True):
                 # 取得最近的對話歷史
                 recent_logs = ConversationLog.objects.filter(
                     line_user_id=line_user_id,
@@ -459,6 +669,41 @@ class MessageHandler:
                     'matched_faq_id': None,
                     'ai_model': None
                 }
+
+    def _build_direct_fact_reply(self, message: str, store_info: Dict) -> Optional[str]:
+        """針對電話、營業時間、訂位資訊提供一致且可驗證的固定回覆。"""
+        normalized = re.sub(r'\s+', '', (message or '').lower())
+
+        phone_keywords = ['電話', '聯絡', '客服', '電話號碼', '打給', '電話幾號']
+        hours_keywords = ['營業時間', '幾點開', '幾點關', '開到幾點', '營業日', '休息日', '休息時間']
+        reservation_keywords = ['訂位', '定位', '預約', '可訂位', '訂位資訊', '時段', '訂位時間', '幾人', '人數上限']
+
+        asks_phone = any(keyword in normalized for keyword in phone_keywords)
+        asks_hours = any(keyword in normalized for keyword in hours_keywords)
+        asks_reservation = any(keyword in normalized for keyword in reservation_keywords)
+
+        if not (asks_phone or asks_hours or asks_reservation):
+            return None
+
+        store_name = store_info.get('name', '本店')
+        reply_parts = []
+
+        if asks_phone:
+            phone = store_info.get('phone') or '未提供'
+            reply_parts.append(f"{store_name} 聯絡電話：{phone}")
+
+        if asks_hours:
+            opening_text = AIReplyService._format_opening_hours(store_info.get('opening_hours'))
+            fixed_holidays = AIReplyService._format_fixed_holidays(store_info)
+            reply_parts.append(f"營業時間：\n{opening_text}\n固定休息日：{fixed_holidays}")
+
+        if asks_reservation:
+            reservation_context = dict(store_info.get('reservation', {}) or {})
+            reservation_context['fixed_holidays'] = AIReplyService._format_fixed_holidays(store_info)
+            reservation_text = AIReplyService._format_reservation_info(reservation_context)
+            reply_parts.append(f"訂位資訊：\n{reservation_text}")
+
+        return '\n\n'.join(reply_parts)
     
     def get_store_context_menu(self, store_info: Dict) -> str:
         """
