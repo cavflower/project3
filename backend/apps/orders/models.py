@@ -6,6 +6,15 @@ from apps.stores.models import Store
 from apps.products.models import Product
 
 
+def _get_product_image_url(product):
+    if not product or not getattr(product, 'image', None):
+        return ''
+    try:
+        return product.image.url
+    except Exception:
+        return ''
+
+
 class TakeoutOrder(models.Model):
     """外帶訂單模型"""
     PAYMENT_CHOICES = (
@@ -38,6 +47,13 @@ class TakeoutOrder(models.Model):
     )
     customer_name = models.CharField(max_length=50, verbose_name='顧客姓名')
     customer_phone = models.CharField(max_length=20, verbose_name='顧客電話')
+    invoice_carrier = models.CharField(
+        max_length=8,
+        blank=True,
+        default='',
+        verbose_name='發票載具',
+        help_text='格式：/XXXXXXX'
+    )
     pickup_at = models.DateTimeField(verbose_name='取餐時間')
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, verbose_name='付款方式')
     notes = models.TextField(blank=True, verbose_name='備註')
@@ -72,9 +88,28 @@ class TakeoutOrderItem(models.Model):
     )
     product = models.ForeignKey(
         Product,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='takeout_order_items',
         verbose_name='商品'
+    )
+    snapshot_product_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name='商品快照ID'
+    )
+    snapshot_product_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='商品快照名稱'
+    )
+    snapshot_product_image = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='商品快照圖片'
     )
     quantity = models.PositiveIntegerField(verbose_name='數量')
     unit_price = models.DecimalField(
@@ -96,8 +131,24 @@ class TakeoutOrderItem(models.Model):
         verbose_name = '外帶訂單項目'
         verbose_name_plural = '外帶訂單項目'
 
+    def capture_product_snapshot(self, force=False):
+        if not self.product:
+            return
+
+        if force or self.snapshot_product_id is None:
+            self.snapshot_product_id = self.product.id
+        if force or not self.snapshot_product_name:
+            self.snapshot_product_name = self.product.name
+        if force or not self.snapshot_product_image:
+            self.snapshot_product_image = _get_product_image_url(self.product)
+
+    def save(self, *args, **kwargs):
+        self.capture_product_snapshot()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.order.pickup_number} - {self.product.name} x {self.quantity}"
+        product_name = self.product.name if self.product else (self.snapshot_product_name or '已下架商品')
+        return f"{self.order.pickup_number} - {product_name} x {self.quantity}"
 
 
 class DineInOrder(models.Model):
@@ -134,6 +185,13 @@ class DineInOrder(models.Model):
     )
     customer_name = models.CharField(max_length=50, verbose_name='顧客姓名', help_text='通常為桌號')
     customer_phone = models.CharField(max_length=20, verbose_name='顧客電話', default='0000000000')
+    invoice_carrier = models.CharField(
+        max_length=8,
+        blank=True,
+        default='',
+        verbose_name='發票載具',
+        help_text='格式：/XXXXXXX'
+    )
     table_label = models.CharField(max_length=20, verbose_name='桌號')
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, verbose_name='付款方式')
     notes = models.TextField(blank=True, verbose_name='備註')
@@ -169,9 +227,28 @@ class DineInOrderItem(models.Model):
     )
     product = models.ForeignKey(
         Product,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='dinein_order_items',
         verbose_name='商品'
+    )
+    snapshot_product_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name='商品快照ID'
+    )
+    snapshot_product_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='商品快照名稱'
+    )
+    snapshot_product_image = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='商品快照圖片'
     )
     quantity = models.PositiveIntegerField(verbose_name='數量')
     unit_price = models.DecimalField(
@@ -193,8 +270,24 @@ class DineInOrderItem(models.Model):
         verbose_name = '內用訂單項目'
         verbose_name_plural = '內用訂單項目'
 
+    def capture_product_snapshot(self, force=False):
+        if not self.product:
+            return
+
+        if force or self.snapshot_product_id is None:
+            self.snapshot_product_id = self.product.id
+        if force or not self.snapshot_product_name:
+            self.snapshot_product_name = self.product.name
+        if force or not self.snapshot_product_image:
+            self.snapshot_product_image = _get_product_image_url(self.product)
+
+    def save(self, *args, **kwargs):
+        self.capture_product_snapshot()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.order.order_number} - {self.product.name} x {self.quantity}"
+        product_name = self.product.name if self.product else (self.snapshot_product_name or '已下架商品')
+        return f"{self.order.order_number} - {product_name} x {self.quantity}"
 
 
 class Notification(models.Model):

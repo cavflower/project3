@@ -181,12 +181,20 @@
 
 .product-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 10px;
   padding: 16px;
   background: #fff9f5;
   border-radius: 12px;
   border-left: 4px solid #ffb07a;
+}
+
+.product-top-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .product-info {
@@ -205,6 +213,36 @@
 
 .product-item .star-btn {
   font-size: 1.8rem;
+}
+
+.product-comment-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  background: #fff;
+  color: #2c3e50;
+}
+
+.product-comment-input:focus {
+  outline: none;
+  border-color: #ffb07a;
+  box-shadow: 0 0 0 3px rgba(255, 176, 122, 0.12);
+}
+
+.product-char-count {
+  width: 100%;
+  text-align: right;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.product-image-upload {
+  width: 100%;
+  margin-top: 6px;
 }
 
 /* 文字評論 */
@@ -231,6 +269,65 @@
   font-size: 0.85rem;
   color: #6c757d;
   margin-top: 8px;
+}
+
+.review-image-upload {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f0ece8;
+}
+
+.image-upload-label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.image-upload-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed #d7d7d7;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.image-preview-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.image-preview-item {
+  border: 1px solid #f0e0d5;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-image-btn {
+  width: 100%;
+  border: none;
+  border-top: 1px solid #f0e0d5;
+  background: #fff8f5;
+  color: #d35b26;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 7px 8px;
+  cursor: pointer;
+}
+
+.remove-image-btn:hover {
+  background: #ffece3;
 }
 
 /* 提交按鈕 */
@@ -413,7 +510,7 @@
 }
 
 @media (max-width: 576px) {
-  .product-item {
+  .product-top-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;

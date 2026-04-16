@@ -357,12 +357,14 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             # 準備訂單品項資訊
             items_info = []
             for item in order.items.all():
+                surplus_food = item.surplus_food
                 items_info.append({
-                    'surplus_food_id': str(item.surplus_food.id),
-                    'surplus_food_title': item.surplus_food.title,
+                    'surplus_food_id': str(item.snapshot_surplus_food_id or (surplus_food.id if surplus_food else '')),
+                    'surplus_food_title': item.snapshot_surplus_food_name or (surplus_food.title if surplus_food else '已下架惜福品'),
                     'quantity': item.quantity,
                     'unit_price': float(item.unit_price),
-                    'subtotal': float(item.subtotal)
+                    'subtotal': float(item.subtotal),
+                    'specifications': item.snapshot_specifications or []
                 })
             
             surplus_orders_ref = db.collection('surplus_orders').document(str(order.id))
@@ -455,6 +457,8 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             # 恢復所有品項的庫存
             for item in order.items.select_related('surplus_food').all():
                 surplus_food = item.surplus_food
+                if surplus_food is None:
+                    continue
                 surplus_food.remaining_quantity += item.quantity
                 if surplus_food.orders_count > 0:
                     surplus_food.orders_count -= 1
@@ -490,6 +494,8 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             # 恢復所有品項的庫存
             for item in order.items.select_related('surplus_food').all():
                 surplus_food = item.surplus_food
+                if surplus_food is None:
+                    continue
                 surplus_food.remaining_quantity += item.quantity
                 if surplus_food.orders_count > 0:
                     surplus_food.orders_count -= 1

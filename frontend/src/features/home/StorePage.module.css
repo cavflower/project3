@@ -271,6 +271,22 @@
   padding: 0.42rem 0.66rem;
 }
 
+.store-review-jump-btn {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.store-review-jump-btn:hover {
+  transform: translateY(-1px);
+  border-color: #efc5a9;
+  box-shadow: 0 8px 18px -14px rgba(234, 107, 45, 0.55);
+}
+
+.store-review-jump-btn:focus-visible {
+  outline: 2px solid #ff8e53;
+  outline-offset: 2px;
+}
+
 .store-header-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1467,6 +1483,37 @@
   box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
 }
 
+.product-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.product-filter-chip {
+  border: 1px solid #f0d8ca;
+  background: #fff7f2;
+  color: #a55630;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.product-filter-chip:hover {
+  background: #ffe9dc;
+  border-color: #f4c8b0;
+}
+
+.product-filter-chip-active {
+  background: linear-gradient(135deg, #ff8e53 0%, #ff6b6b 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 10px rgba(255, 107, 107, 0.28);
+}
+
 /* 評論列表 */
 .reviews-list {
   display: flex;
@@ -1586,6 +1633,27 @@
   font-size: 0.95rem;
 }
 
+.review-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.review-image-item {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ebdfd6;
+}
+
+.review-image-item img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  display: block;
+}
+
 /* 商家回覆 */
 .merchant-reply-box {
   background: #fff;
@@ -1679,6 +1747,16 @@
   .review-tabs {
     flex-direction: column;
     gap: 8px;
+  }
+
+  .product-filter-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 6px;
+  }
+
+  .product-filter-chip {
+    white-space: nowrap;
   }
 
   .review-item {

@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../store/AuthContext";
+import { db } from "../../lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 import {
   getUserOrders,
   getOrderNotifications,
@@ -89,17 +91,9 @@ const normalizeOrderItems = (order) => {
       item.amount
     );
 
-    let subtotal;
-    if (lineTotal !== null) {
-      // 若後端 subtotal 仍等於「基礎單價*數量」但有規格加價，前端補算規格費
-      const looksLikeBaseOnly =
-        specAdjPerUnit !== 0 &&
-        unitPrice !== null &&
-        Math.abs(lineTotal - baseLine) < 0.5;
-      subtotal = looksLikeBaseOnly ? lineWithSpec : lineTotal;
-    } else {
-      subtotal = lineWithSpec;
-    }
+    // 後端若有提供 subtotal/line_total，直接視為最終金額，避免規格費重複加總。
+    // 僅在舊資料缺少 lineTotal 時，才用前端可得資訊推算。
+    const subtotal = lineTotal !== null ? lineTotal : lineWithSpec;
 
     const name =
       item.product_name ||
@@ -154,9 +148,40 @@ const getOrderTotal = (order, items) => {
   return Math.max(...candidateTotals);
 };
 
+const getRealtimeTargets = (orders) => {
+  if (!Array.isArray(orders)) return [];
+
+  return orders
+    .map((order) => {
+      const isSurplusOrder = order.order_type_display === "惜福品";
+      if (isSurplusOrder) {
+        const orderId = String(order.id || "").trim();
+        if (!orderId) return null;
+        return {
+          collectionName: "surplus_orders",
+          docId: orderId,
+          key: `surplus_orders:${orderId}`,
+        };
+      }
+
+      const orderDocId = String(
+        order.pickup_number || order.order_number || order.id || ""
+      ).trim();
+      if (!orderDocId) return null;
+
+      return {
+        collectionName: "orders",
+        docId: orderDocId,
+        key: `orders:${orderDocId}`,
+      };
+    })
+    .filter(Boolean);
+};
+
 const CustomerOrdersPage = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const refreshTimerRef = useRef(null);
 
   const [orders, setOrders] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -165,8 +190,11 @@ const CustomerOrdersPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+    }
+
     try {
       const [ordersResponse, notificationsResponse] = await Promise.all([
         getUserOrders(),
@@ -177,14 +205,74 @@ const CustomerOrdersPage = () => {
     } catch (error) {
       console.error("載入訂單資料失敗:", error);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, []);
+
+  const scheduleSilentRefresh = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+    }
+
+    refreshTimerRef.current = setTimeout(() => {
+      fetchData({ silent: true });
+    }, 250);
+  }, [fetchData]);
 
   useEffect(() => {
     if (!user) return;
     fetchData();
   }, [fetchData, user]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    const targets = getRealtimeTargets(orders);
+    if (targets.length === 0) return undefined;
+
+    const initializedTargets = new Set();
+    const unsubs = targets.map((target) =>
+      onSnapshot(
+        doc(db, target.collectionName, target.docId),
+        () => {
+          if (!initializedTargets.has(target.key)) {
+            initializedTargets.add(target.key);
+            return;
+          }
+          scheduleSilentRefresh();
+        },
+        (error) => {
+          console.error("訂單即時監聽失敗:", error);
+        }
+      )
+    );
+
+    return () => {
+      unsubs.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [orders, scheduleSilentRefresh, user]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    const intervalId = setInterval(() => {
+      fetchData({ silent: true });
+    }, 10000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [fetchData, user]);
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, []);
 
   const pagedOrders = useMemo(
     () => orders.slice((currentPage - 1) * 9, currentPage * 9),

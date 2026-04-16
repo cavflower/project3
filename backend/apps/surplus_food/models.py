@@ -9,6 +9,41 @@ from decimal import Decimal
 import uuid
 
 
+def _safe_surplus_food_image_url(surplus_food):
+    image = getattr(surplus_food, 'image', None)
+    if not image:
+        return ''
+    try:
+        return image.url
+    except Exception:
+        return ''
+
+
+def _build_surplus_food_specifications_snapshot(surplus_food):
+    if not surplus_food:
+        return []
+
+    specifications = []
+
+    condition_display = surplus_food.get_condition_display() if hasattr(surplus_food, 'get_condition_display') else ''
+    if condition_display:
+        specifications.append({'label': '商品狀況', 'value': condition_display})
+
+    dining_option_display = surplus_food.get_dining_option_display() if hasattr(surplus_food, 'get_dining_option_display') else ''
+    if dining_option_display:
+        specifications.append({'label': '供應方式', 'value': dining_option_display})
+
+    slot = getattr(surplus_food, 'time_slot', None)
+    if slot:
+        start_time = slot.start_time.strftime('%H:%M') if getattr(slot, 'start_time', None) else ''
+        end_time = slot.end_time.strftime('%H:%M') if getattr(slot, 'end_time', None) else ''
+        time_range = f"{start_time}-{end_time}" if start_time and end_time else ''
+        slot_value = f"{slot.name} ({time_range})" if time_range else slot.name
+        specifications.append({'label': '可取餐時段', 'value': slot_value})
+
+    return specifications
+
+
 class SurplusFoodCategory(models.Model):
     """
     惜福食品類別模型
@@ -530,9 +565,33 @@ class SurplusFoodOrderItem(models.Model):
     )
     surplus_food = models.ForeignKey(
         SurplusFood,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='order_items',
         verbose_name='惜福食品'
+    )
+    snapshot_surplus_food_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name='惜福品快照ID'
+    )
+    snapshot_surplus_food_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='惜福品快照名稱'
+    )
+    snapshot_surplus_food_image = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='惜福品快照圖片'
+    )
+    snapshot_specifications = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='品項規格快照'
     )
     quantity = models.PositiveIntegerField(default=1, verbose_name='數量')
     unit_price = models.DecimalField(
@@ -552,9 +611,24 @@ class SurplusFoodOrderItem(models.Model):
         verbose_name_plural = '惜福食品訂單項目'
     
     def __str__(self):
-        return f"{self.order.order_number} - {self.surplus_food.title} x {self.quantity}"
+        item_name = self.surplus_food.title if self.surplus_food else (self.snapshot_surplus_food_name or '已下架惜福品')
+        return f"{self.order.order_number} - {item_name} x {self.quantity}"
+
+    def capture_surplus_food_snapshot(self, force=False):
+        if not self.surplus_food:
+            return
+
+        if force or self.snapshot_surplus_food_id is None:
+            self.snapshot_surplus_food_id = self.surplus_food.id
+        if force or not self.snapshot_surplus_food_name:
+            self.snapshot_surplus_food_name = self.surplus_food.title
+        if force or not self.snapshot_surplus_food_image:
+            self.snapshot_surplus_food_image = _safe_surplus_food_image_url(self.surplus_food)
+        if force or not self.snapshot_specifications:
+            self.snapshot_specifications = _build_surplus_food_specifications_snapshot(self.surplus_food)
     
     def save(self, *args, **kwargs):
+        self.capture_surplus_food_snapshot()
         # 計算小計
         self.subtotal = self.quantity * self.unit_price
         super().save(*args, **kwargs)

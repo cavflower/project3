@@ -17,6 +17,10 @@ import {
   deleteTimeSlot
 } from '../../../api/reservationApi';
 
+const TABLE_MAP_MIN_ZOOM = 0.6;
+const TABLE_MAP_MAX_ZOOM = 1.8;
+const TABLE_MAP_ZOOM_STEP = 0.2;
+
 const ReservationManagementPage = () => {
   const [activeTab, setActiveTab] = useState('reservations'); // 'reservations' or 'settings'
   const [reservations, setReservations] = useState([]);
@@ -45,6 +49,7 @@ const ReservationManagementPage = () => {
     scrollLeft: 0,
     scrollTop: 0,
   });
+  const [tableMapZoom, setTableMapZoom] = useState(1);
   const tableMapViewportRef = useRef(null);
 
   const activeTableFloor = useMemo(
@@ -165,6 +170,15 @@ const ReservationManagementPage = () => {
     setAcceptForm({ tableLabel: '', merchantNote: '' });
     setActiveTableFloorId(tableFloors[0]?.id || '');
     setIsPanningTableMap(false);
+    setTableMapZoom(1);
+  };
+
+  const handleZoomOut = () => {
+    setTableMapZoom((prev) => Math.max(TABLE_MAP_MIN_ZOOM, Number((prev - TABLE_MAP_ZOOM_STEP).toFixed(2))));
+  };
+
+  const handleZoomIn = () => {
+    setTableMapZoom((prev) => Math.min(TABLE_MAP_MAX_ZOOM, Number((prev + TABLE_MAP_ZOOM_STEP).toFixed(2))));
   };
 
   const handleTableMapPointerDown = (e) => {
@@ -416,6 +430,26 @@ const ReservationManagementPage = () => {
 
               {tableFloors.length > 0 && (
                 <>
+                  <div className={styles.tableMapToolbar}>
+                    <button
+                      type="button"
+                      className={styles.tableMapZoomButton}
+                      onClick={handleZoomOut}
+                      disabled={tableMapZoom <= TABLE_MAP_MIN_ZOOM}
+                    >
+                      -
+                    </button>
+                    <span className={styles.tableMapZoomText}>{Math.round(tableMapZoom * 100)}%</span>
+                    <button
+                      type="button"
+                      className={styles.tableMapZoomButton}
+                      onClick={handleZoomIn}
+                      disabled={tableMapZoom >= TABLE_MAP_MAX_ZOOM}
+                    >
+                      +
+                    </button>
+                  </div>
+
                   <div className={styles.tableFloorTabs}>
                     {tableFloors.map((floor) => (
                       <button
@@ -438,34 +472,47 @@ const ReservationManagementPage = () => {
                     onMouseLeave={() => setIsPanningTableMap(false)}
                   >
                     <div
-                      className={styles.tablePickCanvas}
-                      style={{ width: `${tableMapSize.width}px`, height: `${tableMapSize.height}px` }}
+                      className={styles.tablePickCanvasScaled}
+                      style={{
+                        width: `${tableMapSize.width * tableMapZoom}px`,
+                        height: `${tableMapSize.height * tableMapZoom}px`,
+                      }}
                     >
-                      {(activeTableFloor?.tables || []).map((table) => {
-                        const shapeClass = table.shape === 'rectangle'
-                          ? styles.tablePickItemRectangle
-                          : table.shape === 'square'
-                            ? styles.tablePickItemSquare
-                            : styles.tablePickItemCircle;
+                      <div
+                        className={styles.tablePickCanvas}
+                        style={{
+                          width: `${tableMapSize.width}px`,
+                          height: `${tableMapSize.height}px`,
+                          transform: `scale(${tableMapZoom})`,
+                          transformOrigin: 'top left',
+                        }}
+                      >
+                        {(activeTableFloor?.tables || []).map((table) => {
+                          const shapeClass = table.shape === 'rectangle'
+                            ? styles.tablePickItemRectangle
+                            : table.shape === 'square'
+                              ? styles.tablePickItemSquare
+                              : styles.tablePickItemCircle;
 
-                        return (
-                          <button
-                            key={table.id}
-                            type="button"
-                            data-table-pick="true"
-                            className={`${shapeClass} ${acceptForm.tableLabel === table.label ? styles.tablePickItemSelected : ''}`}
-                            style={{ left: table.x, top: table.y }}
-                            onClick={() => setAcceptForm((prev) => ({ ...prev, tableLabel: table.label }))}
-                          >
-                            <span>{table.label}</span>
-                            <small>{table.seats} 人</small>
-                          </button>
-                        );
-                      })}
+                          return (
+                            <button
+                              key={table.id}
+                              type="button"
+                              data-table-pick="true"
+                              className={`${shapeClass} ${acceptForm.tableLabel === table.label ? styles.tablePickItemSelected : ''}`}
+                              style={{ left: table.x, top: table.y }}
+                              onClick={() => setAcceptForm((prev) => ({ ...prev, tableLabel: table.label }))}
+                            >
+                              <span>{table.label}</span>
+                              <small>{table.seats} 人</small>
+                            </button>
+                          );
+                        })}
 
-                      {(activeTableFloor?.tables || []).length === 0 && (
-                        <div className={styles.tablePickEmpty}>此樓層尚未設定桌位</div>
-                      )}
+                        {(activeTableFloor?.tables || []).length === 0 && (
+                          <div className={styles.tablePickEmpty}>此樓層尚未設定桌位</div>
+                        )}
+                      </div>
                     </div>
                   </div>
 

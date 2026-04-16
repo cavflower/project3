@@ -15,6 +15,26 @@ const paymentOptionsList = [
 ];
 
 const formatPrice = (value) => Math.round(Number(value) || 0);
+const CARRIER_BODY_REGEX = /^[0-9A-Z.+-]{7}$/;
+
+const normalizeCarrierBody = (rawValue) =>
+  (rawValue || '')
+    .toUpperCase()
+    .replace(/[^0-9A-Z.+-]/g, '')
+    .slice(0, 7);
+
+const getSpecSummaryText = (specs = []) => {
+  if (!Array.isArray(specs) || specs.length === 0) return '';
+  const labels = specs
+    .map((spec) => {
+      const groupName = spec.groupName || spec.group_name || '';
+      const optionName = spec.optionName || spec.option_name || spec.name || '';
+      if (groupName && optionName) return `${groupName}: ${optionName}`;
+      return optionName || groupName;
+    })
+    .filter(Boolean);
+  return labels.join('、');
+};
 
 const roundUpToFiveMinutes = (date) => {
   const rounded = new Date(date);
@@ -73,6 +93,9 @@ function TakeoutCartPage() {
   const [paymentMethod, setPaymentMethod] = useState(paymentOptionsList[0].value);
   const [useUtensils, setUseUtensils] = useState("yes");
   const [notes, setNotes] = useState(initialCart?.notes || "");
+  const [invoiceCarrierBody, setInvoiceCarrierBody] = useState(() =>
+    normalizeCarrierBody(initialCart?.carrierCode || initialCart?.invoiceCarrier || '')
+  );
   const [submitting, setSubmitting] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showCardSelector, setShowCardSelector] = useState(false);
@@ -222,6 +245,13 @@ function TakeoutCartPage() {
       return;
     }
 
+    if (invoiceCarrierBody && !CARRIER_BODY_REGEX.test(invoiceCarrierBody)) {
+      alert('載具格式需為 /XXXXXXX（斜線固定，請輸入 7 碼）。');
+      return;
+    }
+
+    const invoiceCarrier = invoiceCarrierBody ? `/${invoiceCarrierBody}` : '';
+
     // 驗證折扣是否超過商品小計
     if (discountTotal > subtotal) {
       alert(`折扣金額 (NT$ ${discountTotal}) 不能超過商品小計 (NT$ ${subtotal})，請移除部分兌換項目。`);
@@ -251,10 +281,10 @@ function TakeoutCartPage() {
     }
 
     // 其他付款方式或未登入直接執行訂單
-    await executeOrder(finalName, finalPhone, null);
+    await executeOrder(finalName, finalPhone, null, invoiceCarrier);
   };
 
-  const executeOrder = async (finalName, finalPhone, cardForPayment = null) => {
+  const executeOrder = async (finalName, finalPhone, cardForPayment = null, invoiceCarrier = '') => {
 
     try {
       setSubmitting(true);
@@ -326,6 +356,7 @@ function TakeoutCartPage() {
           pickup_at: pickupAt,
           customer_name: finalName,
           customer_phone: finalPhone,
+          invoice_carrier: invoiceCarrier,
           notes: orderNotes,
           payment_method: paymentMethod,
           use_utensils: useUtensils === "yes",
@@ -394,6 +425,7 @@ function TakeoutCartPage() {
           name: item.name,
           quantity: item.quantity,
           amount: Number(item.finalPrice || item.price) * Number(item.quantity || 1),
+          specText: getSpecSummaryText(item.selectedSpecs || []),
         })),
         ...productRedemptionItems.map((item) => ({
           name: item.redemptionRule?.product_name || item.name,
@@ -460,6 +492,13 @@ function TakeoutCartPage() {
   const handleCardSelected = async (card) => {
     setSelectedCard(card);
 
+    if (invoiceCarrierBody && !CARRIER_BODY_REGEX.test(invoiceCarrierBody)) {
+      alert('載具格式需為 /XXXXXXX（斜線固定，請輸入 7 碼）。');
+      return;
+    }
+
+    const invoiceCarrier = invoiceCarrierBody ? `/${invoiceCarrierBody}` : '';
+
     // 決定使用的聯絡資訊
     let finalName = contactName;
     let finalPhone = contactPhone;
@@ -475,7 +514,7 @@ function TakeoutCartPage() {
     }
 
     // 執行訂單
-    await executeOrder(finalName, finalPhone, card);
+    await executeOrder(finalName, finalPhone, card, invoiceCarrier);
   };
 
   return (
@@ -490,7 +529,8 @@ function TakeoutCartPage() {
                   items: cartItems,
                   notes: notes,
                   pickupAt: pickupAt,
-                  contact: { name: contactName, phone: contactPhone }
+                  contact: { name: contactName, phone: contactPhone },
+                  carrierCode: invoiceCarrierBody
                 }
               }
             })}
@@ -846,6 +886,25 @@ function TakeoutCartPage() {
             </div>
           </div>
 
+          {/* 載具 */}
+          <div className="card shadow-sm mb-3">
+            <div className="card-body">
+              <p className="fw-bold text-muted mb-2">發票載具（選填）</p>
+              <div className="input-group mb-2">
+                <span className="input-group-text">/</span>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={invoiceCarrierBody}
+                  onChange={(e) => setInvoiceCarrierBody(normalizeCarrierBody(e.target.value))}
+                  maxLength={7}
+                  placeholder="請輸入 7 碼"
+                />
+              </div>
+              <small className="text-muted">格式：/XXXXXXX（輸入 7 碼即可）</small>
+            </div>
+          </div>
+
           {/* 備註 */}
           <div className="card shadow-sm mb-3">
             <div className="card-body">
@@ -909,7 +968,14 @@ function TakeoutCartPage() {
                   <tbody>
                     {regularItems.map((item) => (
                       <tr key={`regular-${item.cartKey || item.id}`}>
-                        <td>{item.name}</td>
+                        <td>
+                          {item.name}
+                          {!!getSpecSummaryText(item.selectedSpecs || []) && (
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                              {getSpecSummaryText(item.selectedSpecs || [])}
+                            </div>
+                          )}
+                        </td>
                         <td>{item.quantity}</td>
                         <td>NT$ {formatPrice((item.finalPrice || item.price) * item.quantity)}</td>
                       </tr>
@@ -948,6 +1014,10 @@ function TakeoutCartPage() {
                   <div>
                     <label>餐具</label>
                     <span>{useUtensils === "yes" ? "需要" : "不需要"}</span>
+                  </div>
+                  <div>
+                    <label>發票載具</label>
+                    <span>{invoiceCarrierBody ? `/${invoiceCarrierBody}` : '未填寫'}</span>
                   </div>
                 </div>
 

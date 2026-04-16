@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from firebase_admin import credentials, firestore, initialize_app
 import firebase_admin
+import re
 from .models import TakeoutOrder, TakeoutOrderItem, DineInOrder, DineInOrderItem, Notification
 import logging
 import threading
@@ -11,12 +12,40 @@ from apps.products.models import ProductIngredient
 from apps.inventory.models import Ingredient
 
 logger = logging.getLogger(__name__)
+INVOICE_CARRIER_PATTERN = re.compile(r'^/[0-9A-Z.+-]{7}$')
 
 # 初始化 Firebase Admin
 if not firebase_admin._apps:
     cred = credentials.Certificate('serviceAccountKey.json')
     firebase_app = initialize_app(cred)
 db = firestore.client()
+
+
+def _normalize_invoice_carrier(value):
+    if value in [None, '']:
+        return ''
+
+    carrier = str(value).strip().upper()
+    if carrier == '':
+        return ''
+    if not INVOICE_CARRIER_PATTERN.match(carrier):
+        raise serializers.ValidationError('載具格式需為 /XXXXXXX（斜線加 7 碼）。')
+    return carrier
+
+
+def _build_product_snapshot(product):
+    image_url = ''
+    if getattr(product, 'image', None):
+        try:
+            image_url = product.image.url
+        except Exception:
+            image_url = ''
+
+    return {
+        'snapshot_product_id': product.id,
+        'snapshot_product_name': product.name,
+        'snapshot_product_image': image_url,
+    }
 
 
 def _consume_ingredient_stock(store, items_data):
@@ -120,10 +149,13 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
         model = TakeoutOrder
         fields = [
             'id', 'store', 'user', 'customer_name', 'customer_phone',
-            'pickup_at', 'payment_method', 'notes', 'pickup_number',
+            'invoice_carrier', 'pickup_at', 'payment_method', 'notes', 'pickup_number',
             'use_utensils', 'items', 'product_redemptions'
         ]
         read_only_fields = ['pickup_number', 'user']
+
+    def validate_invoice_carrier(self, value):
+        return _normalize_invoice_carrier(value)
 
     def validate(self, attrs):
         store = attrs.get('store')
@@ -162,13 +194,15 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
                 quantity = item_data['quantity']
                 unit_price = item_data.get('unit_price') or product.price
                 specifications = item_data.get('specifications', [])
+                snapshot_data = _build_product_snapshot(product)
 
                 TakeoutOrderItem.objects.create(
                     order=order,
                     product=product,
                     quantity=quantity,
                     unit_price=unit_price,
-                    specifications=specifications
+                    specifications=specifications,
+                    **snapshot_data
                 )
                 total_amount += float(unit_price) * quantity
 
@@ -263,6 +297,7 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
                         'pickup_number': pickup_number,
                         'customer_name': validated_data.get('customer_name', ''),
                         'customer_phone': validated_data.get('customer_phone', ''),
+                        'invoice_carrier': validated_data.get('invoice_carrier', ''),
                         'payment_method': validated_data.get('payment_method', ''),
                         'notes': validated_data.get('notes', ''),
                         'channel': 'takeout',
@@ -322,10 +357,13 @@ class DineInOrderSerializer(serializers.ModelSerializer):
         model = DineInOrder
         fields = [
             'id', 'store', 'user', 'customer_name', 'customer_phone',
-            'table_label', 'payment_method', 'notes', 'order_number',
+            'invoice_carrier', 'table_label', 'payment_method', 'notes', 'order_number',
             'use_eco_tableware', 'items', 'product_redemptions'
         ]
         read_only_fields = ['order_number', 'user']
+
+    def validate_invoice_carrier(self, value):
+        return _normalize_invoice_carrier(value)
 
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])
@@ -359,13 +397,15 @@ class DineInOrderSerializer(serializers.ModelSerializer):
                 quantity = item_data['quantity']
                 unit_price = item_data.get('unit_price') or product.price
                 specifications = item_data.get('specifications', [])
+                snapshot_data = _build_product_snapshot(product)
 
                 DineInOrderItem.objects.create(
                     order=order,
                     product=product,
                     quantity=quantity,
                     unit_price=unit_price,
-                    specifications=specifications
+                    specifications=specifications,
+                    **snapshot_data
                 )
                 total_amount += float(unit_price) * quantity
 
@@ -460,6 +500,7 @@ class DineInOrderSerializer(serializers.ModelSerializer):
                         'pickup_number': order_number,
                         'customer_name': validated_data.get('customer_name', ''),
                         'customer_phone': validated_data.get('customer_phone', ''),
+                        'invoice_carrier': validated_data.get('invoice_carrier', ''),
                         'table_label': validated_data.get('table_label', ''),
                         'payment_method': validated_data.get('payment_method', ''),
                         'notes': validated_data.get('notes', ''),

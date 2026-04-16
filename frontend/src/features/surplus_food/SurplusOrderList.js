@@ -333,6 +333,38 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
     return order.order_type_display || '外帶';
   };
 
+  const getPaymentMethodLabel = () => {
+    if (order.payment_method_display) return order.payment_method_display;
+
+    const map = {
+      cash: '現金',
+      credit_card: '信用卡',
+      line_pay: 'LINE Pay',
+      points: '點數兌換',
+    };
+    return map[order.payment_method] || order.payment_method || '未提供';
+  };
+
+  const getItemSpecificationText = (item) => {
+    if (!Array.isArray(item.specifications) || item.specifications.length === 0) {
+      return '';
+    }
+
+    return item.specifications
+      .map((spec) => {
+        if (typeof spec === 'string') return spec;
+        if (!spec || typeof spec !== 'object') return '';
+
+        const label = spec.label || spec.groupName || spec.group_name || '';
+        const value = spec.value || spec.optionName || spec.option_name || spec.name || '';
+
+        if (label && value) return `${label}: ${value}`;
+        return value || label;
+      })
+      .filter(Boolean)
+      .join('、');
+  };
+
   const formatPickupTime = (pickupTime) => {
     if (!pickupTime) return null;
     const date = new Date(pickupTime);
@@ -358,7 +390,8 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
             <p><strong>桌號：</strong>{order.table_label}</p>
           )}
           <p><strong>訂單狀態：</strong>{statusLabels[order.status] || order.status_display}</p>
-          <p><strong>付款方式：</strong>{order.payment_method_display}</p>
+          <p><strong>付款方式：</strong>{getPaymentMethodLabel()}</p>
+          <p><strong>訂單金額：</strong>NT$ {Math.round(Number(order.total_price || 0))}</p>
           <p><strong>備註：</strong>{order.notes || '—'}</p>
           <p><strong>餐具需求：</strong>{order.use_utensils ? '需要餐具' : '不需要餐具'}</p>
           {order.pickup_time && order.order_type === 'takeout' && (
@@ -371,10 +404,13 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
                 order.items.map((item, index) => {
                   const itemPrice = item.unit_price || item.surplus_food_detail?.surplus_price || 0;
                   const subtotal = Math.round(itemPrice * item.quantity);
+                  const itemName = item.surplus_food_title || item.snapshot_surplus_food_name || item.surplus_food_detail?.title || '已下架惜福品';
+                  const specText = getItemSpecificationText(item);
                   return (
                     <li key={index}>
-                      {item.surplus_food_title || item.surplus_food_detail?.title} × {item.quantity}
+                      {itemName} × {item.quantity}
                       {itemPrice > 0 && <span style={{ color: '#666' }}> (NT$ {subtotal})</span>}
+                      {specText && <div style={{ color: '#5b6f72', fontSize: '0.85rem' }}>規格：{specText}</div>}
                     </li>
                   );
                 })

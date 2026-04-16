@@ -303,25 +303,45 @@ class SurplusFoodOrderSerializer(serializers.ModelSerializer):
 
 class SurplusFoodOrderItemSerializer(serializers.ModelSerializer):
     """惜福食品訂單項目序列化器"""
-    surplus_food_title = serializers.CharField(source='surplus_food.title', read_only=True)
+    surplus_food = serializers.PrimaryKeyRelatedField(
+        queryset=SurplusFood.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    surplus_food_title = serializers.SerializerMethodField()
     surplus_food_detail = SurplusFoodListSerializer(source='surplus_food', read_only=True)
+    specifications = serializers.SerializerMethodField()
     
     class Meta:
         model = SurplusFoodOrderItem
         fields = [
             'id', 'surplus_food', 'surplus_food_title', 'surplus_food_detail',
+            'snapshot_surplus_food_id', 'snapshot_surplus_food_name', 'snapshot_surplus_food_image',
+            'specifications',
             'quantity', 'unit_price', 'subtotal'
         ]
-        read_only_fields = ['id', 'unit_price', 'subtotal']
+        read_only_fields = [
+            'id', 'unit_price', 'subtotal',
+            'snapshot_surplus_food_id', 'snapshot_surplus_food_name', 'snapshot_surplus_food_image',
+            'specifications'
+        ]
+
+    def get_surplus_food_title(self, obj):
+        if obj.surplus_food:
+            return obj.surplus_food.title
+        return obj.snapshot_surplus_food_name or '已下架惜福品'
+
+    def get_specifications(self, obj):
+        return obj.snapshot_specifications or []
     
     def validate(self, data):
         """驗證訂單項目"""
         surplus_food = data.get('surplus_food')
         quantity = data.get('quantity', 1)
-        
+
         if not surplus_food:
             raise serializers.ValidationError({
-                'surplus_food': '必須選擇惜福品'
+                'surplus_food': '請選擇惜福品'
             })
         
         # 檢查狀態
@@ -425,13 +445,14 @@ def restore_surplus_order_ingredient_stock(order):
     """
     取消/拒絕惜福品訂單時，回補關聯商品配方的原物料庫存。
     """
-    items_payload = [
-        {
+    items_payload = []
+    for item in order.items.select_related('surplus_food', 'surplus_food__product').all():
+        if item.surplus_food is None:
+            continue
+        items_payload.append({
             'surplus_food': item.surplus_food,
             'quantity': item.quantity,
-        }
-        for item in order.items.select_related('surplus_food', 'surplus_food__product').all()
-    ]
+        })
 
     required_by_ingredient = _build_required_ingredients_from_surplus_items(items_payload)
     if not required_by_ingredient:

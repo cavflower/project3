@@ -1,21 +1,51 @@
 from rest_framework import serializers
-from .models import StoreReview, ProductReview
+from .models import StoreReview, ProductReview, StoreReviewImage, ProductReviewImage
 from apps.users.models import User
 from apps.products.models import Product
+
+
+class StoreReviewImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StoreReviewImage
+        fields = ['id', 'image_url', 'created_at']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+
+
+class ProductReviewImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductReviewImage
+        fields = ['id', 'image_url', 'created_at']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
 
 
 class StoreReviewSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.username', read_only=True)
     user_avatar = serializers.CharField(source='user.avatar_url', read_only=True)
+    store_id = serializers.IntegerField(source='store.id', read_only=True)
     store_name = serializers.CharField(source='store.name', read_only=True)
+    images = StoreReviewImageSerializer(many=True, read_only=True)
     
     class Meta:
         model = StoreReview
         fields = [
-            'id', 'user', 'user_name', 'user_avatar', 'store', 'store_name',
+            'id', 'user', 'user_name', 'user_avatar', 'store', 'store_id', 'store_name',
             'takeout_order', 'dinein_order', 'rating', 'tags',
             'comment', 'created_at', 'updated_at',
-            'merchant_reply', 'replied_at'
+            'merchant_reply', 'replied_at', 'images'
         ]
         read_only_fields = ['id', 'user', 'created_at', 'updated_at', 'replied_at']
 
@@ -25,13 +55,16 @@ class ProductReviewSerializer(serializers.ModelSerializer):
     user_avatar = serializers.CharField(source='user.avatar_url', read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_image = serializers.ImageField(source='product.image', read_only=True)
+    store_id = serializers.IntegerField(source='store.id', read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
+    images = ProductReviewImageSerializer(many=True, read_only=True)
     
     class Meta:
         model = ProductReview
         fields = [
             'id', 'user', 'user_name', 'user_avatar', 'product', 'product_name', 
-            'product_image', 'store', 'takeout_order', 'dinein_order',
-            'rating', 'comment', 'created_at', 'updated_at'
+            'product_image', 'store', 'store_id', 'store_name', 'takeout_order', 'dinein_order',
+            'rating', 'comment', 'created_at', 'updated_at', 'images'
         ]
         read_only_fields = ['id', 'user', 'created_at', 'updated_at']
 

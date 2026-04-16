@@ -93,6 +93,10 @@ function StorePage() {
   // ?臬???游???
   const hasMoreProducts = displayedProducts < menuItems.length;
 
+  const handleJumpToReviews = useCallback(() => {
+    navigate(`/store/${storeId}/reviews`);
+  }, [navigate, storeId]);
+
 
   const formatOpeningHours = (hours) => {
     if (!hours || typeof hours !== 'object') return null;
@@ -239,10 +243,14 @@ function StorePage() {
                     {store.address}
                   </span>
                 )}
-                <span className={styles['store-info-item']}>
+                <button
+                  type="button"
+                  className={`${styles['store-info-item']} ${styles['store-review-jump-btn']}`}
+                  onClick={handleJumpToReviews}
+                >
                   <i className="bi bi-star-fill text-warning"></i>
                   {reviewStats.avg} ({reviewStats.count} 則評論)
-                </span>
+                </button>
               </div>
 
               <div className={styles['store-header-bottom']}>
@@ -335,240 +343,8 @@ function StorePage() {
           </div>
           </div>
         </section>
+
       </div>
-    </div>
-  );
-}
-
-// 閰?蝯辣
-function StoreReviews({ storeId }) {
-  const [storeReviews, setStoreReviews] = useState([]);
-  const [productReviews, setProductReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeReviewTab, setActiveReviewTab] = useState('store');
-  const [stats, setStats] = useState({
-    avgStoreRating: 0,
-    totalStoreReviews: 0,
-    avgProductRating: 0,
-    totalProductReviews: 0
-  });
-
-  useEffect(() => {
-    loadReviews();
-  }, [storeId]);
-
-  const loadReviews = async () => {
-    try {
-      setLoading(true);
-
-      // 頛摨振閰?
-      const storeRes = await api.get(`/reviews/store-reviews/?store_id=${storeId}`);
-      setStoreReviews(storeRes.data);
-
-      // 頛??閰?
-      const productRes = await api.get(`/reviews/product-reviews/?store_id=${storeId}`);
-      setProductReviews(productRes.data);
-
-      // 閮?蝯梯??豢?
-      const avgStoreRating = storeRes.data.length > 0
-        ? (storeRes.data.reduce((sum, r) => sum + r.rating, 0) / storeRes.data.length).toFixed(1)
-        : 0;
-
-      const avgProductRating = productRes.data.length > 0
-        ? (productRes.data.reduce((sum, r) => sum + r.rating, 0) / productRes.data.length).toFixed(1)
-        : 0;
-
-      setStats({
-        avgStoreRating,
-        totalStoreReviews: storeRes.data.length,
-        avgProductRating,
-        totalProductReviews: productRes.data.length
-      });
-    } catch (error) {
-      console.error('頛閰?憭望?:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const renderStars = (rating) => {
-    return (
-      <div className={styles['review-stars']}>
-        {[1, 2, 3, 4, 5].map(star => (
-          <span key={star} className={star <= rating ? `${styles.star} ${styles.filled}` : styles.star}>
-            ??
-          </span>
-        ))}
-      </div>
-    );
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('zh-TW', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="store-section-card">
-        <div className={styles['reviews-loading']}>頛閰?銝?..</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles['store-reviews-container']}>
-      {/* 蝯梯??∠? */}
-      <div className={styles['reviews-stats-row']}>
-        <div className={styles['review-stat-card']}>
-          <div className={`${styles['stat-icon']} ${styles['icon-shop']}`}>
-            <i className="bi bi-shop"></i>
-          </div>
-          <div className={styles['stat-content']}>
-            <div className={styles['stat-value']}>{stats.avgStoreRating} ⭐</div>
-            <div className={styles['stat-label']}>摨振閰?</div>
-            <div className={styles['stat-count']}>{stats.totalStoreReviews} 則評論</div>
-          </div>
-        </div>
-
-        <div className={styles['review-stat-card']}>
-          <div className={`${styles['stat-icon']} ${styles['icon-dish']}`}>
-            <i className="bi bi-egg-fried"></i>
-          </div>
-          <div className={styles['stat-content']}>
-            <div className={styles['stat-value']}>{stats.avgProductRating} ⭐</div>
-            <div className={styles['stat-label']}>??閰?</div>
-            <div className={styles['stat-count']}>{stats.totalProductReviews} 則評論</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 閰???璅惜 */}
-      <div className={styles['review-tabs']}>
-        <button
-          className={`${styles['review-tab']} ${activeReviewTab === 'store' ? styles.active : ''}`}
-          onClick={() => setActiveReviewTab('store')}
-        >
-          摨振閰? ({stats.totalStoreReviews})
-        </button>
-        <button
-          className={`${styles['review-tab']} ${activeReviewTab === 'product' ? styles.active : ''}`}
-          onClick={() => setActiveReviewTab('product')}
-        >
-          ??閰? ({stats.totalProductReviews})
-        </button>
-      </div>
-
-      {/* 摨振閰??” */}
-      {activeReviewTab === 'store' && (
-        <div className={styles['reviews-list']}>
-          {storeReviews.length === 0 ? (
-            <div className={styles['no-reviews']}>
-              <p>?怎摨振閰?</p>
-            </div>
-          ) : (
-            storeReviews.map(review => (
-              <div key={review.id} className={styles['review-item']}>
-                <div className={styles['review-header']}>
-                  <div className={styles['reviewer-info']}>
-                    {review.user_avatar ? (
-                      <img
-                        src={review.user_avatar}
-                        alt={review.user_name}
-                        className={styles['reviewer-avatar']}
-                      />
-                    ) : (
-                      <div className={styles['reviewer-avatar-placeholder']}>{review.user_name[0]}</div>
-                    )}
-                    <div>
-                      <div className={styles['reviewer-name']}>{review.user_name}</div>
-                      <div className={styles['review-date']}>{formatDate(review.created_at)}</div>
-                    </div>
-                  </div>
-                  {renderStars(review.rating)}
-                </div>
-
-                {review.tags && review.tags.length > 0 && (
-                  <div className={styles['review-tags']}>
-                    {review.tags.map((tag, index) => (
-                      <span key={index} className={styles['review-tag']}>{tag}</span>
-                    ))}
-                  </div>
-                )}
-
-                {review.comment && (
-                  <p className={styles['review-comment']}>{review.comment}</p>
-                )}
-
-                {review.merchant_reply && (
-                  <div className={styles['merchant-reply-box']}>
-                    <div className={styles['reply-header']}>
-                      <strong>?振??</strong>
-                      <span className={styles['reply-date']}>{formatDate(review.replied_at)}</span>
-                    </div>
-                    <p className={styles['reply-text']}>{review.merchant_reply}</p>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* ??閰??” */}
-      {activeReviewTab === 'product' && (
-        <div className={styles['reviews-list']}>
-          {productReviews.length === 0 ? (
-            <div className={styles['no-reviews']}>
-              <p>?怎??閰?</p>
-            </div>
-          ) : (
-            productReviews.map(review => (
-              <div key={review.id} className={`${styles['review-item']} ${styles['product-review-item']}`}>
-                <div className={styles['product-review-header']}>
-                  {review.product_image && (
-                    <img
-                      src={review.product_image}
-                      alt={review.product_name}
-                      className={styles['product-thumb']}
-                    />
-                  )}
-                  <div className={styles['product-review-info']}>
-                    <h4 className={styles['product-review-name']}>{review.product_name}</h4>
-                    {renderStars(review.rating)}
-                  </div>
-                </div>
-
-                <div className="review-header">
-                  <div className="reviewer-info">
-                    {review.user_avatar ? (
-                      <img
-                        src={review.user_avatar}
-                        alt={review.user_name}
-                        className={styles['reviewer-avatar']}
-                      />
-                    ) : (
-                      <div className={styles['reviewer-avatar-placeholder']}>{review.user_name[0]}</div>
-                    )}
-                    <div>
-                      <div className={styles['reviewer-name']}>{review.user_name}</div>
-                      <div className={styles['review-date']}>{formatDate(review.created_at)}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {review.comment && (
-                  <p className={styles['review-comment']}>{review.comment}</p>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      )}
     </div>
   );
 }

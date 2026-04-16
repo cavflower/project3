@@ -13,6 +13,27 @@ from apps.surplus_food.models import SurplusFoodOrder
 from django.db.models import Q
 
 
+def _resolve_item_product_payload(item):
+    product = item.product
+    product_id = product.id if product else item.snapshot_product_id
+    product_name = product.name if product else (item.snapshot_product_name or '已下架商品')
+
+    if item.unit_price is not None:
+        unit_price = item.unit_price
+    elif product is not None:
+        unit_price = product.price
+    else:
+        unit_price = None
+
+    return {
+        'product_id': product_id,
+        'product_name': product_name,
+        'unit_price': unit_price,
+        'snapshot_product_image': item.snapshot_product_image or None,
+        'product_deleted': product is None,
+    }
+
+
 class OrderListView(generics.ListAPIView):
     """商家訂單列表 API - 從 PostgreSQL 讀取資料"""
     permission_classes = [permissions.AllowAny]
@@ -37,11 +58,11 @@ class OrderListView(generics.ListAPIView):
         # 查詢外帶訂單 - 使用 prefetch_related 優化 items 查詢
         takeout_orders = TakeoutOrder.objects.filter(store=store).select_related(
             'store'
-        ).prefetch_related('items')
+        ).prefetch_related('items', 'items__product')
         # 查詢內用訂單 - 使用 prefetch_related 優化 items 查詢
         dinein_orders = DineInOrder.objects.filter(store=store).select_related(
             'store'
-        ).prefetch_related('items')
+        ).prefetch_related('items', 'items__product')
         
         # 合併訂單資料
         orders = []
@@ -49,16 +70,21 @@ class OrderListView(generics.ListAPIView):
         # 處理外帶訂單
         for order in takeout_orders:
             # 組合 items：一般商品 + 兌換商品
-            items = [
-                {
-                    'product_id': item.product_id,
-                    'product_name': item.product.name if item.product else None,
+            items = []
+            for item in order.items.all():
+                item_payload = _resolve_item_product_payload(item)
+                unit_price_value = float(item_payload['unit_price']) if item_payload['unit_price'] is not None else None
+                subtotal_value = unit_price_value * item.quantity if unit_price_value is not None else None
+                items.append({
+                    'product_id': item_payload['product_id'],
+                    'product_name': item_payload['product_name'],
                     'quantity': item.quantity,
-                    'unit_price': float(item.unit_price) if item.unit_price else None,
-                    'specifications': item.specifications or []
-                }
-                for item in order.items.all()
-            ]
+                    'unit_price': unit_price_value,
+                    'subtotal': subtotal_value,
+                    'specifications': item.specifications or [],
+                    'snapshot_product_image': item_payload['snapshot_product_image'],
+                    'product_deleted': item_payload['product_deleted'],
+                })
             # 加入兌換商品（如果有）
             if order.product_redemptions:
                 for redemption in order.product_redemptions:
@@ -67,9 +93,12 @@ class OrderListView(generics.ListAPIView):
                         'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
                         'quantity': redemption.get('quantity', 1),
                         'unit_price': 0,
+                        'subtotal': 0,
                         'is_redemption': True,
                         'specifications': []
                     })
+
+            total_amount = round(sum(float(item.get('subtotal') or 0) for item in items), 2)
             
             orders.append({
                 'id': order.pickup_number,
@@ -77,7 +106,9 @@ class OrderListView(generics.ListAPIView):
                 'order_number': order.pickup_number,
                 'customer_name': order.customer_name,
                 'customer_phone': order.customer_phone,
+                'invoice_carrier': order.invoice_carrier,
                 'payment_method': order.payment_method,
+                'payment_method_display': order.get_payment_method_display(),
                 'notes': order.notes,
                 'status': order.status,
                 'use_utensils': order.use_utensils,
@@ -85,6 +116,7 @@ class OrderListView(generics.ListAPIView):
                 'service_channel': 'takeout',
                 'channel': 'takeout',
                 'table_label': '',
+                'total_amount': total_amount,
                 'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
                 'items': items
@@ -93,16 +125,21 @@ class OrderListView(generics.ListAPIView):
         # 處理內用訂單
         for order in dinein_orders:
             # 組合 items：一般商品 + 兌換商品
-            items = [
-                {
-                    'product_id': item.product_id,
-                    'product_name': item.product.name if item.product else None,
+            items = []
+            for item in order.items.all():
+                item_payload = _resolve_item_product_payload(item)
+                unit_price_value = float(item_payload['unit_price']) if item_payload['unit_price'] is not None else None
+                subtotal_value = unit_price_value * item.quantity if unit_price_value is not None else None
+                items.append({
+                    'product_id': item_payload['product_id'],
+                    'product_name': item_payload['product_name'],
                     'quantity': item.quantity,
-                    'unit_price': float(item.unit_price) if item.unit_price else None,
-                    'specifications': item.specifications or []
-                }
-                for item in order.items.all()
-            ]
+                    'unit_price': unit_price_value,
+                    'subtotal': subtotal_value,
+                    'specifications': item.specifications or [],
+                    'snapshot_product_image': item_payload['snapshot_product_image'],
+                    'product_deleted': item_payload['product_deleted'],
+                })
             # 加入兌換商品（如果有）
             if order.product_redemptions:
                 for redemption in order.product_redemptions:
@@ -111,9 +148,12 @@ class OrderListView(generics.ListAPIView):
                         'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
                         'quantity': redemption.get('quantity', 1),
                         'unit_price': 0,
+                        'subtotal': 0,
                         'is_redemption': True,
                         'specifications': []
                     })
+
+            total_amount = round(sum(float(item.get('subtotal') or 0) for item in items), 2)
             
             orders.append({
                 'id': order.order_number,
@@ -121,7 +161,9 @@ class OrderListView(generics.ListAPIView):
                 'order_number': order.order_number,
                 'customer_name': order.customer_name,
                 'customer_phone': order.customer_phone,
+                'invoice_carrier': order.invoice_carrier,
                 'payment_method': order.payment_method,
+                'payment_method_display': order.get_payment_method_display(),
                 'notes': order.notes,
                 'status': order.status,
                 'use_utensils': False,
@@ -129,6 +171,7 @@ class OrderListView(generics.ListAPIView):
                 'service_channel': 'dine_in',
                 'channel': 'dine_in',
                 'table_label': order.table_label,
+                'total_amount': total_amount,
                 'created_at': order.created_at.isoformat() if order.created_at else None,
                 'items': items
             })
@@ -283,12 +326,20 @@ class CustomerOrderListView(APIView):
             # 獲取訂單項目
             items = []
             for item in order.items.select_related('product').all():
+                item_payload = _resolve_item_product_payload(item)
+                unit_price = item_payload['unit_price']
+                unit_price_value = float(unit_price) if unit_price is not None else 0.0
                 items.append({
                     'id': item.id,
-                    'product_id': item.product.id,
-                    'product_name': item.product.name,
+                    'product_id': item_payload['product_id'],
+                    'product_name': item_payload['product_name'],
                     'quantity': item.quantity,
-                    'price': float(item.product.price),
+                    'price': unit_price_value,
+                    'unit_price': unit_price_value,
+                    'subtotal': unit_price_value * item.quantity,
+                    'specifications': item.specifications or [],
+                    'snapshot_product_image': item_payload['snapshot_product_image'],
+                    'product_deleted': item_payload['product_deleted'],
                 })
             
             orders.append({
@@ -299,6 +350,7 @@ class CustomerOrderListView(APIView):
                 'order_number': order.pickup_number,
                 'customer_name': order.customer_name,
                 'customer_phone': order.customer_phone,
+                'invoice_carrier': order.invoice_carrier,
                 'payment_method': order.get_payment_method_display(),
                 'notes': order.notes,
                 'status': order.status,
@@ -314,12 +366,20 @@ class CustomerOrderListView(APIView):
             # 獲取訂單項目
             items = []
             for item in order.items.select_related('product').all():
+                item_payload = _resolve_item_product_payload(item)
+                unit_price = item_payload['unit_price']
+                unit_price_value = float(unit_price) if unit_price is not None else 0.0
                 items.append({
                     'id': item.id,
-                    'product_id': item.product.id,
-                    'product_name': item.product.name,
+                    'product_id': item_payload['product_id'],
+                    'product_name': item_payload['product_name'],
                     'quantity': item.quantity,
-                    'price': float(item.product.price),
+                    'price': unit_price_value,
+                    'unit_price': unit_price_value,
+                    'subtotal': unit_price_value * item.quantity,
+                    'specifications': item.specifications or [],
+                    'snapshot_product_image': item_payload['snapshot_product_image'],
+                    'product_deleted': item_payload['product_deleted'],
                 })
             
             orders.append({
@@ -330,6 +390,7 @@ class CustomerOrderListView(APIView):
                 'order_number': order.order_number,
                 'customer_name': order.customer_name,
                 'customer_phone': order.customer_phone,
+                'invoice_carrier': order.invoice_carrier,
                 'payment_method': order.get_payment_method_display(),
                 'notes': order.notes,
                 'status': order.status,
@@ -518,6 +579,7 @@ class GuestOrderLookupView(APIView):
                 'store_id': order.store.id if order.store else None,
                 'order_number': order.pickup_number,
                 'customer_name': order.customer_name,
+                'invoice_carrier': order.invoice_carrier,
                 'status': order.status,
                 'status_display': order.get_status_display(),
                 'payment_method': order.get_payment_method_display(),
@@ -541,6 +603,7 @@ class GuestOrderLookupView(APIView):
                 'store_id': order.store.id if order.store else None,
                 'order_number': order.order_number,
                 'customer_name': order.customer_name,
+                'invoice_carrier': order.invoice_carrier,
                 'table_label': order.table_label,
                 'status': order.status,
                 'status_display': order.get_status_display(),

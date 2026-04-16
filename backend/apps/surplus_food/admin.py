@@ -88,7 +88,10 @@ class SurplusFoodOrderAdmin(admin.ModelAdmin):
         items = obj.items.all()
         if not items:
             return '-'
-        summary = ', '.join([f"{item.surplus_food.title} x{item.quantity}" for item in items])
+        summary = ', '.join([
+            f"{(item.surplus_food.title if item.surplus_food else item.snapshot_surplus_food_name or '已下架惜福品')} x{item.quantity}"
+            for item in items
+        ])
         return summary if len(summary) <= 50 else summary[:47] + '...'
     get_items_summary.short_description = '訂單品項'
 

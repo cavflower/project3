@@ -13,6 +13,44 @@ const statusLabels = {
   rejected: '已拒絕',
 };
 
+const paymentMethodLabels = {
+  cash: '現金',
+  credit_card: '信用卡',
+  line_pay: 'LINE Pay',
+  points: '點數兌換',
+};
+
+const normalizePaymentMethodLabel = (paymentMethod, paymentMethodDisplay) => {
+  if (paymentMethodDisplay) return paymentMethodDisplay;
+  return paymentMethodLabels[paymentMethod] || paymentMethod || '未提供';
+};
+
+const buildSpecificationText = (rawSpecifications) => {
+  if (!Array.isArray(rawSpecifications) || rawSpecifications.length === 0) {
+    return '';
+  }
+
+  return rawSpecifications
+    .map((spec) => {
+      if (typeof spec === 'string') return spec;
+      if (!spec || typeof spec !== 'object') return '';
+
+      const groupName = spec.groupName || spec.group_name || spec.label || '';
+      const optionName = spec.optionName || spec.option_name || spec.value || spec.name || '';
+      const adjustment = Number(spec.priceAdjustment ?? spec.price_adjustment ?? spec.adjustment ?? 0);
+      const adjustmentText = Number.isFinite(adjustment) && adjustment !== 0
+        ? ` (${adjustment > 0 ? '+' : ''}${Math.round(adjustment)})`
+        : '';
+
+      if (groupName && optionName) return `${groupName}: ${optionName}${adjustmentText}`;
+      if (optionName) return `${optionName}${adjustmentText}`;
+      if (groupName) return groupName;
+      return '';
+    })
+    .filter(Boolean)
+    .join('、');
+};
+
 function OrderManagementPage() {
   const [storeId, setStoreId] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -373,6 +411,19 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
   const status = order.status || 'pending';
   const orderType = order.channel === 'takeout' ? '外帶訂單' : '內用訂單';
   const items = Array.isArray(order.items) ? order.items : [];
+  const orderTotal = Number.isFinite(Number(order.total_amount))
+    ? Number(order.total_amount)
+    : items.reduce((sum, item) => {
+      const itemSubtotal = Number(item.subtotal);
+      if (Number.isFinite(itemSubtotal)) return sum + itemSubtotal;
+
+      const quantity = Number(item.quantity || 1);
+      const unitPrice = Number(item.unit_price);
+      if (Number.isFinite(quantity) && Number.isFinite(unitPrice)) {
+        return sum + (quantity * unitPrice);
+      }
+      return sum;
+    }, 0);
 
   const getStatusBadgeClass = () => {
     if (status === 'accepted') return styles.badgeStatusAccepted;
@@ -422,7 +473,11 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
         </div>
         <div className={styles.infoGroup}>
           <div className={styles.infoLabel}>付款方式</div>
-          <div className={styles.infoValue}>{order.payment_method || '未提供'}</div>
+          <div className={styles.infoValue}>{normalizePaymentMethodLabel(order.payment_method, order.payment_method_display)}</div>
+        </div>
+        <div className={styles.infoGroup}>
+          <div className={styles.infoLabel}>訂單金額</div>
+          <div className={styles.infoValue}>NT$ {Math.round(orderTotal)}</div>
         </div>
         <div className={styles.infoGroup}>
           <div className={styles.infoLabel}>餐具需求</div>
@@ -449,12 +504,24 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
                   it.product_name || productMap[it.product_id || it.product] || `商品ID: ${it.product_id || it.product}`;
                 const isRedemption = it.is_redemption || itemName.startsWith('【兌換】');
                 const qty = it.quantity || 1;
+                const specificationText = buildSpecificationText(it.specifications || []);
+                const itemSubtotal = Number.isFinite(Number(it.subtotal))
+                  ? Number(it.subtotal)
+                  : (Number.isFinite(Number(it.unit_price)) ? Number(it.unit_price) * qty : null);
 
                 return (
-                  <span key={`${itemName}-${idx}`} className={styles.itemTag}>
-                    {isRedemption ? '兌換 ' : ''}
-                    {itemName} x{qty}
-                  </span>
+                  <div key={`${itemName}-${idx}`} className={styles.itemTag}>
+                    <span className={styles.itemMain}>
+                      {isRedemption ? '兌換 ' : ''}
+                      {itemName} x{qty}
+                      {itemSubtotal !== null && (
+                        <span className={styles.itemAmount}>NT$ {Math.round(itemSubtotal)}</span>
+                      )}
+                    </span>
+                    {specificationText && (
+                      <span className={styles.itemSpec}>規格：{specificationText}</span>
+                    )}
+                  </div>
                 );
               })}
             </div>

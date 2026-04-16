@@ -69,3 +69,43 @@ class ProductReview(models.Model):
         
     def __str__(self):
         return f'{self.user.username} - {self.product.name} ({self.rating}星)'
+
+
+class StoreReviewImage(models.Model):
+    """店家評論圖片"""
+    store_review = models.ForeignKey(
+        StoreReview,
+        on_delete=models.CASCADE,
+        related_name='images'
+    )
+    image = models.ImageField(upload_to='review_images/%Y/%m/%d/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'reviews_store_review_image'
+        ordering = ['created_at']
+        verbose_name = '店家評論圖片'
+        verbose_name_plural = '店家評論圖片'
+
+    def __str__(self):
+        return f'評論圖片 #{self.id} - review {self.store_review_id}'
+
+
+class ProductReviewImage(models.Model):
+    """菜品評論圖片"""
+    product_review = models.ForeignKey(
+        ProductReview,
+        on_delete=models.CASCADE,
+        related_name='images'
+    )
+    image = models.ImageField(upload_to='product_review_images/%Y/%m/%d/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'reviews_product_review_image'
+        ordering = ['created_at']
+        verbose_name = '菜品評論圖片'
+        verbose_name_plural = '菜品評論圖片'
+
+    def __str__(self):
+        return f'菜品評論圖片 #{self.id} - review {self.product_review_id}'

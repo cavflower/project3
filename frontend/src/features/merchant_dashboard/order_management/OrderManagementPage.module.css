@@ -240,9 +240,29 @@
     background: #f0f8f6;
     border: 1px solid #d0ede8;
     color: #2f3b3e;
-    padding: 4px 8px;
+    padding: 6px 8px;
     border-radius: 4px;
     font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.itemMain {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.itemAmount {
+    color: #167d68;
+    font-weight: 700;
+}
+
+.itemSpec {
+    color: #5b6f72;
+    font-size: 0.78rem;
 }
 
 .cardFooter {

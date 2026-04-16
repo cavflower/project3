@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { useStore } from '../../store/StoreContext';
@@ -45,6 +45,20 @@ const MerchantDashboard = () => {
   const pendingScrollRef = useRef(null);
   const usageStorageKey = 'merchant_feature_usage_v1';
   const selectedFeaturedStorageKey = 'merchant_selected_featured_v1';
+
+  const refreshPendingOrders = useCallback(async () => {
+    try {
+      const pendingOrdersResponse = await getMerchantPendingOrders();
+      if (pendingOrdersResponse?.data?.pending_orders) {
+        setPendingOrders(pendingOrdersResponse.data.pending_orders);
+      }
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return;
+      }
+      console.error('[Dashboard] Error refreshing pending orders:', error);
+    }
+  }, []);
 
   // 當 store 資料從 context 載入完成時，更新本地 storeId
   useEffect(() => {
@@ -104,19 +118,7 @@ const MerchantDashboard = () => {
 
     const loadDashboardData = async () => {
       try {
-        const loadPendingOrders = getMerchantPendingOrders()
-          .then((pendingOrdersResponse) => {
-            if (pendingOrdersResponse?.data?.pending_orders) {
-              setPendingOrders(pendingOrdersResponse.data.pending_orders);
-            }
-          })
-          .catch((error) => {
-            if (error.response?.status === 404) {
-              console.log('[Dashboard] Store not found - merchant needs to create store settings first');
-              return;
-            }
-            console.error('[Dashboard] Error loading pending orders:', error);
-          });
+        const loadPendingOrders = refreshPendingOrders();
 
         const loadLowStock = getLowStockIngredients()
           .then((lowStockData) => {
@@ -138,7 +140,7 @@ const MerchantDashboard = () => {
     };
 
     loadDashboardData();
-  }, [storeLoading]);
+  }, [refreshPendingOrders, storeLoading]);
 
   // Firestore 即時監聽訂單變更（包含一般訂單和惜福品訂單）
   useEffect(() => {
@@ -149,20 +151,13 @@ const MerchantDashboard = () => {
     let refreshTimeout = null;
 
     // 刷新待確認訂單（有防抖，等待兩個集合都有變更後再刷新）
-    const refreshPendingOrders = () => {
+    const scheduleRefreshPendingOrders = () => {
       // 清除之前的計時器
       if (refreshTimeout) clearTimeout(refreshTimeout);
 
       // 設置新的計時器，等待 300ms 確保兩個集合的變更都接收到
-      refreshTimeout = setTimeout(async () => {
-        try {
-          const pendingOrdersResponse = await getMerchantPendingOrders();
-          if (pendingOrdersResponse?.data?.pending_orders) {
-            setPendingOrders(pendingOrdersResponse.data.pending_orders);
-          }
-        } catch (error) {
-          console.error('[Dashboard] Error refreshing pending orders:', error);
-        }
+      refreshTimeout = setTimeout(() => {
+        refreshPendingOrders();
       }, 300);
     };
 
@@ -175,7 +170,7 @@ const MerchantDashboard = () => {
         isOrdersInitialLoad = false;
         return;
       }
-      refreshPendingOrders();
+      scheduleRefreshPendingOrders();
     }, (error) => {
       console.error('[Dashboard] Orders Firestore listener error:', error);
     });
@@ -189,7 +184,7 @@ const MerchantDashboard = () => {
         isSurplusInitialLoad = false;
         return;
       }
-      refreshPendingOrders();
+      scheduleRefreshPendingOrders();
     }, (error) => {
       console.error('[Dashboard] Surplus orders Firestore listener error:', error);
     });
@@ -199,7 +194,19 @@ const MerchantDashboard = () => {
       unsubscribeSurplus();
       if (refreshTimeout) clearTimeout(refreshTimeout);
     };
-  }, [storeId]);
+  }, [refreshPendingOrders, storeId]);
+
+  useEffect(() => {
+    if (!storeId) return undefined;
+
+    const intervalId = setInterval(() => {
+      refreshPendingOrders();
+    }, 10000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [refreshPendingOrders, storeId]);
 
   const handleCardClick = (path, isDisabled, featureId) => {
     if (isDisabled) {

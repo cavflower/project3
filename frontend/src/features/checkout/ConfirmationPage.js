@@ -74,7 +74,12 @@ function ConfirmationPage() {
                   {hasItems ? (
                     displayItems.map((item, idx) => (
                       <tr key={`${item.name || "item"}-${idx}`}>
-                        <td>{item.name}</td>
+                        <td>
+                          {item.name}
+                          {item.specText && (
+                            <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "2px" }}>{item.specText}</div>
+                          )}
+                        </td>
                         <td>{item.quantity || 1}</td>
                         <td>{`NT$ ${Math.round(Number(item.amount || 0))}`}</td>
                       </tr>
@@ -126,9 +131,9 @@ function ConfirmationPage() {
             )}
 
             <div className={styles["action-buttons"]}>
-              <Link to={`/review/${orderId}`} className={`btn ${styles["btn-review"]}`}>
+              <Link to="/reviews" className={`btn ${styles["btn-review"]}`}>
                 <FaStar className="me-2" />
-                {"\u7d66\u4e88\u5e97\u5bb6\u8a55\u50f9"}
+                {"\u524d\u5f80\u6211\u7684\u8a55\u8ad6"}
               </Link>
               <button className="btn btn-secondary" onClick={() => navigate("/customer-home")}>
                 <FaArrowLeft className="me-2" />

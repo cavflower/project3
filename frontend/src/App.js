@@ -37,6 +37,7 @@ import ScheduleManagementPage from './features/merchant_dashboard/schedule_manag
 import ActualSchedulePage from './features/merchant_dashboard/actual_schedule/ActualSchedulePage';
 import StoreBrowse from './features/home/StoreBrowse';
 import StorePage from './features/home/StorePage';
+import StoreReviewsPage from './features/home/StoreReviewsPage';
 import ConfirmationPage from './features/checkout/ConfirmationPage';
 import SurplusConfirmationPage from './features/checkout/SurplusConfirmationPage';
 import ReviewPage from './features/checkout/ReviewPage';
@@ -170,6 +171,7 @@ function App() {
               path="/store/:storeId/options"
               element={<StoreBrowse />}
             />
+            <Route path="/store/:storeId/reviews" element={<StoreReviewsPage />} />
             {/* 點入特定店家 頁面 */}
             <Route path="/store/:storeId" element={<StorePage />} />
 
