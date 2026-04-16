@@ -9,6 +9,27 @@ const api = axios.create({
 let isRefreshing = false;
 // 等待刷新完成的請求隊列
 let failedQueue = [];
+const AUTH_REFRESH_COOLDOWN_MS = 30000;
+const refreshBlockedUntil = {
+  customer: 0,
+  merchant: 0,
+};
+
+const isRefreshBlocked = (userType) => Date.now() < (refreshBlockedUntil[userType] || 0);
+
+const blockRefreshTemporarily = (userType) => {
+  refreshBlockedUntil[userType] = Date.now() + AUTH_REFRESH_COOLDOWN_MS;
+};
+
+const dispatchAuthErrorEvent = (userType, reason) => {
+  try {
+    window.dispatchEvent(new CustomEvent('dineverse:auth-error', {
+      detail: { userType, reason },
+    }));
+  } catch (e) {
+    console.debug('[api] failed to dispatch auth error event', e?.message);
+  }
+};
 
 // 處理等待隊列中的請求
 const processQueue = (error, token = null) => {
@@ -154,6 +175,7 @@ api.interceptors.request.use(
     try {
       // 根據 URL 判斷應該使用哪個用戶類型的 token
       const userType = getUserTypeFromUrl(config.url, config.method);
+      config._userType = userType;
       let token = null;
 
       // 如果這個 API 不需要 token，跳過
@@ -184,6 +206,13 @@ api.interceptors.request.use(
         }
       }
 
+      if (!token && userType && config.backgroundRequest && isRefreshBlocked(userType)) {
+        const cooldownError = new Error('Auth refresh cooldown active');
+        cooldownError.code = 'AUTH_COOLDOWN';
+        cooldownError.isAuthCooldown = true;
+        return Promise.reject(cooldownError);
+      }
+
       if (token) {
         config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
@@ -207,8 +236,27 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
     // 如果是 401 錯誤且不是刷新 token 的請求，且尚未重試過
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const userType = getUserTypeFromUrl(originalRequest.url, originalRequest.method) || originalRequest._userType || 'customer';
+      const shouldSkipRetry = originalRequest.skipAuthRetry === true;
+      const shouldRedirectOnAuthFail = !(originalRequest.backgroundRequest || originalRequest.skipAuthRedirect);
+
+      if (shouldSkipRetry) {
+        return Promise.reject(error);
+      }
+
+      if (isRefreshBlocked(userType)) {
+        const blockedError = new Error('Auth refresh blocked by cooldown');
+        blockedError.code = 'AUTH_COOLDOWN';
+        blockedError.isAuthCooldown = true;
+        return Promise.reject(blockedError);
+      }
+
       if (isRefreshing) {
         // 如果正在刷新，將請求加入隊列
         return new Promise((resolve, reject) => {
@@ -227,19 +275,17 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       // 根據請求 URL 和 HTTP 方法判斷使用哪個用戶類型的 token
-      const userType = getUserTypeFromUrl(originalRequest.url, originalRequest.method);
-
       console.log('[api] 401 error, attempting token refresh for userType:', userType);
       console.log('[api] Original request URL:', originalRequest.url);
 
       // 如果這個 API 不需要 token，直接返回錯誤
-      if (userType === null) {
+      if (userType === null || userType === undefined) {
         console.log('[api] This API does not require token, rejecting');
         isRefreshing = false;
         return Promise.reject(error);
       }
 
-      const finalUserType = userType || 'customer';
+      const finalUserType = userType;
       const refreshTokenKey = `${finalUserType}_refreshToken`;
       const accessTokenKey = `${finalUserType}_accessToken`;
       const refreshToken = localStorage.getItem(refreshTokenKey);
@@ -252,10 +298,14 @@ api.interceptors.response.use(
         console.error('[api] No refresh token found, redirecting to login');
         localStorage.removeItem(accessTokenKey);
         localStorage.removeItem(refreshTokenKey);
+        blockRefreshTemporarily(finalUserType);
+        dispatchAuthErrorEvent(finalUserType, 'missing_refresh_token');
         processQueue(new Error('No refresh token'), null);
         isRefreshing = false;
-        const loginPath = finalUserType === 'merchant' ? '/login/merchant' : '/login/customer';
-        window.location.href = loginPath;
+        if (shouldRedirectOnAuthFail) {
+          const loginPath = finalUserType === 'merchant' ? '/login/merchant' : '/login/customer';
+          window.location.href = loginPath;
+        }
         return Promise.reject(error);
       }
 
@@ -296,10 +346,14 @@ api.interceptors.response.use(
         // 也清除舊格式的 token
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        blockRefreshTemporarily(finalUserType);
+        dispatchAuthErrorEvent(finalUserType, 'refresh_failed');
         processQueue(refreshError, null);
         isRefreshing = false;
-        const loginPath = finalUserType === 'merchant' ? '/login/merchant' : '/login/customer';
-        window.location.href = loginPath;
+        if (shouldRedirectOnAuthFail) {
+          const loginPath = finalUserType === 'merchant' ? '/login/merchant' : '/login/customer';
+          window.location.href = loginPath;
+        }
         return Promise.reject(refreshError);
       }
     }

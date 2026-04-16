@@ -59,6 +59,8 @@ class TakeoutOrder(models.Model):
     notes = models.TextField(blank=True, verbose_name='備註')
     pickup_number = models.CharField(max_length=10, unique=True, verbose_name='取單號碼')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='訂單狀態')
+    is_hidden_from_merchant = models.BooleanField(default=False, db_index=True, verbose_name='商家端已隱藏')
+    is_hidden_from_customer = models.BooleanField(default=False, db_index=True, verbose_name='顧客端已隱藏')
     use_utensils = models.BooleanField(default=False, verbose_name='需要餐具')
     product_redemptions = models.JSONField(
         default=list,
@@ -73,6 +75,12 @@ class TakeoutOrder(models.Model):
         verbose_name = '外帶訂單'
         verbose_name_plural = '外帶訂單'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['store', 'status', 'created_at']),
+            models.Index(fields=['store', 'created_at']),
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['customer_phone', 'created_at']),
+        ]
 
     def __str__(self):
         return f"外帶 - {self.pickup_number} - {self.customer_name}"
@@ -197,6 +205,8 @@ class DineInOrder(models.Model):
     notes = models.TextField(blank=True, verbose_name='備註')
     order_number = models.CharField(max_length=10, unique=True, verbose_name='訂單號碼')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='訂單狀態')
+    is_hidden_from_merchant = models.BooleanField(default=False, db_index=True, verbose_name='商家端已隱藏')
+    is_hidden_from_customer = models.BooleanField(default=False, db_index=True, verbose_name='顧客端已隱藏')
     use_eco_tableware = models.BooleanField(default=False, verbose_name='使用環保餐具')
     product_redemptions = models.JSONField(
         default=list,
@@ -212,6 +222,12 @@ class DineInOrder(models.Model):
         verbose_name = '內用訂單'
         verbose_name_plural = '內用訂單'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['store', 'status', 'created_at']),
+            models.Index(fields=['store', 'created_at']),
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['customer_phone', 'created_at']),
+        ]
 
     def __str__(self):
         return f"內用 - {self.order_number} - 桌號{self.table_label}"
@@ -327,6 +343,10 @@ class Notification(models.Model):
         verbose_name = '通知'
         verbose_name_plural = '通知'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['user', 'is_read', 'created_at']),
+        ]
 
     def __str__(self):
         return f"{self.user} - {self.title}"

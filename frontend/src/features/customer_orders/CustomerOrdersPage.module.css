@@ -443,3 +443,43 @@
 .order-modal-meta strong {
   color: #202020;
 }
+
+.order-modal-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.order-review-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #f26419 0%, #d85a17 100%);
+}
+
+.order-review-btn:hover {
+  color: #fff;
+  filter: brightness(0.96);
+}
+
+.order-delete-btn {
+  border: 1px solid #efc3b2;
+  background: #fff6f2;
+  color: #c4582b;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+
+.order-delete-btn:hover {
+  background: #ffebe3;
+}

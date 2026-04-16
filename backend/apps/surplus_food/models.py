@@ -481,6 +481,8 @@ class SurplusFoodOrder(models.Model):
         default='pending',
         verbose_name='訂單狀態'
     )
+    is_hidden_from_merchant = models.BooleanField(default=False, db_index=True, verbose_name='商家端已隱藏')
+    is_hidden_from_customer = models.BooleanField(default=False, db_index=True, verbose_name='顧客端已隱藏')
     pickup_time = models.DateTimeField(
         null=True,
         blank=True,
@@ -514,6 +516,12 @@ class SurplusFoodOrder(models.Model):
         verbose_name = '惜福食品訂單'
         verbose_name_plural = '惜福食品訂單'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['store', 'status', 'created_at']),
+            models.Index(fields=['store', 'created_at']),
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['customer_phone', 'created_at']),
+        ]
     
     def __str__(self):
         return f"{self.order_number} - {self.customer_name}"

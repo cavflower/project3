@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../../api/api';
-import { getMyStore } from '../../../api/storeApi';
+import { useStore } from '../../../store/StoreContext';
 import { db } from '../../../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import styles from './OrderManagementPage.module.css';
@@ -52,17 +52,26 @@ const buildSpecificationText = (rawSpecifications) => {
 };
 
 function OrderManagementPage() {
+  const { storeId: contextStoreId, loading: storeLoading } = useStore();
   const [storeId, setStoreId] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState(false);
-  const [productMap, setProductMap] = useState({});
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState('all');
   const [page, setPage] = useState(1);
   const pageSize = 9;
+  const refreshTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (contextStoreId) {
+      setStoreId(contextStoreId);
+    }
+  }, [contextStoreId]);
 
   const monthOptions = useMemo(() => {
     const options = [{ value: 'all', label: '全部月份' }];
@@ -76,50 +85,76 @@ function OrderManagementPage() {
     return options;
   }, []);
 
-  useEffect(() => {
-    async function load() {
-      try {
+  const normalizeOrdersResponse = useCallback((payload) => {
+    if (Array.isArray(payload)) {
+      return {
+        results: payload,
+        total_count: payload.length,
+        total_pages: Math.max(1, Math.ceil(payload.length / pageSize)),
+      };
+    }
+
+    return {
+      results: Array.isArray(payload?.results) ? payload.results : [],
+      total_count: Number(payload?.total_count || 0),
+      total_pages: Number(payload?.total_pages || 1),
+    };
+  }, []);
+
+  const loadOrders = useCallback(async ({ silent = false } = {}) => {
+    if (!storeId) return;
+
+    try {
+      if (!silent) {
         setLoading(true);
-        setError('');
+      }
 
-        const storeRes = await getMyStore();
-        const id = storeRes.data?.id;
-        setStoreId(id);
+      const params = {
+        store_id: storeId,
+        paginated: 1,
+        page,
+        page_size: pageSize,
+      };
 
-        if (!id) {
-          setError('無法取得店家資料，請先到「餐廳設定」建立你的店家資訊。');
-          setLoading(false);
-          return;
-        }
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (channelFilter !== 'all') params.channel = channelFilter;
+      if (monthFilter !== 'all') params.month = monthFilter;
 
-        const [ordersRes, productsRes] = await Promise.all([
-          api.get('/orders/list/', { params: { store_id: id } }),
-          api.get('/products/public/products/', { params: { store: id } }),
-        ]);
+      const ordersRes = await api.get('/orders/list/', { params });
+      const normalized = normalizeOrdersResponse(ordersRes.data);
 
-        const items = (ordersRes.data || []).map((data) => ({
-          ...data,
-          created_at: data.created_at ? new Date(data.created_at) : null,
-          pickup_at: data.pickup_at ? new Date(data.pickup_at) : null,
-        }));
-        setOrders(items);
+      const items = normalized.results.map((data) => ({
+        ...data,
+        created_at: data.created_at ? new Date(data.created_at) : null,
+        pickup_at: data.pickup_at ? new Date(data.pickup_at) : null,
+      }));
 
-        const map = {};
-        (productsRes.data || []).forEach((p) => {
-          map[p.id] = p.name || p.title || `商品${p.id}`;
-        });
-        setProductMap(map);
-      } catch (err) {
-        console.error('load orders error', err);
-        const detail = err?.response?.data?.detail || err?.message || '載入訂單失敗，請確認登入狀態';
-        setError(detail);
-      } finally {
+      setOrders(items);
+      setTotalCount(normalized.total_count);
+      setTotalPages(Math.max(1, normalized.total_pages));
+    } catch (err) {
+      console.error('load orders error', err);
+      const detail = err?.response?.data?.detail || err?.message || '載入訂單失敗，請確認登入狀態';
+      setError(detail);
+    } finally {
+      if (!silent) {
         setLoading(false);
       }
     }
+  }, [channelFilter, monthFilter, normalizeOrdersResponse, page, statusFilter, storeId]);
 
-    load();
-  }, []);
+  useEffect(() => {
+    if (storeLoading) return;
+    if (!contextStoreId) {
+      setError('無法取得店家資料，請先到「餐廳設定」建立你的店家資訊。');
+      setLoading(false);
+    }
+  }, [contextStoreId, storeLoading]);
+
+  useEffect(() => {
+    if (!storeId) return;
+    loadOrders();
+  }, [loadOrders, storeId]);
 
   useEffect(() => {
     if (!storeId) return undefined;
@@ -130,19 +165,14 @@ function OrderManagementPage() {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        snapshot.docChanges().forEach(async (change) => {
+        snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
-            try {
-              const response = await api.get('/orders/list/', { params: { store_id: storeId } });
-              const newOrders = (response.data || []).map((data) => ({
-                ...data,
-                created_at: data.created_at ? new Date(data.created_at) : null,
-                pickup_at: data.pickup_at ? new Date(data.pickup_at) : null,
-              }));
-              setOrders(newOrders);
-            } catch (err) {
-              console.error('載入新訂單失敗:', err);
+            if (refreshTimerRef.current) {
+              clearTimeout(refreshTimerRef.current);
             }
+            refreshTimerRef.current = setTimeout(() => {
+              loadOrders({ silent: true });
+            }, 250);
           } else if (change.type === 'modified') {
             const updatedOrder = change.doc.data();
             setOrders((prevOrders) =>
@@ -177,8 +207,13 @@ function OrderManagementPage() {
       }
     );
 
-    return () => unsubscribe();
-  }, [storeId]);
+    return () => {
+      unsubscribe();
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, [loadOrders, storeId]);
 
   const handleUpdateStatus = async (pickupNumber, status) => {
     const oldOrders = [...orders];
@@ -198,11 +233,12 @@ function OrderManagementPage() {
       window.alert('更新狀態失敗');
     } finally {
       setUpdating(false);
+      loadOrders({ silent: true });
     }
   };
 
   const handleDelete = async (pickupNumber) => {
-    if (!window.confirm('確定要永久刪除此訂單？此操作將從資料庫中完全移除訂單資料。')) return;
+    if (!window.confirm('確定要從店家端清單移除此訂單？顧客端仍會保留該筆歷史紀錄。')) return;
 
     const oldOrders = [...orders];
 
@@ -211,7 +247,7 @@ function OrderManagementPage() {
     try {
       setUpdating(true);
       await api.delete(`/orders/status/${pickupNumber}/`);
-      window.alert('訂單已成功刪除');
+      window.alert('訂單已從店家端清單移除');
     } catch (err) {
       console.error('delete order error', err);
       setOrders(oldOrders);
@@ -219,44 +255,11 @@ function OrderManagementPage() {
       window.alert(errorMsg);
     } finally {
       setUpdating(false);
+      loadOrders({ silent: true });
     }
   };
 
-  const sortedOrders = useMemo(
-    () =>
-      [...orders].sort((a, b) => {
-        const ta = a.created_at ? a.created_at.getTime() : 0;
-        const tb = b.created_at ? b.created_at.getTime() : 0;
-        return tb - ta;
-      }),
-    [orders]
-  );
-
-  const filteredOrders = useMemo(() => {
-    let filtered = sortedOrders;
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((o) => (o.status || 'pending') === statusFilter);
-    }
-
-    if (channelFilter !== 'all') {
-      filtered = filtered.filter((o) => o.channel === channelFilter);
-    }
-
-    if (monthFilter !== 'all') {
-      filtered = filtered.filter((o) => {
-        if (!o.created_at) return false;
-        const orderMonth = `${o.created_at.getFullYear()}-${String(o.created_at.getMonth() + 1).padStart(2, '0')}`;
-        return orderMonth === monthFilter;
-      });
-    }
-
-    return filtered;
-  }, [sortedOrders, statusFilter, channelFilter, monthFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedOrders = filteredOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const formatUtensils = (order) => {
     const eco = order.use_eco_tableware;
@@ -362,18 +365,17 @@ function OrderManagementPage() {
         </select>
       </div>
 
-      {filteredOrders.length === 0 ? (
+      {orders.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyStateIcon}>📭</div>
           <p>目前沒有訂單</p>
         </div>
       ) : (
         <div className={styles.ordersList}>
-          {pagedOrders.map((order) => (
+          {orders.map((order) => (
             <OrderCard
               key={order.id}
               order={order}
-              productMap={productMap}
               formatUtensils={formatUtensils}
               statusLabels={statusLabels}
               updating={updating}
@@ -385,7 +387,7 @@ function OrderManagementPage() {
       )}
 
       <div className={styles.pagination}>
-        <div className={styles.pageInfo}>第 {currentPage} / {totalPages} 頁（共 {filteredOrders.length} 筆）</div>
+        <div className={styles.pageInfo}>第 {currentPage} / {totalPages} 頁（共 {totalCount} 筆）</div>
         <div className={styles.paginationBtns}>
           <button
             className={styles.paginBtn}
@@ -396,7 +398,7 @@ function OrderManagementPage() {
           </button>
           <button
             className={styles.paginBtn}
-            disabled={currentPage === totalPages}
+            disabled={currentPage >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
             下一頁
@@ -407,7 +409,7 @@ function OrderManagementPage() {
   );
 }
 
-const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, onUpdateStatus, onDelete }) => {
+const OrderCard = ({ order, formatUtensils, statusLabels, updating, onUpdateStatus, onDelete }) => {
   const status = order.status || 'pending';
   const orderType = order.channel === 'takeout' ? '外帶訂單' : '內用訂單';
   const items = Array.isArray(order.items) ? order.items : [];
@@ -501,7 +503,7 @@ const OrderCard = ({ order, productMap, formatUtensils, statusLabels, updating, 
             <div className={styles.itemsContent}>
               {items.map((it, idx) => {
                 const itemName =
-                  it.product_name || productMap[it.product_id || it.product] || `商品ID: ${it.product_id || it.product}`;
+                  it.product_name || `商品ID: ${it.product_id || it.product}`;
                 const isRedemption = it.is_redemption || itemName.startsWith('【兌換】');
                 const qty = it.quantity || 1;
                 const specificationText = buildSpecificationText(it.specifications || []);

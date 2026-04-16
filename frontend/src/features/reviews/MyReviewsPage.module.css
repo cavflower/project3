@@ -85,6 +85,13 @@
     color: #777;
 }
 
+.pendingActions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    align-items: stretch;
+}
+
 .btnReviewOrder {
     display: inline-flex;
     align-items: center;
@@ -101,6 +108,21 @@
 .btnReviewOrder:hover {
     color: white;
     filter: brightness(0.96);
+}
+
+.btnDismissOrder {
+    border: 1px solid #f0d7cd;
+    background: #fff;
+    color: #8a6d63;
+    border-radius: 8px;
+    font-weight: 600;
+    min-width: 96px;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+}
+
+.btnDismissOrder:hover {
+    background: #fff4ef;
 }
 
 /* 統計區 */
@@ -693,7 +715,15 @@
         align-items: flex-start;
     }
 
+    .pendingActions {
+        width: 100%;
+    }
+
     .btnReviewOrder {
+        width: 100%;
+    }
+
+    .btnDismissOrder {
         width: 100%;
     }
 

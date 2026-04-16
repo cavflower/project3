@@ -5,12 +5,48 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status as http_status
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from firebase_admin import firestore
 from .serializers import TakeoutOrderSerializer, DineInOrderSerializer, NotificationSerializer
 from .models import TakeoutOrder, DineInOrder, Notification
 from apps.stores.models import Store
 from apps.surplus_food.models import SurplusFoodOrder
 from django.db.models import Q
+from datetime import datetime
+import threading
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+
+def _parse_positive_int(value, default):
+    try:
+        parsed = int(value)
+        return parsed if parsed > 0 else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _parse_month_range(month_value):
+    """Parse YYYY-MM and return (start, end) datetime tuple."""
+    if not month_value or month_value == 'all':
+        return None, None
+
+    try:
+        month_start = datetime.strptime(month_value, '%Y-%m').replace(day=1)
+    except ValueError:
+        return None, None
+
+    if timezone.is_naive(month_start):
+        month_start = timezone.make_aware(month_start)
+
+    if month_start.month == 12:
+        month_end = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        month_end = month_start.replace(month=month_start.month + 1)
+
+    return month_start, month_end
 
 
 def _resolve_item_product_payload(item):
@@ -34,9 +70,129 @@ def _resolve_item_product_payload(item):
     }
 
 
+def _async_update_firestore_order_status(document_id, status_value):
+    def _task():
+        try:
+            firestore.client().collection('orders').document(document_id).update({
+                'status': status_value,
+                'updated_at': firestore.SERVER_TIMESTAMP,
+            })
+        except Exception:
+            logger.exception('Failed to update Firestore order status for %s', document_id)
+
+    threading.Thread(target=_task, daemon=True).start()
+
+
 class OrderListView(generics.ListAPIView):
     """商家訂單列表 API - 從 PostgreSQL 讀取資料"""
     permission_classes = [permissions.AllowAny]
+
+    @staticmethod
+    def _serialize_takeout_order(order):
+        items = []
+        for item in order.items.all():
+            item_payload = _resolve_item_product_payload(item)
+            unit_price_value = float(item_payload['unit_price']) if item_payload['unit_price'] is not None else None
+            subtotal_value = unit_price_value * item.quantity if unit_price_value is not None else None
+            items.append({
+                'product_id': item_payload['product_id'],
+                'product_name': item_payload['product_name'],
+                'quantity': item.quantity,
+                'unit_price': unit_price_value,
+                'subtotal': subtotal_value,
+                'specifications': item.specifications or [],
+                'snapshot_product_image': item_payload['snapshot_product_image'],
+                'product_deleted': item_payload['product_deleted'],
+            })
+
+        if order.product_redemptions:
+            for redemption in order.product_redemptions:
+                items.append({
+                    'product_id': None,
+                    'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
+                    'quantity': redemption.get('quantity', 1),
+                    'unit_price': 0,
+                    'subtotal': 0,
+                    'is_redemption': True,
+                    'specifications': []
+                })
+
+        total_amount = round(sum(float(item.get('subtotal') or 0) for item in items), 2)
+
+        return {
+            'id': order.pickup_number,
+            'pickup_number': order.pickup_number,
+            'order_number': order.pickup_number,
+            'customer_name': order.customer_name,
+            'customer_phone': order.customer_phone,
+            'invoice_carrier': order.invoice_carrier,
+            'payment_method': order.payment_method,
+            'payment_method_display': order.get_payment_method_display(),
+            'notes': order.notes,
+            'status': order.status,
+            'use_utensils': order.use_utensils,
+            'use_eco_tableware': False,
+            'service_channel': 'takeout',
+            'channel': 'takeout',
+            'table_label': '',
+            'total_amount': total_amount,
+            'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
+            'created_at': order.created_at.isoformat() if order.created_at else None,
+            'items': items
+        }
+
+    @staticmethod
+    def _serialize_dinein_order(order):
+        items = []
+        for item in order.items.all():
+            item_payload = _resolve_item_product_payload(item)
+            unit_price_value = float(item_payload['unit_price']) if item_payload['unit_price'] is not None else None
+            subtotal_value = unit_price_value * item.quantity if unit_price_value is not None else None
+            items.append({
+                'product_id': item_payload['product_id'],
+                'product_name': item_payload['product_name'],
+                'quantity': item.quantity,
+                'unit_price': unit_price_value,
+                'subtotal': subtotal_value,
+                'specifications': item.specifications or [],
+                'snapshot_product_image': item_payload['snapshot_product_image'],
+                'product_deleted': item_payload['product_deleted'],
+            })
+
+        if order.product_redemptions:
+            for redemption in order.product_redemptions:
+                items.append({
+                    'product_id': None,
+                    'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
+                    'quantity': redemption.get('quantity', 1),
+                    'unit_price': 0,
+                    'subtotal': 0,
+                    'is_redemption': True,
+                    'specifications': []
+                })
+
+        total_amount = round(sum(float(item.get('subtotal') or 0) for item in items), 2)
+
+        return {
+            'id': order.order_number,
+            'pickup_number': order.order_number,
+            'order_number': order.order_number,
+            'customer_name': order.customer_name,
+            'customer_phone': order.customer_phone,
+            'invoice_carrier': order.invoice_carrier,
+            'payment_method': order.payment_method,
+            'payment_method_display': order.get_payment_method_display(),
+            'notes': order.notes,
+            'status': order.status,
+            'use_utensils': False,
+            'use_eco_tableware': order.use_eco_tableware,
+            'service_channel': 'dine_in',
+            'channel': 'dine_in',
+            'table_label': order.table_label,
+            'total_amount': total_amount,
+            'created_at': order.created_at.isoformat() if order.created_at else None,
+            'items': items
+        }
     
     def get(self, request, *args, **kwargs):
         # 獲取商家店家 ID
@@ -55,131 +211,122 @@ class OrderListView(generics.ListAPIView):
                 status=http_status.HTTP_404_NOT_FOUND
             )
         
+        status_filter = request.query_params.get('status')
+        channel_filter = request.query_params.get('channel', 'all')
+        month_filter = request.query_params.get('month', 'all')
+        paginated = str(request.query_params.get('paginated', '0')).lower() in {'1', 'true', 'yes'}
+        page = _parse_positive_int(request.query_params.get('page'), 1)
+        page_size = min(_parse_positive_int(request.query_params.get('page_size'), 9), 50)
+
+        month_start, month_end = _parse_month_range(month_filter)
+
         # 查詢外帶訂單 - 使用 prefetch_related 優化 items 查詢
-        takeout_orders = TakeoutOrder.objects.filter(store=store).select_related(
+        takeout_base_qs = TakeoutOrder.objects.filter(store=store, is_hidden_from_merchant=False).select_related(
             'store'
         ).prefetch_related('items', 'items__product')
+
         # 查詢內用訂單 - 使用 prefetch_related 優化 items 查詢
-        dinein_orders = DineInOrder.objects.filter(store=store).select_related(
+        dinein_base_qs = DineInOrder.objects.filter(store=store, is_hidden_from_merchant=False).select_related(
             'store'
         ).prefetch_related('items', 'items__product')
-        
-        # 合併訂單資料
-        orders = []
-        
-        # 處理外帶訂單
-        for order in takeout_orders:
-            # 組合 items：一般商品 + 兌換商品
-            items = []
-            for item in order.items.all():
-                item_payload = _resolve_item_product_payload(item)
-                unit_price_value = float(item_payload['unit_price']) if item_payload['unit_price'] is not None else None
-                subtotal_value = unit_price_value * item.quantity if unit_price_value is not None else None
-                items.append({
-                    'product_id': item_payload['product_id'],
-                    'product_name': item_payload['product_name'],
-                    'quantity': item.quantity,
-                    'unit_price': unit_price_value,
-                    'subtotal': subtotal_value,
-                    'specifications': item.specifications or [],
-                    'snapshot_product_image': item_payload['snapshot_product_image'],
-                    'product_deleted': item_payload['product_deleted'],
-                })
-            # 加入兌換商品（如果有）
-            if order.product_redemptions:
-                for redemption in order.product_redemptions:
-                    items.append({
-                        'product_id': None,
-                        'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
-                        'quantity': redemption.get('quantity', 1),
-                        'unit_price': 0,
-                        'subtotal': 0,
-                        'is_redemption': True,
-                        'specifications': []
-                    })
 
-            total_amount = round(sum(float(item.get('subtotal') or 0) for item in items), 2)
-            
-            orders.append({
-                'id': order.pickup_number,
-                'pickup_number': order.pickup_number,
-                'order_number': order.pickup_number,
-                'customer_name': order.customer_name,
-                'customer_phone': order.customer_phone,
-                'invoice_carrier': order.invoice_carrier,
-                'payment_method': order.payment_method,
-                'payment_method_display': order.get_payment_method_display(),
-                'notes': order.notes,
-                'status': order.status,
-                'use_utensils': order.use_utensils,
-                'use_eco_tableware': False,
-                'service_channel': 'takeout',
-                'channel': 'takeout',
-                'table_label': '',
-                'total_amount': total_amount,
-                'pickup_at': order.pickup_at.isoformat() if order.pickup_at else None,
-                'created_at': order.created_at.isoformat() if order.created_at else None,
-                'items': items
-            })
-        
-        # 處理內用訂單
-        for order in dinein_orders:
-            # 組合 items：一般商品 + 兌換商品
-            items = []
-            for item in order.items.all():
-                item_payload = _resolve_item_product_payload(item)
-                unit_price_value = float(item_payload['unit_price']) if item_payload['unit_price'] is not None else None
-                subtotal_value = unit_price_value * item.quantity if unit_price_value is not None else None
-                items.append({
-                    'product_id': item_payload['product_id'],
-                    'product_name': item_payload['product_name'],
-                    'quantity': item.quantity,
-                    'unit_price': unit_price_value,
-                    'subtotal': subtotal_value,
-                    'specifications': item.specifications or [],
-                    'snapshot_product_image': item_payload['snapshot_product_image'],
-                    'product_deleted': item_payload['product_deleted'],
-                })
-            # 加入兌換商品（如果有）
-            if order.product_redemptions:
-                for redemption in order.product_redemptions:
-                    items.append({
-                        'product_id': None,
-                        'product_name': f"【兌換】{redemption.get('name', '兌換商品')}",
-                        'quantity': redemption.get('quantity', 1),
-                        'unit_price': 0,
-                        'subtotal': 0,
-                        'is_redemption': True,
-                        'specifications': []
-                    })
+        if status_filter and status_filter != 'all':
+            takeout_base_qs = takeout_base_qs.filter(status=status_filter)
+            dinein_base_qs = dinein_base_qs.filter(status=status_filter)
 
-            total_amount = round(sum(float(item.get('subtotal') or 0) for item in items), 2)
-            
-            orders.append({
-                'id': order.order_number,
-                'pickup_number': order.order_number,
-                'order_number': order.order_number,
-                'customer_name': order.customer_name,
-                'customer_phone': order.customer_phone,
-                'invoice_carrier': order.invoice_carrier,
-                'payment_method': order.payment_method,
-                'payment_method_display': order.get_payment_method_display(),
-                'notes': order.notes,
-                'status': order.status,
-                'use_utensils': False,
-                'use_eco_tableware': order.use_eco_tableware,
-                'service_channel': 'dine_in',
-                'channel': 'dine_in',
-                'table_label': order.table_label,
-                'total_amount': total_amount,
-                'created_at': order.created_at.isoformat() if order.created_at else None,
-                'items': items
-            })
+        if month_start and month_end:
+            takeout_base_qs = takeout_base_qs.filter(created_at__gte=month_start, created_at__lt=month_end)
+            dinein_base_qs = dinein_base_qs.filter(created_at__gte=month_start, created_at__lt=month_end)
+
+        # 非法 channel fallback 到 all
+        if channel_filter not in {'all', 'takeout', 'dine_in'}:
+            channel_filter = 'all'
         
-        # 按建立時間排序（最新的在前）
+        if channel_filter == 'takeout':
+            takeout_qs = takeout_base_qs.order_by('-created_at')
+            total_count = takeout_qs.count()
+
+            if paginated:
+                start = (page - 1) * page_size
+                end = start + page_size
+                takeout_records = list(takeout_qs[start:end])
+            else:
+                takeout_records = list(takeout_qs)
+
+            orders = [self._serialize_takeout_order(order) for order in takeout_records]
+
+            if not paginated:
+                return Response(orders)
+
+            total_pages = max(1, (total_count + page_size - 1) // page_size)
+            return Response({
+                'results': orders,
+                'total_count': total_count,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+            })
+
+        if channel_filter == 'dine_in':
+            dinein_qs = dinein_base_qs.order_by('-created_at')
+            total_count = dinein_qs.count()
+
+            if paginated:
+                start = (page - 1) * page_size
+                end = start + page_size
+                dinein_records = list(dinein_qs[start:end])
+            else:
+                dinein_records = list(dinein_qs)
+
+            orders = [self._serialize_dinein_order(order) for order in dinein_records]
+
+            if not paginated:
+                return Response(orders)
+
+            total_pages = max(1, (total_count + page_size - 1) // page_size)
+            return Response({
+                'results': orders,
+                'total_count': total_count,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+            })
+
+        # channel=all 時，僅在 paginated 模式下限制每個 queryset 讀取範圍，避免一次讀完整歷史資料
+        takeout_qs = takeout_base_qs.order_by('-created_at')
+        dinein_qs = dinein_base_qs.order_by('-created_at')
+
+        takeout_count = takeout_qs.count()
+        dinein_count = dinein_qs.count()
+        total_count = takeout_count + dinein_count
+
+        if paginated:
+            fetch_limit = (page * page_size) + page_size
+            takeout_records = list(takeout_qs[:fetch_limit])
+            dinein_records = list(dinein_qs[:fetch_limit])
+        else:
+            takeout_records = list(takeout_qs)
+            dinein_records = list(dinein_qs)
+
+        orders = [self._serialize_takeout_order(order) for order in takeout_records]
+        orders.extend(self._serialize_dinein_order(order) for order in dinein_records)
         orders.sort(key=lambda x: x['created_at'] or '', reverse=True)
-        
-        return Response(orders)
+
+        if not paginated:
+            return Response(orders)
+
+        start = (page - 1) * page_size
+        end = start + page_size
+        paged_orders = orders[start:end]
+        total_pages = max(1, (total_count + page_size - 1) // page_size)
+
+        return Response({
+            'results': paged_orders,
+            'total_count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': total_pages,
+        })
 
 
 class TakeoutOrderCreateView(generics.CreateAPIView):
@@ -237,19 +384,16 @@ class OrderStatusUpdateView(APIView):
                     {'detail': f'Invalid status. Valid options: {valid_status}'}, 
                     status=http_status.HTTP_400_BAD_REQUEST
                 )
-            
-            # 更新 Firestore 狀態
-            firestore.client().collection('orders').document(pickup_number).update({
-                'status': new_status,
-                'updated_at': firestore.SERVER_TIMESTAMP,
-            })
-            
+
             # 更新 PostgreSQL 狀態
             order.status = new_status
             if new_status == 'completed':
                 from django.utils import timezone
                 order.completed_at = timezone.now()
             order.save()
+
+            # Firestore 同步改為背景執行，避免阻塞 API 回應
+            _async_update_firestore_order_status(pickup_number, new_status)
             
             # 如果狀態變更為 completed 或 rejected，保持 Firestore 中的狀態更新
             # 不刪除，讓顧客端可以收到即時通知
@@ -283,16 +427,11 @@ class OrderStatusUpdateView(APIView):
                     status=http_status.HTTP_400_BAD_REQUEST
                 )
             
-            # 刪除 PostgreSQL 資料
-            order.delete()
+            # 只在商家端隱藏，保留顧客端歷史紀錄
+            order.is_hidden_from_merchant = True
+            order.save(update_fields=['is_hidden_from_merchant'])
             
-            # 嘗試刪除 Firestore 資料
-            try:
-                firestore.client().collection('orders').document(pickup_number).delete()
-            except Exception:
-                pass
-            
-            return Response({'detail': 'Order deleted successfully'}, status=http_status.HTTP_204_NO_CONTENT)
+            return Response(status=http_status.HTTP_204_NO_CONTENT)
             
         except Exception as exc:
 
@@ -306,15 +445,15 @@ class CustomerOrderListView(APIView):
         user = request.user
         
         # 查詢外帶訂單 - 優化查詢效能
-        takeout_orders = TakeoutOrder.objects.filter(user=user).select_related(
+        takeout_orders = TakeoutOrder.objects.filter(user=user, is_hidden_from_customer=False).select_related(
             'store'
         ).prefetch_related('items', 'items__product')
         # 查詢內用訂單 - 優化查詢效能
-        dinein_orders = DineInOrder.objects.filter(user=user).select_related(
+        dinein_orders = DineInOrder.objects.filter(user=user, is_hidden_from_customer=False).select_related(
             'store'
         ).prefetch_related('items', 'items__product')
         # 查詢惜福品訂單 - 優化查詢效能
-        surplus_orders = SurplusFoodOrder.objects.filter(user=user).select_related(
+        surplus_orders = SurplusFoodOrder.objects.filter(user=user, is_hidden_from_customer=False).select_related(
             'store'
         ).prefetch_related('items', 'items__surplus_food')
         
@@ -424,6 +563,40 @@ class CustomerOrderListView(APIView):
         orders.sort(key=lambda x: x['created_at'] or '', reverse=True)
         
         return Response(orders)
+
+
+class CustomerOrderDeleteView(APIView):
+    """顧客端隱藏訂單紀錄 API"""
+    permission_classes = [IsAuthenticated]
+
+    ALLOWED_ORDER_TYPES = {'takeout', 'dinein', 'surplus'}
+    TERMINAL_STATUSES = {'completed', 'rejected', 'cancelled'}
+
+    def delete(self, request, order_type, order_id):
+        if order_type not in self.ALLOWED_ORDER_TYPES:
+            return Response({'detail': 'Invalid order type'}, status=http_status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+
+        if order_type == 'takeout':
+            model = TakeoutOrder
+        elif order_type == 'dinein':
+            model = DineInOrder
+        else:
+            model = SurplusFoodOrder
+
+        order = get_object_or_404(model, id=order_id, user=user)
+
+        if order.status not in self.TERMINAL_STATUSES:
+            return Response(
+                {'detail': 'Only completed/rejected/cancelled orders can be hidden'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        order.is_hidden_from_customer = True
+        order.save(update_fields=['is_hidden_from_customer'])
+
+        return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 
 class MerchantPendingOrdersView(APIView):

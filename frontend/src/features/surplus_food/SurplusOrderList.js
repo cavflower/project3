@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
+import { useStore } from '../../store/StoreContext';
 import { db } from '../../lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { useAuth } from '../../store/AuthContext';
 import styles from './SurplusFoodManagement.module.css';
 
 const SurplusOrderList = () => {
-  const { user } = useAuth();
+  const { storeId: contextStoreId, loading: storeLoading } = useStore();
+  const [storeId, setStoreId] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all');
@@ -15,6 +17,13 @@ const SurplusOrderList = () => {
   const [realtimeStatus, setRealtimeStatus] = useState('連線中...');
   const [page, setPage] = useState(1);
   const pageSize = 9;
+  const refreshTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (contextStoreId) {
+      setStoreId(contextStoreId);
+    }
+  }, [contextStoreId]);
 
   // 產生月份選項（過去12個月）
   const monthOptions = useMemo(() => {
@@ -29,60 +38,76 @@ const SurplusOrderList = () => {
     return options;
   }, []);
 
-  // 計算篩選後的訂單
-  const filteredOrders = useMemo(() => {
-    if (monthFilter === 'all') return orders;
-    return orders.filter(order => {
-      if (!order.created_at) return false;
-      const date = new Date(order.created_at);
-      const orderMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      return orderMonth === monthFilter;
-    });
-  }, [orders, monthFilter]);
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / pageSize)), [pageSize, totalCount]);
 
-  const loadOrders = useCallback(async () => {
+  const loadOrders = useCallback(async ({ silent = false } = {}) => {
+    if (!storeId) return;
+
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
+
       const params = {};
       if (statusFilter !== 'all') params.status = statusFilter;
       if (channelFilter !== 'all') params.order_type = channelFilter;
+      if (monthFilter !== 'all') params.month = monthFilter;
+      params.page = page;
+      params.page_size = pageSize;
+
       const data = await surplusFoodApi.getOrders(params);
-      setOrders(data);
+      const nextOrders = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : []);
+      const count = Number(data?.count ?? nextOrders.length ?? 0);
+
+      setOrders(nextOrders);
+      setTotalCount(count);
     } catch (error) {
       console.error('載入訂單失敗:', error);
       alert('載入訂單失敗');
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  }, [statusFilter, channelFilter]);
+  }, [channelFilter, monthFilter, page, pageSize, statusFilter, storeId]);
+
+  useEffect(() => {
+    if (!storeLoading && !contextStoreId) {
+      setRealtimeStatus('店家資料載入失敗');
+    }
+  }, [contextStoreId, storeLoading]);
 
   // 初始載入
   useEffect(() => {
+    if (!storeId) return;
     loadOrders();
-  }, [loadOrders]);
+  }, [loadOrders, storeId]);
 
   // Firestore 即時監聽惜福品訂單
   useEffect(() => {
-    let isInitialLoad = true;
-    let reloadTimeout = null;
-    const surplusOrdersRef = collection(db, 'surplus_orders');
+    if (!storeId) return undefined;
 
-    const unsubscribe = onSnapshot(surplusOrdersRef, (snapshot) => {
+    let isInitialLoad = true;
+    const surplusOrdersRef = collection(db, 'surplus_orders');
+    const surplusOrdersQuery = query(surplusOrdersRef, where('store_id', '==', String(storeId)));
+
+    const unsubscribe = onSnapshot(surplusOrdersQuery, (snapshot) => {
       if (isInitialLoad) {
         isInitialLoad = false;
         setRealtimeStatus('即時更新中');
         return;
       }
 
-      let needsReload = false;
-
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
-          console.log('新惜福品訂單:', change.doc.data());
-          needsReload = true;
+          if (refreshTimerRef.current) {
+            clearTimeout(refreshTimerRef.current);
+          }
+          refreshTimerRef.current = setTimeout(() => {
+            loadOrders({ silent: true });
+          }, 250);
         } else if (change.type === 'modified') {
           const updatedOrder = change.doc.data();
-          console.log('惜福品訂單更新:', updatedOrder);
 
           setOrders(prevOrders =>
             prevOrders.map(order => {
@@ -99,28 +124,14 @@ const SurplusOrderList = () => {
             })
           );
         } else if (change.type === 'removed') {
-          const removedOrder = change.doc.data();
-          console.log('惜福品訂單已刪除:', removedOrder);
-          setOrders(prevOrders =>
-            prevOrders.filter(order =>
-              String(order.id) !== change.doc.id &&
-              order.order_number !== removedOrder.order_number
-            )
-          );
+          if (refreshTimerRef.current) {
+            clearTimeout(refreshTimerRef.current);
+          }
+          refreshTimerRef.current = setTimeout(() => {
+            loadOrders({ silent: true });
+          }, 250);
         }
       });
-
-      if (needsReload) {
-        if (reloadTimeout) clearTimeout(reloadTimeout);
-        reloadTimeout = setTimeout(async () => {
-          try {
-            const data = await surplusFoodApi.getOrders({});
-            setOrders(data);
-          } catch (error) {
-            console.error('重新載入訂單失敗:', error);
-          }
-        }, 500);
-      }
     }, (error) => {
       console.error('Firestore 監聯錯誤:', error);
       setRealtimeStatus('連線失敗');
@@ -128,9 +139,11 @@ const SurplusOrderList = () => {
 
     return () => {
       unsubscribe();
-      if (reloadTimeout) clearTimeout(reloadTimeout);
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
     };
-  }, []);
+  }, [loadOrders, storeId]);
 
   const getStatusLabel = (status) => {
     const labels = {
@@ -184,7 +197,7 @@ const SurplusOrderList = () => {
   };
 
   const handleDeleteOrder = async (orderId) => {
-    if (!window.confirm('確定要刪除此訂單嗎？')) {
+    if (!window.confirm('確定要從店家端清單移除此訂單嗎？顧客端仍會保留該筆歷史紀錄。')) {
       return;
     }
 
@@ -192,7 +205,7 @@ const SurplusOrderList = () => {
 
     try {
       await surplusFoodApi.deleteOrder(orderId);
-      alert('訂單已成功刪除');
+      alert('訂單已從店家端清單移除');
     } catch (error) {
       console.error('刪除失敗:', error);
       alert('刪除失敗');
@@ -273,12 +286,10 @@ const SurplusOrderList = () => {
       ) : (
         <>
           <div className={styles.ordersList}>
-            {filteredOrders.length === 0 ? (
+            {orders.length === 0 ? (
               <div className={styles.emptyState}>目前沒有訂單</div>
             ) : (
-              filteredOrders
-                .slice((page - 1) * pageSize, page * pageSize)
-                .map(order => (
+              orders.map(order => (
                   <OrderCard
                     key={order.id}
                     order={order}
@@ -289,10 +300,10 @@ const SurplusOrderList = () => {
             )}
           </div>
           {/* 分頁控制 */}
-          {filteredOrders.length > pageSize && (
+          {totalCount > pageSize && (
             <div className="d-flex justify-content-between align-items-center mt-3" style={{ padding: '0 10px' }}>
               <div className="text-muted">
-                第 {page} / {Math.ceil(filteredOrders.length / pageSize)} 頁（共 {filteredOrders.length} 筆）
+                第 {page} / {totalPages} 頁（共 {totalCount} 筆）
               </div>
               <div className="d-flex gap-2">
                 <button
@@ -304,8 +315,8 @@ const SurplusOrderList = () => {
                 </button>
                 <button
                   className="btn btn-sm btn-outline-secondary"
-                  disabled={page >= Math.ceil(filteredOrders.length / pageSize)}
-                  onClick={() => setPage((p) => Math.min(Math.ceil(filteredOrders.length / pageSize), p + 1))}
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 >
                   下一頁
                 </button>

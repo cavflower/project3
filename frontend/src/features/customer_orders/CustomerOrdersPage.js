@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../store/AuthContext";
 import { db } from "../../lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import {
   getUserOrders,
   getOrderNotifications,
+  deleteCustomerOrder,
   markAllNotificationsAsRead,
   deleteNotification,
   deleteAllNotifications,
@@ -29,6 +30,40 @@ const PAYMENT_MAP = {
   cash: "現金",
   credit_card: "信用卡",
   line_pay: "LINE Pay",
+};
+
+const getOrderReviewType = (order) => {
+  const raw = (
+    order?.order_type ||
+    order?.service_channel ||
+    order?.channel ||
+    ""
+  ).toString().toLowerCase();
+
+  if (raw === "dinein" || raw === "dine_in") return "dinein";
+  if (raw === "takeout" || raw === "take_away") return "takeout";
+  if (order?.order_type_display === "內用") return "dinein";
+  if (order?.order_type_display === "外帶") return "takeout";
+  return null;
+};
+
+const getOrderDeleteType = (order) => {
+  const raw = (
+    order?.order_type ||
+    order?.service_channel ||
+    order?.channel ||
+    ""
+  ).toString().toLowerCase();
+
+  if (raw === "surplus") return "surplus";
+  if (raw === "dinein" || raw === "dine_in") return "dinein";
+  if (raw === "takeout" || raw === "take_away") return "takeout";
+
+  if (order?.order_type_display === "惜福品") return "surplus";
+  if (order?.order_type_display === "內用") return "dinein";
+  if (order?.order_type_display === "外帶") return "takeout";
+
+  return null;
 };
 
 const toNumber = (value) => {
@@ -182,6 +217,8 @@ const CustomerOrdersPage = () => {
   const { user } = useAuth();
   const location = useLocation();
   const refreshTimerRef = useRef(null);
+  const fetchInFlightRef = useRef(false);
+  const pollingPausedUntilRef = useRef(0);
 
   const [orders, setOrders] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -190,7 +227,23 @@ const CustomerOrdersPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  const isAuthIssue = useCallback((error) => {
+    if (error?.response?.status === 401) return true;
+    if (error?.code === 'AUTH_COOLDOWN') return true;
+    if (error?.isAuthCooldown) return true;
+    return false;
+  }, []);
+
+  const pausePollingTemporarily = useCallback((ms = 30000) => {
+    pollingPausedUntilRef.current = Date.now() + ms;
+  }, []);
+
   const fetchData = useCallback(async ({ silent = false } = {}) => {
+    if (fetchInFlightRef.current) return;
+    if (silent && Date.now() < pollingPausedUntilRef.current) return;
+
+    fetchInFlightRef.current = true;
+
     if (!silent) {
       setLoading(true);
     }
@@ -203,13 +256,18 @@ const CustomerOrdersPage = () => {
       setOrders(Array.isArray(ordersResponse.data) ? ordersResponse.data : []);
       setNotifications(Array.isArray(notificationsResponse.data) ? notificationsResponse.data : []);
     } catch (error) {
-      console.error("載入訂單資料失敗:", error);
+      if (isAuthIssue(error)) {
+        pausePollingTemporarily();
+      } else {
+        console.error("載入訂單資料失敗:", error);
+      }
     } finally {
+      fetchInFlightRef.current = false;
       if (!silent) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [isAuthIssue, pausePollingTemporarily]);
 
   const scheduleSilentRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -223,8 +281,22 @@ const CustomerOrdersPage = () => {
 
   useEffect(() => {
     if (!user) return;
+    pollingPausedUntilRef.current = 0;
     fetchData();
   }, [fetchData, user]);
+
+  useEffect(() => {
+    const onAuthError = (event) => {
+      if (event?.detail?.userType === 'customer') {
+        pausePollingTemporarily();
+      }
+    };
+
+    window.addEventListener('dineverse:auth-error', onAuthError);
+    return () => {
+      window.removeEventListener('dineverse:auth-error', onAuthError);
+    };
+  }, [pausePollingTemporarily]);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -351,6 +423,27 @@ const CustomerOrdersPage = () => {
       setNotifications([]);
     } catch (error) {
       console.error("刪除全部通知失敗:", error);
+    }
+  };
+
+  const handleDeleteOrderRecord = async (order) => {
+    const orderType = getOrderDeleteType(order);
+    if (!orderType || !order?.id) {
+      window.alert("此訂單暫時無法刪除");
+      return;
+    }
+
+    const confirmed = window.confirm("確定要刪除此筆訂單紀錄嗎？刪除後可在顧客端清單中移除。\n（店家端紀錄不受影響）");
+    if (!confirmed) return;
+
+    try {
+      await deleteCustomerOrder(orderType, order.id);
+      setOrders((prev) => prev.filter((item) => !(item.id === order.id && getOrderDeleteType(item) === orderType)));
+      setSelectedOrder(null);
+      window.alert("訂單紀錄已刪除");
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      window.alert(detail || "刪除失敗，請稍後再試");
     }
   };
 
@@ -526,6 +619,7 @@ const CustomerOrdersPage = () => {
         <OrderDetailModal
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
+          onDeleteOrder={handleDeleteOrderRecord}
           getPaymentDisplay={getPaymentDisplay}
           formatTime={formatTime}
           getStatusText={getStatusText}
@@ -535,10 +629,13 @@ const CustomerOrdersPage = () => {
   );
 };
 
-const OrderDetailModal = ({ order, onClose, getPaymentDisplay, formatTime, getStatusText }) => {
+const OrderDetailModal = ({ order, onClose, onDeleteOrder, getPaymentDisplay, formatTime, getStatusText }) => {
   const items = normalizeOrderItems(order);
   const total = getOrderTotal(order, items);
   const orderNo = order.pickup_number || order.order_number || order.id;
+  const reviewType = getOrderReviewType(order);
+  const canGoReview = order.status === "completed" && !!reviewType;
+  const canDeleteRecord = ["completed", "rejected", "cancelled"].includes((order.status || "").toLowerCase());
 
   return (
     <div className={styles["order-modal-overlay"]} onClick={onClose}>
@@ -615,6 +712,29 @@ const OrderDetailModal = ({ order, onClose, getPaymentDisplay, formatTime, getSt
             </div>
           )}
         </div>
+
+        {(canGoReview || canDeleteRecord) && (
+          <div className={styles["order-modal-actions"]}>
+            {canGoReview && (
+              <Link
+                to={`/review/${order.id}?type=${reviewType}`}
+                className={styles["order-review-btn"]}
+                onClick={onClose}
+              >
+                前往評論
+              </Link>
+            )}
+            {canDeleteRecord && (
+              <button
+                type="button"
+                className={styles["order-delete-btn"]}
+                onClick={() => onDeleteOrder(order)}
+              >
+                刪除紀錄
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

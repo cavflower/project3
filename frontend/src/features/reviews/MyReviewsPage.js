@@ -6,6 +6,32 @@ import api from '../../api/api';
 import styles from './MyReviewsPage.module.css';
 
 const QUICK_TAGS = ['餐點美味', '服務親切', '份量充足', '環境乾淨'];
+const DISMISSED_REVIEW_ORDERS_KEY_PREFIX = 'dineverse:dismissed-review-orders:';
+
+const getDismissStorageKey = (user) => {
+    const userId = user?.id || user?.email || 'guest';
+    return `${DISMISSED_REVIEW_ORDERS_KEY_PREFIX}${userId}`;
+};
+
+const getDismissedReviewOrderKeys = (user) => {
+    try {
+        const raw = window.localStorage.getItem(getDismissStorageKey(user));
+        const parsed = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(parsed) ? parsed : []);
+    } catch (error) {
+        return new Set();
+    }
+};
+
+const saveDismissedReviewOrderKeys = (user, keySet) => {
+    try {
+        window.localStorage.setItem(getDismissStorageKey(user), JSON.stringify(Array.from(keySet)));
+    } catch (error) {
+        // 忽略 localStorage 寫入失敗，避免影響主要流程
+    }
+};
+
+const buildReviewOrderKey = (orderType, orderId) => `${orderType}-${orderId}`;
 
 const MyReviewsPage = () => {
     const { user } = useAuth();
@@ -102,15 +128,20 @@ const MyReviewsPage = () => {
                 return null;
             };
 
+            const dismissedOrderKeys = getDismissedReviewOrderKeys(user);
+
             const pendingReviewOrders = myOrders
                 .map((order) => ({
                     ...order,
                     review_order_type: getOrderType(order),
                 }))
                 .filter((order) => {
+                    return !dismissedOrderKeys.has(buildReviewOrderKey(order.review_order_type, order.id));
+                })
+                .filter((order) => {
                     if (!order.review_order_type) return false;
                     if (order.status !== 'completed') return false;
-                    return !reviewedOrderKeys.has(`${order.review_order_type}-${order.id}`);
+                    return !reviewedOrderKeys.has(buildReviewOrderKey(order.review_order_type, order.id));
                 })
                 .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
@@ -417,6 +448,16 @@ const MyReviewsPage = () => {
         }
     };
 
+    const handleDismissReviewableOrder = (order) => {
+        const key = buildReviewOrderKey(order.review_order_type, order.id);
+        const dismissedOrderKeys = getDismissedReviewOrderKeys(user);
+        dismissedOrderKeys.add(key);
+        saveDismissedReviewOrderKeys(user, dismissedOrderKeys);
+        setReviewableOrders((prev) =>
+            prev.filter((item) => buildReviewOrderKey(item.review_order_type, item.id) !== key)
+        );
+    };
+
     if (!user) {
         return (
             <div className={styles.myReviewsPage}>
@@ -469,12 +510,21 @@ const MyReviewsPage = () => {
                                             </div>
                                             <div className={styles.pendingMeta}>{formatDateTime(order.created_at)}</div>
                                         </div>
-                                        <Link
-                                            to={`/review/${order.id}?type=${order.review_order_type}`}
-                                            className={styles.btnReviewOrder}
-                                        >
-                                            前往評論
-                                        </Link>
+                                        <div className={styles.pendingActions}>
+                                            <Link
+                                                to={`/review/${order.id}?type=${order.review_order_type}`}
+                                                className={styles.btnReviewOrder}
+                                            >
+                                                前往評論
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                className={styles.btnDismissOrder}
+                                                onClick={() => handleDismissReviewableOrder(order)}
+                                            >
+                                                下次再說
+                                            </button>
+                                        </div>
                                     </div>
                                 );
                             })}
