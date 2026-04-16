@@ -24,8 +24,12 @@ export const deleteProductCategory = (id) => {
 };
 
 // ========== 產品 API ==========
-export const getProducts = () => {
-  return api.get('/products/products/');
+export const getProducts = (params = {}) => {
+  return api.get('/products/products/', { params });
+};
+
+export const getProductDetail = (id, params = {}) => {
+  return api.get(`/products/products/${id}/`, { params });
 };
 
 export const createProduct = (productData) => {

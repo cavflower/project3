@@ -96,7 +96,9 @@ class CustomerLoyaltyAccountViewSet(viewsets.ReadOnlyModelViewSet):
 	permission_classes = [permissions.IsAuthenticated]
 
 	def get_queryset(self):
-		return CustomerLoyaltyAccount.objects.filter(user=self.request.user)
+		return CustomerLoyaltyAccount.objects.filter(user=self.request.user).select_related(
+			'store', 'current_level'
+		)
 
 	@action(detail=True, methods=['get'])
 	def transactions(self, request, pk=None):
@@ -114,7 +116,9 @@ class PointTransactionViewSet(viewsets.ReadOnlyModelViewSet):
 
 	def get_queryset(self):
 		user_accounts = CustomerLoyaltyAccount.objects.filter(user=self.request.user)
-		return PointTransaction.objects.filter(account__in=user_accounts)
+		return PointTransaction.objects.filter(account__in=user_accounts).select_related(
+			'account', 'account__store', 'order', 'redemption'
+		)
 
 
 class CustomerRedemptionViewSet(viewsets.ModelViewSet):
@@ -128,7 +132,9 @@ class CustomerRedemptionViewSet(viewsets.ModelViewSet):
 
 	def get_queryset(self):
 		user_accounts = CustomerLoyaltyAccount.objects.filter(user=self.request.user)
-		return Redemption.objects.filter(account__in=user_accounts)
+		return Redemption.objects.filter(account__in=user_accounts).select_related(
+			'account', 'account__user', 'product'
+		)
 
 	@action(detail=True, methods=['post'])
 	def cancel(self, request, pk=None):
@@ -177,7 +183,9 @@ class MerchantRedemptionManagementViewSet(viewsets.ModelViewSet, MerchantOnlyMix
 		store = self.get_store()
 		if not store:
 			return Redemption.objects.none()
-		return Redemption.objects.filter(product__store=store)
+		return Redemption.objects.filter(product__store=store).select_related(
+			'account', 'account__user', 'product'
+		)
 
 	@action(detail=True, methods=['post'])
 	def confirm(self, request, pk=None):

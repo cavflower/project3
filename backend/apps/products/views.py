@@ -1,6 +1,6 @@
 # backend/apps/products/views.py
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Count, Exists, OuterRef
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -51,7 +51,9 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
         merchant = getattr(self.request.user, 'merchant_profile', None)
         if not merchant or not hasattr(merchant, 'store'):
             return ProductCategory.objects.none()
-        return ProductCategory.objects.filter(store=merchant.store)
+        return ProductCategory.objects.filter(store=merchant.store).annotate(
+            products_count=Count('products', distinct=True)
+        )
     
     def perform_create(self, serializer):
         merchant = getattr(self.request.user, 'merchant_profile', None)
@@ -82,7 +84,31 @@ class ProductViewSet(viewsets.ModelViewSet):
         merchant = getattr(self.request.user, 'merchant_profile', None)
         if not merchant or not hasattr(merchant, 'store'):
             return Product.objects.none()
-        return Product.objects.filter(store=merchant.store).prefetch_related('ingredient_links__ingredient')
+
+        include_ingredients_param = str(
+            self.request.query_params.get('include_ingredients', '1')
+        ).strip().lower()
+        include_ingredients = include_ingredients_param not in ('0', 'false', 'no', 'off')
+
+        queryset = Product.objects.filter(store=merchant.store).select_related('category', 'store')
+        if include_ingredients:
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    'ingredient_links',
+                    queryset=ProductIngredient.objects.select_related('ingredient'),
+                    to_attr='prefetched_ingredient_links',
+                )
+            )
+
+        return queryset
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        include_ingredients_param = str(
+            self.request.query_params.get('include_ingredients', '1')
+        ).strip().lower()
+        context['include_ingredients'] = include_ingredients_param not in ('0', 'false', 'no', 'off')
+        return context
 
     def perform_create(self, serializer):
         merchant = getattr(self.request.user, 'merchant_profile', None)
@@ -98,7 +124,18 @@ class PublicProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         # 優化查詢：預載入類別和店家資料
-        qs = super().get_queryset().select_related('category', 'store').prefetch_related('ingredient_links__ingredient')
+        from apps.surplus_food.models import SurplusFood
+
+        active_surplus_qs = SurplusFood.objects.filter(
+            product_id=OuterRef('pk'),
+            status='active'
+        )
+
+        qs = super().get_queryset().select_related('category', 'store').prefetch_related(
+            'ingredient_links__ingredient'
+        ).annotate(
+            is_linked_to_surplus=Exists(active_surplus_qs)
+        )
         
         store_id = self.request.query_params.get('store')
         service_type = self.request.query_params.get('service_type')
@@ -135,7 +172,7 @@ class PublicProductCategoryViewSet(viewsets.ReadOnlyModelViewSet):
         store_id = self.request.query_params.get('store')
         if store_id:
             qs = qs.filter(store_id=store_id)
-        return qs.order_by('display_order', 'name')
+        return qs.annotate(products_count=Count('products', distinct=True)).order_by('display_order', 'name')
 
 
 class SpecificationGroupViewSet(viewsets.ModelViewSet):

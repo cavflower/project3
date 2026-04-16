@@ -6,6 +6,7 @@ from django.db.models import Q
 import hashlib
 
 from .models import Reservation, ReservationChangeLog, TimeSlot
+from apps.stores.models import Store
 from .serializers import (
     ReservationSerializer,
     ReservationCreateSerializer,
@@ -48,10 +49,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
         
         if user.is_authenticated:
             # 會員查看自己的訂位
-            return Reservation.objects.filter(user=user)
+            return Reservation.objects.filter(user=user).select_related('store', 'user')
         
         # 訪客也可以訪問訂位（會在各個 action 中驗證手機號碼）
-        return Reservation.objects.all()
+        return Reservation.objects.select_related('store', 'user')
     
     def create(self, request, *args, **kwargs):
         """建立訂位"""
@@ -198,7 +199,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             phone_hash=phone_hash,
             user__isnull=True,  # 僅訪客訂位
             reservation_date__gte=thirty_days_ago
-        ).order_by('-created_at')
+        ).select_related('store', 'user').order_by('-created_at')
         
         if not reservations.exists():
             return Response(
@@ -303,17 +304,27 @@ class MerchantReservationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """僅返回商家自己店家的訂位"""
         user = self.request.user
-        
-        # 確認用戶是商家
-        if not hasattr(user, 'merchant_profile'):
+
+        if getattr(user, 'user_type', None) != 'merchant':
             return Reservation.objects.none()
-        
-        # 取得商家的店家
-        try:
-            store = user.merchant_profile.store
-            return Reservation.objects.filter(store=store)
-        except:
-            return Reservation.objects.none()
+
+        queryset = Reservation.objects.filter(
+            store__merchant__user_id=user.id
+        ).select_related('store', 'user').order_by('-created_at')
+
+        status_filter = self.request.query_params.get('status')
+        if status_filter and status_filter != 'all':
+            queryset = queryset.filter(status=status_filter)
+
+        reservation_date = self.request.query_params.get('reservation_date')
+        if reservation_date:
+            queryset = queryset.filter(reservation_date=reservation_date)
+
+        customer_name = self.request.query_params.get('customer_name')
+        if customer_name:
+            queryset = queryset.filter(customer_name__icontains=customer_name.strip())
+
+        return queryset
     
     def get_serializer_class(self):
         if self.action in ['update', 'partial_update', 'update_status']:
@@ -429,71 +440,67 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
     queryset = TimeSlot.objects.all()
     serializer_class = TimeSlotSerializer
     permission_classes = [permissions.IsAuthenticated]
+    DAY_OF_WEEK_TO_DJANGO_WEEKDAY = {
+        'monday': 2,
+        'tuesday': 3,
+        'wednesday': 4,
+        'thursday': 5,
+        'friday': 6,
+        'saturday': 7,
+        'sunday': 1,
+    }
     
     def get_queryset(self):
         """僅返回商家自己店家的時段"""
         user = self.request.user
-        
-        if not hasattr(user, 'merchant_profile'):
+
+        if getattr(user, 'user_type', None) != 'merchant':
             return TimeSlot.objects.none()
-        
-        try:
-            store = user.merchant_profile.store
-            return TimeSlot.objects.filter(store=store)
-        except:
-            return TimeSlot.objects.none()
+
+        return TimeSlot.objects.filter(
+            store__merchant__user_id=user.id
+        ).select_related('store')
+
+    def _build_time_slot_string(self, instance):
+        if instance.end_time:
+            return f"{instance.start_time.strftime('%H:%M')}-{instance.end_time.strftime('%H:%M')}"
+        return instance.start_time.strftime('%H:%M')
+
+    def _has_future_reservations(self, instance):
+        time_str = self._build_time_slot_string(instance)
+        today = timezone.now().date()
+        django_weekday = self.DAY_OF_WEEK_TO_DJANGO_WEEKDAY.get(instance.day_of_week)
+        if django_weekday is None:
+            return False
+
+        return Reservation.objects.filter(
+            time_slot=time_str,
+            store_id=instance.store_id,
+            reservation_date__gte=today,
+            reservation_date__week_day=django_weekday,
+            status__in=['pending', 'confirmed']
+        ).exists()
     
     def perform_create(self, serializer):
         """新增時段時自動設定 store"""
         user = self.request.user
-        
-        if not hasattr(user, 'merchant_profile'):
+
+        if getattr(user, 'user_type', None) != 'merchant':
             raise permissions.PermissionDenied("您沒有商家權限")
-        
-        try:
-            store = user.merchant_profile.store
-            serializer.save(store=store)
-        except Exception as e:
-            raise permissions.PermissionDenied(f"無法取得店家資訊: {str(e)}")
+
+        store_id = Store.objects.filter(
+            merchant__user_id=user.id
+        ).values_list('id', flat=True).first()
+        if not store_id:
+            raise permissions.PermissionDenied("無法取得店家資訊")
+
+        serializer.save(store_id=store_id)
     
     def update(self, request, *args, **kwargs):
         """更新時段前檢查是否有訂位"""
         instance = self.get_object()
-        
-        # 構造時間字串來檢查訂位
-        if instance.end_time:
-            time_str = f"{instance.start_time.strftime('%H:%M')}-{instance.end_time.strftime('%H:%M')}"
-        else:
-            time_str = instance.start_time.strftime('%H:%M')
-        
-        # 檢查該時段（相同星期幾）是否有訂位
-        from django.utils import timezone
-        from datetime import datetime, timedelta
-        
-        # 獲取該星期幾的所有未來日期的訂位
-        day_of_week_map = {
-            'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
-            'friday': 4, 'saturday': 5, 'sunday': 6
-        }
-        target_weekday = day_of_week_map[instance.day_of_week]
-        
-        # 檢查未來的訂位日期是否符合該星期幾
-        today = timezone.now().date()
-        future_reservations = Reservation.objects.filter(
-            time_slot=time_str,
-            store=instance.store,
-            reservation_date__gte=today,
-            status__in=['pending', 'confirmed']
-        )
-        
-        # 過濾出符合該星期幾的訂位
-        has_reservations = False
-        for reservation in future_reservations:
-            if reservation.reservation_date.weekday() == target_weekday:
-                has_reservations = True
-                break
-        
-        if has_reservations:
+
+        if self._has_future_reservations(instance):
             return Response(
                 {'error': '此時段已有訂位，無法編輯。若要修改，請先取消或完成所有相關訂位。'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -504,40 +511,8 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """刪除時段前檢查是否有訂位"""
         instance = self.get_object()
-        
-        # 構造時間字串來檢查訂位
-        if instance.end_time:
-            time_str = f"{instance.start_time.strftime('%H:%M')}-{instance.end_time.strftime('%H:%M')}"
-        else:
-            time_str = instance.start_time.strftime('%H:%M')
-        
-        # 檢查該時段（相同星期幾）是否有訂位
-        from django.utils import timezone
-        
-        # 獲取該星期幾的所有未來日期的訂位
-        day_of_week_map = {
-            'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
-            'friday': 4, 'saturday': 5, 'sunday': 6
-        }
-        target_weekday = day_of_week_map[instance.day_of_week]
-        
-        # 檢查未來的訂位日期是否符合該星期幾
-        today = timezone.now().date()
-        future_reservations = Reservation.objects.filter(
-            time_slot=time_str,
-            store=instance.store,
-            reservation_date__gte=today,
-            status__in=['pending', 'confirmed']
-        )
-        
-        # 過濾出符合該星期幾的訂位
-        has_reservations = False
-        for reservation in future_reservations:
-            if reservation.reservation_date.weekday() == target_weekday:
-                has_reservations = True
-                break
-        
-        if has_reservations:
+
+        if self._has_future_reservations(instance):
             return Response(
                 {'error': '此時段已有訂位，無法刪除。若要刪除，請先取消或完成所有相關訂位。'},
                 status=status.HTTP_400_BAD_REQUEST

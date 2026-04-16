@@ -21,6 +21,9 @@ class SurplusFoodCategorySerializer(serializers.ModelSerializer):
     
     def get_food_count(self, obj):
         """取得此類別下的惜福品數量"""
+        annotated_count = getattr(obj, 'food_count', None)
+        if annotated_count is not None:
+            return annotated_count
         return obj.foods.filter(status='active').count()
     
     def validate_name(self, value):
@@ -194,7 +197,12 @@ class SurplusFoodSerializer(serializers.ModelSerializer):
         return data
 
     def _get_product_max_quantity_by_ingredients(self, product):
-        links = list(product.ingredient_links.select_related('ingredient').all())
+        prefetched = getattr(product, '_prefetched_objects_cache', {})
+        if 'ingredient_links' in prefetched:
+            links = list(product.ingredient_links.all())
+        else:
+            links = list(product.ingredient_links.select_related('ingredient').all())
+
         if not links:
             return None
 

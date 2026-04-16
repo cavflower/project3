@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models import Count, Prefetch, Q
 from .models import Store, StoreImage, MenuImage
 from .serializers import StoreSerializer, StoreImageSerializer, MenuImageSerializer
 
@@ -21,15 +22,28 @@ class StoreViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        from django.db.models import Prefetch
-        
         # 優化查詢：預載入相關資料
-        base_queryset = Store.objects.select_related(
-            'merchant', 'merchant__user'
-        ).prefetch_related(
-            Prefetch('images', queryset=StoreImage.objects.order_by('order')),
-            Prefetch('menu_images', queryset=MenuImage.objects.order_by('order'))
-        )
+        base_queryset = Store.objects.select_related('merchant')
+
+        # 內用桌位配置只需店家基本欄位，避免載入圖片與計數查詢。
+        if self.action == 'dine_in_layout':
+            base_queryset = base_queryset.only('id', 'merchant_id', 'dine_in_layout', 'updated_at')
+        else:
+            base_queryset = base_queryset.prefetch_related(
+                Prefetch(
+                    'images',
+                    queryset=StoreImage.objects.only('id', 'store_id', 'image', 'order').order_by('order')
+                ),
+                Prefetch(
+                    'menu_images',
+                    queryset=MenuImage.objects.only('id', 'store_id', 'image', 'order').order_by('order')
+                )
+            ).annotate(
+                surplus_order_count=Count(
+                    'surplus_orders',
+                    filter=Q(surplus_orders__status='completed')
+                )
+            )
         
         # 如果是 set_discount（管理員設定折扣），返回所有店家
         if self.action == 'set_discount':
@@ -38,8 +52,8 @@ class StoreViewSet(viewsets.ModelViewSet):
         if self.action == 'retrieve':
             return base_queryset.filter(is_published=True)
         # 只返回當前登入商家的店家資訊
-        if hasattr(self.request.user, 'merchant_profile'):
-            return base_queryset.filter(merchant=self.request.user.merchant_profile)
+        if getattr(self.request.user, 'user_type', None) == 'merchant':
+            return base_queryset.filter(merchant__user_id=self.request.user.id)
         return Store.objects.none()
 
     def get_permissions(self):
@@ -64,14 +78,31 @@ class StoreViewSet(viewsets.ModelViewSet):
         """
         獲取當前商家的店家資訊
         """
-        if not hasattr(request.user, 'merchant_profile'):
+        if getattr(request.user, 'user_type', None) != 'merchant':
             return Response(
                 {"error": "User is not a merchant."},
                 status=status.HTTP_403_FORBIDDEN
             )
+
+        lite_param = str(request.query_params.get('lite', '0')).strip().lower()
+        is_lite_mode = lite_param in ('1', 'true', 'yes', 'on')
         
         try:
-            store = Store.objects.get(merchant=request.user.merchant_profile)
+            if is_lite_mode:
+                store = Store.objects.filter(merchant__user_id=request.user.id).values(
+                    'id',
+                    'enable_takeout',
+                    'enable_reservation',
+                    'enable_loyalty',
+                    'enable_surplus_food',
+                ).first()
+
+                if not store:
+                    raise Store.DoesNotExist
+
+                return Response(store)
+
+            store = self.get_queryset().get(merchant__user_id=request.user.id)
             serializer = self.get_serializer(store)
             return Response(serializer.data)
         except Store.DoesNotExist:
@@ -287,10 +318,13 @@ class StoreViewSet(viewsets.ModelViewSet):
         獲取所有店家資料（供管理員查看）
         不需要認證，簡化管理員系統
         """
-        from django.db.models import Count, Q
+        from django.db.models import Count, Q, Prefetch
 
         stores = Store.objects.all().select_related(
             'merchant', 'merchant__user'
+        ).prefetch_related(
+            Prefetch('images', queryset=StoreImage.objects.order_by('order')),
+            Prefetch('menu_images', queryset=MenuImage.objects.order_by('order'))
         ).annotate(
             surplus_order_count=Count(
                 'surplus_orders',

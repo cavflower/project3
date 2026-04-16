@@ -29,7 +29,9 @@ class StoreReviewViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
     
     def get_queryset(self):
-        queryset = StoreReview.objects.all()
+        queryset = StoreReview.objects.select_related(
+            'user', 'store', 'takeout_order', 'dinein_order'
+        ).prefetch_related('images')
         
         # 篩選店家
         store_id = self.request.query_params.get('store_id')
@@ -166,6 +168,8 @@ class StoreReviewViewSet(viewsets.ModelViewSet):
         """取得當前用戶的店家評論"""
         queryset = StoreReview.objects.filter(user=request.user).select_related(
             'store', 'takeout_order', 'dinein_order'
+        ).prefetch_related(
+            'images'
         ).order_by('-created_at')
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -178,7 +182,9 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_queryset(self):
-        queryset = ProductReview.objects.all()
+        queryset = ProductReview.objects.select_related(
+            'user', 'product', 'store', 'takeout_order', 'dinein_order'
+        ).prefetch_related('images')
         
         # 篩選店家
         store_id = self.request.query_params.get('store_id')
@@ -276,6 +282,8 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         """取得當前用戶的菜品評論"""
         queryset = ProductReview.objects.filter(user=request.user).select_related(
             'product', 'store', 'takeout_order', 'dinein_order'
+        ).prefetch_related(
+            'images'
         ).order_by('-created_at')
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

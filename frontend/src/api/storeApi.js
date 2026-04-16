@@ -1,7 +1,7 @@
 import api from './api';
 
-export const getMyStore = () => {
-  return api.get('/stores/my_store/');
+export const getMyStore = (params = {}) => {
+  return api.get('/stores/my_store/', { params });
 };
 
 export const createStore = (storeData) => {

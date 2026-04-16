@@ -201,7 +201,7 @@ const MerchantDashboard = () => {
 
     const intervalId = setInterval(() => {
       refreshPendingOrders();
-    }, 10000);
+    }, 60000);
 
     return () => {
       clearInterval(intervalId);

@@ -152,6 +152,8 @@ class Reservation(models.Model):
             models.Index(fields=['customer_phone']),
             models.Index(fields=['reservation_date', 'status']),
             models.Index(fields=['store', 'reservation_date']),
+            models.Index(fields=['store', 'created_at']),
+            models.Index(fields=['store', 'status', 'reservation_date']),
         ]
         verbose_name = '訂位'
         verbose_name_plural = '訂位列表'

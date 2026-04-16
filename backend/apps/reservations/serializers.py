@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.db.models import Sum
+from django.utils import timezone
 from .models import Reservation, ReservationChangeLog, TimeSlot
 from apps.stores.models import Store
 from apps.users.models import User
@@ -309,7 +311,9 @@ class TimeSlotSerializer(serializers.ModelSerializer):
     
     def get_has_reservations(self, obj):
         """檢查該時段（相同星期幾）是否有未來的訂位"""
-        from django.utils import timezone
+        annotated_value = getattr(obj, 'has_reservations', None)
+        if annotated_value is not None:
+            return bool(annotated_value)
         
         # 構造時間字串
         if obj.end_time:
@@ -324,21 +328,29 @@ class TimeSlotSerializer(serializers.ModelSerializer):
         }
         target_weekday = day_of_week_map[obj.day_of_week]
         
-        # 獲取未來的訂位
-        today = timezone.now().date()
-        future_reservations = Reservation.objects.filter(
-            time_slot=time_str,
-            store=obj.store,
-            reservation_date__gte=today,
-            status__in=['pending', 'confirmed']
-        )
-        
-        # 只檢查符合該星期幾的訂位
-        for reservation in future_reservations:
-            if reservation.reservation_date.weekday() == target_weekday:
-                return True
-        
-        return False
+        reservation_weekday_pairs = self._get_future_reservation_weekday_cache(obj.store_id)
+        return (time_str, target_weekday) in reservation_weekday_pairs
+
+    def _get_future_reservation_weekday_cache(self, store_id):
+        cache = getattr(self, '_future_reservation_weekday_cache', None)
+        if cache is None:
+            cache = {}
+            self._future_reservation_weekday_cache = cache
+
+        if store_id not in cache:
+            today = timezone.now().date()
+            rows = Reservation.objects.filter(
+                store_id=store_id,
+                reservation_date__gte=today,
+                status__in=['pending', 'confirmed']
+            ).values_list('time_slot', 'reservation_date')
+
+            cache[store_id] = {
+                (time_slot, reservation_date.weekday())
+                for time_slot, reservation_date in rows
+            }
+
+        return cache[store_id]
     
     def validate(self, data):
         """驗證時段時間和容量設定"""
@@ -392,38 +404,51 @@ class TimeSlotWithAvailabilitySerializer(serializers.ModelSerializer):
     
     def get_current_bookings(self, obj):
         """獲取當前時段的訂位人數（根據日期）"""
+        annotated_value = getattr(obj, 'current_bookings', None)
+        if annotated_value is not None:
+            return int(annotated_value)
+
         date = self.context.get('date')
         if not date:
             return 0
-        
-        from django.db.models import Sum
+
         # obj 是 TimeSlot 實例，需要構造時間字串來匹配 Reservation 的 time_slot CharField
         if obj.end_time:
             time_str = f"{obj.start_time.strftime('%H:%M')}-{obj.end_time.strftime('%H:%M')}"
         else:
             time_str = obj.start_time.strftime('%H:%M')
-        
-        reservations = Reservation.objects.filter(
-            time_slot=time_str,
-            store=obj.store,
-            reservation_date=date,
-            status__in=['pending', 'confirmed']
-        )
-        
-        result = reservations.aggregate(
-            total_adults=Sum('party_size'),
-            total_children=Sum('children_count')
-        )
-        
-        total_adults = result['total_adults'] or 0
-        total_children = result['total_children'] or 0
-        
-        return total_adults + total_children
+
+        booking_map = self._get_booking_map_for_date(obj.store_id, date)
+        return booking_map.get(time_str, 0)
     
     def get_available(self, obj):
         """檢查時段是否還有空位"""
         current = self.get_current_bookings(obj)
         return current < obj.max_capacity
+
+    def _get_booking_map_for_date(self, store_id, date):
+        cache = getattr(self, '_booking_map_cache', None)
+        if cache is None:
+            cache = {}
+            self._booking_map_cache = cache
+
+        cache_key = (store_id, date)
+        if cache_key not in cache:
+            rows = Reservation.objects.filter(
+                store_id=store_id,
+                reservation_date=date,
+                status__in=['pending', 'confirmed']
+            ).values('time_slot').annotate(
+                total_adults=Sum('party_size'),
+                total_children=Sum('children_count')
+            )
+
+            cache[cache_key] = {
+                row['time_slot']: (row['total_adults'] or 0) + (row['total_children'] or 0)
+                for row in rows
+            }
+
+        return cache[cache_key]
         
         if data.get('max_capacity') and data.get('max_capacity') < 1:
             raise serializers.ValidationError({

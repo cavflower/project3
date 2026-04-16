@@ -1,4 +1,5 @@
 import os
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -7,6 +8,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 load_dotenv(BASE_DIR / '.env')
 
+logger = logging.getLogger(__name__)
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def env_list(name, default=''):
+    raw = os.getenv(name, default)
+    return [item.strip() for item in raw.split(',') if item.strip()]
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
@@ -14,9 +29,9 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key-for-development')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool('DEBUG', True)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '*')
 
 
 # Application definition
@@ -136,7 +151,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', DEBUG)
+CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS', 'http://127.0.0.1:3000,http://localhost:3000')
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -161,10 +177,8 @@ try:
     cred = credentials.Certificate(os.path.join(BASE_DIR, 'serviceAccountKey.json'))
     firebase_admin.initialize_app(cred)
 except Exception as e:
-    print(f"Firebase Admin SDK 初始化失敗: {e}")
-    # 在開發環境中，如果找不到金鑰檔案，可以選擇不中斷程式
-    # 但在生產環境中，這應該是一個嚴重的錯誤
-    pass
+    # 開發環境允許未配置 Firebase Admin，但仍記錄警告供排查。
+    logger.warning('Firebase Admin SDK 初始化失敗: %s', e)
 
 
 # 處理使用者上傳的媒體檔案 (例如商品圖片)

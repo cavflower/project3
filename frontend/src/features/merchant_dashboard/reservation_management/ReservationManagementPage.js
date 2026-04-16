@@ -128,7 +128,7 @@ const ReservationManagementPage = () => {
 
   const fetchConfiguredTables = async () => {
     try {
-      const storeResponse = await getMyStore();
+      const storeResponse = await getMyStore({ lite: 1 });
       const storeId = storeResponse.data?.id;
       if (!storeId) {
         setTableFloors([]);

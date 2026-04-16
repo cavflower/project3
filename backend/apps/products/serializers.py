@@ -14,6 +14,9 @@ class ProductCategorySerializer(serializers.ModelSerializer):
     
     def get_products_count(self, obj):
         """獲取該類別下的產品數量"""
+        annotated_count = getattr(obj, 'products_count', None)
+        if annotated_count is not None:
+            return annotated_count
         return obj.products.count()
     
     def create(self, validated_data):
@@ -64,6 +67,17 @@ class ProductSerializer(serializers.ModelSerializer):
         }
 
     def get_ingredient_links(self, obj):
+        if not self.context.get('include_ingredients', True):
+            return []
+
+        links = getattr(obj, 'prefetched_ingredient_links', None)
+        if links is None:
+            prefetched = getattr(obj, '_prefetched_objects_cache', {})
+            if 'ingredient_links' in prefetched:
+                links = list(obj.ingredient_links.all())
+            else:
+                links = list(obj.ingredient_links.select_related('ingredient').all())
+
         return [
             {
                 'id': link.id,
@@ -74,7 +88,7 @@ class ProductSerializer(serializers.ModelSerializer):
                 'ingredient_current_stock': link.ingredient.quantity,
                 'quantity_used': link.quantity_used,
             }
-            for link in obj.ingredient_links.select_related('ingredient').all()
+            for link in links
         ]
 
     def to_internal_value(self, data):
@@ -226,11 +240,19 @@ class PublicProductSerializer(serializers.ModelSerializer):
     
     def get_is_linked_to_surplus(self, obj):
         """檢查此產品是否被關聯為惜福品"""
+        annotated_flag = getattr(obj, 'is_linked_to_surplus', None)
+        if annotated_flag is not None:
+            return bool(annotated_flag)
         from apps.surplus_food.models import SurplusFood
         return SurplusFood.objects.filter(product=obj, status='active').exists()
 
     def _compute_ingredient_max_sellable_quantity(self, obj):
-        links = list(obj.ingredient_links.select_related('ingredient').all())
+        prefetched = getattr(obj, '_prefetched_objects_cache', {})
+        if 'ingredient_links' in prefetched:
+            links = list(obj.ingredient_links.all())
+        else:
+            links = list(obj.ingredient_links.select_related('ingredient').all())
+
         if not links:
             return None
 

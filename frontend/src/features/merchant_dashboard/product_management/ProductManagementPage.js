@@ -5,7 +5,7 @@ import ProductCategoryForm from './ProductCategoryForm';
 import ProductSpecificationForm from './ProductSpecificationForm';
 import FoodTags from '../../../components/common/FoodTags';
 import styles from './ProductManagementPage.module.css';
-import { getProducts, deleteProduct, getProductCategories, deleteProductCategory } from '../../../api/productApi';
+import { getProducts, getProductDetail, deleteProduct, getProductCategories, deleteProductCategory } from '../../../api/productApi';
 import { getMyStore, updateStore } from '../../../api/storeApi';
 
 const ProductManagementPage = () => {
@@ -34,7 +34,7 @@ const ProductManagementPage = () => {
 
   const fetchStoreSettings = async () => {
     try {
-      const response = await getMyStore();
+      const response = await getMyStore({ lite: 1 });
       setStoreId(response.data.id);
       setEnableTakeout(response.data.enable_takeout !== false);
       setTakeoutError('');
@@ -48,7 +48,7 @@ const ProductManagementPage = () => {
   const fetchProducts = async () => {
     try {
       console.log('[ProductManagement] Fetching products...');
-      const response = await getProducts();
+      const response = await getProducts({ include_ingredients: 0 });
       console.log('[ProductManagement] Products loaded:', response.data);
       setProducts(response.data);
       setError('');
@@ -105,12 +105,21 @@ const ProductManagementPage = () => {
     setIsFormVisible(true);
   };
 
-  const handleEditClick = (product) => {
-    setEditingProduct(product);
-    // 找到商品所屬的類別
-    const productCategory = categories.find(cat => cat.id === product.category);
-    setSelectedCategory(productCategory);
-    setIsFormVisible(true);
+  const handleEditClick = async (product) => {
+    try {
+      const response = await getProductDetail(product.id, { include_ingredients: 1 });
+      const fullProduct = response.data;
+      setEditingProduct(fullProduct);
+
+      // 找到商品所屬的類別
+      const productCategory = categories.find(cat => cat.id === fullProduct.category);
+      setSelectedCategory(productCategory);
+      setIsFormVisible(true);
+      setError('');
+    } catch (err) {
+      console.error('[ProductManagement] Error fetching product detail:', err);
+      setError('無法載入商品詳細資料，請稍後再試。');
+    }
   };
 
   const handleDelete = async (productId) => {

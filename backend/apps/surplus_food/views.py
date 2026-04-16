@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Count
 from datetime import datetime
 import threading
 import logging
@@ -45,7 +45,11 @@ class SurplusFoodCategoryViewSet(viewsets.ModelViewSet):
         """只返回當前商家的類別"""
         user = self.request.user
         if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
-            return SurplusFoodCategory.objects.filter(store=user.merchant_profile.store)
+            return SurplusFoodCategory.objects.filter(
+                store=user.merchant_profile.store
+            ).annotate(
+                food_count=Count('foods', filter=Q(foods__status='active'), distinct=True)
+            )
         return SurplusFoodCategory.objects.none()
     
     def perform_create(self, serializer):
@@ -96,7 +100,11 @@ class SurplusFoodViewSet(viewsets.ModelViewSet):
         """只返回當前商家的惜福食品"""
         user = self.request.user
         if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
-            queryset = SurplusFood.objects.filter(store=user.merchant_profile.store)
+            queryset = SurplusFood.objects.filter(store=user.merchant_profile.store).select_related(
+                'store', 'category', 'product', 'time_slot'
+            ).prefetch_related(
+                'product__ingredient_links__ingredient'
+            )
             
             # 支援狀態篩選
             status_filter = self.request.query_params.get('status', None)
@@ -191,6 +199,10 @@ class PublicSurplusFoodViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = SurplusFood.objects.filter(
             status='active',
             remaining_quantity__gt=0
+        ).select_related(
+            'store', 'category', 'product', 'time_slot'
+        ).prefetch_related(
+            'product__ingredient_links__ingredient'
         )
         
         # 支援店家篩選
@@ -223,6 +235,8 @@ class PublicSurplusFoodViewSet(viewsets.ReadOnlyModelViewSet):
         categories = SurplusFoodCategory.objects.filter(
             store_id=store_id,
             is_active=True
+        ).annotate(
+            food_count=Count('foods', filter=Q(foods__status='active'), distinct=True)
         ).order_by('display_order', 'name')
         
         serializer = SurplusFoodCategorySerializer(categories, many=True)

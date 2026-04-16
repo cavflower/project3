@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework import status as http_status
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.core.cache import cache
 from firebase_admin import firestore
 from .serializers import TakeoutOrderSerializer, DineInOrderSerializer, NotificationSerializer
 from .models import TakeoutOrder, DineInOrder, Notification
@@ -18,6 +19,8 @@ import logging
 
 
 logger = logging.getLogger(__name__)
+# 前端商家儀表板每 60 秒刷新一次，TTL 需高於刷新間隔才有實際命中效果。
+ORDER_LIST_COUNT_CACHE_TTL_SECONDS = 75
 
 
 def _parse_positive_int(value, default):
@@ -50,24 +53,34 @@ def _parse_month_range(month_value):
 
 
 def _resolve_item_product_payload(item):
-    product = item.product
-    product_id = product.id if product else item.snapshot_product_id
-    product_name = product.name if product else (item.snapshot_product_name or '已下架商品')
+    product_id = item.snapshot_product_id or item.product_id
+    product_name = item.snapshot_product_name or '已下架商品'
 
-    if item.unit_price is not None:
-        unit_price = item.unit_price
-    elif product is not None:
-        unit_price = product.price
-    else:
-        unit_price = None
+    unit_price = item.unit_price
+    if unit_price is None and not item.snapshot_product_name and item.product_id:
+        # 僅在舊資料缺快照時才回退讀取關聯商品，避免列表查詢額外成本。
+        product = getattr(item, 'product', None)
+        if product is not None:
+            product_name = product.name
+            unit_price = product.price
 
     return {
         'product_id': product_id,
         'product_name': product_name,
         'unit_price': unit_price,
         'snapshot_product_image': item.snapshot_product_image or None,
-        'product_deleted': product is None,
+        'product_deleted': item.product_id is None,
     }
+
+
+def _get_cached_count(cache_key, queryset):
+    cached_count = cache.get(cache_key)
+    if cached_count is not None:
+        return cached_count
+
+    count = queryset.count()
+    cache.set(cache_key, count, ORDER_LIST_COUNT_CACHE_TTL_SECONDS)
+    return count
 
 
 def _async_update_firestore_order_status(document_id, status_value):
@@ -203,14 +216,6 @@ class OrderListView(generics.ListAPIView):
                 status=http_status.HTTP_400_BAD_REQUEST
             )
         
-        try:
-            store = Store.objects.get(pk=store_id)
-        except Store.DoesNotExist:
-            return Response(
-                {'detail': 'Store not found'}, 
-                status=http_status.HTTP_404_NOT_FOUND
-            )
-        
         status_filter = request.query_params.get('status')
         channel_filter = request.query_params.get('channel', 'all')
         month_filter = request.query_params.get('month', 'all')
@@ -219,16 +224,17 @@ class OrderListView(generics.ListAPIView):
         page_size = min(_parse_positive_int(request.query_params.get('page_size'), 9), 50)
 
         month_start, month_end = _parse_month_range(month_filter)
+        count_cache_prefix = f"orders:list:store:{store_id}:status:{status_filter or 'all'}:month:{month_filter or 'all'}"
 
         # 查詢外帶訂單 - 使用 prefetch_related 優化 items 查詢
-        takeout_base_qs = TakeoutOrder.objects.filter(store=store, is_hidden_from_merchant=False).select_related(
+        takeout_base_qs = TakeoutOrder.objects.filter(store_id=store_id, is_hidden_from_merchant=False).select_related(
             'store'
-        ).prefetch_related('items', 'items__product')
+        ).prefetch_related('items')
 
         # 查詢內用訂單 - 使用 prefetch_related 優化 items 查詢
-        dinein_base_qs = DineInOrder.objects.filter(store=store, is_hidden_from_merchant=False).select_related(
+        dinein_base_qs = DineInOrder.objects.filter(store_id=store_id, is_hidden_from_merchant=False).select_related(
             'store'
-        ).prefetch_related('items', 'items__product')
+        ).prefetch_related('items')
 
         if status_filter and status_filter != 'all':
             takeout_base_qs = takeout_base_qs.filter(status=status_filter)
@@ -244,7 +250,7 @@ class OrderListView(generics.ListAPIView):
         
         if channel_filter == 'takeout':
             takeout_qs = takeout_base_qs.order_by('-created_at')
-            total_count = takeout_qs.count()
+            total_count = _get_cached_count(f"{count_cache_prefix}:channel:takeout", takeout_qs)
 
             if paginated:
                 start = (page - 1) * page_size
@@ -269,7 +275,7 @@ class OrderListView(generics.ListAPIView):
 
         if channel_filter == 'dine_in':
             dinein_qs = dinein_base_qs.order_by('-created_at')
-            total_count = dinein_qs.count()
+            total_count = _get_cached_count(f"{count_cache_prefix}:channel:dine_in", dinein_qs)
 
             if paginated:
                 start = (page - 1) * page_size
@@ -296,12 +302,13 @@ class OrderListView(generics.ListAPIView):
         takeout_qs = takeout_base_qs.order_by('-created_at')
         dinein_qs = dinein_base_qs.order_by('-created_at')
 
-        takeout_count = takeout_qs.count()
-        dinein_count = dinein_qs.count()
+        takeout_count = _get_cached_count(f"{count_cache_prefix}:channel:takeout", takeout_qs)
+        dinein_count = _get_cached_count(f"{count_cache_prefix}:channel:dine_in", dinein_qs)
         total_count = takeout_count + dinein_count
 
         if paginated:
-            fetch_limit = (page * page_size) + page_size
+            # 取 page*page_size 即可覆蓋該頁所需的全域排序資料，不需多抓一頁。
+            fetch_limit = page * page_size
             takeout_records = list(takeout_qs[:fetch_limit])
             dinein_records = list(dinein_qs[:fetch_limit])
         else:
@@ -447,11 +454,11 @@ class CustomerOrderListView(APIView):
         # 查詢外帶訂單 - 優化查詢效能
         takeout_orders = TakeoutOrder.objects.filter(user=user, is_hidden_from_customer=False).select_related(
             'store'
-        ).prefetch_related('items', 'items__product')
+        ).prefetch_related('items')
         # 查詢內用訂單 - 優化查詢效能
         dinein_orders = DineInOrder.objects.filter(user=user, is_hidden_from_customer=False).select_related(
             'store'
-        ).prefetch_related('items', 'items__product')
+        ).prefetch_related('items')
         # 查詢惜福品訂單 - 優化查詢效能
         surplus_orders = SurplusFoodOrder.objects.filter(user=user, is_hidden_from_customer=False).select_related(
             'store'
@@ -464,7 +471,7 @@ class CustomerOrderListView(APIView):
         for order in takeout_orders:
             # 獲取訂單項目
             items = []
-            for item in order.items.select_related('product').all():
+            for item in order.items.all():
                 item_payload = _resolve_item_product_payload(item)
                 unit_price = item_payload['unit_price']
                 unit_price_value = float(unit_price) if unit_price is not None else 0.0
@@ -504,7 +511,7 @@ class CustomerOrderListView(APIView):
         for order in dinein_orders:
             # 獲取訂單項目
             items = []
-            for item in order.items.select_related('product').all():
+            for item in order.items.all():
                 item_payload = _resolve_item_product_payload(item)
                 unit_price = item_payload['unit_price']
                 unit_price_value = float(unit_price) if unit_price is not None else 0.0

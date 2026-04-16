@@ -4,10 +4,24 @@ from rest_framework import serializers
 from .models import PaymentCard
 from cryptography.fernet import Fernet
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+import base64
+import hashlib
 import os
 
-# 加密金鑰（應該放在環境變數中）
-ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', Fernet.generate_key())
+# 加密金鑰：正式環境必須使用環境變數；開發環境用固定推導 key，避免重啟後資料無法解密。
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY')
+if not ENCRYPTION_KEY:
+    if settings.DEBUG:
+        ENCRYPTION_KEY = base64.urlsafe_b64encode(
+            hashlib.sha256(settings.SECRET_KEY.encode('utf-8')).digest()
+        ).decode('utf-8')
+    else:
+        raise ImproperlyConfigured('ENCRYPTION_KEY environment variable is required in non-debug mode.')
+
+if isinstance(ENCRYPTION_KEY, str):
+    ENCRYPTION_KEY = ENCRYPTION_KEY.encode('utf-8')
+
 cipher_suite = Fernet(ENCRYPTION_KEY)
 
 

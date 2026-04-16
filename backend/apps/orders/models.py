@@ -78,6 +78,8 @@ class TakeoutOrder(models.Model):
         indexes = [
             models.Index(fields=['store', 'status', 'created_at']),
             models.Index(fields=['store', 'created_at']),
+            models.Index(fields=['store', 'is_hidden_from_merchant', 'created_at']),
+            models.Index(fields=['store', 'is_hidden_from_merchant', 'status', 'created_at']),
             models.Index(fields=['user', 'created_at']),
             models.Index(fields=['customer_phone', 'created_at']),
         ]
@@ -225,6 +227,8 @@ class DineInOrder(models.Model):
         indexes = [
             models.Index(fields=['store', 'status', 'created_at']),
             models.Index(fields=['store', 'created_at']),
+            models.Index(fields=['store', 'is_hidden_from_merchant', 'created_at']),
+            models.Index(fields=['store', 'is_hidden_from_merchant', 'status', 'created_at']),
             models.Index(fields=['user', 'created_at']),
             models.Index(fields=['customer_phone', 'created_at']),
         ]
