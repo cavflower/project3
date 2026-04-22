@@ -12,10 +12,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
+  Switch,
   Typography,
 } from '@mui/material';
 import { FaLine } from 'react-icons/fa';
-import { bindLine, getLineAuthUrl, getLineBindingStatus, unbindLine } from '../../api/lineLoginApi';
+import { bindLine, getLineAuthUrl, getLineBindingStatus, unbindLine, updateLinePreferences } from '../../api/lineLoginApi';
 
 const LineBinding = ({ compact = false }) => {
   const [loading, setLoading] = useState(true);
@@ -23,6 +25,7 @@ const LineBinding = ({ compact = false }) => {
   const [error, setError] = useState(null);
   const [unbindDialogOpen, setUnbindDialogOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [preferenceUpdating, setPreferenceUpdating] = useState('');
 
   useEffect(() => {
     loadBindingStatus();
@@ -95,6 +98,29 @@ const LineBinding = ({ compact = false }) => {
     }
   };
 
+  const handleTogglePreference = async (field, checked) => {
+    if (!binding) return;
+
+    const previous = binding[field];
+    setPreferenceUpdating(field);
+    setBinding((prev) => ({ ...prev, [field]: checked }));
+
+    try {
+      const updated = await updateLinePreferences({ [field]: checked });
+      setBinding((prev) => ({
+        ...prev,
+        notify_personalized_recommendation: updated.notify_personalized_recommendation,
+        notify_transactional_notifications: updated.notify_transactional_notifications,
+      }));
+      setError(null);
+    } catch (err) {
+      setBinding((prev) => ({ ...prev, [field]: previous }));
+      setError(err.response?.data?.detail || '更新通知偏好失敗。');
+    } finally {
+      setPreferenceUpdating('');
+    }
+  };
+
   const Wrapper = ({ children }) => {
     if (compact) return <>{children}</>;
     return (
@@ -151,6 +177,34 @@ const LineBinding = ({ compact = false }) => {
             <Button variant="outlined" color="error" size={compact ? 'small' : 'medium'} onClick={() => setUnbindDialogOpen(true)} disabled={processing}>
               解除綁定
             </Button>
+
+            <Box sx={{ mt: 1.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                LINE 通知偏好
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    color="success"
+                    checked={binding.notify_personalized_recommendation !== false}
+                    disabled={preferenceUpdating === 'notify_personalized_recommendation' || processing}
+                    onChange={(e) => handleTogglePreference('notify_personalized_recommendation', e.target.checked)}
+                  />
+                }
+                label="個人化推薦"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    color="success"
+                    checked={binding.notify_transactional_notifications !== false}
+                    disabled={preferenceUpdating === 'notify_transactional_notifications' || processing}
+                    onChange={(e) => handleTogglePreference('notify_transactional_notifications', e.target.checked)}
+                  />
+                }
+                label="交易通知"
+              />
+            </Box>
           </Box>
         ) : (
           <Box>

@@ -7,6 +7,7 @@ from django.conf import settings as django_settings
 from .services.recommendation_service import RecommendationService
 from .services.financial_analysis_service import FinancialAnalysisService
 from .services.line_login_service import LineLoginService
+from .services.line_recommendation_push_service import LineRecommendationPushService
 from .serializers import (
     RecommendedProductSerializer, 
     UserPreferenceSerializer,
@@ -20,6 +21,14 @@ import logging
 
 
 logger = logging.getLogger(__name__)
+
+
+def parse_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ['1', 'true', 'yes', 'on']
+    return bool(value)
 
 
 class RecommendationViewSet(viewsets.ViewSet):
@@ -274,6 +283,9 @@ class PlatformSettingsViewSet(viewsets.ViewSet):
                     'line_bot_channel_secret_set': bool(settings.line_bot_channel_secret),
                     'is_line_bot_enabled': settings.is_line_bot_enabled,
                     'line_bot_welcome_message': settings.line_bot_welcome_message,
+                    'is_personalized_recommendation_enabled': settings.is_personalized_recommendation_enabled,
+                    'personalized_recommendation_min_interval_minutes': settings.personalized_recommendation_min_interval_minutes,
+                    'personalized_recommendation_weekly_limit': settings.personalized_recommendation_weekly_limit,
                     'has_line_login_config': settings.has_line_login_config(),
                     'has_line_bot_config': settings.has_line_bot_config(),
                     'updated_at': settings.updated_at,
@@ -304,9 +316,27 @@ class PlatformSettingsViewSet(viewsets.ViewSet):
             if 'line_bot_channel_secret' in data and data['line_bot_channel_secret']:
                 settings.line_bot_channel_secret = data['line_bot_channel_secret']
             if 'is_line_bot_enabled' in data:
-                settings.is_line_bot_enabled = data['is_line_bot_enabled']
+                settings.is_line_bot_enabled = parse_bool(data['is_line_bot_enabled'])
+            if 'is_personalized_recommendation_enabled' in data:
+                settings.is_personalized_recommendation_enabled = parse_bool(data['is_personalized_recommendation_enabled'])
             if 'line_bot_welcome_message' in data:
                 settings.line_bot_welcome_message = data['line_bot_welcome_message']
+            if 'personalized_recommendation_min_interval_minutes' in data:
+                interval_minutes = int(data['personalized_recommendation_min_interval_minutes'])
+                if interval_minutes < 1:
+                    return Response(
+                        {'detail': '個人化推薦最小間隔必須至少 1 分鐘'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                settings.personalized_recommendation_min_interval_minutes = interval_minutes
+            if 'personalized_recommendation_weekly_limit' in data:
+                weekly_limit = int(data['personalized_recommendation_weekly_limit'])
+                if weekly_limit < 0:
+                    return Response(
+                        {'detail': '每週上限不可小於 0'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                settings.personalized_recommendation_weekly_limit = weekly_limit
             
             settings.updated_by = 'admin'
             settings.save()
@@ -319,6 +349,58 @@ class PlatformSettingsViewSet(viewsets.ViewSet):
                 'has_line_bot_config': settings.has_line_bot_config(),
                 'is_line_bot_enabled': settings.is_line_bot_enabled,
             })
+
+    @action(detail=False, methods=['post'], url_path='quick-fallback-recommendation-push')
+    def quick_fallback_recommendation_push(self, request):
+        """快速版備案：不依賴 AI，立即發送熱門店家推薦。"""
+        is_admin = request.headers.get('X-Admin-Auth') == 'true'
+        if not is_admin:
+            return Response(
+                {'detail': '需要管理員權限'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        intro_message = request.data.get('intro_message') if hasattr(request.data, 'get') else None
+        if intro_message is None:
+            intro_message = '以下是本週熱門店家推薦，AI 功能異常時可先使用此備案。'
+
+        service = LineRecommendationPushService()
+        try:
+            summary = service.send_quick_fallback_popular_recommendation(intro_message=intro_message)
+            return Response({
+                'message': '快速備援推播已執行',
+                **summary,
+            })
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error('[Platform LINE] Quick fallback push error: %s', exc)
+            return Response({'detail': '快速備援推播失敗'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='run-auto-recommendation-push')
+    def run_auto_recommendation_push(self, request):
+        """完整版：立即執行一次自動個人化推薦推播流程。"""
+        is_admin = request.headers.get('X-Admin-Auth') == 'true'
+        if not is_admin:
+            return Response(
+                {'detail': '需要管理員權限'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        force = parse_bool(request.data.get('force', False)) if hasattr(request.data, 'get') else False
+
+        service = LineRecommendationPushService()
+        try:
+            summary = service.run_automated_personalized_recommendation(force=force)
+            return Response({
+                'message': '自動推薦推播流程已執行',
+                **summary,
+            })
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error('[Platform LINE] Run auto recommendation push error: %s', exc)
+            return Response({'detail': '執行自動推薦推播失敗'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class FinancialAnalysisViewSet(viewsets.ViewSet):
     """
@@ -616,6 +698,37 @@ class LineLoginViewSet(viewsets.ViewSet):
             logger.error(f"[LINE Login] Get status error: {e}")
             return Response(
                 {'detail': '取得綁定狀態失敗'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['patch'], url_path='preferences')
+    def update_preferences(self, request):
+        """更新 LINE 通知偏好設定。"""
+        try:
+            if 'notify_personalized_recommendation' not in request.data and 'notify_transactional_notifications' not in request.data:
+                return Response(
+                    {'detail': '至少要提供一個可更新的欄位'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            service = LineLoginService()
+            updated = service.update_notification_preferences(
+                request.user,
+                notify_personalized_recommendation=request.data.get('notify_personalized_recommendation') if 'notify_personalized_recommendation' in request.data else None,
+                notify_transactional_notifications=request.data.get('notify_transactional_notifications') if 'notify_transactional_notifications' in request.data else None,
+            )
+            return Response({
+                'success': True,
+                'message': '通知偏好已更新',
+                **updated,
+            })
+
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"[LINE Login] Update preferences error: {e}")
+            return Response(
+                {'detail': '更新通知偏好失敗'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

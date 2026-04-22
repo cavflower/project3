@@ -57,10 +57,22 @@ export const getLineBindingStatus = async () => {
     return response.data;
 };
 
+/**
+ * 更新 LINE 通知偏好設定
+ * @param {Object} data
+ * @param {boolean} data.notify_personalized_recommendation
+ * @param {boolean} data.notify_transactional_notifications
+ */
+export const updateLinePreferences = async (data) => {
+    const response = await api.patch('/intelligence/line-login/preferences/', data);
+    return response.data;
+};
+
 export default {
     getLineAuthUrl,
     handleLineCallback,
     bindLine,
     unbindLine,
     getLineBindingStatus,
+    updateLinePreferences,
 };

@@ -6,6 +6,14 @@ const SurplusStatistics = () => {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const formatCurrency = (value) => {
+    const amount = Number(value || 0);
+    return `NT$ ${amount.toLocaleString('zh-TW', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
   useEffect(() => {
     loadStatistics();
   }, []);
@@ -46,12 +54,12 @@ const SurplusStatistics = () => {
             <div className={styles.statLabel}>已售完</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statValue}>{statistics.total_views}</div>
-            <div className={styles.statLabel}>總瀏覽次數</div>
+            <div className={styles.statValue}>{statistics.completed_orders || 0}</div>
+            <div className={styles.statLabel}>完成訂單數</div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statValue}>{statistics.total_orders}</div>
-            <div className={styles.statLabel}>總訂購次數</div>
+            <div className={styles.statValue}>{formatCurrency(statistics.donation_amount)}</div>
+            <div className={styles.statLabel}>捐贈金額 (60%)</div>
           </div>
         </div>
       ) : null}

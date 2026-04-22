@@ -6,6 +6,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.utils import timezone
 from django.db.models import Q, Count
 from datetime import datetime
+from decimal import Decimal
 import threading
 import logging
 import firebase_admin
@@ -174,14 +175,17 @@ class SurplusFoodViewSet(viewsets.ModelViewSet):
         
         store = user.merchant_profile.store
         queryset = SurplusFood.objects.filter(store=store)
+        completed_orders = store.surplus_completed_order_count_total or 0
+        completed_revenue = Decimal(str(store.surplus_completed_revenue_total or 0))
+        donation_amount = (completed_revenue * Decimal('0.6')).quantize(Decimal('0.01'))
         
         stats = {
             'total': queryset.count(),
             'active': queryset.filter(status='active').count(),
             'inactive': queryset.filter(status='inactive').count(),
             'sold_out': queryset.filter(status='sold_out').count(),
-            'total_views': sum(queryset.values_list('views_count', flat=True)),
-            'total_orders': sum(queryset.values_list('orders_count', flat=True)),
+            'completed_orders': completed_orders,
+            'donation_amount': float(donation_amount),
         }
         
         return Response(stats)

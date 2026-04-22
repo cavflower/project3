@@ -54,6 +54,11 @@ const LineBotSettings = () => {
     broadcast_default_tags: [],
     broadcast_default_days_inactive: 0,
     broadcast_default_message: '',
+    use_platform_recommendation_frequency: true,
+    popular_recommendation_min_interval_minutes: '',
+    popular_recommendation_weekly_limit: '',
+    enable_popular_recommendation_push: true,
+    enable_new_product_recommendation_push: true,
   });
 
   // 個人化推播相關 state
@@ -113,14 +118,18 @@ const LineBotSettings = () => {
       const data = await getLineBotConfig(storeId);
       if (data) {
         setConfig(data);
-        setFormData({
-          ...formData,
+        setFormData((prev) => ({
+          ...prev,
           ...data,
+          popular_recommendation_min_interval_minutes:
+            data.popular_recommendation_min_interval_minutes ?? '',
+          popular_recommendation_weekly_limit:
+            data.popular_recommendation_weekly_limit ?? '',
           // 不顯示敏感資料，但保留欄位
           line_channel_access_token: '',
           line_channel_secret: '',
           ai_api_key: '',
-        });
+        }));
         // 載入推播預設設定到推播 UI state
         if (data.broadcast_default_tags) {
           setSelectedTags(data.broadcast_default_tags);
@@ -163,6 +172,12 @@ const LineBotSettings = () => {
         broadcast_default_days_inactive: daysInactive,
         broadcast_default_message: broadcastMessage,
       };
+      if (submitData.popular_recommendation_min_interval_minutes === '') {
+        submitData.popular_recommendation_min_interval_minutes = null;
+      }
+      if (submitData.popular_recommendation_weekly_limit === '') {
+        submitData.popular_recommendation_weekly_limit = null;
+      }
       if (!submitData.line_channel_access_token) {
         delete submitData.line_channel_access_token;
       }
@@ -452,6 +467,78 @@ const LineBotSettings = () => {
               <Typography variant="subtitle1" gutterBottom>
                 篩選目標用戶
               </Typography>
+
+              <Box sx={{ mb: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.use_platform_recommendation_frequency}
+                      onChange={handleChange}
+                      name="use_platform_recommendation_frequency"
+                    />
+                  }
+                  label="沿用平台推播頻率（建議）"
+                />
+                <Typography variant="body2" color="text.secondary">
+                  開啟後將使用平台後台的推播最小間隔與每週上限。關閉後可自訂店家熱門推薦頻率。
+                </Typography>
+              </Box>
+
+              {!formData.use_platform_recommendation_frequency && (
+                <Grid container spacing={2} sx={{ mb: 1 }}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="店家熱門推薦最小間隔（分鐘）"
+                      name="popular_recommendation_min_interval_minutes"
+                      value={formData.popular_recommendation_min_interval_minutes}
+                      onChange={handleChange}
+                      inputProps={{ min: 1 }}
+                      helperText="留空則使用平台設定"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="店家熱門推薦每週上限"
+                      name="popular_recommendation_weekly_limit"
+                      value={formData.popular_recommendation_weekly_limit}
+                      onChange={handleChange}
+                      inputProps={{ min: 0 }}
+                      helperText="留空則使用平台設定；0 代表停用熱門推薦"
+                    />
+                  </Grid>
+                </Grid>
+              )}
+
+              <Grid container spacing={2} sx={{ mb: 1 }}>
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.enable_popular_recommendation_push}
+                        onChange={handleChange}
+                        name="enable_popular_recommendation_push"
+                      />
+                    }
+                    label="啟用店家熱門推薦推播"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.enable_new_product_recommendation_push}
+                        onChange={handleChange}
+                        name="enable_new_product_recommendation_push"
+                      />
+                    }
+                    label="啟用新品相似推薦推播"
+                  />
+                </Grid>
+              </Grid>
 
               <Grid container spacing={2}>
                 <Grid item xs={12} md={8}>

@@ -91,6 +91,35 @@ class StoreLineBotConfig(models.Model):
         verbose_name='預設推播訊息',
         help_text='個人化推播預設的訊息內容'
     )
+
+    # 店家熱門推薦推播頻率
+    use_platform_recommendation_frequency = models.BooleanField(
+        default=True,
+        verbose_name='沿用平台推播頻率',
+        help_text='啟用時使用平台設定的最小間隔與每週上限。'
+    )
+    popular_recommendation_min_interval_minutes = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name='店家熱門推薦最小間隔（分鐘）',
+        help_text='未填寫時，回退使用平台推薦最小間隔。'
+    )
+    popular_recommendation_weekly_limit = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name='店家熱門推薦每週上限',
+        help_text='未填寫時，回退使用平台推薦每週上限。'
+    )
+    enable_popular_recommendation_push = models.BooleanField(
+        default=True,
+        verbose_name='啟用店家熱門推薦推播',
+        help_text='關閉後不自動發送店家熱門推薦。'
+    )
+    enable_new_product_recommendation_push = models.BooleanField(
+        default=True,
+        verbose_name='啟用新品相似推薦推播',
+        help_text='關閉後不發送新品相似推薦通知。'
+    )
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
@@ -149,6 +178,16 @@ class LineUserBinding(models.Model):
         default='customer',
         verbose_name='當前模式',
         help_text='用於 LINE BOT 切換顯示顧客或店家資訊'
+    )
+    notify_personalized_recommendation = models.BooleanField(
+        default=True,
+        verbose_name='個人化推薦通知',
+        help_text='是否接收個人化推薦類型的推播訊息'
+    )
+    notify_transactional_notifications = models.BooleanField(
+        default=True,
+        verbose_name='交易通知',
+        help_text='是否接收訂單進度與可取餐等交易型通知'
     )
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='綁定時間')
@@ -396,6 +435,81 @@ class BroadcastMessage(models.Model):
 
     def __str__(self):
         return f"{self.store.name} - {self.title}"
+
+
+class StoreUserPushLog(models.Model):
+    """店家對用戶推播記錄，用於頻率控管與新品去重。"""
+
+    PUSH_TYPE_CHOICES = [
+        ('store_popular', '店家熱門推薦'),
+        ('store_new_product', '店家新品推薦'),
+    ]
+
+    STATUS_CHOICES = [
+        ('success', '成功'),
+        ('skipped', '略過'),
+        ('failed', '失敗'),
+    ]
+
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='user_push_logs',
+        verbose_name='店家'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='store_user_push_logs',
+        verbose_name='系統用戶'
+    )
+    line_user_id = models.CharField(
+        max_length=255,
+        db_index=True,
+        verbose_name='LINE User ID'
+    )
+    push_type = models.CharField(
+        max_length=30,
+        choices=PUSH_TYPE_CHOICES,
+        verbose_name='推播類型'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        verbose_name='狀態'
+    )
+    reason = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='原因'
+    )
+    error_message = models.TextField(
+        blank=True,
+        verbose_name='錯誤訊息'
+    )
+    product_ids = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='相關新品 ID 清單'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+
+    class Meta:
+        db_table = 'store_user_push_logs'
+        verbose_name = '店家對用戶推播記錄'
+        verbose_name_plural = '店家對用戶推播記錄'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['store', 'user', 'push_type', 'created_at']),
+            models.Index(fields=['line_user_id', 'push_type', 'created_at']),
+            models.Index(fields=['push_type', 'status', 'created_at']),
+        ]
+
+    def __str__(self):
+        who = self.user.username if self.user_id else self.line_user_id
+        return f"{self.store.name} - {who} - {self.push_type} - {self.status}"
 
 
 class MerchantLineBinding(models.Model):

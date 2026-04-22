@@ -164,11 +164,43 @@ class LineLoginService:
                 'display_name': binding.display_name,
                 'picture_url': binding.picture_url,
                 'bound_at': binding.created_at.isoformat(),
+                'notify_personalized_recommendation': binding.notify_personalized_recommendation,
+                'notify_transactional_notifications': binding.notify_transactional_notifications,
             }
         except LineUserBinding.DoesNotExist:
             return {
                 'is_bound': False,
             }
+
+    def update_notification_preferences(self, user, *, notify_personalized_recommendation=None, notify_transactional_notifications=None) -> dict:
+        """Update user's LINE notification preferences."""
+        try:
+            binding = LineUserBinding.objects.get(user=user)
+        except LineUserBinding.DoesNotExist:
+            raise ValueError('您尚未綁定 LINE 帳號')
+
+        updated_fields = []
+        if notify_personalized_recommendation is not None:
+            binding.notify_personalized_recommendation = bool(notify_personalized_recommendation)
+            updated_fields.append('notify_personalized_recommendation')
+
+        if notify_transactional_notifications is not None:
+            binding.notify_transactional_notifications = bool(notify_transactional_notifications)
+            updated_fields.append('notify_transactional_notifications')
+
+        if updated_fields:
+            updated_fields.append('updated_at')
+            binding.save(update_fields=updated_fields)
+
+        return {
+            'is_bound': True,
+            'line_user_id': binding.line_user_id,
+            'display_name': binding.display_name,
+            'picture_url': binding.picture_url,
+            'bound_at': binding.created_at.isoformat(),
+            'notify_personalized_recommendation': binding.notify_personalized_recommendation,
+            'notify_transactional_notifications': binding.notify_transactional_notifications,
+        }
     
     def revoke_token(self, access_token: str) -> bool:
         """

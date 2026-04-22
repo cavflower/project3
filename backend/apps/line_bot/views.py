@@ -6,6 +6,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
+from django.db.models import Count
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -182,6 +183,34 @@ def handle_message_event(event: dict, store_id: int = None):
             temp_line_api.channel_access_token = platform_settings.line_bot_channel_access_token
             
             # 處理「切換」指令
+            if user_message.strip() in ['綁定狀態', '推播狀態', 'debug', 'Debug']:
+                user_binding = LineUserBinding.objects.filter(line_user_id=line_user_id).first()
+                masked_line_user_id = f"{line_user_id[:6]}...{line_user_id[-4:]}" if line_user_id else 'N/A'
+
+                if user_binding:
+                    binding_info = (
+                        f"綁定帳號：{user_binding.user.username}\n"
+                        f"顯示名稱：{user_binding.display_name or '未設定'}\n"
+                        f"目前模式：{user_binding.current_mode}\n"
+                        f"個人化推薦：{'開啟' if user_binding.notify_personalized_recommendation else '關閉'}\n"
+                        f"交易通知：{'開啟' if user_binding.notify_transactional_notifications else '關閉'}"
+                    )
+                else:
+                    binding_info = '找不到此 LINE 帳號對應的綁定資料，請重新綁定。'
+
+                debug_reply = (
+                    "🧪 推播診斷資訊\n\n"
+                    f"LINE User ID：{masked_line_user_id}\n"
+                    f"平台 BOT 啟用：{'是' if platform_settings.is_line_bot_enabled else '否'}\n"
+                    f"個人化推薦總開關：{'是' if platform_settings.is_personalized_recommendation_enabled else '否'}\n"
+                    f"BOT 設定完整：{'是' if platform_settings.has_line_bot_config() else '否'}\n\n"
+                    f"{binding_info}"
+                )
+
+                messages = [temp_line_api.create_text_message(debug_reply)]
+                temp_line_api.reply_message(reply_token, messages)
+                return
+
             if user_message.strip() in ['切換', '切換模式', 'switch', 'Switch']:
                 # 查詢用戶綁定狀態
                 user_binding = LineUserBinding.objects.filter(line_user_id=line_user_id).first()
@@ -688,6 +717,24 @@ class BroadcastMessageViewSet(viewsets.ModelViewSet):
         
         # 發送訊息
         target_users = broadcast.target_users
+        original_target_count = len(target_users)
+
+        allowed_users = set(
+            LineUserBinding.objects.filter(
+                line_user_id__in=target_users,
+                is_active=True,
+                current_mode='customer',
+                notify_personalized_recommendation=True,
+            ).values_list('line_user_id', flat=True)
+        )
+        target_users = [line_user_id for line_user_id in target_users if line_user_id in allowed_users]
+
+        if not target_users:
+            return Response(
+                {'error': '目標用戶皆已關閉個人化推薦通知，未發送推播'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         success_count = 0
         failure_count = 0
         
@@ -714,6 +761,7 @@ class BroadcastMessageViewSet(viewsets.ModelViewSet):
         return Response({
             'message': '推播已發送',
             'recipient_count': len(target_users),
+            'skipped_by_preference': max(0, original_target_count - len(target_users)),
             'success_count': success_count,
             'failure_count': failure_count
         })
@@ -761,6 +809,9 @@ class BroadcastMessageViewSet(viewsets.ModelViewSet):
             try:
                 line_binding = LineUserBinding.objects.get(user=customer, is_active=True)
             except LineUserBinding.DoesNotExist:
+                continue
+
+            if not line_binding.notify_personalized_recommendation:
                 continue
             
             # 檢查閒置天數篩選
@@ -1248,6 +1299,60 @@ class PlatformBroadcastViewSet(viewsets.ModelViewSet):
             serializer.save(created_by=user)
         else:
             serializer.save(created_by=None)
+
+    def _get_popular_recommended_stores(self, limit=5):
+        """熱門店家：依惜福品累積捐款金額與完成訂單數排序。"""
+        return list(
+            Store.objects.filter(is_published=True)
+            .order_by('-surplus_completed_revenue_total', '-surplus_completed_order_count_total', '-created_at')[:limit]
+        )
+
+    def _get_personalized_recommended_stores(self, user, limit=5):
+        """個人化店家：依用戶歷史訂單店家偏好排序。"""
+        from apps.orders.models import DineInOrder, TakeoutOrder
+        from apps.surplus_food.models import SurplusFoodOrder
+
+        store_scores = {}
+
+        takeout_stats = TakeoutOrder.objects.filter(user=user).exclude(status='rejected').values('store_id').annotate(order_count=Count('id'))
+        dinein_stats = DineInOrder.objects.filter(user=user).exclude(status='rejected').values('store_id').annotate(order_count=Count('id'))
+        surplus_stats = SurplusFoodOrder.objects.filter(user=user).exclude(status__in=['rejected', 'cancelled', 'expired']).values('store_id').annotate(order_count=Count('id'))
+
+        for row in takeout_stats:
+            store_scores[row['store_id']] = store_scores.get(row['store_id'], 0) + row['order_count']
+        for row in dinein_stats:
+            store_scores[row['store_id']] = store_scores.get(row['store_id'], 0) + row['order_count']
+        for row in surplus_stats:
+            store_scores[row['store_id']] = store_scores.get(row['store_id'], 0) + row['order_count']
+
+        if not store_scores:
+            return []
+
+        ranked_store_ids = [
+            store_id
+            for store_id, _ in sorted(store_scores.items(), key=lambda item: item[1], reverse=True)
+        ]
+
+        stores = Store.objects.filter(id__in=ranked_store_ids, is_published=True)
+        store_by_id = {store.id: store for store in stores}
+        return [store_by_id[store_id] for store_id in ranked_store_ids if store_id in store_by_id][:limit]
+
+    def _build_recommendation_message(self, title, intro, stores, include_popularity_metrics=False):
+        if not stores:
+            return None
+
+        lines = [title, '', intro]
+        for store in stores:
+            if include_popularity_metrics:
+                donation_amount = float(store.surplus_completed_revenue_total or 0) * 0.6
+                completed_orders = store.surplus_completed_order_count_total or 0
+                lines.append(
+                    f"• {store.name}（捐款 NT$ {donation_amount:,.0f} / 完成單 {completed_orders}）"
+                )
+            else:
+                lines.append(f"• {store.name}")
+
+        return "\n".join(lines)
     
     @action(detail=False, methods=['get'])
     def available_stores(self, request):
@@ -1320,29 +1425,56 @@ class PlatformBroadcastViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # 建立訊息
-        message = f"📢 {broadcast.title}\n\n{broadcast.message_content}"
-        
-        # 如果有推薦店家，加入店家資訊
-        recommended_stores = broadcast.recommended_stores.all()
-        if recommended_stores:
-            message += "\n\n🏪 推薦店家："
-            for store in recommended_stores[:5]:  # 最多顯示 5 家
-                message += f"\n• {store.name}"
-        
         # 使用平台 LINE API 發送
         line_api = LineMessagingAPI()
         line_api.channel_access_token = platform_settings.line_bot_channel_access_token
         
-        # 建立 LINE 訊息物件列表
-        messages = [line_api.create_text_message(message)]
-        
         success_count = 0
         failure_count = 0
+
+        selected_stores = list(broadcast.recommended_stores.all())
+        popular_stores = selected_stores if selected_stores else self._get_popular_recommended_stores(limit=5)
         
         for user_id in target_users:
             try:
-                result = line_api.push_message(user_id, messages)
+                messages = []
+
+                if broadcast.broadcast_type == 'store_recommendation':
+                    line_binding = LineUserBinding.objects.filter(line_user_id=user_id, is_active=True).select_related('user').first()
+
+                    if (
+                        platform_settings.is_personalized_recommendation_enabled
+                        and line_binding
+                        and line_binding.notify_personalized_recommendation
+                    ):
+                        personalized_stores = self._get_personalized_recommended_stores(line_binding.user, limit=5)
+                        personalized_message = self._build_recommendation_message(
+                            title='🎯 個人化推薦店家',
+                            intro=broadcast.message_content or '根據你的訂單行為，我們推薦以下店家：',
+                            stores=personalized_stores,
+                            include_popularity_metrics=False,
+                        )
+                        if personalized_message:
+                            messages.append(line_api.create_text_message(personalized_message))
+
+                    popular_message = self._build_recommendation_message(
+                        title='🔥 熱門店家推薦',
+                        intro='以下是目前高捐款金額與高訂單量的熱門店家：',
+                        stores=popular_stores,
+                        include_popularity_metrics=True,
+                    )
+                    if popular_message:
+                        messages.append(line_api.create_text_message(popular_message))
+
+                if not messages:
+                    fallback_message = f"📢 {broadcast.title}\n\n{broadcast.message_content}"
+                    if selected_stores:
+                        fallback_message += "\n\n🏪 推薦店家："
+                        for store in selected_stores[:5]:
+                            fallback_message += f"\n• {store.name}"
+                    messages = [line_api.create_text_message(fallback_message)]
+
+                result = line_api.push_message(user_id, messages[:5])
                 if result:
                     success_count += 1
                 else:

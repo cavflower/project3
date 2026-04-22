@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -95,6 +96,21 @@ class PlatformSettings(models.Model):
         default='歡迎使用 DineVerse！我可以為您推薦美食店家。',
         verbose_name='LINE BOT 歡迎訊息'
     )
+    is_personalized_recommendation_enabled = models.BooleanField(
+        default=True,
+        verbose_name='啟用個人化推薦',
+        help_text='開啟後會根據用戶訂單行為發送個人化店家推薦。'
+    )
+    personalized_recommendation_min_interval_minutes = models.IntegerField(
+        default=4320,
+        verbose_name='個人化推薦最小間隔（分鐘）',
+        help_text='同一用戶兩次個人化推薦推播之間的最小間隔。預設 4320 分鐘（72 小時）。'
+    )
+    personalized_recommendation_weekly_limit = models.IntegerField(
+        default=2,
+        verbose_name='個人化推薦每週上限',
+        help_text='同一用戶每 7 天最多接收的個人化推薦推播次數。'
+    )
     
     # 管理資訊
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
@@ -136,4 +152,74 @@ class PlatformSettings(models.Model):
         # 強制使用 pk=1 確保單例
         self.pk = 1
         super().save(*args, **kwargs)
+
+
+class PersonalizedRecommendationPushLog(models.Model):
+    """個人化推薦推播記錄，用於限流與稽核。"""
+
+    PUSH_TYPE_CHOICES = [
+        ('personalized', '個人化推薦'),
+        ('popular', '熱門推薦'),
+        ('fallback', '備援推薦'),
+    ]
+
+    STATUS_CHOICES = [
+        ('success', '成功'),
+        ('skipped', '略過'),
+        ('failed', '失敗'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='personalized_recommendation_push_logs',
+        verbose_name='系統用戶'
+    )
+    line_user_id = models.CharField(
+        max_length=255,
+        db_index=True,
+        verbose_name='LINE User ID'
+    )
+    push_type = models.CharField(
+        max_length=30,
+        choices=PUSH_TYPE_CHOICES,
+        verbose_name='推播類型'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        verbose_name='狀態'
+    )
+    reason = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='原因'
+    )
+    error_message = models.TextField(
+        blank=True,
+        verbose_name='錯誤訊息'
+    )
+    recommended_store_ids = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='推薦店家 ID 清單'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
+
+    class Meta:
+        db_table = 'personalized_recommendation_push_logs'
+        verbose_name = '個人化推薦推播記錄'
+        verbose_name_plural = '個人化推薦推播記錄'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'push_type', 'created_at']),
+            models.Index(fields=['line_user_id', 'created_at']),
+            models.Index(fields=['push_type', 'status', 'created_at']),
+        ]
+
+    def __str__(self):
+        user_display = self.user.username if self.user_id else self.line_user_id
+        return f"{user_display} - {self.push_type} - {self.status}"
 

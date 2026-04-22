@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getAvailableStores, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast } from '../../api/adminApi';
+import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getAvailableStores, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast, quickFallbackRecommendationPush, runAutoRecommendationPush } from '../../api/adminApi';
 import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
 import styles from './AdminDashboard.module.css';
 
@@ -10,9 +10,6 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc' 或 'desc'
-  const [showDiscountModal, setShowDiscountModal] = useState(false);
-  const [selectedStore, setSelectedStore] = useState(null);
-  const [discountForm, setDiscountForm] = useState({ discount: '', reason: '' });
   const navigate = useNavigate();
 
   // AI 設定狀態
@@ -38,9 +35,13 @@ const AdminDashboard = () => {
     line_bot_channel_access_token: '',
     line_bot_channel_secret: '',
     is_line_bot_enabled: false,
+    is_personalized_recommendation_enabled: true,
     line_bot_welcome_message: '',
+    personalized_recommendation_min_interval_minutes: 4320,
+    personalized_recommendation_weekly_limit: 2,
   });
   const [lineSaving, setLineSaving] = useState(false);
+  const [linePushRunning, setLinePushRunning] = useState(false);
 
   // 店家 LINE BOT 設定狀態
   const [showStoreLineModal, setShowStoreLineModal] = useState(false);
@@ -156,7 +157,10 @@ const AdminDashboard = () => {
         line_bot_channel_access_token: '',
         line_bot_channel_secret: '',
         is_line_bot_enabled: data.is_line_bot_enabled || false,
+        is_personalized_recommendation_enabled: data.is_personalized_recommendation_enabled !== false,
         line_bot_welcome_message: data.line_bot_welcome_message || '',
+        personalized_recommendation_min_interval_minutes: data.personalized_recommendation_min_interval_minutes ?? 4320,
+        personalized_recommendation_weekly_limit: data.personalized_recommendation_weekly_limit ?? 2,
       });
     } catch (err) {
       console.error('載入 LINE 設定失敗:', err);
@@ -190,6 +194,34 @@ const AdminDashboard = () => {
       alert('設定 LINE 失敗，請稍後再試');
     } finally {
       setLineSaving(false);
+    }
+  };
+
+  const handleQuickFallbackPush = async () => {
+    try {
+      setLinePushRunning(true);
+      const result = await quickFallbackRecommendationPush({
+        intro_message: '以下是本週熱門店家推薦，AI 功能異常時可先使用此備案。',
+      });
+      alert(`快速備案完成！成功: ${result.success_count}, 失敗: ${result.failure_count}, 略過: ${result.skipped_count}`);
+    } catch (err) {
+      console.error('快速備案推播失敗:', err);
+      alert('快速備案推播失敗：' + (err.response?.data?.detail || err.message));
+    } finally {
+      setLinePushRunning(false);
+    }
+  };
+
+  const handleRunFullAutoPush = async () => {
+    try {
+      setLinePushRunning(true);
+      const result = await runAutoRecommendationPush({ force: false });
+      alert(`完整版執行完成！成功: ${result.success_count}, 失敗: ${result.failure_count}, 略過: ${result.skipped_count}`);
+    } catch (err) {
+      console.error('完整版推播執行失敗:', err);
+      alert('完整版推播執行失敗：' + (err.response?.data?.detail || err.message));
+    } finally {
+      setLinePushRunning(false);
     }
   };
 
@@ -322,6 +354,14 @@ const AdminDashboard = () => {
     return types[type] || type || '未分類';
   };
 
+  const formatCurrency = (value) => {
+    const amount = Number(value || 0);
+    return `NT$ ${amount.toLocaleString('zh-TW', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
   const toggleSortOrder = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
@@ -334,63 +374,6 @@ const AdminDashboard = () => {
   const sortedStores = [...storesWithBusinessStatus].sort((a, b) => {
     return sortOrder === 'asc' ? a.id - b.id : b.id - a.id;
   });
-
-  const handleOpenDiscountModal = (store) => {
-    setSelectedStore(store);
-    setDiscountForm({
-      discount: store.platform_fee_discount || '',
-      reason: store.discount_reason || ''
-    });
-
-    // 先滾動到畫面中間
-    const scrollToMiddle = () => {
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      const middle = (documentHeight - windowHeight) / 2;
-      window.scrollTo({ top: middle, behavior: 'smooth' });
-    };
-
-    scrollToMiddle();
-
-    // 稍微延遲後顯示 Modal，確保滾動已完成
-    setTimeout(() => {
-      setShowDiscountModal(true);
-    }, 50);
-  };
-
-  const handleCloseDiscountModal = () => {
-    setShowDiscountModal(false);
-    setSelectedStore(null);
-    setDiscountForm({ discount: '', reason: '' });
-  };
-
-  const handleSubmitDiscount = async (e) => {
-    e.preventDefault();
-
-    if (!selectedStore) return;
-
-    try {
-      const baseURL = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000/api';
-      await axios.post(`${baseURL}/stores/${selectedStore.id}/set_discount/`, {
-        discount: parseFloat(discountForm.discount) || 0,
-        reason: discountForm.reason
-      });
-
-      alert('折扣設定成功！');
-      handleCloseDiscountModal();
-      loadStores(); // 重新載入資料
-    } catch (err) {
-      console.error('設定折扣失敗:', err);
-      alert('設定折扣失敗，請稍後再試');
-    }
-  };
-
-  const getDiscountBadgeClass = (discount) => {
-    if (discount >= 50) return styles.discountHigh;
-    if (discount >= 20) return styles.discountMedium;
-    if (discount > 0) return styles.discountLow;
-    return styles.discountNone;
-  };
 
   if (loading) {
     return (
@@ -483,8 +466,8 @@ const AdminDashboard = () => {
                   <th>方案</th>
                   <th>營業狀態</th>
                   <th>功能啟用</th>
-                  <th>惜福品訂單</th>
-                  <th>平台費折扣</th>
+                  <th>捐款量 (60%)</th>
+                  <th>店家包材費 (40%)</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -521,29 +504,19 @@ const AdminDashboard = () => {
                         </div>
                       </td>
                       <td>
-                        <span className={styles.orderCountBadge}>
-                          {store.surplus_order_count || 0} 筆
+                        <span className={styles.donationBadge}>
+                          {formatCurrency(store.surplus_donation_amount)}
                         </span>
+                        <small className={styles.revenueMeta}>捐款金額 {formatCurrency(store.surplus_donation_amount)}</small>
                       </td>
                       <td>
-                        <span className={`${styles.discountBadge} ${getDiscountBadgeClass(store.platform_fee_discount)}`}>
-                          {store.platform_fee_discount > 0 ? `${store.platform_fee_discount}%` : '無折扣'}
+                        <span className={styles.packagingBadge}>
+                          {formatCurrency(store.surplus_packaging_fee_amount)}
                         </span>
-                        {store.discount_reason && (
-                          <small className="d-block text-muted mt-1" title={store.discount_reason}>
-                            {store.discount_reason.substring(0, 20)}{store.discount_reason.length > 20 ? '...' : ''}
-                          </small>
-                        )}
+                        <small className={styles.revenueMeta}>總收入 {formatCurrency(store.surplus_packaging_fee_amount)}</small>
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            className={styles.btnAction}
-                            onClick={() => handleOpenDiscountModal(store)}
-                            title="設定平台費折扣"
-                          >
-                            設定折扣
-                          </button>
                           <button
                             className={styles.btnAction}
                             onClick={() => handleOpenStoreLineModal(store)}
@@ -562,65 +535,6 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-
-      {/* 折扣設定 Modal */}
-      {showDiscountModal && selectedStore && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3>設定方案費用折扣</h3>
-              <button className={styles.modalClose} onClick={handleCloseDiscountModal}>×</button>
-            </div>
-            <div className={styles.modalBody}>
-              <div className={styles.storeInfoBox}>
-                <h4>{selectedStore.name}</h4>
-                <p className="text-muted">
-                  惜福品已完成訂單：<strong>{selectedStore.surplus_order_count || 0}</strong> 筆
-                </p>
-              </div>
-              <form onSubmit={handleSubmitDiscount}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="discount">折扣百分比 (0-100%)</label>
-                  <input
-                    type="number"
-                    id="discount"
-                    className={styles.formControl}
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={discountForm.discount}
-                    onChange={(e) => setDiscountForm({ ...discountForm, discount: e.target.value })}
-                    placeholder="例如：10 代表 10% 折扣"
-                    required
-                  />
-                  <small className={styles.formText}>
-                    輸入 0 表示無折扣，100 表示完全免費
-                  </small>
-                </div>
-                <div className="form-group mt-3">
-                  <label htmlFor="reason">折扣原因</label>
-                  <textarea
-                    id="reason"
-                    className={styles.formControl}
-                    rows="3"
-                    value={discountForm.reason}
-                    onChange={(e) => setDiscountForm({ ...discountForm, reason: e.target.value })}
-                    placeholder="例如：感謝貢獻 50 筆惜福品訂單，減少食物浪費"
-                  />
-                </div>
-                <div className={styles.modalFooter}>
-                  <button type="button" className={styles.btnSecondary} onClick={handleCloseDiscountModal}>
-                    取消
-                  </button>
-                  <button type="submit" className={styles.btnPrimary}>
-                    確認設定
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* AI 設定 Modal */}
       {showAIModal && (
@@ -830,6 +744,76 @@ const AdminDashboard = () => {
                       />{' '}
                       啟用平台 LINE BOT
                     </label>
+                  </div>
+
+                  <div className="form-group mt-3">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={lineForm.is_personalized_recommendation_enabled}
+                        onChange={(e) => setLineForm({ ...lineForm, is_personalized_recommendation_enabled: e.target.checked })}
+                      />{' '}
+                      啟用個人化推薦（測試開關）
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label htmlFor="personalized_recommendation_min_interval_minutes">個人化推薦最小間隔（分鐘）</label>
+                      <input
+                        type="number"
+                        id="personalized_recommendation_min_interval_minutes"
+                        className={styles.formControl}
+                        min="1"
+                        value={lineForm.personalized_recommendation_min_interval_minutes}
+                        onChange={(e) => setLineForm({
+                          ...lineForm,
+                          personalized_recommendation_min_interval_minutes: parseInt(e.target.value || '1', 10),
+                        })}
+                      />
+                      <small className={styles.formText}>正式建議 4320（72 小時），開發測試可暫設 1</small>
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label htmlFor="personalized_recommendation_weekly_limit">每週上限（每人）</label>
+                      <input
+                        type="number"
+                        id="personalized_recommendation_weekly_limit"
+                        className={styles.formControl}
+                        min="0"
+                        value={lineForm.personalized_recommendation_weekly_limit}
+                        onChange={(e) => setLineForm({
+                          ...lineForm,
+                          personalized_recommendation_weekly_limit: parseInt(e.target.value || '0', 10),
+                        })}
+                      />
+                      <small className={styles.formText}>正式建議 2；設 0 表示暫停個人化推薦</small>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '16px', padding: '12px', background: '#fff8e1', borderRadius: '8px' }}>
+                    <p style={{ marginBottom: '8px', fontWeight: 600 }}>推薦推播執行工具</p>
+                    <p style={{ marginBottom: '10px', fontSize: '13px', color: '#666' }}>
+                      快速版：AI 壞掉時僅發熱門店家。完整版：套用最小間隔與每週上限，發個人化+熱門推薦。
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className={styles.btnSecondary}
+                        onClick={handleQuickFallbackPush}
+                        disabled={linePushRunning}
+                      >
+                        {linePushRunning ? '執行中...' : '手動推播熱門店家'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.btnPrimary}
+                        onClick={handleRunFullAutoPush}
+                        disabled={linePushRunning}
+                        style={{ background: '#ff9800' }}
+                      >
+                        {linePushRunning ? '執行中...' : '執行完整推播'}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

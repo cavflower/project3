@@ -148,7 +148,7 @@ const getUserTypeFromUrl = (url, method = 'get') => {
   // retrieve API 是 GET /stores/{id}/，用於查看已上架店家的詳細資訊，不需要 token
   if (url.includes('/stores/') && !url.includes('/stores/published/')) {
     // 管理員相關的 API 不需要 token
-    if (url.includes('/stores/all') || url.includes('/set_discount/')) {
+    if (url.includes('/stores/all')) {
       return null;
     }
     const isRetrieve = /\/stores\/\d+\/?$/.test(url) &&

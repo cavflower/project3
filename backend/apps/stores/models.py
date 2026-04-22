@@ -249,6 +249,18 @@ class Store(models.Model):
         verbose_name='標籤',
         help_text="Tags for categorizing and searching the store (e.g., ['Italian', 'Pizza', 'Romantic'])."
     )
+    surplus_completed_order_count_total = models.PositiveIntegerField(
+        default=0,
+        verbose_name='惜福品累積完成訂單數',
+        help_text='累積完成的惜福品訂單數，不因訂單隱藏或刪除而遞減。'
+    )
+    surplus_completed_revenue_total = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        verbose_name='惜福品累積完成訂單收入',
+        help_text='累積完成的惜福品訂單收入，不因訂單隱藏或刪除而遞減。'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

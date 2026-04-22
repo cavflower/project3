@@ -1,7 +1,8 @@
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, DecimalField, Prefetch, Q, Sum, Value
+from django.db.models.functions import Coalesce
 from .models import Store, StoreImage, MenuImage
 from .serializers import StoreSerializer, StoreImageSerializer, MenuImageSerializer
 
@@ -42,12 +43,14 @@ class StoreViewSet(viewsets.ModelViewSet):
                 surplus_order_count=Count(
                     'surplus_orders',
                     filter=Q(surplus_orders__status='completed')
+                ),
+                surplus_completed_revenue=Coalesce(
+                    Sum('surplus_orders__total_price', filter=Q(surplus_orders__status='completed')),
+                    Value(0),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
                 )
             )
-        
-        # 如果是 set_discount（管理員設定折扣），返回所有店家
-        if self.action == 'set_discount':
-            return base_queryset.all()
+
         # 如果是 retrieve（查看單個店家），允許查看已上架的店家
         if self.action == 'retrieve':
             return base_queryset.filter(is_published=True)
@@ -60,8 +63,8 @@ class StoreViewSet(viewsets.ModelViewSet):
         """
         根據操作類型返回適當的權限類
         """
-        # published、retrieve、all 和 set_discount（管理員功能）是公開 API，不需要認證
-        if self.action in ['published', 'retrieve', 'all', 'set_discount']:
+        # published、retrieve、all（管理員功能）是公開 API，不需要認證
+        if self.action in ['published', 'retrieve', 'all']:
             return [permissions.AllowAny()]
         if self.action in ['update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsStoreOwner()]
@@ -235,6 +238,11 @@ class StoreViewSet(viewsets.ModelViewSet):
             surplus_order_count=Count(
                 'surplus_orders',
                 filter=Q(surplus_orders__status='completed')
+            ),
+            surplus_completed_revenue=Coalesce(
+                Sum('surplus_orders__total_price', filter=Q(surplus_orders__status='completed')),
+                Value(0),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
             )
         )
         
@@ -329,46 +337,15 @@ class StoreViewSet(viewsets.ModelViewSet):
             surplus_order_count=Count(
                 'surplus_orders',
                 filter=Q(surplus_orders__status='completed')
+            ),
+            surplus_completed_revenue=Coalesce(
+                Sum('surplus_orders__total_price', filter=Q(surplus_orders__status='completed')),
+                Value(0),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
             )
         ).order_by('-created_at')
         serializer = self.get_serializer(stores, many=True)
         return Response(serializer.data)
-
-    @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
-    def set_discount(self, request, pk=None):
-        """
-        管理員設定店家的平台費折扣
-        """
-        store = self.get_object()
-        discount = request.data.get('discount', 0)
-        reason = request.data.get('reason', '')
-        
-        try:
-            discount = float(discount)
-            if discount < 0 or discount > 100:
-                return Response(
-                    {"error": "折扣必須在 0-100 之間"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        except (ValueError, TypeError):
-            return Response(
-                {"error": "無效的折扣數值"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # 更新商家的折扣資訊
-        merchant = store.merchant
-        merchant.platform_fee_discount = discount
-        merchant.discount_reason = reason
-        merchant.save()
-        
-        return Response({
-            "message": "折扣設定成功",
-            "store_id": store.id,
-            "store_name": store.name,
-            "discount": discount,
-            "reason": reason
-        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def upload_menu_images(self, request, pk=None):

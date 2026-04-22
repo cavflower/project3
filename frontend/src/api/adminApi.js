@@ -108,6 +108,26 @@ export const getTargetPreview = async () => {
     return response.data;
 };
 
+/**
+ * 快速備案推播（熱門店家）
+ */
+export const quickFallbackRecommendationPush = async (data = {}) => {
+    const response = await axios.post(`${baseURL}/intelligence/platform/quick-fallback-recommendation-push/`, data, {
+        headers: { 'X-Admin-Auth': 'true' }
+    });
+    return response.data;
+};
+
+/**
+ * 執行完整版自動推薦推播
+ */
+export const runAutoRecommendationPush = async (data = {}) => {
+    const response = await axios.post(`${baseURL}/intelligence/platform/run-auto-recommendation-push/`, data, {
+        headers: { 'X-Admin-Auth': 'true' }
+    });
+    return response.data;
+};
+
 export default {
     getAISettings,
     updateAISettings,
@@ -118,4 +138,6 @@ export default {
     sendPlatformBroadcast,
     getAvailableStores,
     getTargetPreview,
+    quickFallbackRecommendationPush,
+    runAutoRecommendationPush,
 };

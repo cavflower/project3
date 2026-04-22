@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Store, StoreImage, MenuImage
+from decimal import Decimal
 
 
 class PublishedStoreSerializer(serializers.ModelSerializer):
@@ -63,9 +64,10 @@ class StoreSerializer(serializers.ModelSerializer):
     menu_images = MenuImageSerializer(many=True, read_only=True)
     # 優先讀取 annotate 的值，沒有 annotate 時回退為即時計算
     surplus_order_count = serializers.SerializerMethodField()
+    surplus_completed_revenue = serializers.SerializerMethodField()
+    surplus_donation_amount = serializers.SerializerMethodField()
+    surplus_packaging_fee_amount = serializers.SerializerMethodField()
     plan = serializers.SerializerMethodField()
-    platform_fee_discount = serializers.SerializerMethodField()
-    discount_reason = serializers.SerializerMethodField()
     
     class Meta:
         model = Store
@@ -106,28 +108,35 @@ class StoreSerializer(serializers.ModelSerializer):
             'images',
             'menu_images',
             'surplus_order_count',
+            'surplus_completed_revenue',
+            'surplus_donation_amount',
+            'surplus_packaging_fee_amount',
             'plan',
-            'platform_fee_discount',
-            'discount_reason',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'images', 'menu_images', 'surplus_order_count', 'plan', 'platform_fee_discount', 'discount_reason']
+        read_only_fields = [
+            'id',
+            'created_at',
+            'updated_at',
+            'images',
+            'menu_images',
+            'surplus_order_count',
+            'surplus_completed_revenue',
+            'surplus_donation_amount',
+            'surplus_packaging_fee_amount',
+            'plan',
+        ]
 
     def get_plan(self, obj):
         """獲取商家的付費方案"""
         return obj.merchant.plan if hasattr(obj, 'merchant') and obj.merchant.plan else None
 
-    def get_platform_fee_discount(self, obj):
-        """獲取商家的平台費折扣"""
-        return float(obj.merchant.platform_fee_discount) if hasattr(obj, 'merchant') else 0.00
-
-    def get_discount_reason(self, obj):
-        """獲取折扣原因"""
-        return obj.merchant.discount_reason if hasattr(obj, 'merchant') else ''
-
     def get_surplus_order_count(self, obj):
         """獲取該店家已完成的惜福品訂單數量"""
+        if hasattr(obj, 'surplus_completed_order_count_total'):
+            return obj.surplus_completed_order_count_total or 0
+
         # 如果已經通過 annotate 計算，直接返回
         if hasattr(obj, 'surplus_order_count'):
             return obj.surplus_order_count
@@ -137,6 +146,32 @@ class StoreSerializer(serializers.ModelSerializer):
             store=obj,
             status='completed'
         ).count()
+
+    def get_surplus_completed_revenue(self, obj):
+        """獲取惜福品已完成訂單總收入"""
+        if hasattr(obj, 'surplus_completed_revenue_total'):
+            return float(obj.surplus_completed_revenue_total or 0)
+
+        if hasattr(obj, 'surplus_completed_revenue'):
+            return float(obj.surplus_completed_revenue or 0)
+
+        from apps.surplus_food.models import SurplusFoodOrder
+        from django.db.models import Sum
+        total = SurplusFoodOrder.objects.filter(
+            store=obj,
+            status='completed'
+        ).aggregate(total=Sum('total_price'))['total'] or Decimal('0')
+        return float(total)
+
+    def get_surplus_donation_amount(self, obj):
+        """惜福品收入 60% 作為公益捐款"""
+        revenue = Decimal(str(self.get_surplus_completed_revenue(obj)))
+        return float((revenue * Decimal('0.6')).quantize(Decimal('0.01')))
+
+    def get_surplus_packaging_fee_amount(self, obj):
+        """惜福品收入 40% 作為店家包材費"""
+        revenue = Decimal(str(self.get_surplus_completed_revenue(obj)))
+        return float((revenue * Decimal('0.4')).quantize(Decimal('0.01')))
 
     def create(self, validated_data):
         # merchant 會在 perform_create 中通過 serializer.save(merchant=...) 設定

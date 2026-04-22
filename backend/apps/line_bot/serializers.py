@@ -16,6 +16,11 @@ class StoreLineBotConfigSerializer(serializers.ModelSerializer):
             'enable_ai_reply', 'enable_conversation_history',
             'is_active', 'has_line_config',
             'broadcast_default_tags', 'broadcast_default_days_inactive', 'broadcast_default_message',
+            'use_platform_recommendation_frequency',
+            'popular_recommendation_min_interval_minutes',
+            'popular_recommendation_weekly_limit',
+            'enable_popular_recommendation_push',
+            'enable_new_product_recommendation_push',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at', 'invitation_url']

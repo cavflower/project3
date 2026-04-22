@@ -1,6 +1,10 @@
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from .models import TakeoutOrder, DineInOrder, Notification
+from .notification_services import (
+    send_platform_line_new_order_to_merchant_notification,
+    send_platform_line_order_pickup_ready_notification,
+)
 
 @receiver(pre_save, sender=TakeoutOrder)
 def takeout_order_status_change(sender, instance, **kwargs):
@@ -18,6 +22,13 @@ def takeout_order_status_change(sender, instance, **kwargs):
                 order_number=instance.pickup_number,
                 content_object=instance
             )
+
+            if instance.status == 'ready_for_pickup':
+                send_platform_line_order_pickup_ready_notification(
+                    order=instance,
+                    order_type_label='外帶',
+                    order_number=instance.pickup_number,
+                )
     except TakeoutOrder.DoesNotExist:
         pass
 
@@ -37,5 +48,36 @@ def dinein_order_status_change(sender, instance, **kwargs):
                 order_number=instance.order_number,
                 content_object=instance
             )
+
+            if instance.status == 'ready_for_pickup':
+                send_platform_line_order_pickup_ready_notification(
+                    order=instance,
+                    order_type_label='內用',
+                    order_number=instance.order_number,
+                )
     except DineInOrder.DoesNotExist:
         pass
+
+
+@receiver(post_save, sender=TakeoutOrder)
+def takeout_order_created_notify_merchant(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    send_platform_line_new_order_to_merchant_notification(
+        order=instance,
+        order_type_label='外帶',
+        order_number=instance.pickup_number,
+    )
+
+
+@receiver(post_save, sender=DineInOrder)
+def dinein_order_created_notify_merchant(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    send_platform_line_new_order_to_merchant_notification(
+        order=instance,
+        order_type_label='內用',
+        order_number=instance.order_number,
+    )

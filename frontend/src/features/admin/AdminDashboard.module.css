@@ -221,14 +221,31 @@
     border: 1px solid #dee2e6;
 }
 
-.orderCountBadge {
+.donationBadge {
     display: inline-block;
-    background-color: #fff3e6;
-    color: #ff6b00;
+    background-color: #e7f6ec;
+    color: #1f7a3d;
     padding: 0.4rem 0.8rem;
     border-radius: 6px;
     font-size: 0.9rem;
     font-weight: 600;
+}
+
+.packagingBadge {
+    display: inline-block;
+    background-color: #e8f1ff;
+    color: #1b4d9c;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.revenueMeta {
+    display: block;
+    margin-top: 0.4rem;
+    color: #6c757d;
+    font-size: 0.75rem;
 }
 
 .statusBadge {
@@ -263,36 +280,6 @@
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: 500;
-}
-
-/* 折扣徽章樣式 */
-.discountBadge {
-    display: inline-block;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-.discountHigh {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.discountMedium {
-    background-color: #fff3cd;
-    color: #856404;
-}
-
-.discountLow {
-    background-color: #d1ecf1;
-    color: #0c5460;
-}
-
-.discountNone {
-    background-color: #f8f9fa;
-    color: #6c757d;
-    border: 1px solid #dee2e6;
 }
 
 /* 操作按鈕 */

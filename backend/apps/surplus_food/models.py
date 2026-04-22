@@ -510,6 +510,11 @@ class SurplusFoodOrder(models.Model):
         blank=True,
         verbose_name='完成時間'
     )
+    counted_in_store_surplus_stats = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name='已計入店家惜福統計'
+    )
     
     class Meta:
         db_table = 'surplus_food_orders'

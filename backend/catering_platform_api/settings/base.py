@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'apps.reservations',
     'apps.loyalty',
     'apps.reports',
-    'apps.intelligence',
+    'apps.intelligence.apps.IntelligenceConfig',
     'apps.inventory',
     'apps.schedules',
     'apps.surplus_food',
