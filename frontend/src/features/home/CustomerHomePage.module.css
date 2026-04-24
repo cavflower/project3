@@ -697,6 +697,31 @@
   font-size: 14px;
 }
 
+.impactRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fff8f4;
+  border: 1px solid #f3ddd0;
+  color: #8b4f2c;
+}
+
+.impactLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.impactRow strong {
+  font-size: 14px;
+  color: #c55a29;
+}
+
 .featureRow {
   display: flex;
   flex-wrap: wrap;

@@ -7,6 +7,7 @@ from django.dispatch import receiver
 
 from apps.orders.models import Notification
 from apps.orders.notification_services import (
+    send_platform_line_order_cancelled_notification,
     send_platform_line_new_order_to_merchant_notification,
     send_platform_line_order_pickup_ready_notification,
 )
@@ -43,6 +44,12 @@ def surplus_order_status_change(sender, instance, **kwargs):
 
         if instance.status == 'ready':
             send_platform_line_order_pickup_ready_notification(
+                order=instance,
+                order_type_label='惜福品',
+                order_number=order_number,
+            )
+        elif instance.status in {'rejected', 'cancelled'}:
+            send_platform_line_order_cancelled_notification(
                 order=instance,
                 order_type_label='惜福品',
                 order_number=order_number,

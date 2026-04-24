@@ -8,6 +8,7 @@ class PublishedStoreSerializer(serializers.ModelSerializer):
     first_image = serializers.SerializerMethodField()
     surplus_order_count = serializers.IntegerField(read_only=True)  # 使用 annotate 的值
     plan = serializers.SerializerMethodField()
+    surplus_donation_amount = serializers.SerializerMethodField()
     
     class Meta:
         model = Store
@@ -28,6 +29,7 @@ class PublishedStoreSerializer(serializers.ModelSerializer):
             'first_image',
             'surplus_order_count',
             'plan',
+            'surplus_donation_amount',
             'budget_lunch',
             'budget_dinner',
         ]
@@ -43,6 +45,16 @@ class PublishedStoreSerializer(serializers.ModelSerializer):
     def get_plan(self, obj):
         """獲取商家的付費方案"""
         return obj.merchant.plan if hasattr(obj, 'merchant') and obj.merchant.plan else None
+
+    def get_surplus_donation_amount(self, obj):
+        """惜福品收入 60% 作為公益點數"""
+        if hasattr(obj, 'surplus_completed_revenue_total'):
+            revenue = Decimal(str(obj.surplus_completed_revenue_total or 0))
+        elif hasattr(obj, 'surplus_completed_revenue'):
+            revenue = Decimal(str(obj.surplus_completed_revenue or 0))
+        else:
+            revenue = Decimal('0')
+        return float((revenue * Decimal('0.6')).quantize(Decimal('0.01')))
 
 
 class StoreImageSerializer(serializers.ModelSerializer):

@@ -9,6 +9,7 @@ from .views import (
 	PointTransactionViewSet,
 	CustomerRedemptionViewSet,
 	MerchantRedemptionManagementViewSet,
+	CustomerPlatformCouponViewSet,
 )
 
 router = DefaultRouter()
@@ -22,6 +23,7 @@ router.register(r'merchant/redemption-management', MerchantRedemptionManagementV
 router.register(r'customer/accounts', CustomerLoyaltyAccountViewSet, basename='customer-loyalty-account')
 router.register(r'customer/transactions', PointTransactionViewSet, basename='customer-point-transaction')
 router.register(r'customer/my-redemptions', CustomerRedemptionViewSet, basename='customer-redemption')
+router.register(r'customer/platform-coupons', CustomerPlatformCouponViewSet, basename='customer-platform-coupon')
 
 # 公開路由
 router.register(r'redemptions', PublicRedemptionProductViewSet, basename='public-redemption')

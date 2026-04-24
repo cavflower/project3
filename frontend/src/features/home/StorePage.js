@@ -97,6 +97,15 @@ function StorePage() {
     navigate(`/store/${storeId}/reviews`);
   }, [navigate, storeId]);
 
+  const formatBenefitPoints = (value) => {
+    const amount = Number(value || 0);
+    const isInteger = Number.isInteger(amount);
+    return amount.toLocaleString('zh-TW', {
+      minimumFractionDigits: isInteger ? 0 : 2,
+      maximumFractionDigits: isInteger ? 0 : 2,
+    });
+  };
+
 
   const formatOpeningHours = (hours) => {
     if (!hours || typeof hours !== 'object') return null;
@@ -272,6 +281,10 @@ function StorePage() {
                     Wi-Fi
                   </span>
                 )}
+                <span className={`${styles['store-header-pill']} ${styles['store-header-pill-impact']}`}>
+                  <i className="bi bi-heart-fill"></i>
+                  公益點數 {formatBenefitPoints(store.surplus_donation_amount)}
+                </span>
               </div>
 
               <div className={styles['store-header-detail-grid']}>
@@ -336,6 +349,16 @@ function StorePage() {
                     {store.line_friend_url && (
                       <a href={store.line_friend_url} target="_blank" rel="noopener noreferrer">加入 LINE 好友</a>
                     )}
+                  </div>
+                </section>
+
+                <section className={styles['store-header-detail-card']}>
+                  <h4 className={styles['store-header-detail-title']}>公益點數</h4>
+                  <div className={styles['store-impact-card']}>
+                    <strong>{formatBenefitPoints(store.surplus_donation_amount)}</strong>
+                    <p className={styles['store-header-detail-text']}>
+                      公益點數等同店家累積捐款金額，反映惜食訂單帶來的公益貢獻。
+                    </p>
                   </div>
                 </section>
               </div>

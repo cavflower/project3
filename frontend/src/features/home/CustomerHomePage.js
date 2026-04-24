@@ -40,6 +40,9 @@ const copy = {
   clearFilters: '清除篩選',
   region: '地區',
   allRegions: '全部地區',
+  sortBy: '排序方式',
+  sortNewest: '最新上架',
+  sortDonationDesc: '公益點數由高到低',
   openNow: '營業中',
   reservation: '訂位',
   loyalty: '會員',
@@ -78,9 +81,32 @@ function normalizeStore(store) {
     enable_reservation: store.enable_reservation,
     enable_loyalty: store.enable_loyalty,
     enable_surplus_food: store.enable_surplus_food,
+    surplus_donation_amount: Number(store.surplus_donation_amount || 0),
     opening_hours: store.opening_hours,
     isRecommended: false
   };
+}
+
+function sortStoresByMode(list, sortBy) {
+  if (sortBy === 'donation_desc') {
+    return [...list].sort((a, b) => {
+      if (b.surplus_donation_amount !== a.surplus_donation_amount) {
+        return b.surplus_donation_amount - a.surplus_donation_amount;
+      }
+      return (b.id || 0) - (a.id || 0);
+    });
+  }
+
+  return list;
+}
+
+function formatBenefitPoints(value) {
+  const amount = Number(value || 0);
+  const isInteger = Number.isInteger(amount);
+  return amount.toLocaleString('zh-TW', {
+    minimumFractionDigits: isInteger ? 0 : 2,
+    maximumFractionDigits: isInteger ? 0 : 2,
+  });
 }
 
 function CustomerHomePage() {
@@ -99,7 +125,8 @@ function CustomerHomePage() {
     region: '',
     has_reservation: false,
     has_loyalty: false,
-    has_surplus_food: false
+    has_surplus_food: false,
+    sort_by: '',
   });
   const searchKeyword = useMemo(
     () => new URLSearchParams(location.search).get('q')?.trim() || '',
@@ -139,11 +166,11 @@ function CustomerHomePage() {
           if (filters.region) {
             nextStores = nextStores.filter((store) => store.region === filters.region);
           }
-          setStores(nextStores);
+          setStores(sortStoresByMode(nextStores, filters.sort_by));
         } catch (error) {
           console.error('載入推薦店家失敗，改為載入公開店家。', error);
           const response = await getPublishedStores({ cuisine_type: 'all', search: searchKeyword, ...filters });
-          setStores(response.data.slice(0, 12).map(normalizeStore));
+          setStores(sortStoresByMode(response.data.slice(0, 12).map(normalizeStore), filters.sort_by));
         }
       } else {
         const response = await getPublishedStores({
@@ -151,7 +178,7 @@ function CustomerHomePage() {
           search: searchKeyword,
           ...filters
         });
-        setStores(response.data.map(normalizeStore));
+        setStores(sortStoresByMode(response.data.map(normalizeStore), filters.sort_by));
       }
     } catch (error) {
       console.error('載入店家失敗：', error);
@@ -199,7 +226,8 @@ function CustomerHomePage() {
       region: '',
       has_reservation: false,
       has_loyalty: false,
-      has_surplus_food: false
+      has_surplus_food: false,
+      sort_by: '',
     });
     navigate('/customer-home');
   };
@@ -322,6 +350,18 @@ function CustomerHomePage() {
             </select>
           </div>
 
+          <div className={styles.regionFilterRow}>
+            <label htmlFor="sortFilter">{copy.sortBy}</label>
+            <select
+              id="sortFilter"
+              value={filters.sort_by}
+              onChange={(e) => setFilters((prev) => ({ ...prev, sort_by: e.target.value }))}
+            >
+              <option value="">{copy.sortNewest}</option>
+              <option value="donation_desc">{copy.sortDonationDesc}</option>
+            </select>
+          </div>
+
           {selectedCategory === 'recommended' && user && userPreferences?.favorite_tags?.length > 1 && (
             <div className={styles.preferenceRow}>
               <label htmlFor="prefTag">{copy.preferenceTag}</label>
@@ -425,6 +465,12 @@ function CustomerHomePage() {
                       </div>
                       <p className={styles.cuisine}>{getCuisineTypeName(store.cuisine_type)}</p>
                       <p className={styles.address}>{store.address}</p>
+                      <div className={styles.impactRow}>
+                        <span className={styles.impactLabel}>
+                          <i className="bi bi-heart-fill" /> 公益點數
+                        </span>
+                        <strong>{formatBenefitPoints(store.surplus_donation_amount)}</strong>
+                      </div>
                       <div className={styles.featureRow}>
                         {store.enable_reservation && <span>{copy.reservation}</span>}
                         {store.enable_loyalty && <span>{copy.loyalty}</span>}

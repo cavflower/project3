@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { FaClock, FaUsers, FaCalendarAlt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import TimeSlotSettings from './TimeSlotSettings';
 import ReservationList from './ReservationList';
@@ -10,7 +10,6 @@ import {
   updateReservationStatus,
   merchantCancelReservation,
   deleteReservation,
-  getReservationStats,
   getTimeSlots,
   createTimeSlot,
   updateTimeSlot,
@@ -24,6 +23,7 @@ const TABLE_MAP_ZOOM_STEP = 0.2;
 const ReservationManagementPage = () => {
   const [activeTab, setActiveTab] = useState('reservations'); // 'reservations' or 'settings'
   const [reservations, setReservations] = useState([]);
+  const [selectedReservationDate, setSelectedReservationDate] = useState('');
   const [timeSlots, setTimeSlots] = useState([]);
   const [stats, setStats] = useState({
     pending: 0,
@@ -97,14 +97,26 @@ const ReservationManagementPage = () => {
   }, [isPanningTableMap]);
 
   useEffect(() => {
-    fetchReservations();
     fetchTimeSlots();
     fetchConfiguredTables();
   }, []);
 
-  const fetchReservations = async () => {
+  const updateStats = useCallback((reservationList) => {
+    const newStats = {
+      pending: reservationList.filter(r => r.status === 'pending').length,
+      confirmed: reservationList.filter(r => r.status === 'confirmed').length,
+      cancelled: reservationList.filter(r => r.status === 'cancelled').length,
+      completed: reservationList.filter(r => r.status === 'completed').length,
+    };
+    setStats(newStats);
+  }, []);
+
+  const fetchReservations = useCallback(async () => {
     try {
-      const response = await getMerchantReservations();
+      const filters = selectedReservationDate
+        ? { reservation_date: selectedReservationDate }
+        : {};
+      const response = await getMerchantReservations(filters);
       const reservationData = response.data.results || response.data;
       setReservations(reservationData);
       updateStats(reservationData);
@@ -112,7 +124,11 @@ const ReservationManagementPage = () => {
       console.error('Failed to fetch reservations:', error);
       alert('無法載入訂位資料，請稍後再試。');
     }
-  };
+  }, [selectedReservationDate, updateStats]);
+
+  useEffect(() => {
+    fetchReservations();
+  }, [fetchReservations]);
 
   const fetchTimeSlots = async () => {
     try {
@@ -152,16 +168,6 @@ const ReservationManagementPage = () => {
       setTableFloors([]);
       setActiveTableFloorId('');
     }
-  };
-
-  const updateStats = (reservationList) => {
-    const newStats = {
-      pending: reservationList.filter(r => r.status === 'pending').length,
-      confirmed: reservationList.filter(r => r.status === 'confirmed').length,
-      cancelled: reservationList.filter(r => r.status === 'cancelled').length,
-      completed: reservationList.filter(r => r.status === 'completed').length,
-    };
-    setStats(newStats);
   };
 
   const resetAcceptDialog = () => {
@@ -396,6 +402,8 @@ const ReservationManagementPage = () => {
         {activeTab === 'reservations' ? (
           <ReservationList
             reservations={reservations}
+            selectedDate={selectedReservationDate}
+            onDateChange={setSelectedReservationDate}
             onAccept={handleAcceptClick}
             onCancel={handleCancelClick}
             onComplete={handleCompleteReservation}

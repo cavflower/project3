@@ -3,7 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import (
 	PointRule, MembershipLevel, RedemptionProduct,
-	CustomerLoyaltyAccount, PointTransaction, Redemption
+	CustomerLoyaltyAccount, PointTransaction, Redemption,
+	PlatformCoupon, UserPlatformCoupon
 )
 from .serializers import (
 	PointRuleSerializer,
@@ -13,6 +14,8 @@ from .serializers import (
 	PointTransactionSerializer,
 	RedemptionSerializer,
 	RedemptionCreateSerializer,
+	PlatformCouponSerializer,
+	UserPlatformCouponSerializer,
 )
 
 
@@ -52,6 +55,12 @@ class MerchantMembershipLevelViewSet(viewsets.ModelViewSet, MerchantOnlyMixin):
 	serializer_class = MembershipLevelSerializer
 	permission_classes = [permissions.IsAuthenticated]
 
+	def _refresh_store_account_levels(self, store):
+		if not store:
+			return
+		for account in CustomerLoyaltyAccount.objects.filter(store=store).select_related('current_level'):
+			account.update_level()
+
 	def get_queryset(self):
 		store = self.get_store()
 		if not store:
@@ -63,6 +72,19 @@ class MerchantMembershipLevelViewSet(viewsets.ModelViewSet, MerchantOnlyMixin):
 		if not store:
 			raise serializers.ValidationError('User is not a merchant or store not configured')
 		serializer.save(store=store)
+		self._refresh_store_account_levels(store)
+
+	def perform_update(self, serializer):
+		store = self.get_store()
+		if not store:
+			raise serializers.ValidationError('User is not a merchant or store not configured')
+		serializer.save()
+		self._refresh_store_account_levels(store)
+
+	def perform_destroy(self, instance):
+		store = self.get_store()
+		instance.delete()
+		self._refresh_store_account_levels(store)
 
 
 class MerchantRedemptionProductViewSet(viewsets.ModelViewSet, MerchantOnlyMixin):
@@ -202,6 +224,55 @@ class MerchantRedemptionManagementViewSet(viewsets.ModelViewSet, MerchantOnlyMix
 		
 		serializer = self.get_serializer(redemption)
 		return Response(serializer.data)
+
+
+class CustomerPlatformCouponViewSet(viewsets.ReadOnlyModelViewSet):
+	"""顧客已領取的平台優惠券。"""
+	serializer_class = UserPlatformCouponSerializer
+	permission_classes = [permissions.IsAuthenticated]
+
+	def get_queryset(self):
+		return UserPlatformCoupon.objects.filter(user=self.request.user).select_related('coupon')
+
+	@action(detail=False, methods=['post'])
+	def claim(self, request):
+		token = request.data.get('token')
+		if not token:
+			return Response(
+				{'detail': '缺少優惠券領取 token'},
+				status=status.HTTP_400_BAD_REQUEST
+			)
+
+		try:
+			from django.utils import timezone
+
+			coupon = PlatformCoupon.objects.get(
+				claim_token=token,
+				is_active=True,
+			)
+			if coupon.expires_at <= timezone.now():
+				return Response(
+					{'detail': '此優惠券已過期'},
+					status=status.HTTP_400_BAD_REQUEST
+				)
+
+			user_coupon, created = UserPlatformCoupon.objects.get_or_create(
+				user=request.user,
+				coupon=coupon,
+				defaults={'status': 'claimed'}
+			)
+			serializer = self.get_serializer(user_coupon)
+			return Response({
+				'success': True,
+				'created': created,
+				'message': '優惠券已存入您的帳戶' if created else '您已領取過這張優惠券',
+				'coupon': serializer.data,
+			})
+		except PlatformCoupon.DoesNotExist:
+			return Response(
+				{'detail': '找不到可領取的優惠券'},
+				status=status.HTTP_404_NOT_FOUND
+			)
 
 	@action(detail=True, methods=['post'])
 	def complete(self, request, pk=None):

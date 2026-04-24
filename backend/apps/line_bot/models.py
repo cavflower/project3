@@ -385,6 +385,14 @@ class BroadcastMessage(models.Model):
         blank=True,
         verbose_name='圖片網址'
     )
+    coupon = models.ForeignKey(
+        'loyalty.PlatformCoupon',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='merchant_broadcasts',
+        verbose_name='優惠券'
+    )
     target_users = models.JSONField(
         default=list,
         verbose_name='目標用戶',
@@ -586,6 +594,7 @@ class PlatformBroadcast(models.Model):
         ('store_recommendation', '店家推薦'),
         ('new_store', '新店上架'),
         ('platform_announcement', '平台公告'),
+        ('promotion', '平台優惠'),
     ]
 
     STATUS_CHOICES = [
@@ -611,6 +620,14 @@ class PlatformBroadcast(models.Model):
     image_url = models.URLField(
         blank=True,
         verbose_name='圖片網址'
+    )
+    coupon = models.ForeignKey(
+        'loyalty.PlatformCoupon',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='platform_broadcasts',
+        verbose_name='關聯優惠券'
     )
     
     # 推薦店家（多對多關係）

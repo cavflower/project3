@@ -3,6 +3,7 @@ from django.dispatch import receiver
 from .models import TakeoutOrder, DineInOrder, Notification
 from .notification_services import (
     send_platform_line_new_order_to_merchant_notification,
+    send_platform_line_order_cancelled_notification,
     send_platform_line_order_pickup_ready_notification,
 )
 
@@ -29,6 +30,12 @@ def takeout_order_status_change(sender, instance, **kwargs):
                     order_type_label='外帶',
                     order_number=instance.pickup_number,
                 )
+            elif instance.status in {'rejected', 'cancelled'}:
+                send_platform_line_order_cancelled_notification(
+                    order=instance,
+                    order_type_label='外帶',
+                    order_number=instance.pickup_number,
+                )
     except TakeoutOrder.DoesNotExist:
         pass
 
@@ -51,6 +58,12 @@ def dinein_order_status_change(sender, instance, **kwargs):
 
             if instance.status == 'ready_for_pickup':
                 send_platform_line_order_pickup_ready_notification(
+                    order=instance,
+                    order_type_label='內用',
+                    order_number=instance.order_number,
+                )
+            elif instance.status in {'rejected', 'cancelled'}:
+                send_platform_line_order_cancelled_notification(
                     order=instance,
                     order_type_label='內用',
                     order_number=instance.order_number,

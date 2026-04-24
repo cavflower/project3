@@ -244,6 +244,12 @@
   padding: 0.35rem 0.7rem;
 }
 
+.store-header-pill-impact {
+  background: #fff4ef;
+  color: #b74f21;
+  border-color: #efc9b7;
+}
+
 .store-main-title {
   font-size: 2rem;
   font-weight: 700;
@@ -394,6 +400,17 @@
 
 .store-header-contact-list a:hover {
   text-decoration: underline;
+}
+
+.store-impact-card {
+  display: grid;
+  gap: 8px;
+}
+
+.store-impact-card strong {
+  font-size: 1.35rem;
+  color: #d5602b;
+  line-height: 1;
 }
 
 .store-header-booking-card {

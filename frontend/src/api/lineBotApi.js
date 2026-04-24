@@ -101,6 +101,21 @@ export const getAvailableFoodTags = async () => {
   return response.data;
 };
 
+export const getMembershipBroadcastLevels = async () => {
+  const response = await api.get('/line-bot/broadcasts/membership-levels/');
+  return response.data;
+};
+
+export const getMembershipBroadcastTargets = async (levelIds = []) => {
+  const params = new URLSearchParams();
+  if (levelIds.length > 0) {
+    params.append('level_ids', levelIds.join(','));
+  }
+  const query = params.toString();
+  const response = await api.get(`/line-bot/broadcasts/membership-targets/${query ? `?${query}` : ''}`);
+  return response.data;
+};
+
 // 綁定 LINE 帳號
 export const bindLineAccount = async (lineUserId) => {
   const response = await api.post('/line-bot/bind/', { line_user_id: lineUserId });
@@ -155,6 +170,8 @@ export default {
   sendBroadcastMessage,
   getPersonalizedTargets,
   getAvailableFoodTags,
+  getMembershipBroadcastLevels,
+  getMembershipBroadcastTargets,
   bindLineAccount,
   getLineBinding,
   getLineBotConfig,

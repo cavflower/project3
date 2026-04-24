@@ -69,6 +69,9 @@ export const getPublishedStores = (filters = {}) => {
   if (filters.search) {
     params.append('search', filters.search);
   }
+  if (filters.sort_by) {
+    params.append('sort_by', filters.sort_by);
+  }
   
   const queryString = params.toString();
   return api.get(`/stores/published/${queryString ? `?${queryString}` : ''}`);

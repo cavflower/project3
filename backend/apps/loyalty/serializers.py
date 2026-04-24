@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
 	PointRule, MembershipLevel, RedemptionProduct,
-	CustomerLoyaltyAccount, PointTransaction, Redemption
+	CustomerLoyaltyAccount, PointTransaction, Redemption,
+	PlatformCoupon, UserPlatformCoupon
 )
 
 
@@ -23,7 +24,7 @@ class MembershipLevelSerializer(serializers.ModelSerializer):
 			'id', 'store', 'name', 'threshold_points', 'discount_percent', 'benefits', 'rank', 'active',
 			'created_at', 'updated_at'
 		]
-		read_only_fields = ['id', 'created_at', 'updated_at']
+		read_only_fields = ['id', 'store', 'created_at', 'updated_at']
 
 
 class RedemptionProductSerializer(serializers.ModelSerializer):
@@ -138,3 +139,47 @@ class RedemptionCreateSerializer(serializers.ModelSerializer):
 			product.save()
 		
 		return redemption
+
+
+class PlatformCouponSerializer(serializers.ModelSerializer):
+	discount_type_display = serializers.CharField(source='get_discount_type_display', read_only=True)
+
+	class Meta:
+		model = PlatformCoupon
+		fields = [
+			'id', 'title', 'description', 'code', 'claim_token',
+			'discount_type', 'discount_type_display', 'discount_value',
+			'min_order_amount', 'max_discount_amount', 'expires_at',
+			'is_active', 'created_at', 'updated_at'
+		]
+		read_only_fields = ['id', 'claim_token', 'created_at', 'updated_at']
+
+
+class UserPlatformCouponSerializer(serializers.ModelSerializer):
+	title = serializers.CharField(source='coupon.title', read_only=True)
+	description = serializers.CharField(source='coupon.description', read_only=True)
+	code = serializers.CharField(source='coupon.code', read_only=True)
+	discount_type = serializers.CharField(source='coupon.discount_type', read_only=True)
+	discount_type_display = serializers.CharField(source='coupon.get_discount_type_display', read_only=True)
+	discount_value = serializers.DecimalField(source='coupon.discount_value', max_digits=10, decimal_places=2, read_only=True)
+	min_order_amount = serializers.DecimalField(source='coupon.min_order_amount', max_digits=10, decimal_places=2, read_only=True)
+	max_discount_amount = serializers.DecimalField(source='coupon.max_discount_amount', max_digits=10, decimal_places=2, read_only=True)
+	expires_at = serializers.DateTimeField(source='coupon.expires_at', read_only=True)
+	is_active = serializers.BooleanField(source='coupon.is_active', read_only=True)
+	is_expired = serializers.SerializerMethodField()
+
+	class Meta:
+		model = UserPlatformCoupon
+		fields = [
+			'id', 'coupon', 'title', 'description', 'code',
+			'discount_type', 'discount_type_display', 'discount_value',
+			'min_order_amount', 'max_discount_amount',
+			'status', 'expires_at', 'is_active', 'is_expired',
+			'claimed_at', 'used_at'
+		]
+		read_only_fields = fields
+
+	def get_is_expired(self, obj):
+		from django.utils import timezone
+		expires_at = getattr(obj.coupon, 'expires_at', None)
+		return bool(expires_at and expires_at <= timezone.now())

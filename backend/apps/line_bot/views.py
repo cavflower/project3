@@ -2,11 +2,16 @@ import hmac
 import hashlib
 import json
 import base64
+import re
+from decimal import Decimal
+from urllib.parse import parse_qs
+from typing import Optional
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
 from django.db.models import Count
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -29,7 +34,7 @@ from .serializers import (
     PlatformBroadcastSerializer
 )
 from .services.line_api import LineMessagingAPI
-from .services.message_handler import MessageHandler
+from .services.message_handler import MessageHandler, AIReplyService
 import os
 
 
@@ -142,7 +147,251 @@ def handle_event(event: dict, store_id: int = None):
     elif event_type == 'unfollow':
         handle_unfollow_event(event)
     elif event_type == 'postback':
-        handle_postback_event(event)
+        handle_postback_event(event, store_id)
+
+
+MEMBERSHIP_LEVEL_QUERY_KEYWORDS = [
+    '會員等級',
+    '會員級別',
+    '我的等級',
+    '等級',
+    '會員',
+    'memberlevel',
+    'membership',
+]
+
+
+MERCHANT_OPERATIONS_QUERY_KEYWORDS = [
+    '營運',
+    '營運狀況',
+    '營業狀況',
+    '營運報表',
+    '報表',
+    '訂單統計',
+    '訂單狀況',
+    '訂單數',
+    '捐款',
+    '捐款金額',
+    '公益點數',
+]
+
+
+def is_membership_level_query(message: str) -> bool:
+    normalized = re.sub(r'\s+', '', (message or '').lower())
+    return any(keyword in normalized for keyword in MEMBERSHIP_LEVEL_QUERY_KEYWORDS)
+
+
+def is_merchant_operations_query(message: str) -> bool:
+    normalized = re.sub(r'\s+', '', (message or '').lower())
+    return any(keyword in normalized for keyword in MERCHANT_OPERATIONS_QUERY_KEYWORDS)
+
+
+def build_membership_level_reply(store, line_user_id: str) -> Optional[str]:
+    if not getattr(store, 'enable_loyalty', False):
+        return None
+
+    from apps.loyalty.models import CustomerLoyaltyAccount, MembershipLevel
+
+    binding = (
+        LineUserBinding.objects.filter(
+            line_user_id=line_user_id,
+            is_active=True,
+        )
+        .select_related('user')
+        .first()
+    )
+    if not binding:
+        return f"若要查詢 {store.name} 的會員等級，請先在 DineVerse 綁定目前這個 LINE 帳號。"
+
+    account = (
+        CustomerLoyaltyAccount.objects.filter(
+            user=binding.user,
+            store=store,
+        )
+        .select_related('current_level')
+        .first()
+    )
+    if not account:
+        return f"您目前還沒有 {store.name} 的會員紀錄，完成消費累積點數後就能查看會員等級。"
+
+    current_level = account.current_level
+    current_level_name = current_level.name if current_level else '一般會員'
+
+    lines = [
+        f"{store.name} 會員資訊",
+        '',
+        f"目前等級：{current_level_name}",
+        f"累積點數：{account.total_points}",
+        f"可用點數：{account.available_points}",
+    ]
+
+    if current_level and current_level.benefits:
+        lines.append(f"會員權益：{current_level.benefits}")
+
+    next_level = (
+        MembershipLevel.objects.filter(
+            store=store,
+            active=True,
+            threshold_points__gt=account.total_points,
+        )
+        .order_by('threshold_points', 'rank')
+        .first()
+    )
+    if next_level:
+        needed_points = max(next_level.threshold_points - account.total_points, 0)
+        lines.append(f"下一級：{next_level.name}（再 {needed_points} 點）")
+
+    return '\n'.join(lines)
+
+
+def build_store_business_info_text(store) -> str:
+    opening_hours_text = AIReplyService._format_opening_hours(getattr(store, 'opening_hours', None))
+    service_labels = []
+    if getattr(store, 'enable_takeout', False):
+        service_labels.append('外帶')
+    if getattr(store, 'enable_reservation', False):
+        service_labels.append('訂位')
+    if getattr(store, 'enable_loyalty', False):
+        service_labels.append('會員')
+    if getattr(store, 'enable_surplus_food', False):
+        service_labels.append('惜食')
+
+    services_text = '、'.join(service_labels) if service_labels else '未啟用額外服務'
+    status_text = '營業中' if getattr(store, 'is_open', False) else '休息中'
+    fixed_holidays = getattr(store, 'fixed_holidays', '') or '未提供'
+    phone = getattr(store, 'phone', '') or '未提供'
+    address = getattr(store, 'address', '') or '未提供'
+
+    return (
+        f"店家資訊\n"
+        f"店名：{store.name}\n"
+        f"目前狀態：{status_text}\n"
+        f"電話：{phone}\n"
+        f"地址：{address}\n"
+        f"營業時間：\n{opening_hours_text}\n"
+        f"固定休息日：{fixed_holidays}\n"
+        f"可用服務：{services_text}"
+    )
+
+
+def build_merchant_operations_reply(line_user_id: str) -> Optional[str]:
+    merchant_binding = (
+        MerchantLineBinding.objects.filter(
+            line_user_id=line_user_id,
+            is_active=True,
+        )
+        .select_related('merchant__user')
+        .first()
+    )
+    user_binding = (
+        LineUserBinding.objects.filter(
+            line_user_id=line_user_id,
+            is_active=True,
+        )
+        .select_related('user')
+        .first()
+    )
+
+    if not merchant_binding:
+        return None
+
+    if not user_binding or user_binding.current_mode != 'merchant':
+        return '目前不是店家模式，先輸入「切換」切到店家模式後，就可以查詢營運資訊。'
+
+    merchant = merchant_binding.merchant
+    if not hasattr(merchant, 'store'):
+        return '目前找不到店家資料，請先完成店家設定。'
+
+    store = merchant.store
+
+    from apps.orders.models import TakeoutOrder, DineInOrder
+    from apps.surplus_food.models import SurplusFoodOrder
+    from apps.loyalty.models import CustomerLoyaltyAccount
+
+    now = timezone.now()
+    today = now.date()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    takeout_qs = TakeoutOrder.objects.filter(store=store)
+    dinein_qs = DineInOrder.objects.filter(store=store)
+    surplus_qs = SurplusFoodOrder.objects.filter(store=store)
+
+    today_takeout = takeout_qs.filter(created_at__date=today).exclude(status='rejected').count()
+    today_dinein = dinein_qs.filter(created_at__date=today).exclude(status='rejected').count()
+    today_surplus = surplus_qs.filter(created_at__date=today).exclude(status__in=['rejected', 'cancelled', 'expired']).count()
+
+    pending_takeout = takeout_qs.filter(status='pending').count()
+    pending_dinein = dinein_qs.filter(status='pending').count()
+    pending_surplus = surplus_qs.filter(status='pending').count()
+
+    monthly_takeout = takeout_qs.filter(created_at__gte=month_start).exclude(status='rejected').count()
+    monthly_dinein = dinein_qs.filter(created_at__gte=month_start).exclude(status='rejected').count()
+    monthly_surplus = surplus_qs.filter(created_at__gte=month_start).exclude(status__in=['rejected', 'cancelled', 'expired']).count()
+
+    completed_surplus_orders = store.surplus_completed_order_count_total or 0
+    completed_surplus_revenue = Decimal(str(store.surplus_completed_revenue_total or 0))
+    donation_amount = (completed_surplus_revenue * Decimal('0.6')).quantize(Decimal('0.01'))
+    active_members = CustomerLoyaltyAccount.objects.filter(store=store).count() if getattr(store, 'enable_loyalty', False) else 0
+
+    return (
+        f"{store.name} 營運摘要\n\n"
+        f"店家狀態：{'營業中' if store.is_open else '休息中'} / {'已上架' if store.is_published else '未上架'}\n"
+        f"今日訂單：外帶 {today_takeout}、內用 {today_dinein}、惜食 {today_surplus}\n"
+        f"待處理訂單：外帶 {pending_takeout}、內用 {pending_dinein}、惜食 {pending_surplus}\n"
+        f"本月訂單：外帶 {monthly_takeout}、內用 {monthly_dinein}、惜食 {monthly_surplus}\n"
+        f"惜食完成單：{completed_surplus_orders}\n"
+        f"累積惜食營收：NT$ {completed_surplus_revenue:,.0f}\n"
+        f"累積捐款金額：NT$ {donation_amount:,.0f}\n"
+        f"會員人數：{active_members}"
+    )
+
+
+def reactivate_line_bindings(line_user_id: str):
+    LineUserBinding.objects.filter(
+        line_user_id=line_user_id,
+        is_active=False,
+    ).update(is_active=True)
+    MerchantLineBinding.objects.filter(
+        line_user_id=line_user_id,
+        is_active=False,
+    ).update(is_active=True)
+
+
+def claim_platform_coupon_for_line_user(line_user_id: str, coupon_token: str):
+    from apps.loyalty.models import PlatformCoupon, UserPlatformCoupon
+
+    binding = (
+        LineUserBinding.objects.filter(
+            line_user_id=line_user_id,
+            is_active=True,
+            current_mode='customer',
+        )
+        .select_related('user')
+        .first()
+    )
+    if not binding:
+        return False, '找不到綁定的 DineVerse 會員帳戶，請先完成 LINE 綁定。'
+
+    try:
+        coupon = PlatformCoupon.objects.get(
+            claim_token=coupon_token,
+            is_active=True,
+        )
+    except PlatformCoupon.DoesNotExist:
+        return False, '這張優惠券目前無法領取。'
+
+    if coupon.expires_at <= timezone.now():
+        return False, '這張優惠券已過期，無法領取。'
+
+    user_coupon, created = UserPlatformCoupon.objects.get_or_create(
+        user=binding.user,
+        coupon=coupon,
+        defaults={'status': 'claimed'},
+    )
+    if created:
+        return True, f"已成功領取「{coupon.title}」，優惠券已存入個人資料中的優惠券存放處。"
+
+    return True, f"您已經領取過「{coupon.title}」，可前往個人資料中的優惠券存放處查看。"
 
 
 def handle_message_event(event: dict, store_id: int = None):
@@ -276,6 +525,15 @@ def handle_message_event(event: dict, store_id: int = None):
                     return
             
             # 使用平台自訂的歡迎訊息或預設回覆
+            merchant_operations_reply = None
+            if is_merchant_operations_query(user_message):
+                merchant_operations_reply = build_merchant_operations_reply(line_user_id)
+
+            if merchant_operations_reply:
+                messages = [temp_line_api.create_text_message(merchant_operations_reply)]
+                temp_line_api.reply_message(reply_token, messages)
+                return
+
             if platform_settings.line_bot_welcome_message:
                 platform_reply = platform_settings.line_bot_welcome_message
             else:
@@ -299,6 +557,31 @@ def handle_message_event(event: dict, store_id: int = None):
         if settings.DEBUG:
             print(f"[LINE Webhook] Store: {store.name}")
             print(f"[LINE Webhook] Message: {user_message}")
+
+        membership_reply = None
+        if is_membership_level_query(user_message):
+            membership_reply = build_membership_level_reply(store, line_user_id)
+
+        if membership_reply:
+            ConversationLog.objects.create(
+                store=store,
+                line_user_id=line_user_id,
+                sender_type='user',
+                message_type='text',
+                message_content=user_message,
+                reply_token=reply_token
+            )
+            ConversationLog.objects.create(
+                store=store,
+                line_user_id=line_user_id,
+                sender_type='bot',
+                message_type='text',
+                message_content=membership_reply,
+                used_ai=False,
+            )
+            line_api = LineMessagingAPI(bot_config)
+            line_api.reply_message(reply_token, [line_api.create_text_message(membership_reply)])
+            return
         
         # 初始化店家專屬的服務
         line_api = LineMessagingAPI(bot_config)
@@ -503,6 +786,8 @@ def handle_follow_event(event: dict, store_id: int = None):
     """
     line_user_id = event['source']['userId']
     reply_token = event.get('replyToken')
+
+    reactivate_line_bindings(line_user_id)
     
     try:
         if store_id:
@@ -524,6 +809,10 @@ def handle_follow_event(event: dict, store_id: int = None):
                 if settings.DEBUG:
                     print(f"[LINE Follow] Store: {bot_config.store.name}")
                     print(f"[LINE Follow] Welcome message: {welcome_text[:50]}...")
+                messages = [
+                    line_api.create_text_message(welcome_text),
+                    line_api.create_text_message(build_store_business_info_text(bot_config.store)),
+                ]
             else:
                 # 店家未設定，使用預設訊息
                 line_api = LineMessagingAPI()
@@ -561,8 +850,10 @@ def handle_follow_event(event: dict, store_id: int = None):
 
 感謝您成為我們的好友！"""
     
-    messages = [line_api.create_text_message(welcome_text)]
-    line_api.reply_message(reply_token, messages)
+    messages = locals().get('messages') or [line_api.create_text_message(welcome_text)]
+    replied = bool(reply_token) and line_api.reply_message(reply_token, messages)
+    if not replied:
+        line_api.push_message(line_user_id, messages)
 
 
 def handle_unfollow_event(event: dict):
@@ -583,15 +874,43 @@ def handle_unfollow_event(event: dict):
         pass
 
 
-def handle_postback_event(event: dict):
+def handle_postback_event(event: dict, store_id: int = None):
     """
     處理 Postback 事件（按鈕點擊等）
     
     Args:
         event: LINE postback 事件
     """
-    # 未來可以在這裡處理互動式按鈕的回應
-    pass
+    line_user_id = event['source']['userId']
+    reply_token = event.get('replyToken')
+    postback_data = event.get('postback', {}).get('data', '')
+
+    if not postback_data:
+        return
+
+    payload = {key: values[-1] for key, values in parse_qs(postback_data).items() if values}
+    action = payload.get('action')
+
+    if action != 'claim_platform_coupon':
+        return
+
+    coupon_token = payload.get('token', '').strip()
+    if not coupon_token:
+        reply_text = '缺少優惠券領取資訊，請稍後再試一次。'
+    else:
+        _, reply_text = claim_platform_coupon_for_line_user(line_user_id, coupon_token)
+
+    if store_id:
+        bot_config = StoreLineBotConfig.objects.filter(store_id=store_id, is_active=True).first()
+        line_api = LineMessagingAPI(bot_config) if bot_config else LineMessagingAPI()
+    else:
+        from apps.intelligence.models import PlatformSettings
+
+        platform_settings = PlatformSettings.get_settings()
+        line_api = LineMessagingAPI()
+        line_api.channel_access_token = platform_settings.line_bot_channel_access_token
+    if reply_token:
+        line_api.reply_message(reply_token, [line_api.create_text_message(reply_text)])
 
 
 # ==================== REST API ViewSets ====================
@@ -714,24 +1033,60 @@ class BroadcastMessageViewSet(viewsets.ModelViewSet):
         
         if broadcast.image_url:
             messages.insert(0, temp_line_api.create_image_message(broadcast.image_url))
+
+        if broadcast.coupon_id:
+            coupon = broadcast.coupon
+            coupon_summary = (
+                f"優惠券：{coupon.title}\n"
+                f"折抵方式：{coupon.get_discount_type_display()} {coupon.discount_value}\n"
+                f"最低消費：NT$ {coupon.min_order_amount}\n"
+                f"到期時間：{coupon.expires_at.strftime('%Y-%m-%d %H:%M')}"
+            )
+            if coupon.max_discount_amount:
+                coupon_summary += f"\n最高折抵：NT$ {coupon.max_discount_amount}"
+
+            messages.append(temp_line_api.create_text_message(coupon_summary))
+            messages.append(
+                temp_line_api.create_template_buttons(
+                    alt_text=f"{coupon.title} 領券通知",
+                    title='立即領券',
+                    text='點擊下方按鈕，將優惠券存入個人資料的優惠券存放處。',
+                    actions=[
+                        {
+                            'type': 'postback',
+                            'label': '領取優惠券',
+                            'data': f'action=claim_platform_coupon&token={coupon.claim_token}',
+                            'displayText': '我要領取這張優惠券',
+                        }
+                    ],
+                )
+            )
         
         # 發送訊息
         target_users = broadcast.target_users
         original_target_count = len(target_users)
 
-        allowed_users = set(
-            LineUserBinding.objects.filter(
-                line_user_id__in=target_users,
-                is_active=True,
-                current_mode='customer',
+        allowed_binding_qs = LineUserBinding.objects.filter(
+            line_user_id__in=target_users,
+            is_active=True,
+            current_mode='customer',
+        )
+        if broadcast.broadcast_type != 'loyalty':
+            allowed_binding_qs = allowed_binding_qs.filter(
                 notify_personalized_recommendation=True,
-            ).values_list('line_user_id', flat=True)
+            )
+
+        allowed_users = set(
+            allowed_binding_qs.values_list('line_user_id', flat=True)
         )
         target_users = [line_user_id for line_user_id in target_users if line_user_id in allowed_users]
 
         if not target_users:
+            empty_reason = '目標用戶皆已關閉個人化推薦通知，未發送推播'
+            if broadcast.broadcast_type == 'loyalty':
+                empty_reason = '找不到可接收會員優惠的綁定 LINE 會員'
             return Response(
-                {'error': '目標用戶皆已關閉個人化推薦通知，未發送推播'},
+                {'error': empty_reason},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -764,6 +1119,108 @@ class BroadcastMessageViewSet(viewsets.ModelViewSet):
             'skipped_by_preference': max(0, original_target_count - len(target_users)),
             'success_count': success_count,
             'failure_count': failure_count
+        })
+
+    @action(detail=False, methods=['get'], url_path='membership-levels')
+    def membership_levels(self, request):
+        from apps.loyalty.models import MembershipLevel
+
+        user = request.user
+        if not hasattr(user, 'merchant_profile') or not hasattr(user.merchant_profile, 'store'):
+            return Response(
+                {'error': '只有商家可以查詢會員等級'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        store = user.merchant_profile.store
+        if not store.enable_loyalty:
+            return Response({
+                'loyalty_enabled': False,
+                'levels': [],
+            })
+
+        levels = MembershipLevel.objects.filter(
+            store=store,
+            active=True,
+        ).order_by('rank', 'threshold_points')
+
+        return Response({
+            'loyalty_enabled': True,
+            'levels': [
+                {
+                    'id': level.id,
+                    'name': level.name,
+                    'threshold_points': level.threshold_points,
+                    'discount_percent': level.discount_percent,
+                    'benefits': level.benefits,
+                }
+                for level in levels
+            ],
+        })
+
+    @action(detail=False, methods=['get'], url_path='membership-targets')
+    def membership_targets(self, request):
+        from apps.loyalty.models import CustomerLoyaltyAccount
+
+        user = request.user
+        if not hasattr(user, 'merchant_profile') or not hasattr(user.merchant_profile, 'store'):
+            return Response(
+                {'error': '只有商家可以查詢會員目標'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        store = user.merchant_profile.store
+        if not store.enable_loyalty:
+            return Response({
+                'loyalty_enabled': False,
+                'target_count': 0,
+                'target_users': [],
+                'user_details': [],
+            })
+
+        level_ids_param = request.query_params.get('level_ids', '')
+        level_ids = [
+            int(level_id)
+            for level_id in level_ids_param.split(',')
+            if level_id.strip().isdigit()
+        ]
+
+        accounts = CustomerLoyaltyAccount.objects.filter(store=store).select_related(
+            'user',
+            'current_level',
+        )
+        if level_ids:
+            accounts = accounts.filter(current_level_id__in=level_ids)
+
+        bindings = LineUserBinding.objects.filter(
+            user_id__in=accounts.values_list('user_id', flat=True),
+            is_active=True,
+            current_mode='customer',
+        ).select_related('user')
+        binding_map = {binding.user_id: binding for binding in bindings}
+
+        target_users = []
+        user_details = []
+        for account in accounts:
+            binding = binding_map.get(account.user_id)
+            if not binding:
+                continue
+            target_users.append(binding.line_user_id)
+            user_details.append({
+                'line_user_id': binding.line_user_id,
+                'display_name': binding.display_name,
+                'username': account.user.username,
+                'current_level_name': account.current_level.name if account.current_level else '一般會員',
+                'available_points': account.available_points,
+                'total_points': account.total_points,
+            })
+
+        return Response({
+            'loyalty_enabled': True,
+            'selected_level_ids': level_ids,
+            'target_count': len(target_users),
+            'target_users': target_users,
+            'user_details': user_details[:20],
         })
     
     @action(detail=False, methods=['get'])
@@ -1371,8 +1828,10 @@ class PlatformBroadcastViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def target_preview(self, request):
         """預覽推播目標用戶數量"""
-        # 取得所有已綁定 LINE 的用戶
-        bindings = LineUserBinding.objects.filter(is_active=True)
+        bindings = LineUserBinding.objects.filter(
+            is_active=True,
+            current_mode='customer',
+        )
         return Response({
             'total_users': bindings.count(),
             'sample_users': [
@@ -1388,7 +1847,6 @@ class PlatformBroadcastViewSet(viewsets.ModelViewSet):
     def send(self, request, pk=None):
         """發送平台推播"""
         from apps.intelligence.models import PlatformSettings
-        from django.utils import timezone
         
         broadcast = self.get_object()
         
@@ -1414,10 +1872,17 @@ class PlatformBroadcastViewSet(viewsets.ModelViewSet):
         
         # 取得目標用戶
         if broadcast.target_all:
-            bindings = LineUserBinding.objects.filter(is_active=True)
-            target_users = [b.line_user_id for b in bindings]
+            bindings = LineUserBinding.objects.filter(
+                is_active=True,
+                current_mode='customer',
+            )
         else:
-            target_users = broadcast.target_users
+            bindings = LineUserBinding.objects.filter(
+                line_user_id__in=broadcast.target_users,
+                is_active=True,
+                current_mode='customer',
+            )
+        target_users = [b.line_user_id for b in bindings]
         
         if not target_users:
             return Response(
@@ -1434,6 +1899,7 @@ class PlatformBroadcastViewSet(viewsets.ModelViewSet):
 
         selected_stores = list(broadcast.recommended_stores.all())
         popular_stores = selected_stores if selected_stores else self._get_popular_recommended_stores(limit=5)
+        coupon = broadcast.coupon
         
         for user_id in target_users:
             try:
@@ -1465,6 +1931,37 @@ class PlatformBroadcastViewSet(viewsets.ModelViewSet):
                     )
                     if popular_message:
                         messages.append(line_api.create_text_message(popular_message))
+                elif broadcast.broadcast_type == 'promotion':
+                    promotion_message = f"🎁 {broadcast.title}\n\n{broadcast.message_content}"
+                    if coupon:
+                        promotion_message += (
+                            f"\n\n優惠券代碼：{coupon.code}"
+                            f"\n優惠內容：{coupon.get_discount_type_display()} {coupon.discount_value}"
+                            f"\n最低消費：NT$ {coupon.min_order_amount}"
+                            f"\n使用期限：{coupon.expires_at.strftime('%Y-%m-%d %H:%M')}"
+                        )
+                        if coupon.max_discount_amount:
+                            promotion_message += f"\n最高折抵：NT$ {coupon.max_discount_amount}"
+                    messages.append(line_api.create_text_message(promotion_message))
+
+                    if coupon:
+                        button_title = coupon.title[:40]
+                        button_text = '點擊下方按鈕即可直接領取，優惠券會自動存入 DineVerse 個人資料。'
+                        messages.append(
+                            line_api.create_template_buttons(
+                                alt_text=f"{coupon.title} 領券按鈕",
+                                title=button_title,
+                                text=button_text[:60],
+                                actions=[
+                                    {
+                                        'type': 'postback',
+                                        'label': '立即領券',
+                                        'data': f"action=claim_platform_coupon&token={coupon.claim_token}",
+                                        'displayText': '我要領取這張優惠券',
+                                    }
+                                ],
+                            )
+                        )
 
                 if not messages:
                     fallback_message = f"📢 {broadcast.title}\n\n{broadcast.message_content}"

@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import styles from './LoyaltyManagement.module.css';
 import { FaArrowLeft, FaCoins, FaAward, FaGift, FaPlus, FaTrash } from 'react-icons/fa';
 import api from '../../api/api';
+import {
+  createMerchantMembershipLevel,
+  deleteMerchantMembershipLevel,
+  getMerchantMembershipLevels,
+  updateMerchantMembershipLevel,
+} from '../../api/loyaltyApi';
 
 const LoyaltyManagement = () => {
   const navigate = useNavigate();
@@ -10,11 +16,7 @@ const LoyaltyManagement = () => {
   const [loading, setLoading] = useState(false);
 
 
-  // 從 localStorage 恢復狀態
-  const [levels, setLevels] = useState(() => {
-    const saved = localStorage.getItem('membershipLevels');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [levels, setLevels] = useState([]);
 
   const [pointRules, setPointRules] = useState([]);
 
@@ -24,11 +26,6 @@ const LoyaltyManagement = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // 當 levels 變化時保存到 localStorage
-  useEffect(() => {
-    localStorage.setItem('membershipLevels', JSON.stringify(levels));
-  }, [levels]);
-
   // 當 redemptions 變化時保存到 localStorage
   useEffect(() => {
     localStorage.setItem('redemptionProducts', JSON.stringify(redemptions));
@@ -37,6 +34,7 @@ const LoyaltyManagement = () => {
   // 載入點數規則
   useEffect(() => {
     loadPointRules();
+    loadMembershipLevels();
   }, []);
 
   const loadPointRules = async () => {
@@ -47,6 +45,43 @@ const LoyaltyManagement = () => {
     } catch (error) {
       console.error('載入點數規則失敗:', error);
       alert('載入點數規則失敗，請重試');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMembershipLevels = async () => {
+    try {
+      setLoading(true);
+      const response = await getMerchantMembershipLevels();
+      let backendLevels = response?.data ?? response ?? [];
+
+      if (backendLevels.length === 0) {
+        const savedLevels = JSON.parse(localStorage.getItem('membershipLevels') || '[]');
+        if (savedLevels.length > 0) {
+          const sortedSavedLevels = [...savedLevels].sort(
+            (a, b) => Number(a.threshold_points || 0) - Number(b.threshold_points || 0)
+          );
+          for (const [index, level] of sortedSavedLevels.entries()) {
+            await createMerchantMembershipLevel({
+              name: level.name,
+              threshold_points: Number(level.threshold_points || 0),
+              discount_percent: Number(level.discount_percent || 0),
+              benefits: level.benefits || '',
+              rank: index + 1,
+              active: true,
+            });
+          }
+          localStorage.removeItem('membershipLevels');
+          const syncedResponse = await getMerchantMembershipLevels();
+          backendLevels = syncedResponse?.data ?? syncedResponse ?? [];
+        }
+      }
+
+      setLevels(backendLevels);
+    } catch (error) {
+      console.error('載入會員等級失敗:', error);
+      alert('載入會員等級失敗，請重試');
     } finally {
       setLoading(false);
     }
@@ -104,6 +139,8 @@ const LoyaltyManagement = () => {
           <MembershipLevelsSection
             levels={levels}
             setLevels={setLevels}
+            setLoading={setLoading}
+            loadMembershipLevels={loadMembershipLevels}
           />
         )}
 
@@ -349,7 +386,7 @@ const PointRulesSection = ({ pointRules, setPointRules, loading, setLoading, loa
   );
 };
 
-const MembershipLevelsSection = ({ levels, setLevels }) => {
+const MembershipLevelsSection = ({ levels, setLevels, setLoading, loadMembershipLevels }) => {
   const [useSlider, setUseSlider] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -360,31 +397,50 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
   });
 
   // 添加新的等級
-  const addLevel = () => {
+  const addLevel = async () => {
     if (!formData.name || formData.threshold_points < 0) {
       alert('請輸入有效的等級名稱和點數門檻');
       return;
     }
 
-    const newLevel = {
-      id: Date.now(),
-      ...formData,
-      threshold_points: parseInt(formData.threshold_points),
-    };
-
-    setLevels([...levels, newLevel].sort((a, b) => a.threshold_points - b.threshold_points));
-    setFormData({
-      name: '',
-      threshold_points: 0,
-      discount_percent: 0,
-      benefits: '',
-    });
-    setShowForm(false);
+    try {
+      setLoading(true);
+      await createMerchantMembershipLevel({
+        name: formData.name,
+        threshold_points: parseInt(formData.threshold_points, 10),
+        discount_percent: Number(formData.discount_percent || 0),
+        benefits: formData.benefits || '',
+        rank: levels.length + 1,
+        active: true,
+      });
+      await loadMembershipLevels();
+      setFormData({
+        name: '',
+        threshold_points: 0,
+        discount_percent: 0,
+        benefits: '',
+      });
+      setShowForm(false);
+    } catch (error) {
+      console.error('新增會員等級失敗:', error);
+      alert('新增會員等級失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 刪除等級
-  const removeLevel = (id) => {
-    setLevels(levels.filter((level) => level.id !== id));
+  const removeLevel = async (id) => {
+    try {
+      setLoading(true);
+      await deleteMerchantMembershipLevel(id);
+      await loadMembershipLevels();
+    } catch (error) {
+      console.error('刪除會員等級失敗:', error);
+      alert('刪除會員等級失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 更新滑條上的等級點數
@@ -394,6 +450,24 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
         level.id === id ? { ...level, threshold_points: points } : level
       ).sort((a, b) => a.threshold_points - b.threshold_points)
     );
+  };
+
+  const saveLevelPoints = async (id, points) => {
+    const currentLevel = levels.find((level) => level.id === id);
+    if (!currentLevel) return;
+
+    try {
+      setLoading(true);
+      await updateMerchantMembershipLevel(id, {
+        threshold_points: points,
+      });
+      await loadMembershipLevels();
+    } catch (error) {
+      console.error('更新會員等級門檻失敗:', error);
+      alert('更新會員等級門檻失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const maxPoints = Math.max(...levels.map((l) => l.threshold_points), 10000) || 10000;
@@ -491,8 +565,10 @@ const MembershipLevelsSection = ({ levels, setLevels }) => {
                           max={maxPoints}
                           value={level.threshold_points}
                           onChange={(e) =>
-                            updateLevelPoints(level.id, parseInt(e.target.value))
+                            updateLevelPoints(level.id, parseInt(e.target.value, 10))
                           }
+                          onMouseUp={(e) => saveLevelPoints(level.id, parseInt(e.currentTarget.value, 10))}
+                          onTouchEnd={(e) => saveLevelPoints(level.id, parseInt(e.currentTarget.value, 10))}
                           className={styles['level-slider']}
                         />
                         <div className={styles['slider-value']}>

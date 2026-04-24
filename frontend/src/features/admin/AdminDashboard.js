@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getAvailableStores, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast, quickFallbackRecommendationPush, runAutoRecommendationPush } from '../../api/adminApi';
+import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast } from '../../api/adminApi';
 import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
 import styles from './AdminDashboard.module.css';
 
@@ -41,8 +41,6 @@ const AdminDashboard = () => {
     personalized_recommendation_weekly_limit: 2,
   });
   const [lineSaving, setLineSaving] = useState(false);
-  const [linePushRunning, setLinePushRunning] = useState(false);
-
   // 店家 LINE BOT 設定狀態
   const [showStoreLineModal, setShowStoreLineModal] = useState(false);
   const [selectedStoreForLine, setSelectedStoreForLine] = useState(null);
@@ -55,13 +53,20 @@ const AdminDashboard = () => {
 
   // 平台推播狀態
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
-  const [availableStoresForBroadcast, setAvailableStoresForBroadcast] = useState([]);
   const [targetUserCount, setTargetUserCount] = useState(0);
   const [broadcastForm, setBroadcastForm] = useState({
-    broadcast_type: 'store_recommendation',
+    broadcast_type: 'promotion',
     title: '',
     message_content: '',
-    recommended_store_ids: [],
+    create_coupon: true,
+    coupon_title: '',
+    coupon_description: '',
+    coupon_code: '',
+    coupon_discount_type: 'fixed',
+    coupon_discount_value: '',
+    coupon_min_order_amount: '0',
+    coupon_max_discount_amount: '',
+    coupon_expires_at: '',
   });
   const [broadcastSending, setBroadcastSending] = useState(false);
 
@@ -197,34 +202,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleQuickFallbackPush = async () => {
-    try {
-      setLinePushRunning(true);
-      const result = await quickFallbackRecommendationPush({
-        intro_message: '以下是本週熱門店家推薦，AI 功能異常時可先使用此備案。',
-      });
-      alert(`快速備案完成！成功: ${result.success_count}, 失敗: ${result.failure_count}, 略過: ${result.skipped_count}`);
-    } catch (err) {
-      console.error('快速備案推播失敗:', err);
-      alert('快速備案推播失敗：' + (err.response?.data?.detail || err.message));
-    } finally {
-      setLinePushRunning(false);
-    }
-  };
-
-  const handleRunFullAutoPush = async () => {
-    try {
-      setLinePushRunning(true);
-      const result = await runAutoRecommendationPush({ force: false });
-      alert(`完整版執行完成！成功: ${result.success_count}, 失敗: ${result.failure_count}, 略過: ${result.skipped_count}`);
-    } catch (err) {
-      console.error('完整版推播執行失敗:', err);
-      alert('完整版推播執行失敗：' + (err.response?.data?.detail || err.message));
-    } finally {
-      setLinePushRunning(false);
-    }
-  };
-
   // 店家 LINE BOT 設定
   const handleOpenStoreLineModal = async (store) => {
     setSelectedStoreForLine(store);
@@ -285,10 +262,6 @@ const AdminDashboard = () => {
   const handleOpenBroadcastModal = async () => {
     setShowBroadcastModal(true);
     try {
-      // 載入可用店家
-      const storeData = await getAvailableStores();
-      setAvailableStoresForBroadcast(storeData.stores || []);
-      // 載入目標用戶數
       const targetData = await getTargetPreview();
       setTargetUserCount(targetData.total_users || 0);
     } catch (err) {
@@ -299,28 +272,50 @@ const AdminDashboard = () => {
   const handleCloseBroadcastModal = () => {
     setShowBroadcastModal(false);
     setBroadcastForm({
-      broadcast_type: 'store_recommendation',
+      broadcast_type: 'promotion',
       title: '',
       message_content: '',
-      recommended_store_ids: [],
+      create_coupon: true,
+      coupon_title: '',
+      coupon_description: '',
+      coupon_code: '',
+      coupon_discount_type: 'fixed',
+      coupon_discount_value: '',
+      coupon_min_order_amount: '0',
+      coupon_max_discount_amount: '',
+      coupon_expires_at: '',
     });
   };
 
   const handleSendBroadcast = async (e) => {
     e.preventDefault();
     if (!broadcastForm.title || !broadcastForm.message_content) {
-      alert('請填寫標題和內容');
+      alert('請填寫優惠標題和內容');
       return;
+    }
+    if (broadcastForm.create_coupon) {
+      if (!broadcastForm.coupon_discount_value || !broadcastForm.coupon_expires_at) {
+        alert('請填寫優惠券折抵數值與到期時間');
+        return;
+      }
     }
     try {
       setBroadcastSending(true);
-      const created = await createPlatformBroadcast(broadcastForm);
+      const payload = {
+        ...broadcastForm,
+        coupon_title: broadcastForm.coupon_title || broadcastForm.title,
+        coupon_description: broadcastForm.coupon_description || broadcastForm.message_content,
+        coupon_discount_value: broadcastForm.coupon_discount_value ? Number(broadcastForm.coupon_discount_value) : undefined,
+        coupon_min_order_amount: broadcastForm.coupon_min_order_amount ? Number(broadcastForm.coupon_min_order_amount) : 0,
+        coupon_max_discount_amount: broadcastForm.coupon_max_discount_amount ? Number(broadcastForm.coupon_max_discount_amount) : null,
+      };
+      const created = await createPlatformBroadcast(payload);
       const result = await sendPlatformBroadcast(created.id);
-      alert(`推播發送成功！成功: ${result.success_count}, 失敗: ${result.failure_count}`);
+      alert(`平台優惠發送成功！成功: ${result.success_count}, 失敗: ${result.failure_count}`);
       handleCloseBroadcastModal();
     } catch (err) {
-      console.error('發送推播失敗:', err);
-      alert('發送推播失敗：' + (err.response?.data?.error || err.message));
+      console.error('發送平台優惠失敗:', err);
+      alert('發送平台優惠失敗：' + (err.response?.data?.error || err.message));
     } finally {
       setBroadcastSending(false);
     }
@@ -432,8 +427,8 @@ const AdminDashboard = () => {
           </div>
           <div className={styles.statCard} onClick={handleOpenBroadcastModal} style={{ cursor: 'pointer', background: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)' }}>
             <h3 style={{ color: 'white' }}>📢</h3>
-            <p style={{ color: 'white' }}>平台推播</p>
-            <small style={{ color: 'rgba(255,255,255,0.8)' }}>推薦店家</small>
+            <p style={{ color: 'white' }}>平台優惠</p>
+            <small style={{ color: 'rgba(255,255,255,0.8)' }}>發送給綁定 LINE 用戶</small>
           </div>
         </div>
 
@@ -790,31 +785,6 @@ const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '16px', padding: '12px', background: '#fff8e1', borderRadius: '8px' }}>
-                    <p style={{ marginBottom: '8px', fontWeight: 600 }}>推薦推播執行工具</p>
-                    <p style={{ marginBottom: '10px', fontSize: '13px', color: '#666' }}>
-                      快速版：AI 壞掉時僅發熱門店家。完整版：套用最小間隔與每週上限，發個人化+熱門推薦。
-                    </p>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        className={styles.btnSecondary}
-                        onClick={handleQuickFallbackPush}
-                        disabled={linePushRunning}
-                      >
-                        {linePushRunning ? '執行中...' : '手動推播熱門店家'}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.btnPrimary}
-                        onClick={handleRunFullAutoPush}
-                        disabled={linePushRunning}
-                        style={{ background: '#ff9800' }}
-                      >
-                        {linePushRunning ? '執行中...' : '執行完整推播'}
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
                 <div className={styles.modalFooter}>
@@ -913,79 +883,151 @@ const AdminDashboard = () => {
         <div className="modal-overlay" onClick={handleCloseBroadcastModal}>
           <div className="modal-content ai-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header" style={{ background: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)' }}>
-              <h2 style={{ color: 'white' }}>📢 平台推播 - 店家推薦</h2>
+              <h2 style={{ color: 'white' }}>📢 平台優惠發送</h2>
               <button className="close-btn" onClick={handleCloseBroadcastModal}>&times;</button>
             </div>
             <div className="modal-body">
               <div style={{ marginBottom: '16px', padding: '12px', background: '#fff3cd', borderRadius: '8px' }}>
                 <p style={{ margin: 0, fontSize: '14px' }}>
-                  <strong>目標用戶：</strong>{targetUserCount} 位已綁定 LINE 的用戶
+                  <strong>目標用戶：</strong>{targetUserCount} 位已綁定 LINE 的平台用戶
                 </p>
               </div>
 
               <form onSubmit={handleSendBroadcast}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="broadcast_type">推播類型</label>
-                  <select
-                    id="broadcast_type"
-                    className={styles.formControl}
-                    value={broadcastForm.broadcast_type}
-                    onChange={(e) => setBroadcastForm({ ...broadcastForm, broadcast_type: e.target.value })}
-                  >
-                    <option value="store_recommendation">店家推薦</option>
-                    <option value="new_store">新店上架</option>
-                    <option value="platform_announcement">平台公告</option>
-                  </select>
-                </div>
-
                 <div className="form-group mt-3">
-                  <label htmlFor="broadcast_title">推播標題</label>
+                  <label htmlFor="broadcast_title">優惠標題</label>
                   <input
                     type="text"
                     id="broadcast_title"
                     className={styles.formControl}
                     value={broadcastForm.title}
                     onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
-                    placeholder="例如：本週推薦店家"
+                    placeholder="例如：全站會員本週限定優惠"
                     required
                   />
                 </div>
 
                 <div className="form-group mt-3">
-                  <label htmlFor="broadcast_content">訊息內容</label>
+                  <label htmlFor="broadcast_content">優惠內容</label>
                   <textarea
                     id="broadcast_content"
                     className={styles.formControl}
-                    rows="3"
+                    rows="4"
                     value={broadcastForm.message_content}
                     onChange={(e) => setBroadcastForm({ ...broadcastForm, message_content: e.target.value })}
-                    placeholder="請輸入推播訊息內容..."
+                    placeholder="請輸入要發送給全平台 LINE 用戶的優惠內容..."
                     required
                   />
                 </div>
 
-                <div className="form-group mt-3">
-                  <label>選擇推薦店家</label>
-                  <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '4px', padding: '8px' }}>
-                    {availableStoresForBroadcast.map((store) => (
-                      <label key={store.id} style={{ display: 'block', marginBottom: '4px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={broadcastForm.recommended_store_ids.includes(store.id)}
-                          onChange={(e) => {
-                            const ids = broadcastForm.recommended_store_ids;
-                            if (e.target.checked) {
-                              setBroadcastForm({ ...broadcastForm, recommended_store_ids: [...ids, store.id] });
-                            } else {
-                              setBroadcastForm({ ...broadcastForm, recommended_store_ids: ids.filter(id => id !== store.id) });
-                            }
-                          }}
-                        />{' '}
-                        {store.name} ({store.cuisine_type})
-                      </label>
-                    ))}
+                <div style={{ marginTop: '20px', padding: '16px', background: '#fff7f7', borderRadius: '10px' }}>
+                  <div className="form-group">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="checkbox"
+                        checked={broadcastForm.create_coupon}
+                        onChange={(e) => setBroadcastForm({ ...broadcastForm, create_coupon: e.target.checked })}
+                      />
+                      同步建立平台優惠券並附上 LINE 領券按鈕
+                    </label>
                   </div>
-                  <small className={styles.formText}>已選擇 {broadcastForm.recommended_store_ids.length} 間店家</small>
+
+                  {broadcastForm.create_coupon && (
+                    <>
+                      <div className="form-group mt-3">
+                        <label htmlFor="coupon_title">優惠券名稱</label>
+                        <input
+                          type="text"
+                          id="coupon_title"
+                          className={styles.formControl}
+                          value={broadcastForm.coupon_title}
+                          onChange={(e) => setBroadcastForm({ ...broadcastForm, coupon_title: e.target.value })}
+                          placeholder="留白時會直接使用優惠標題"
+                        />
+                      </div>
+
+                      <div className="form-group mt-3">
+                        <label htmlFor="coupon_code">優惠券代碼</label>
+                        <input
+                          type="text"
+                          id="coupon_code"
+                          className={styles.formControl}
+                          value={broadcastForm.coupon_code}
+                          onChange={(e) => setBroadcastForm({ ...broadcastForm, coupon_code: e.target.value.toUpperCase() })}
+                          placeholder="留白時由系統自動產生"
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', marginTop: '12px' }}>
+                        <div className="form-group">
+                          <label htmlFor="coupon_discount_type">折抵方式</label>
+                          <select
+                            id="coupon_discount_type"
+                            className={styles.formControl}
+                            value={broadcastForm.coupon_discount_type}
+                            onChange={(e) => setBroadcastForm({ ...broadcastForm, coupon_discount_type: e.target.value })}
+                          >
+                            <option value="fixed">固定金額</option>
+                            <option value="percent">百分比</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="coupon_discount_value">折抵數值</label>
+                          <input
+                            type="number"
+                            id="coupon_discount_value"
+                            className={styles.formControl}
+                            min="0"
+                            step="0.01"
+                            value={broadcastForm.coupon_discount_value}
+                            onChange={(e) => setBroadcastForm({ ...broadcastForm, coupon_discount_value: e.target.value })}
+                            placeholder={broadcastForm.coupon_discount_type === 'percent' ? '例如 10' : '例如 100'}
+                            required={broadcastForm.create_coupon}
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="coupon_min_order_amount">最低消費</label>
+                          <input
+                            type="number"
+                            id="coupon_min_order_amount"
+                            className={styles.formControl}
+                            min="0"
+                            step="0.01"
+                            value={broadcastForm.coupon_min_order_amount}
+                            onChange={(e) => setBroadcastForm({ ...broadcastForm, coupon_min_order_amount: e.target.value })}
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="coupon_max_discount_amount">最高折抵</label>
+                          <input
+                            type="number"
+                            id="coupon_max_discount_amount"
+                            className={styles.formControl}
+                            min="0"
+                            step="0.01"
+                            value={broadcastForm.coupon_max_discount_amount}
+                            onChange={(e) => setBroadcastForm({ ...broadcastForm, coupon_max_discount_amount: e.target.value })}
+                            placeholder="固定金額可留白"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group mt-3">
+                        <label htmlFor="coupon_expires_at">優惠券到期時間</label>
+                        <input
+                          type="datetime-local"
+                          id="coupon_expires_at"
+                          className={styles.formControl}
+                          value={broadcastForm.coupon_expires_at}
+                          onChange={(e) => setBroadcastForm({ ...broadcastForm, coupon_expires_at: e.target.value })}
+                          required={broadcastForm.create_coupon}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className={styles.modalFooter}>
@@ -993,7 +1035,7 @@ const AdminDashboard = () => {
                     取消
                   </button>
                   <button type="submit" className={styles.btnPrimary} disabled={broadcastSending} style={{ background: '#FF6B6B' }}>
-                    {broadcastSending ? '發送中...' : `發送推播 (${targetUserCount} 人)`}
+                    {broadcastSending ? '發送中...' : `發送優惠 (${targetUserCount} 人)`}
                   </button>
                 </div>
               </form>

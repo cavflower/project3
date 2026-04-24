@@ -210,3 +210,75 @@ class Redemption(models.Model):
 		"""生成唯一的兌換碼"""
 		return f"RDM-{uuid.uuid4().hex[:8].upper()}"
 
+
+class PlatformCoupon(models.Model):
+	"""
+	平台優惠券：可由後台建立並透過 LINE 發送領券連結。
+	"""
+	DISCOUNT_TYPE_CHOICES = [
+		('fixed', '固定金額'),
+		('percent', '百分比'),
+	]
+
+	title = models.CharField(max_length=255)
+	description = models.TextField(blank=True, default='')
+	code = models.CharField(max_length=50, unique=True, blank=True)
+	claim_token = models.CharField(max_length=64, unique=True, editable=False, blank=True)
+	discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES, default='fixed')
+	discount_value = models.DecimalField(max_digits=10, decimal_places=2)
+	min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+	max_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+	expires_at = models.DateTimeField()
+	is_active = models.BooleanField(default=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+	class Meta:
+		verbose_name = '平台優惠券'
+		verbose_name_plural = '平台優惠券'
+		ordering = ['-created_at']
+
+	def __str__(self):
+		return f"{self.title} ({self.code})"
+
+	def save(self, *args, **kwargs):
+		if not self.code:
+			self.code = self.generate_coupon_code()
+		if not self.claim_token:
+			self.claim_token = uuid.uuid4().hex
+		super().save(*args, **kwargs)
+
+	@staticmethod
+	def generate_coupon_code():
+		return f"DV-{uuid.uuid4().hex[:8].upper()}"
+
+
+class UserPlatformCoupon(models.Model):
+	"""
+	使用者領取的平台優惠券。
+	"""
+	STATUS_CHOICES = [
+		('claimed', '已領取'),
+		('used', '已使用'),
+		('expired', '已過期'),
+	]
+
+	user = models.ForeignKey(
+		User, on_delete=models.CASCADE, related_name='platform_coupons'
+	)
+	coupon = models.ForeignKey(
+		PlatformCoupon, on_delete=models.CASCADE, related_name='user_coupons'
+	)
+	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='claimed')
+	claimed_at = models.DateTimeField(auto_now_add=True)
+	used_at = models.DateTimeField(null=True, blank=True)
+
+	class Meta:
+		verbose_name = '使用者平台優惠券'
+		verbose_name_plural = '使用者平台優惠券'
+		ordering = ['-claimed_at']
+		unique_together = ['user', 'coupon']
+
+	def __str__(self):
+		return f"{self.user.username} - {self.coupon.code}"
+

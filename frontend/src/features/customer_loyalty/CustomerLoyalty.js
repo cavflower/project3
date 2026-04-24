@@ -23,7 +23,7 @@ const CustomerLoyalty = () => {
       // 如果有 storeId，只顯示該店家的會員資料
       if (storeId) {
         accountsData = accountsData.filter(account =>
-          account.store?.id === parseInt(storeId)
+          Number(account.store) === Number(storeId)
         );
       }
 

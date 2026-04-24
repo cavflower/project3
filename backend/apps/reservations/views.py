@@ -2,7 +2,6 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from django.db.models import Q
 import hashlib
 
 from .models import Reservation, ReservationChangeLog, TimeSlot
@@ -308,9 +307,15 @@ class MerchantReservationViewSet(viewsets.ModelViewSet):
         if getattr(user, 'user_type', None) != 'merchant':
             return Reservation.objects.none()
 
+        store_id = Store.objects.filter(
+            merchant__user_id=user.id
+        ).values_list('id', flat=True).first()
+        if not store_id:
+            return Reservation.objects.none()
+
         queryset = Reservation.objects.filter(
-            store__merchant__user_id=user.id
-        ).select_related('store', 'user').order_by('-created_at')
+            store_id=store_id
+        ).select_related('store', 'user')
 
         status_filter = self.request.query_params.get('status')
         if status_filter and status_filter != 'all':
@@ -324,7 +329,7 @@ class MerchantReservationViewSet(viewsets.ModelViewSet):
         if customer_name:
             queryset = queryset.filter(customer_name__icontains=customer_name.strip())
 
-        return queryset
+        return queryset.order_by('-reservation_date', '-created_at')
     
     def get_serializer_class(self):
         if self.action in ['update', 'partial_update', 'update_status']:

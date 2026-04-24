@@ -331,8 +331,8 @@ const MerchantDashboard = () => {
 
     {
       id: 'line-bot-settings',
-      name: '餐廳助手 (LINE BOT)',
-      description: '自動回覆與通知',
+      name: 'LINE BOT 與會員優惠',
+      description: '自動回覆與會員推播',
       icon: FaRobot,
       path: '/merchant/line-bot',
     },

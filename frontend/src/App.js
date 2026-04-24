@@ -97,6 +97,7 @@ function ProtectedRoute({ children }) {
   if (!isLoggedIn) {
     // 根據當前路徑判斷應該導向哪個登入頁
     const path = window.location.pathname;
+    const fullPath = `${window.location.pathname}${window.location.search || ''}`;
     let loginPath = '/login/customer';
 
     // 店家相關路徑導向店家登入
@@ -108,7 +109,7 @@ function ProtectedRoute({ children }) {
       loginPath = '/login/customer';
     }
 
-    return <Navigate to={loginPath} replace />;
+    return <Navigate to={`${loginPath}?redirect=${encodeURIComponent(fullPath)}`} replace />;
   }
   return children;
 }

@@ -223,6 +223,7 @@ class StoreViewSet(viewsets.ModelViewSet):
         - has_loyalty: 是否提供會員功能
         - has_surplus_food: 是否提供惜福品功能
         - search: 搜尋關鍵字（店名、描述）
+        - sort_by: 排序方式，支援 donation_desc
         """
         from django.db.models import Count, Q, Prefetch
         
@@ -314,6 +315,12 @@ class StoreViewSet(viewsets.ModelViewSet):
         else:
             # 沒有搜尋關鍵字時，不需要額外處理
             pass
+
+        sort_by = request.query_params.get('sort_by')
+        if sort_by == 'donation_desc':
+            stores = stores.order_by('-surplus_completed_revenue', '-surplus_order_count', '-created_at')
+        else:
+            stores = stores.order_by('-created_at')
         
         # 使用輕量級序列化器提升效能
         from .serializers import PublishedStoreSerializer
