@@ -1,11 +1,23 @@
-from django.db.models import Count, Q
+from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery
 from apps.products.models import Product
 from apps.orders.models import TakeoutOrderItem, DineInOrderItem
-from apps.stores.models import Store
+from apps.stores.models import Store, StoreImage
 from collections import Counter
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _published_store_base_queryset():
+    first_image = StoreImage.objects.filter(
+        store_id=OuterRef('pk')
+    ).order_by('order', 'created_at').values('image')[:1]
+
+    return Store.objects.filter(is_published=True).select_related('merchant').annotate(
+        first_image_path=Subquery(first_image),
+        surplus_order_count=F('surplus_completed_order_count_total'),
+        surplus_completed_revenue=F('surplus_completed_revenue_total'),
+    )
 
 
 class RecommendationService:
@@ -23,25 +35,29 @@ class RecommendationService:
         """
         # 收集用戶所有訂購過的商品
         takeout_items = TakeoutOrderItem.objects.filter(
-            order__user=user
+            order__user=user,
+            product__isnull=False
         ).select_related('product')
         
         dinein_items = DineInOrderItem.objects.filter(
-            order__user=user
+            order__user=user,
+            product__isnull=False
         ).select_related('product')
         
         # 統計所有標籤出現次數
         tag_counter = Counter()
         
         for item in takeout_items:
-            if item.product.food_tags:
-                for tag in item.product.food_tags:
+            product = item.product
+            if product and product.food_tags:
+                for tag in product.food_tags:
                     # 根據訂購次數加權
                     tag_counter[tag] += item.quantity
         
         for item in dinein_items:
-            if item.product.food_tags:
-                for tag in item.product.food_tags:
+            product = item.product
+            if product and product.food_tags:
+                for tag in product.food_tags:
                     tag_counter[tag] += item.quantity
         
         # 返回最常出現的標籤，包含次數
@@ -75,12 +91,14 @@ class RecommendationService:
         ordered_product_ids = set()
         ordered_product_ids.update(
             TakeoutOrderItem.objects.filter(
-                order__user=user
+                order__user=user,
+                product__isnull=False
             ).values_list('product_id', flat=True)
         )
         ordered_product_ids.update(
             DineInOrderItem.objects.filter(
-                order__user=user
+                order__user=user,
+                product__isnull=False
             ).values_list('product_id', flat=True)
         )
         
@@ -189,9 +207,7 @@ class RecommendationService:
         
         if not favorite_tag_data:
             # 返回熱門店家
-            return Store.objects.filter(
-                is_published=True
-            ).annotate(
+            return _published_store_base_queryset().annotate(
                 order_count=Count('takeout_orders') + Count('dinein_orders')
             ).order_by('-order_count')[:limit]
         
@@ -207,18 +223,22 @@ class RecommendationService:
         
         # 找出有相關商品的店家並計算匹配度
         stores_with_score = []
-        all_stores = Store.objects.filter(is_published=True)
+        all_stores = _published_store_base_queryset().prefetch_related(
+            Prefetch(
+                'products',
+                queryset=Product.objects.filter(is_available=True).only('id', 'store_id', 'name', 'food_tags'),
+                to_attr='available_products',
+            )
+        )
         
-        logger.warning(f"[推薦服務] 總共 {all_stores.count()} 間已發布的店家")
+        all_stores = list(all_stores)
+        logger.warning(f"[推薦服務] 總共 {len(all_stores)} 間已發布的店家")
         
         for store in all_stores:
-            matching_products = Product.objects.filter(
-                store=store,
-                is_available=True
-            )
+            matching_products = getattr(store, 'available_products', [])
             
             total_score = 0
-            product_count = matching_products.count()
+            product_count = len(matching_products)
             
             logger.warning(f"[店家] {store.name} - 商品數: {product_count}")
             print(f"\n[店家] {store.name} - 商品數: {product_count}", flush=True)

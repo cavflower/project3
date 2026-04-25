@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -26,7 +26,6 @@ import {
     Receipt,
     AttachMoney,
     Restaurant,
-    LocalCafe,
     SmartToy,
     Refresh,
     ArrowBack,
@@ -44,13 +43,7 @@ const AIFinancialReport = () => {
     const [salesData, setSalesData] = useState(null);
     const [aiReport, setAIReport] = useState(null);
 
-    useEffect(() => {
-        if (user) {
-            loadSalesData();
-        }
-    }, [user, period]);
-
-    const loadSalesData = async () => {
+    const loadSalesData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -62,7 +55,13 @@ const AIFinancialReport = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [period]);
+
+    useEffect(() => {
+        if (user) {
+            loadSalesData();
+        }
+    }, [user, loadSalesData]);
 
     const loadAIReport = async () => {
         try {

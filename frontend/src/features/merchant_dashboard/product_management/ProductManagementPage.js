@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaEdit, FaTrash, FaPlus, FaFolder, FaCog } from 'react-icons/fa';
 import ProductForm from './ProductForm';
 import ProductCategoryForm from './ProductCategoryForm';
@@ -24,15 +24,7 @@ const ProductManagementPage = () => {
   const [isTakeoutUpdating, setIsTakeoutUpdating] = useState(false);
   const [takeoutError, setTakeoutError] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    await Promise.all([fetchProducts(), fetchCategories(), fetchStoreSettings()]);
-  };
-
-  const fetchStoreSettings = async () => {
+  const fetchStoreSettings = useCallback(async () => {
     try {
       const response = await getMyStore({ lite: 1 });
       setStoreId(response.data.id);
@@ -43,9 +35,9 @@ const ProductManagementPage = () => {
       setStoreId(null);
       setTakeoutError('無法讀取店家外帶設定，請先完成店家資料設定。');
     }
-  };
+  }, []);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       console.log('[ProductManagement] Fetching products...');
       const response = await getProducts({ include_ingredients: 0 });
@@ -56,9 +48,9 @@ const ProductManagementPage = () => {
       console.error('[ProductManagement] Error fetching products:', err);
       setError('無法獲取商品列表，請稍後再試。');
     }
-  };
+  }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       console.log('[ProductManagement] Fetching categories...');
       const response = await getProductCategories();
@@ -67,7 +59,15 @@ const ProductManagementPage = () => {
     } catch (err) {
       console.error('[ProductManagement] Error fetching categories:', err);
     }
-  };
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    await Promise.all([fetchProducts(), fetchCategories(), fetchStoreSettings()]);
+  }, [fetchProducts, fetchCategories, fetchStoreSettings]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleAddCategoryClick = () => {
     setEditingCategory(null);

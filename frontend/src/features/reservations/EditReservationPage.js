@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { FaCalendarAlt, FaClock, FaUsers, FaStore, FaChild } from 'react-icons/fa';
@@ -24,17 +24,7 @@ const EditReservationPage = () => {
     specialRequests: '',
   });
 
-  useEffect(() => {
-    fetchReservationData();
-  }, [reservationId]);
-
-  useEffect(() => {
-    if (reservation) {
-      fetchAvailableTimeSlots(reservation.reservation_date);
-    }
-  }, [reservation]);
-
-  const fetchReservationData = async () => {
+  const fetchReservationData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -69,9 +59,9 @@ const EditReservationPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, reservationId, user]);
 
-  const fetchAvailableTimeSlots = async (date) => {
+  const fetchAvailableTimeSlots = useCallback(async (date) => {
     try {
       if (!reservation?.store) return;
 
@@ -105,7 +95,17 @@ const EditReservationPage = () => {
       console.error('Failed to fetch time slots:', error);
       setError('載入可用時段失敗');
     }
-  };
+  }, [reservation?.store]);
+
+  useEffect(() => {
+    fetchReservationData();
+  }, [fetchReservationData]);
+
+  useEffect(() => {
+    if (reservation) {
+      fetchAvailableTimeSlots(reservation.reservation_date);
+    }
+  }, [reservation, fetchAvailableTimeSlots]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);

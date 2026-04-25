@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getLoyaltyAccounts } from '../../api/loyaltyApi';
 import { FaGift, FaHistory, FaAward, FaStore, FaArrowLeft } from 'react-icons/fa';
@@ -11,11 +11,7 @@ const CustomerLoyalty = () => {
   const { storeId } = useParams(); // 獲取店家 ID（如果有）
 
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     try {
       const response = await getLoyaltyAccounts();
       let accountsData = response.data;
@@ -34,7 +30,11 @@ const CustomerLoyalty = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [storeId]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   if (loading) {
     return <div className={styles.loading}>載入中...</div>;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { getUserOrders } from '../../api/orderApi';
@@ -62,12 +62,6 @@ const MyReviewsPage = () => {
     const [productEditPreviews, setProductEditPreviews] = useState([]);
 
     useEffect(() => {
-        if (user) {
-            loadMyReviews();
-        }
-    }, [user]);
-
-    useEffect(() => {
         const previews = (storeEditForm.newImages || []).map((file) => ({
             name: file.name,
             url: URL.createObjectURL(file),
@@ -87,7 +81,7 @@ const MyReviewsPage = () => {
         return () => previews.forEach((item) => URL.revokeObjectURL(item.url));
     }, [productEditForm.newImages]);
 
-    const loadMyReviews = async () => {
+    const loadMyReviews = useCallback(async () => {
         try {
             setLoading(true);
             const [storeRes, productRes, ordersRes] = await Promise.all([
@@ -151,7 +145,13 @@ const MyReviewsPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user]);
+
+    useEffect(() => {
+        if (user) {
+            loadMyReviews();
+        }
+    }, [user, loadMyReviews]);
 
     const formatDate = (dateString) => {
         if (!dateString) return '';

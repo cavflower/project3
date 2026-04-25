@@ -1,6 +1,6 @@
-﻿import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaArrowLeft, FaPlus, FaMinus, FaCoins } from "react-icons/fa";
+import { FaArrowLeft, FaPlus, FaMinus } from "react-icons/fa";
 import { createDineInOrder } from "../../api/orderApi";
 import api from "../../api/api";
 import surplusFoodApi from "../../api/surplusFoodApi";

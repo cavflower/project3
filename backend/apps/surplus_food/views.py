@@ -721,16 +721,12 @@ class PublicRedemptionRulesView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request, store_id):
-        from .models import PointRedemptionRule
-        from .serializers import PointRedemptionRuleSerializer
-        
-        try:
-            store = Store.objects.get(pk=store_id)
-        except Store.DoesNotExist:
-            return Response({'error': '店家不存在'}, status=status.HTTP_404_NOT_FOUND)
-        
         # 獲取該店家的啟用中兌換規則
-        rules = PointRedemptionRule.objects.filter(store=store, is_active=True)
+        rules = PointRedemptionRule.objects.filter(
+            store_id=store_id,
+            store__is_published=True,
+            is_active=True
+        ).select_related('store')
         serializer = PointRedemptionRuleSerializer(rules, many=True)
         
         return Response(serializer.data)

@@ -247,6 +247,9 @@ class PublicProductSerializer(serializers.ModelSerializer):
         return SurplusFood.objects.filter(product=obj, status='active').exists()
 
     def _compute_ingredient_max_sellable_quantity(self, obj):
+        if hasattr(obj, '_ingredient_max_sellable_quantity'):
+            return obj._ingredient_max_sellable_quantity
+
         prefetched = getattr(obj, '_prefetched_objects_cache', {})
         if 'ingredient_links' in prefetched:
             links = list(obj.ingredient_links.all())
@@ -254,6 +257,7 @@ class PublicProductSerializer(serializers.ModelSerializer):
             links = list(obj.ingredient_links.select_related('ingredient').all())
 
         if not links:
+            obj._ingredient_max_sellable_quantity = None
             return None
 
         max_quantities = []
@@ -264,15 +268,17 @@ class PublicProductSerializer(serializers.ModelSerializer):
             max_quantities.append(max_by_ingredient)
 
         if not max_quantities:
+            obj._ingredient_max_sellable_quantity = None
             return None
 
-        return min(max_quantities)
+        obj._ingredient_max_sellable_quantity = min(max_quantities)
+        return obj._ingredient_max_sellable_quantity
 
     def get_ingredient_max_sellable_quantity(self, obj):
         return self._compute_ingredient_max_sellable_quantity(obj)
 
     def get_is_sold_out_by_ingredients(self, obj):
-        max_qty = self._compute_ingredient_max_sellable_quantity(obj)
+        max_qty = self.get_ingredient_max_sellable_quantity(obj)
         if max_qty is None:
             return False
         return max_qty <= 0

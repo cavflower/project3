@@ -91,6 +91,7 @@ const LineBotSettings = () => {
   useEffect(() => {
     const fetchStore = async () => {
       try {
+        setLoading(true);
         if (!user) {
           setError('請先登入商家帳號。');
           setLoading(false);
@@ -110,7 +111,6 @@ const LineBotSettings = () => {
       } catch (err) {
         console.error('載入店鋪資料失敗:', err);
         setError('載入店鋪資料失敗，請稍後再試。');
-      } finally {
         setLoading(false);
       }
     };
@@ -125,6 +125,7 @@ const LineBotSettings = () => {
 
     const loadConfig = async () => {
       try {
+        setLoading(true);
         const data = await getLineBotConfig(storeId);
         if (!data) {
           setConfig(null);
@@ -154,6 +155,8 @@ const LineBotSettings = () => {
       } catch (err) {
         console.error('載入 LINE BOT 設定失敗:', err);
         setError('載入 LINE BOT 設定失敗。');
+      } finally {
+        setLoading(false);
       }
     };
 

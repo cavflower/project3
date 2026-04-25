@@ -2,10 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import {
-  FaCalendarAlt,
-  FaUsers,
-  FaClock,
-  FaUtensils,
   FaCheckCircle,
   FaArrowLeft,
   FaArrowRight

@@ -1,4 +1,5 @@
 import api from './api';
+import { cachedGet } from './requestCache';
 
 /**
  * 惜福食品 API
@@ -328,7 +329,7 @@ export const surplusFoodApi = {
    * 獲取用戶在指定店家的綠色點數餘額
    */
   getUserGreenPoints: async (storeId) => {
-    const response = await api.get(`/green-points/store/${storeId}/`);
+    const response = await cachedGet(api, `/green-points/store/${storeId}/`);
     return response.data;
   },
 
@@ -336,7 +337,7 @@ export const surplusFoodApi = {
    * 公開獲取店家的兌換規則（不需登入）
    */
   getPublicRedemptionRules: async (storeId) => {
-    const response = await api.get(`/redemption-rules/store/${storeId}/`);
+    const response = await cachedGet(api, `/redemption-rules/store/${storeId}/`);
     return response.data;
   },
 

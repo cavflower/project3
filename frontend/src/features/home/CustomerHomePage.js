@@ -132,6 +132,7 @@ function CustomerHomePage() {
     () => new URLSearchParams(location.search).get('q')?.trim() || '',
     [location.search]
   );
+  const preferenceTags = userPreferences?.favorite_tags || [];
 
   const loadStores = useCallback(async () => {
     try {
@@ -144,12 +145,11 @@ function CustomerHomePage() {
         }
 
         try {
-          const preferencesResponse = await getUserPreferences();
-          setUserPreferences(preferencesResponse.data);
-
-          const preferredTags = preferencesResponse.data?.favorite_tags || [];
-          if (selectedTags.length === 0 && preferredTags.length > 0) {
-            setSelectedTags([preferredTags[0].tag]);
+          const preferencesResponse = userPreferences
+            ? { data: userPreferences }
+            : await getUserPreferences();
+          if (!userPreferences) {
+            setUserPreferences(preferencesResponse.data);
           }
 
           const response = await getRecommendedStores(12, selectedTags.length > 0 ? selectedTags : null);
@@ -186,7 +186,7 @@ function CustomerHomePage() {
     } finally {
       setLoading(false);
     }
-  }, [filters, searchKeyword, selectedCategory, selectedTags, user]);
+  }, [filters, searchKeyword, selectedCategory, selectedTags, user, userPreferences]);
 
   useEffect(() => {
     loadStores();
@@ -362,7 +362,7 @@ function CustomerHomePage() {
             </select>
           </div>
 
-          {selectedCategory === 'recommended' && user && userPreferences?.favorite_tags?.length > 1 && (
+          {selectedCategory === 'recommended' && user && preferenceTags.length > 0 && (
             <div className={styles.preferenceRow}>
               <label htmlFor="prefTag">{copy.preferenceTag}</label>
               <select
@@ -370,7 +370,8 @@ function CustomerHomePage() {
                 value={selectedTags[0] || ''}
                 onChange={(e) => setSelectedTags(e.target.value ? [e.target.value] : [])}
               >
-                {userPreferences.favorite_tags.map((tagData, index) => (
+                <option value="">{copy.allStores}</option>
+                {preferenceTags.map((tagData, index) => (
                   <option key={`${tagData.tag}-${index}`} value={tagData.tag}>
                     {tagData.tag} ({tagData.count})
                   </option>

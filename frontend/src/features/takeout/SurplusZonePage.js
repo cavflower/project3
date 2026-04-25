@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useReducer, useState, useRef } from "react";
+import React, { useEffect, useMemo, useReducer, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { FaPlus, FaMinus, FaShoppingCart, FaArrowLeft, FaCoins } from "react-icons/fa";
 import { getStore } from "../../api/storeApi";

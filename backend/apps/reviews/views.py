@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Avg, Count, Q
 from django.db import transaction
 import json
 from .models import StoreReview, ProductReview, StoreReviewImage, ProductReviewImage
@@ -44,6 +44,19 @@ class StoreReviewViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(store__merchant__user=self.request.user)
         
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        summary_param = str(request.query_params.get('summary', '0')).strip().lower()
+        if summary_param in ('1', 'true', 'yes', 'on'):
+            queryset = self.filter_queryset(self.get_queryset())
+            stats = queryset.aggregate(avg=Avg('rating'), count=Count('id'))
+            avg = stats.get('avg') or 0
+            return Response({
+                'avg': round(float(avg), 1) if avg else 0,
+                'count': stats.get('count') or 0,
+            })
+
+        return super().list(request, *args, **kwargs)
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

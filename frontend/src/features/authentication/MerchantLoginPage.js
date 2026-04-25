@@ -3,6 +3,7 @@ import { useAuth } from '../../store/AuthContext';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { authApi } from '../../api/authApi';
+import { clearTokens } from '../../api/authTokens';
 import styles from './LoginPage.module.css';
 import { Link } from 'react-router-dom';
 import ImageCarousel from '../../components/common/ImageCarousel';
@@ -65,12 +66,7 @@ const MerchantLoginPage = () => {
           setError('使用者資料不完整，請重新註冊或聯絡管理員。');
           await auth.signOut();
           // 清除所有可能的 token
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('customer_accessToken');
-          localStorage.removeItem('customer_refreshToken');
-          localStorage.removeItem('merchant_accessToken');
-          localStorage.removeItem('merchant_refreshToken');
+          clearTokens();
           setLoading(false);
           return;
         }
@@ -78,12 +74,7 @@ const MerchantLoginPage = () => {
             setError(`此為${userType === 'customer' ? '顧客' : '未知類型'}帳號，請從正確的登入頁面登入。`);
             await auth.signOut();
             // 清除所有可能的 token（包括舊格式）
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('customer_accessToken');
-            localStorage.removeItem('customer_refreshToken');
-            localStorage.removeItem('merchant_accessToken');
-            localStorage.removeItem('merchant_refreshToken');
+            clearTokens();
             setLoading(false);
             return;
         }

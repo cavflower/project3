@@ -1,4 +1,5 @@
 import api from './api';
+import { cachedGet } from './requestCache';
 
 export const getMyStore = (params = {}) => {
   return api.get('/stores/my_store/', { params });
@@ -21,7 +22,7 @@ export const updateStore = (id, storeData) => {
 };
 
 export const getStore = (id) => {
-  return api.get(`/stores/${id}/`);
+  return cachedGet(api, `/stores/${id}/`);
 };
 
 export const uploadStoreImages = (storeId, images) => {
@@ -74,7 +75,7 @@ export const getPublishedStores = (filters = {}) => {
   }
   
   const queryString = params.toString();
-  return api.get(`/stores/published/${queryString ? `?${queryString}` : ''}`);
+  return cachedGet(api, `/stores/published/${queryString ? `?${queryString}` : ''}`);
 };
 
 export const uploadMenuImages = (storeId, images) => {

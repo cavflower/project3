@@ -87,6 +87,7 @@ function DineInOrderPage() {
   // 規格選擇 Modal 狀態
   const [showSpecModal, setShowSpecModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productSpecGroups, setProductSpecGroups] = useState({});
 
   const [cart, dispatch] = useReducer(cartReducer, {
     items: [],
@@ -100,8 +101,11 @@ function DineInOrderPage() {
     }
 
     try {
-      const response = await getPublicSpecificationGroups(product.id);
-      const specs = response.data || [];
+      const cachedSpecs = productSpecGroups[product.id];
+      const specs = Array.isArray(cachedSpecs)
+        ? cachedSpecs
+        : (await getPublicSpecificationGroups(product.id)).data || [];
+      setProductSpecGroups(prev => ({ ...prev, [product.id]: specs }));
 
       if (specs.length > 0 && specs.some(g => g.options && g.options.length > 0)) {
         setSelectedProduct(product);
@@ -660,6 +664,7 @@ function DineInOrderPage() {
         showSpecModal && selectedProduct && (
           <ProductSpecificationModal
             product={selectedProduct}
+            initialSpecGroups={productSpecGroups[selectedProduct.id]}
             onConfirm={handleSpecConfirm}
             onCancel={() => {
               setShowSpecModal(false);

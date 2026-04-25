@@ -1,364 +1,294 @@
 import axios from 'axios';
-import firebase from '../lib/firebase'; // 若你使用 modular firebase，這個檔案應該有匯出或可取 getAuth()
+import firebase from '../lib/firebase';
+import { API_BASE_URL } from './apiConfig';
+import {
+  AUTH_ROLES,
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  isAuthRole,
+  saveTokens,
+} from './authTokens';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000/api'
+  baseURL: API_BASE_URL,
 });
 
-// 是否正在刷新 token 的標記
 let isRefreshing = false;
-// 等待刷新完成的請求隊列
 let failedQueue = [];
+
 const AUTH_REFRESH_COOLDOWN_MS = 30000;
 const refreshBlockedUntil = {
-  customer: 0,
-  merchant: 0,
+  [AUTH_ROLES.CUSTOMER]: 0,
+  [AUTH_ROLES.MERCHANT]: 0,
 };
 
-const isRefreshBlocked = (userType) => Date.now() < (refreshBlockedUntil[userType] || 0);
+const publicEndpointRules = [
+  /^\/users\/token\/?$/,
+  /^\/users\/token\/refresh\/?$/,
+  /^\/users\/register\/?$/,
+  /^\/stores\/all\/?$/,
+  /^\/stores\/published\/?/,
+  /^\/products\/public\//,
+  /^\/surplus\/foods\/?/,
+  /^\/surplus\/orders\/?(?:$|\d+\/?$)/,
+  /^\/time-slots\/?/,
+  /^\/line-bot\/webhook\/?/,
+  /^\/orders\/takeout\/?$/,
+  /^\/orders\/dinein\/?$/,
+  /^\/orders\/status\//,
+  /^\/orders\/guest\/lookup\/?$/,
+  /^\/reservations\/?/,
+];
 
-const blockRefreshTemporarily = (userType) => {
-  refreshBlockedUntil[userType] = Date.now() + AUTH_REFRESH_COOLDOWN_MS;
-};
+const merchantEndpointRules = [
+  /^\/merchant\//,
+  /^\/inventory\//,
+  /^\/line-bot\/(?!webhook)/,
+  /^\/products\/(?!public\/)/,
+  /^\/categories\/?/,
+  /^\/specification-groups\/?/,
+  /^\/specifications\/?/,
+  /^\/product-ingredients\/?/,
+  /^\/schedules\/(?!employee-requests\/(?:my_requests|company_stores))/,
+  /^\/intelligence\/financial\//,
+  /^\/loyalty\/merchant\//,
+  /^\/merchant\/surplus\//,
+  /^\/orders\/merchant\//,
+  /^\/stores\/(?!published\/|all\/?$)/,
+];
 
-const dispatchAuthErrorEvent = (userType, reason) => {
+const customerEndpointRules = [
+  /^\/users\/payment-cards\/?/,
+  /^\/loyalty\/customer\//,
+  /^\/green-points\//,
+  /^\/redemption-rules\//,
+  /^\/orders\/customer-orders\/?/,
+  /^\/orders\/notifications\/?/,
+  /^\/reviews\/?/,
+  /^\/intelligence\/recommendations\//,
+];
+
+const normalizePath = (url = '') => {
   try {
-    window.dispatchEvent(new CustomEvent('dineverse:auth-error', {
-      detail: { userType, reason },
-    }));
-  } catch (e) {
-    console.debug('[api] failed to dispatch auth error event', e?.message);
+    const parsed = new URL(url, API_BASE_URL);
+    return parsed.pathname.replace(/^\/api/, '') || '/';
+  } catch (error) {
+    return String(url).split('?')[0].replace(/^\/api/, '') || '/';
   }
 };
 
-// 處理等待隊列中的請求
+const pathLooksMerchant = () => {
+  const path = window.location.pathname;
+  return (
+    path.includes('/merchant/') ||
+    path.includes('/dashboard') ||
+    path.includes('/select-plan') ||
+    path.includes('/store-settings')
+  );
+};
+
+const matchesAny = (path, rules) => rules.some((rule) => rule.test(path));
+
+export const resolveAuthRole = (config = {}) => {
+  if (config.authRole) {
+    return config.authRole === AUTH_ROLES.PUBLIC ? null : config.authRole;
+  }
+
+  const path = normalizePath(config.url);
+  const method = (config.method || 'get').toLowerCase();
+
+  if (matchesAny(path, publicEndpointRules)) {
+    return null;
+  }
+
+  if (/^\/stores\/\d+\/?$/.test(path) && method === 'get') {
+    return null;
+  }
+
+  if (path === '/users/me/') {
+    return pathLooksMerchant() ? AUTH_ROLES.MERCHANT : AUTH_ROLES.CUSTOMER;
+  }
+
+  if (path.startsWith('/intelligence/line-login/')) {
+    return pathLooksMerchant() || localStorage.getItem('merchant_accessToken')
+      ? AUTH_ROLES.MERCHANT
+      : AUTH_ROLES.CUSTOMER;
+  }
+
+  if (path.startsWith('/schedules/employee-requests/')) {
+    if (path.includes('/my_requests/') || path.includes('/company_stores/')) {
+      return AUTH_ROLES.CUSTOMER;
+    }
+    return method === 'post' || !pathLooksMerchant() ? AUTH_ROLES.CUSTOMER : AUTH_ROLES.MERCHANT;
+  }
+
+  if (matchesAny(path, merchantEndpointRules)) {
+    return AUTH_ROLES.MERCHANT;
+  }
+
+  if (matchesAny(path, customerEndpointRules)) {
+    return AUTH_ROLES.CUSTOMER;
+  }
+
+  return pathLooksMerchant() ? AUTH_ROLES.MERCHANT : AUTH_ROLES.CUSTOMER;
+};
+
+const isRefreshBlocked = (role) => Date.now() < (refreshBlockedUntil[role] || 0);
+
+const blockRefreshTemporarily = (role) => {
+  if (isAuthRole(role)) {
+    refreshBlockedUntil[role] = Date.now() + AUTH_REFRESH_COOLDOWN_MS;
+  }
+};
+
+const dispatchAuthErrorEvent = (role, reason) => {
+  try {
+    window.dispatchEvent(new CustomEvent('dineverse:auth-error', {
+      detail: { userType: role, reason },
+    }));
+  } catch (error) {
+    console.debug('[api] failed to dispatch auth error event', error?.message);
+  }
+};
+
 const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
+  failedQueue.forEach((promise) => {
     if (error) {
-      prom.reject(error);
+      promise.reject(error);
     } else {
-      prom.resolve(token);
+      promise.resolve(token);
     }
   });
   failedQueue = [];
 };
 
-// 根據 URL 路徑和 HTTP 方法判斷使用哪個用戶類型的 token
-const getUserTypeFromUrl = (url, method = 'get') => {
-  if (!url) return null;
+const getFirebaseToken = async () => {
+  const user =
+    (firebase && firebase.auth && firebase.auth().currentUser) ||
+    (firebase && firebase.getAuth && firebase.getAuth().currentUser);
 
-  // 登入和註冊相關的 API 不需要 token
-  if (url.includes('/users/token/') || url.includes('/users/register/')) {
-    return null; // 返回 null 表示不需要 token
+  if (!user || !user.getIdToken) {
+    return null;
   }
-
-  // 商家端 API 路徑 (/api/merchant/...)，使用 merchant token
-  if (url.includes('/merchant/')) {
-    return 'merchant';
-  }
-
-
-  // LINE BOT 相關 API，使用 merchant token
-  if (url.includes('/line-bot/')) {
-    return 'merchant';
-  }
-
-  // 推薦系統相關 API，使用 customer token
-  // 財務分析相關 API，使用 merchant token
-  // LINE Login 相關 API，根據當前頁面判斷
-  if (url.includes('/intelligence/')) {
-    if (url.includes('/financial/')) {
-      return 'merchant';
-    }
-    // LINE Login API：根據當前頁面路徑判斷
-    if (url.includes('/line-login/')) {
-      const path = window.location.pathname;
-      if (path.includes('/merchant/') || path.includes('/dashboard') || path.includes('/store-settings')) {
-        return 'merchant';
-      }
-      // 在 /profile 頁面，根據是否有 merchant token 判斷
-      if (path.includes('/profile')) {
-        const hasMerchantToken = !!localStorage.getItem('merchant_accessToken');
-        return hasMerchantToken ? 'merchant' : 'customer';
-      }
-      return 'customer';
-    }
-    return 'customer';
-  }
-
-
-  // /users/me/ 需要根據當前頁面路徑判斷
-  if (url.includes('/users/me/')) {
-    const path = window.location.pathname;
-    if (path.includes('/merchant/') || path.includes('/dashboard') || path.includes('/select-plan')) {
-      return 'merchant';
-    }
-    return 'customer';
-  }
-
-  // 信用卡管理相關 API，使用 customer token（僅顧客端使用）
-  if (url.includes('/users/payment-cards')) {
-    return 'customer';
-  }
-
-  // 評論相關 API，根據當前頁面路徑判斷
-  if (url.includes('/reviews/')) {
-    const path = window.location.pathname;
-    if (path.includes('/merchant/')) {
-      return 'merchant';
-    }
-    return 'customer';
-  }
-
-  if (url.includes('/products/') && !url.includes('/public/products/')) {
-    return 'merchant';
-  }
-
-  // 原物料管理相關的 API，使用 merchant token
-  if (url.includes('/inventory/')) {
-    return 'merchant';
-  }
-
-  // 排班管理相關的 API
-  if (url.includes('/schedules/')) {
-    // 員工排班申請相關 API
-    if (url.includes('/employee-requests/')) {
-      // 員工專用的 API（my_requests, company_stores）使用 customer token
-      if (url.includes('/my_requests/') || url.includes('/company_stores/')) {
-        return 'customer';
-      }
-      // 其他 employee-requests API：
-      // - GET /employee-requests/：店家查看所有員工申請，使用 merchant token
-      // - POST /employee-requests/：員工提交申請，使用 customer token
-      // - GET /employee-requests/{id}/：根據當前頁面判斷
-      // 為了簡化，我們根據當前頁面路徑判斷：
-      const path = window.location.pathname;
-      if (path.includes('/merchant/')) {
-        // 如果是店家頁面，使用 merchant token
-        return 'merchant';
-      }
-      // 默認使用 customer token（員工使用）
-      return 'customer';
-    }
-    // 其他排班管理 API 使用 merchant token（店家管理用）
-    return 'merchant';
-  }
-
-  // 如果是店家相關的 API，使用 merchant token（除了 published 和 retrieve API）
-  // retrieve API 是 GET /stores/{id}/，用於查看已上架店家的詳細資訊，不需要 token
-  if (url.includes('/stores/') && !url.includes('/stores/published/')) {
-    // 管理員相關的 API 不需要 token
-    if (url.includes('/stores/all')) {
-      return null;
-    }
-    const isRetrieve = /\/stores\/\d+\/?$/.test(url) &&
-      method.toLowerCase() === 'get' &&
-      !url.includes('/my_store/') &&
-      !url.includes('/upload_images/') &&
-      !url.includes('/images/') &&
-      !url.includes('/publish/') &&
-      !url.includes('/unpublish/');
-    if (isRetrieve) {
-      return null;
-    }
-    return 'merchant';
-  }
-
-
-  // 其他情況使用 customer token
-  return 'customer';
+  return user.getIdToken();
 };
 
-// 攔截器，在每個請求中附加 token
 api.interceptors.request.use(
   async (config) => {
-    try {
-      // 根據 URL 判斷應該使用哪個用戶類型的 token
-      const userType = getUserTypeFromUrl(config.url, config.method);
-      config._userType = userType;
-      let token = null;
+    const role = resolveAuthRole(config);
+    config._authRole = role;
 
-      // 如果這個 API 不需要 token，跳過
-      if (userType !== null) {
-        // 根據用戶類型選擇對應的 token
-        const tokenKey = `${userType}_accessToken`;
-        token = localStorage.getItem(tokenKey);
+    if (!role) {
+      return config;
+    }
 
-        // 如果沒有對應類型的 token，嘗試舊格式的 token
-        if (!token) {
-          token = localStorage.getItem('accessToken');
-        }
+    let token = getAccessToken(role);
 
-        // 如果還是沒有後端 token，嘗試從 firebase currentUser 取得 idToken
-        if (!token) {
-          try {
-            const user =
-              (firebase && firebase.auth && firebase.auth().currentUser) ||
-              (firebase && firebase.getAuth && firebase.getAuth().currentUser);
-            if (user) {
-              // 支援不同 firebase api：currentUser.getIdToken()
-              token = await (user.getIdToken ? user.getIdToken() : user.getIdToken(true));
-            }
-          } catch (e) {
-            // 忽略，繼續沒有 token 的情況（會由後端回 401）
-            console.debug('[api] no firebase token', e?.message);
-          }
-        }
+    if (!token) {
+      try {
+        token = await getFirebaseToken();
+      } catch (error) {
+        console.debug('[api] no firebase token', error?.message);
       }
+    }
 
-      if (!token && userType && config.backgroundRequest && isRefreshBlocked(userType)) {
-        const cooldownError = new Error('Auth refresh cooldown active');
-        cooldownError.code = 'AUTH_COOLDOWN';
-        cooldownError.isAuthCooldown = true;
-        return Promise.reject(cooldownError);
-      }
+    if (!token && config.backgroundRequest && isRefreshBlocked(role)) {
+      const cooldownError = new Error('Auth refresh cooldown active');
+      cooldownError.code = 'AUTH_COOLDOWN';
+      cooldownError.isAuthCooldown = true;
+      return Promise.reject(cooldownError);
+    }
 
-      if (token) {
-        config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${token}`;
-        // 開發時可開 debug log
-        console.log('[api] attach Authorization to', config.url, 'with userType:', userType);
-      } else {
-        console.log('[api] no token attached for', config.url);
-      }
-    } catch (err) {
-      console.warn('[api] interceptor error', err);
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
-  }, (error) => Promise.reject(error));
-
-// 響應攔截器，處理 token 過期
-api.interceptors.response.use(
-  (response) => {
-    return response;
   },
+  (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (!originalRequest) {
+    if (!originalRequest || error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }
 
-    // 如果是 401 錯誤且不是刷新 token 的請求，且尚未重試過
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      const userType = getUserTypeFromUrl(originalRequest.url, originalRequest.method) || originalRequest._userType || 'customer';
-      const shouldSkipRetry = originalRequest.skipAuthRetry === true;
-      const shouldRedirectOnAuthFail = !(originalRequest.backgroundRequest || originalRequest.skipAuthRedirect);
+    const role = originalRequest._authRole || resolveAuthRole(originalRequest);
+    const shouldSkipRetry = originalRequest.skipAuthRetry === true;
+    const shouldRedirectOnAuthFail = !(originalRequest.backgroundRequest || originalRequest.skipAuthRedirect);
 
-      if (shouldSkipRetry) {
-        return Promise.reject(error);
-      }
-
-      if (isRefreshBlocked(userType)) {
-        const blockedError = new Error('Auth refresh blocked by cooldown');
-        blockedError.code = 'AUTH_COOLDOWN';
-        blockedError.isAuthCooldown = true;
-        return Promise.reject(blockedError);
-      }
-
-      if (isRefreshing) {
-        // 如果正在刷新，將請求加入隊列
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(token => {
-            originalRequest.headers['Authorization'] = `Bearer ${token}`;
-            return api(originalRequest);
-          })
-          .catch(err => {
-            return Promise.reject(err);
-          });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      // 根據請求 URL 和 HTTP 方法判斷使用哪個用戶類型的 token
-      console.log('[api] 401 error, attempting token refresh for userType:', userType);
-      console.log('[api] Original request URL:', originalRequest.url);
-
-      // 如果這個 API 不需要 token，直接返回錯誤
-      if (userType === null || userType === undefined) {
-        console.log('[api] This API does not require token, rejecting');
-        isRefreshing = false;
-        return Promise.reject(error);
-      }
-
-      const finalUserType = userType;
-      const refreshTokenKey = `${finalUserType}_refreshToken`;
-      const accessTokenKey = `${finalUserType}_accessToken`;
-      const refreshToken = localStorage.getItem(refreshTokenKey);
-
-      console.log('[api] Refresh token key:', refreshTokenKey);
-      console.log('[api] Refresh token exists:', !!refreshToken);
-
-      if (!refreshToken) {
-        // 沒有 refresh token，清除該用戶類型的 token 並導向登入
-        console.error('[api] No refresh token found, redirecting to login');
-        localStorage.removeItem(accessTokenKey);
-        localStorage.removeItem(refreshTokenKey);
-        blockRefreshTemporarily(finalUserType);
-        dispatchAuthErrorEvent(finalUserType, 'missing_refresh_token');
-        processQueue(new Error('No refresh token'), null);
-        isRefreshing = false;
-        if (shouldRedirectOnAuthFail) {
-          const loginPath = finalUserType === 'merchant' ? '/login/merchant' : '/login/customer';
-          window.location.href = loginPath;
-        }
-        return Promise.reject(error);
-      }
-
-      try {
-        // 嘗試刷新 token
-        // 注意：這裡需要使用不帶攔截器的 axios 實例，避免無限循環
-        const refreshAxios = axios.create({
-          baseURL: 'http://127.0.0.1:8000/api',
-        });
-
-        const response = await refreshAxios.post('/users/token/refresh/', {
-          refresh: refreshToken
-        });
-
-        const { access } = response.data;
-
-        if (!access) {
-          throw new Error('No access token in refresh response');
-        }
-
-        // 更新對應用戶類型的 localStorage
-        localStorage.setItem(accessTokenKey, access);
-
-        // 更新原始請求的 header
-        originalRequest.headers['Authorization'] = `Bearer ${access}`;
-
-        // 處理等待隊列
-        processQueue(null, access);
-        isRefreshing = false;
-
-        // 重新發送原始請求
-        return api(originalRequest);
-      } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
-        // 刷新失敗，清除該用戶類型的 token 並導向登入
-        localStorage.removeItem(accessTokenKey);
-        localStorage.removeItem(refreshTokenKey);
-        // 也清除舊格式的 token
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        blockRefreshTemporarily(finalUserType);
-        dispatchAuthErrorEvent(finalUserType, 'refresh_failed');
-        processQueue(refreshError, null);
-        isRefreshing = false;
-        if (shouldRedirectOnAuthFail) {
-          const loginPath = finalUserType === 'merchant' ? '/login/merchant' : '/login/customer';
-          window.location.href = loginPath;
-        }
-        return Promise.reject(refreshError);
-      }
+    if (!role || shouldSkipRetry) {
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
+    if (isRefreshBlocked(role)) {
+      const blockedError = new Error('Auth refresh blocked by cooldown');
+      blockedError.code = 'AUTH_COOLDOWN';
+      blockedError.isAuthCooldown = true;
+      return Promise.reject(blockedError);
+    }
+
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      }).then((token) => {
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      });
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    const refreshToken = getRefreshToken(role);
+
+    if (!refreshToken) {
+      clearTokens(role);
+      blockRefreshTemporarily(role);
+      dispatchAuthErrorEvent(role, 'missing_refresh_token');
+      processQueue(new Error('No refresh token'), null);
+      isRefreshing = false;
+
+      if (shouldRedirectOnAuthFail) {
+        window.location.href = role === AUTH_ROLES.MERCHANT ? '/login/merchant' : '/login/customer';
+      }
+      return Promise.reject(error);
+    }
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/users/token/refresh/`, {
+        refresh: refreshToken,
+      });
+      const { access } = response.data;
+
+      if (!access) {
+        throw new Error('No access token in refresh response');
+      }
+
+      saveTokens(role, access, null);
+      originalRequest.headers.Authorization = `Bearer ${access}`;
+      processQueue(null, access);
+      isRefreshing = false;
+
+      return api(originalRequest);
+    } catch (refreshError) {
+      clearTokens(role);
+      blockRefreshTemporarily(role);
+      dispatchAuthErrorEvent(role, 'refresh_failed');
+      processQueue(refreshError, null);
+      isRefreshing = false;
+
+      if (shouldRedirectOnAuthFail) {
+        window.location.href = role === AUTH_ROLES.MERCHANT ? '/login/merchant' : '/login/customer';
+      }
+      return Promise.reject(refreshError);
+    }
   }
 );
 

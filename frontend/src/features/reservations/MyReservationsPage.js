@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { FaCalendarAlt } from 'react-icons/fa';
@@ -21,7 +21,7 @@ const MyReservationsPage = () => {
   const [guestPhoneNumber, setGuestPhoneNumber] = useState('');
 
   // 檢查訪客是否已驗證
-  const checkGuestAccess = () => {
+  const checkGuestAccess = useCallback(() => {
     if (!user) {
       const guestToken = sessionStorage.getItem('guestReservationToken');
       if (guestToken) {
@@ -42,19 +42,13 @@ const MyReservationsPage = () => {
         navigate('/guest-lookup');
       }
     }
-  };
+  }, [navigate, user]);
 
   useEffect(() => {
     checkGuestAccess();
-  }, []);
+  }, [checkGuestAccess]);
 
-  useEffect(() => {
-    if (user || guestVerified) {
-      fetchReservations();
-    }
-  }, [user, guestVerified]);
-
-  const fetchReservations = async () => {
+  const fetchReservations = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -85,7 +79,13 @@ const MyReservationsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [guestVerified, navigate, user]);
+
+  useEffect(() => {
+    if (user || guestVerified) {
+      fetchReservations();
+    }
+  }, [user, guestVerified, fetchReservations]);
 
   const handleCancelClick = (reservationId) => {
     setSelectedReservationId(reservationId);

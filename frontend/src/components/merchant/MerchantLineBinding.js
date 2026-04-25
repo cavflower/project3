@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box,
     Card,
@@ -29,12 +29,7 @@ const MerchantLineBinding = () => {
     const [unbindDialogOpen, setUnbindDialogOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
 
-    useEffect(() => {
-        loadBindingStatus();
-        handleCallbackIfNeeded();
-    }, []);
-
-    const loadBindingStatus = async () => {
+    const loadBindingStatus = useCallback(async () => {
         try {
             setLoading(true);
             const status = await getMerchantLineStatus();
@@ -45,9 +40,9 @@ const MerchantLineBinding = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const handleCallbackIfNeeded = async () => {
+    const handleCallbackIfNeeded = useCallback(async () => {
         const params = new URLSearchParams(window.location.search);
         const lineUserId = params.get('merchant_line_user_id');
         const displayName = params.get('display_name');
@@ -70,7 +65,12 @@ const MerchantLineBinding = () => {
                 setProcessing(false);
             }
         }
-    };
+    }, [loadBindingStatus]);
+
+    useEffect(() => {
+        loadBindingStatus();
+        handleCallbackIfNeeded();
+    }, [loadBindingStatus, handleCallbackIfNeeded]);
 
     const handleBindClick = async () => {
         try {

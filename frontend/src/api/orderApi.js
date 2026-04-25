@@ -1,12 +1,13 @@
 import api from './api';
+import { cachedGet } from './requestCache';
 
 export const getTakeoutProducts = (storeId) =>
-  api.get('/products/public/products/', {
+  cachedGet(api, '/products/public/products/', {
     params: { store: storeId, service_type: 'takeaway' },
   });
 
 export const getDineInProducts = (storeId) =>
-  api.get('/products/public/products/', {
+  cachedGet(api, '/products/public/products/', {
     params: { store: storeId },
   });
 

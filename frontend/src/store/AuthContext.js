@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { updateUser as updateUserApi, authApi } from '../api/authApi'; // 引入 API 函數
+import { clearTokens } from '../api/authTokens';
 
 // 1. 建立 Context
 const AuthContext = createContext(null);
@@ -51,18 +51,14 @@ export const AuthProvider = ({ children }) => {
       isVerifyingRef.current = true;
 
       let userData = null;
-      let tokenType = null;
-
       // 嘗試 customer token
       const customerToken = localStorage.getItem('customer_accessToken');
       if (customerToken) {
         try {
           userData = await authApi.getMe('customer');
-          tokenType = 'customer';
         } catch (error) {
           console.log("Customer token 驗證失敗，嘗試 merchant token");
-          localStorage.removeItem('customer_accessToken');
-          localStorage.removeItem('customer_refreshToken');
+          clearTokens('customer');
         }
       }
 
@@ -72,11 +68,9 @@ export const AuthProvider = ({ children }) => {
         if (merchantToken) {
           try {
             userData = await authApi.getMe('merchant');
-            tokenType = 'merchant';
           } catch (error) {
             console.log("Merchant token 驗證失敗");
-            localStorage.removeItem('merchant_accessToken');
-            localStorage.removeItem('merchant_refreshToken');
+            clearTokens('merchant');
           }
         }
       }
@@ -110,12 +104,7 @@ export const AuthProvider = ({ children }) => {
       console.error("使用者資料缺少 user_type，無法判斷使用者類型");
       setUser(null);
       // 清除所有可能的 token
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('customer_accessToken');
-      localStorage.removeItem('customer_refreshToken');
-      localStorage.removeItem('merchant_accessToken');
-      localStorage.removeItem('merchant_refreshToken');
+      clearTokens();
       navigate('/login/customer');
       return;
     }
@@ -148,12 +137,7 @@ export const AuthProvider = ({ children }) => {
       console.error("未知的使用者類型:", userData.user_type);
       setUser(null);
       // 清除所有可能的 token
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('customer_accessToken');
-      localStorage.removeItem('customer_refreshToken');
-      localStorage.removeItem('merchant_accessToken');
-      localStorage.removeItem('merchant_refreshToken');
+      clearTokens();
       navigate('/login/customer');
     }
   };
@@ -166,8 +150,7 @@ export const AuthProvider = ({ children }) => {
     setCachedUser(null); // 清除快取的用戶資料
 
     // 清除對應用戶類型的 token
-    localStorage.removeItem(`${currentUserType}_accessToken`);
-    localStorage.removeItem(`${currentUserType}_refreshToken`);
+    clearTokens(currentUserType);
 
     // 如果有指定的 redirect 路徑，導向該路徑
     if (redirectPath) {

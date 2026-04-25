@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './LoyaltyManagement.module.css';
 import { FaArrowLeft, FaCoins, FaAward, FaGift, FaPlus, FaTrash } from 'react-icons/fa';
@@ -774,12 +774,7 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
     inventory: null,
   });
 
-  // 載入兌換商品列表
-  useEffect(() => {
-    loadRedemptions();
-  }, []);
-
-  const loadRedemptions = async () => {
+  const loadRedemptions = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get('/loyalty/merchant/redemptions/');
@@ -789,7 +784,12 @@ const RedemptionsSection = ({ redemptions, setRedemptions, loading, setLoading }
     } finally {
       setLoading(false);
     }
-  };
+  }, [setLoading, setRedemptions]);
+
+  // 載入兌換商品列表
+  useEffect(() => {
+    loadRedemptions();
+  }, [loadRedemptions]);
 
   const addRedemption = async () => {
 

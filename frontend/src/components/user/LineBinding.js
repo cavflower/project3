@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Avatar,
@@ -27,12 +27,7 @@ const LineBinding = ({ compact = false }) => {
   const [processing, setProcessing] = useState(false);
   const [preferenceUpdating, setPreferenceUpdating] = useState('');
 
-  useEffect(() => {
-    loadBindingStatus();
-    handleCallbackIfNeeded();
-  }, []);
-
-  const loadBindingStatus = async () => {
+  const loadBindingStatus = useCallback(async () => {
     try {
       setLoading(true);
       const status = await getLineBindingStatus();
@@ -43,9 +38,9 @@ const LineBinding = ({ compact = false }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleCallbackIfNeeded = async () => {
+  const handleCallbackIfNeeded = useCallback(async () => {
     const params = new URLSearchParams(window.location.search);
     const lineUserId = params.get('line_user_id');
     const displayName = params.get('display_name');
@@ -68,7 +63,12 @@ const LineBinding = ({ compact = false }) => {
     } finally {
       setProcessing(false);
     }
-  };
+  }, [loadBindingStatus]);
+
+  useEffect(() => {
+    loadBindingStatus();
+    handleCallbackIfNeeded();
+  }, [loadBindingStatus, handleCallbackIfNeeded]);
 
   const handleBindClick = async () => {
     try {

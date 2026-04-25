@@ -1,10 +1,10 @@
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Count, DecimalField, Prefetch, Q, Sum, Value
+from django.db.models import Count, DecimalField, F, OuterRef, Prefetch, Q, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 from .models import Store, StoreImage, MenuImage
-from .serializers import StoreSerializer, StoreImageSerializer, MenuImageSerializer
+from .serializers import PublicStoreDetailSerializer, StoreSerializer, StoreImageSerializer, MenuImageSerializer
 
 
 class IsStoreOwner(permissions.BasePermission):
@@ -22,6 +22,11 @@ class StoreViewSet(viewsets.ModelViewSet):
     serializer_class = StoreSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return PublicStoreDetailSerializer
+        return super().get_serializer_class()
+
     def get_queryset(self):
         # 優化查詢：預載入相關資料
         base_queryset = Store.objects.select_related('merchant')
@@ -29,6 +34,15 @@ class StoreViewSet(viewsets.ModelViewSet):
         # 內用桌位配置只需店家基本欄位，避免載入圖片與計數查詢。
         if self.action == 'dine_in_layout':
             base_queryset = base_queryset.only('id', 'merchant_id', 'dine_in_layout', 'updated_at')
+        elif self.action == 'retrieve':
+            first_image = StoreImage.objects.filter(
+                store_id=OuterRef('pk')
+            ).order_by('order', 'created_at').values('image')[:1]
+            base_queryset = base_queryset.annotate(
+                first_image_path=Subquery(first_image),
+                surplus_order_count=F('surplus_completed_order_count_total'),
+                surplus_completed_revenue=F('surplus_completed_revenue_total'),
+            )
         else:
             base_queryset = base_queryset.prefetch_related(
                 Prefetch(
@@ -234,17 +248,13 @@ class StoreViewSet(viewsets.ModelViewSet):
         ).select_related(
             'merchant', 'merchant__user'
         ).prefetch_related(
-            Prefetch('images', queryset=StoreImage.objects.order_by('order'))
-        ).annotate(
-            surplus_order_count=Count(
-                'surplus_orders',
-                filter=Q(surplus_orders__status='completed')
-            ),
-            surplus_completed_revenue=Coalesce(
-                Sum('surplus_orders__total_price', filter=Q(surplus_orders__status='completed')),
-                Value(0),
-                output_field=DecimalField(max_digits=12, decimal_places=2),
+            Prefetch(
+                'images',
+                queryset=StoreImage.objects.only('id', 'store_id', 'image', 'order').order_by('order')
             )
+        ).annotate(
+            surplus_order_count=F('surplus_completed_order_count_total'),
+            surplus_completed_revenue=F('surplus_completed_revenue_total'),
         )
         
         # 餐廳類別篩選

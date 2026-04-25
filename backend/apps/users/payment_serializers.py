@@ -8,11 +8,12 @@ from django.core.exceptions import ImproperlyConfigured
 import base64
 import hashlib
 import os
+import sys
 
 # 加密金鑰：正式環境必須使用環境變數；開發環境用固定推導 key，避免重啟後資料無法解密。
 ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY')
 if not ENCRYPTION_KEY:
-    if settings.DEBUG:
+    if settings.DEBUG or 'test' in sys.argv:
         ENCRYPTION_KEY = base64.urlsafe_b64encode(
             hashlib.sha256(settings.SECRET_KEY.encode('utf-8')).digest()
         ).decode('utf-8')

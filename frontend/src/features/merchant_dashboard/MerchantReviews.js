@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import api from '../../api/api';
@@ -22,15 +22,27 @@ const MerchantReviews = () => {
     pendingReplies: 0
   });
 
-  useEffect(() => {
-    if (user?.user_type !== 'merchant') {
-      navigate('/');
-      return;
-    }
-    loadReviews();
-  }, [user, navigate]);
+  const calculateStats = useCallback((storeData, productData) => {
+    const avgStoreRating = storeData.length > 0
+      ? (storeData.reduce((sum, r) => sum + r.rating, 0) / storeData.length).toFixed(1)
+      : 0;
 
-  const loadReviews = async () => {
+    const avgProductRating = productData.length > 0
+      ? (productData.reduce((sum, r) => sum + r.rating, 0) / productData.length).toFixed(1)
+      : 0;
+
+    const pendingReplies = storeData.filter(r => !r.merchant_reply).length;
+
+    setStats({
+      avgStoreRating,
+      totalStoreReviews: storeData.length,
+      avgProductRating,
+      totalProductReviews: productData.length,
+      pendingReplies
+    });
+  }, []);
+
+  const loadReviews = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -50,27 +62,15 @@ const MerchantReviews = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [calculateStats]);
 
-  const calculateStats = (storeData, productData) => {
-    const avgStoreRating = storeData.length > 0
-      ? (storeData.reduce((sum, r) => sum + r.rating, 0) / storeData.length).toFixed(1)
-      : 0;
-
-    const avgProductRating = productData.length > 0
-      ? (productData.reduce((sum, r) => sum + r.rating, 0) / productData.length).toFixed(1)
-      : 0;
-
-    const pendingReplies = storeData.filter(r => !r.merchant_reply).length;
-
-    setStats({
-      avgStoreRating,
-      totalStoreReviews: storeData.length,
-      avgProductRating,
-      totalProductReviews: productData.length,
-      pendingReplies
-    });
-  };
+  useEffect(() => {
+    if (user?.user_type !== 'merchant') {
+      navigate('/');
+      return;
+    }
+    loadReviews();
+  }, [user, navigate, loadReviews]);
 
   const handleReply = (review) => {
     setSelectedReview(review);

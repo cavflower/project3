@@ -1,4 +1,5 @@
 import api from './api';
+import { cachedGet } from './requestCache';
 
 // ========== 產品類別 API ==========
 export const getProductCategories = () => {
@@ -6,7 +7,7 @@ export const getProductCategories = () => {
 };
 
 export const getPublicProductCategories = (storeId) => {
-  return api.get('/products/public/categories/', {
+  return cachedGet(api, '/products/public/categories/', {
     params: { store: storeId }
   });
 };
@@ -94,7 +95,7 @@ export const deleteProductSpecification = (id) => {
 
 // ========== 公開規格類別 API (顧客端) ==========
 export const getPublicSpecificationGroups = (productId) => {
-  return api.get('/products/public/specification-groups/', {
+  return cachedGet(api, '/products/public/specification-groups/', {
     params: { product: productId }
   });
 };

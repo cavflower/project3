@@ -1,9 +1,7 @@
-﻿
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
-import { useAuth } from '../../store/AuthContext';
-import { getTakeoutProducts } from '../../api/orderApi';
 import api from '../../api/api';
 import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
 import styles from './StorePage.module.css';
@@ -11,47 +9,36 @@ import styles from './StorePage.module.css';
 function StorePage() {
   const { storeId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [store, setStore] = useState(null);
-  const [menuItems, setMenuItems] = useState([]);
   const [reviewStats, setReviewStats] = useState({ avg: 0, count: 0 });
   const [loading, setLoading] = useState(true);
-  const [productsLoading, setProductsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('about');
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imageType, setImageType] = useState(null); // 'store' or 'menu'
-
-  // ???????
-  const [displayedProducts, setDisplayedProducts] = useState(20); // ??憿舐內20??
-  const PRODUCTS_PER_PAGE = 20;
 
 
-  useEffect(() => {
-    loadStoreData();
-  }, [storeId]);
-
-  // ?嗅????惜??頛??
-  useEffect(() => {
-    if (activeTab === 'menu' && menuItems.length === 0 && !productsLoading) {
-      loadMenuItems(storeId);
-    }
-  }, [activeTab, storeId]);
-
-  const loadStoreData = async () => {
+  const loadStoreData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await getStore(storeId);
-      setStore(response.data);
+      const [storeResult, reviewsResult] = await Promise.allSettled([
+        getStore(storeId),
+        api.get(`/reviews/store-reviews/?store_id=${storeId}&summary=1`)
+      ]);
+
+      if (storeResult.status !== 'fulfilled') {
+        throw storeResult.reason;
+      }
+
+      setStore(storeResult.value.data);
       // ?郊??摨振閰?蝯梯?嚗?潮?擐＊蝷?
       try {
-        const reviewsRes = await api.get(`/reviews/store-reviews/?store_id=${storeId}`);
-        const reviews = reviewsRes.data || [];
-        const avg = reviews.length > 0
-          ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-          : 0;
-        setReviewStats({ avg, count: reviews.length });
+        if (reviewsResult.status !== 'fulfilled') {
+          throw reviewsResult.reason;
+        }
+
+        setReviewStats({
+          avg: reviewsResult.value.data?.avg || 0,
+          count: reviewsResult.value.data?.count || 0
+        });
       } catch (e) {
         console.warn('頛摨振閰?蝯梯?憭望?', e);
         setReviewStats({ avg: 0, count: 0 });
@@ -65,33 +52,11 @@ function StorePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [storeId]);
 
-  const loadMenuItems = async (id) => {
-    try {
-      setProductsLoading(true);
-      const productRes = await getTakeoutProducts(id);
-      setMenuItems(productRes.data);
-    } catch (err) {
-      console.error('Failed to load menu items:', err);
-
-    } finally {
-      setProductsLoading(false);
-    }
-  };
-
-  // 頛?游???
-  const loadMoreProducts = useCallback(() => {
-    setDisplayedProducts(prev => prev + PRODUCTS_PER_PAGE);
-  }, []);
-
-  // 憿舐內????銵剁???嚗?
-  const visibleProducts = useMemo(() => {
-    return menuItems.slice(0, displayedProducts);
-  }, [menuItems, displayedProducts]);
-
-  // ?臬???游???
-  const hasMoreProducts = displayedProducts < menuItems.length;
+  useEffect(() => {
+    loadStoreData();
+  }, [loadStoreData]);
 
   const handleJumpToReviews = useCallback(() => {
     navigate(`/store/${storeId}/reviews`);

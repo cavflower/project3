@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Container, Box, CircularProgress, Typography, Alert, Button } from '@mui/material';
 import { FaLine, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
@@ -14,11 +14,7 @@ const LineCallbackPage = () => {
     const [message, setMessage] = useState('正在處理 LINE 授權...');
     const [lineData, setLineData] = useState(null);
 
-    useEffect(() => {
-        handleCallback();
-    }, []);
-
-    const handleCallback = async () => {
+    const handleCallback = useCallback(async () => {
         const code = searchParams.get('code');
         const state = searchParams.get('state');
         const error = searchParams.get('error');
@@ -88,7 +84,11 @@ const LineCallbackPage = () => {
             setStatus('error');
             setMessage('處理 LINE 授權時發生錯誤');
         }
-    };
+    }, [navigate, searchParams]);
+
+    useEffect(() => {
+        handleCallback();
+    }, [handleCallback]);
 
     return (
         <Container maxWidth="sm">

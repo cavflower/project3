@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.conf import settings
 from .models import Store, StoreImage, MenuImage
 from decimal import Decimal
 
@@ -37,6 +38,13 @@ class PublishedStoreSerializer(serializers.ModelSerializer):
     def get_first_image(self, obj):
         """只返回第一張圖片的 URL（從已 prefetch 的資料中取得）"""
         # 由於已經 prefetch，這裡不會產生額外查詢
+        first_image = getattr(obj, 'first_image_path', None)
+        if first_image:
+            image_path = str(first_image)
+            if image_path.startswith('http') or image_path.startswith('/'):
+                return image_path
+            return f"{settings.MEDIA_URL}{image_path}"
+
         images = obj.images.all()
         if images:
             return images[0].image.url
@@ -191,4 +199,26 @@ class StoreSerializer(serializers.ModelSerializer):
         if 'merchant' not in validated_data:
             raise serializers.ValidationError("Merchant is required to create a store.")
         return super().create(validated_data)
+
+
+class PublicStoreDetailSerializer(StoreSerializer):
+    """Lightweight public store detail serializer for customer-facing pages."""
+    images = serializers.SerializerMethodField()
+
+    class Meta(StoreSerializer.Meta):
+        fields = [field for field in StoreSerializer.Meta.fields if field != 'menu_images']
+        read_only_fields = [field for field in StoreSerializer.Meta.read_only_fields if field != 'menu_images']
+
+    def get_images(self, obj):
+        first_image = getattr(obj, 'first_image_path', None)
+        if not first_image:
+            return []
+
+        image_path = str(first_image)
+        if image_path.startswith('http') or image_path.startswith('/'):
+            image_url = image_path
+        else:
+            image_url = f"{settings.MEDIA_URL}{image_path}"
+
+        return [{'id': None, 'image': image_url, 'order': 0}]
 

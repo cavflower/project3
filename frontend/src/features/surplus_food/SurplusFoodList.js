@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FaLeaf, FaPlus, FaEdit, FaTrash, FaFolder } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaPlus, FaEdit, FaTrash, FaFolder } from 'react-icons/fa';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
 import SurplusFoodForm from './SurplusFoodForm';
 import SurplusFoodCard from '../../components/surplusfood/SurplusFoodCard';
@@ -16,24 +16,16 @@ const SurplusFoodList = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [modalType, setModalType] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    await Promise.all([loadCategories(), loadSurplusFoods()]);
-  };
-
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const data = await surplusFoodApi.getCategories();
       setCategories(data);
     } catch (error) {
       console.error('載入類別失敗:', error);
     }
-  };
+  }, []);
 
-  const loadSurplusFoods = async () => {
+  const loadSurplusFoods = useCallback(async () => {
     try {
       setLoading(true);
       const data = await surplusFoodApi.getSurplusFoods({});
@@ -44,7 +36,15 @@ const SurplusFoodList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const loadData = useCallback(async () => {
+    await Promise.all([loadCategories(), loadSurplusFoods()]);
+  }, [loadCategories, loadSurplusFoods]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handlePublish = async (id) => {
     try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   FaChartLine,
   FaCalendarAlt,
@@ -8,7 +8,6 @@ import {
   FaUtensils,
   FaStore,
   FaArrowUp,
-  FaArrowDown,
   FaDownload,
   FaRobot,
 } from 'react-icons/fa';
@@ -79,11 +78,7 @@ const FinancialReportPage = () => {
   };
 
   // 模擬載入報表資料
-  useEffect(() => {
-    loadReportData();
-  }, [dateRange]);
-
-  const loadReportData = async () => {
+  const loadReportData = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -280,7 +275,11 @@ const FinancialReportPage = () => {
       console.error('載入報表資料失敗', error);
       setLoading(false);
     }
-  };
+  }, [dateRange]);
+
+  useEffect(() => {
+    loadReportData();
+  }, [loadReportData]);
 
   // 處理日期變更
   const handleDateChange = (field, value) => {

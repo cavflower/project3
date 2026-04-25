@@ -22,11 +22,7 @@ function StoreReviewsPage() {
     totalProductReviews: 0
   });
 
-  useEffect(() => {
-    loadPageData();
-  }, [storeId]);
-
-  const loadPageData = async () => {
+  const loadPageData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -63,7 +59,11 @@ function StoreReviewsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [storeId]);
+
+  useEffect(() => {
+    loadPageData();
+  }, [loadPageData]);
 
   const toAbsoluteMediaUrl = (url) => {
     if (!url) return '';

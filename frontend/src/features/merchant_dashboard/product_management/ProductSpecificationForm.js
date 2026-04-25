@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaPlus, FaEdit, FaTrash, FaSave, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import {
     getSpecificationGroups,
@@ -36,13 +36,7 @@ const ProductSpecificationForm = ({ product, onClose }) => {
         price_adjustment: 0,
     });
 
-    useEffect(() => {
-        if (product?.id) {
-            fetchGroups();
-        }
-    }, [product?.id]);
-
-    const fetchGroups = async () => {
+    const fetchGroups = useCallback(async () => {
         try {
             setLoading(true);
             const response = await getSpecificationGroups(product.id);
@@ -58,7 +52,13 @@ const ProductSpecificationForm = ({ product, onClose }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [product?.id]);
+
+    useEffect(() => {
+        if (product?.id) {
+            fetchGroups();
+        }
+    }, [product?.id, fetchGroups]);
 
     // === 規格類別操作 ===
     const resetGroupForm = () => {

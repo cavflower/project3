@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { v4 as uuid } from 'uuid';
 import {
@@ -55,24 +55,24 @@ const DineInSettingsPage = () => {
     loadStore();
   }, []);
 
-  const buildTableUrl = (label) =>
+  const buildTableUrl = useCallback((label) =>
     storeId
       ? `${window.location.origin}/store/${storeId}/dine-in/menu?table=${encodeURIComponent(
         label || ''
       )}`
-      : '';
+      : '', [storeId]);
 
-  const withQrUrl = (table) => ({
+  const withQrUrl = useCallback((table) => ({
     ...table,
     qrUrl: buildTableUrl(table.label),
-  });
+  }), [buildTableUrl]);
 
-  const hydrateFloorsForView = (layout) => {
+  const hydrateFloorsForView = useCallback((layout) => {
     return (layout?.floors || []).map((floor) => ({
       ...floor,
       tables: (floor.tables || []).map(withQrUrl),
     }));
-  };
+  }, [withQrUrl]);
 
   useEffect(() => {
     if (!storeId) return;
@@ -91,14 +91,14 @@ const DineInSettingsPage = () => {
     }
 
     loadLayout();
-  }, [storeId]);
+  }, [storeId, hydrateFloorsForView]);
 
   const activeFloor = useMemo(
     () => floors.find((floor) => floor.id === activeFloorId) || floors[0] || null,
     [floors, activeFloorId]
   );
 
-  const activeTables = activeFloor?.tables || [];
+  const activeTables = useMemo(() => activeFloor?.tables || [], [activeFloor]);
 
   const selectedTable = useMemo(
     () => activeTables.find((table) => table.id === selectedTableId),

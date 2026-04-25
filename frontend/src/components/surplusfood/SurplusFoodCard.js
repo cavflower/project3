@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaLeaf, FaEdit, FaTrash, FaEye, FaEyeSlash, FaCalendarAlt } from 'react-icons/fa';
+import { FaLeaf, FaEdit, FaTrash, FaEye, FaEyeSlash } from 'react-icons/fa';
 import styles from './SurplusFoodCard.module.css';
 
 const SurplusFoodCard = ({ food, onEdit, onDelete, onPublish, onUnpublish }) => {

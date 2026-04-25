@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getPublicSpecificationGroups } from '../../api/productApi';
 import styles from './ProductSpecificationModal.module.css';
 
@@ -6,27 +6,23 @@ import styles from './ProductSpecificationModal.module.css';
  * 顧客端商品規格選擇 Modal
  * 當商品有規格設定時，顧客點擊加入購物車會先顯示此 Modal
  */
-const ProductSpecificationModal = ({ product, onConfirm, onCancel }) => {
+const ProductSpecificationModal = ({ product, initialSpecGroups = null, onConfirm, onCancel }) => {
     const [specGroups, setSpecGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selections, setSelections] = useState({});
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        if (product?.id) {
-            loadSpecifications();
-        }
-    }, [product?.id]);
-
-    const loadSpecifications = async () => {
+    const loadSpecifications = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await getPublicSpecificationGroups(product.id);
-            setSpecGroups(response.data);
+            const nextSpecGroups = Array.isArray(initialSpecGroups)
+                ? initialSpecGroups
+                : (await getPublicSpecificationGroups(product.id)).data;
+            setSpecGroups(nextSpecGroups);
 
             // 初始化選擇狀態
             const initialSelections = {};
-            response.data.forEach(group => {
+            nextSpecGroups.forEach(group => {
                 if (group.selection_type === 'single') {
                     initialSelections[group.id] = null;
                 } else {
@@ -40,7 +36,13 @@ const ProductSpecificationModal = ({ product, onConfirm, onCancel }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [initialSpecGroups, product?.id]);
+
+    useEffect(() => {
+        if (product?.id) {
+            loadSpecifications();
+        }
+    }, [product?.id, loadSpecifications]);
 
     const handleSingleSelect = (groupId, option) => {
         setSelections(prev => ({

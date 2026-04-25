@@ -28,7 +28,7 @@ import {
 const MerchantDashboard = () => {
   const { user } = useAuth();
   // 使用共享的 StoreContext，避免重複 API 呼叫
-  const { store, storeSettings, storeId: contextStoreId, loading: storeLoading } = useStore();
+  const { storeSettings, storeId: contextStoreId, loading: storeLoading } = useStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [featureUsage, setFeatureUsage] = useState({});
@@ -237,11 +237,11 @@ const MerchantDashboard = () => {
     navigate(path);
   };
 
-  const getUsageScore = (featureId) => {
+  const getUsageScore = useCallback((featureId) => {
     const usage = featureUsage[featureId];
     if (!usage) return 0;
     return (usage.count || 0) * 10 + (usage.lastUsedAt || 0) / 100000000000;
-  };
+  }, [featureUsage]);
 
   const getOrderTypeBadgeClass = (orderType) => {
     switch (orderType) {
@@ -262,7 +262,7 @@ const MerchantDashboard = () => {
     return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const features = [
+  const features = useMemo(() => [
     {
       id: 'product-management',
       name: '商品管理',
@@ -365,7 +365,7 @@ const MerchantDashboard = () => {
     },
 
 
-  ];
+  ], []);
 
   const featureTabs = [
     {
@@ -393,7 +393,7 @@ const MerchantDashboard = () => {
       .map((id) => features.find((feature) => feature.id === id))
       .filter(Boolean)
       .sort((a, b) => getUsageScore(b.id) - getUsageScore(a.id))
-  ), [effectiveFeaturedIds, featureUsage]);
+  ), [effectiveFeaturedIds, features, getUsageScore]);
 
   const featuredFeaturesSafe = featuredFeatures.length > 0 ? featuredFeatures : features.slice(0, 4);
 

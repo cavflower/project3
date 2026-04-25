@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useReducer, useState, useRef } from "react";
+import React, { useEffect, useMemo, useReducer, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { FaPlus, FaMinus, FaShoppingCart, FaCoins } from "react-icons/fa";
 import { getStore } from "../../api/storeApi";
@@ -89,6 +89,7 @@ function TakeoutOrderPage() {
   const [showSpecModal, setShowSpecModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productSpecMap, setProductSpecMap] = useState({});
+  const [productSpecGroups, setProductSpecGroups] = useState({});
 
   // 如果從購物車頁面返回，恢復購物車狀態
   const initialCartState = location.state?.cart || initialCart;
@@ -101,10 +102,13 @@ function TakeoutOrderPage() {
     }
 
     try {
-      const response = await getPublicSpecificationGroups(product.id);
-      const specs = response.data || [];
+      const cachedSpecs = productSpecGroups[product.id];
+      const specs = Array.isArray(cachedSpecs)
+        ? cachedSpecs
+        : (await getPublicSpecificationGroups(product.id)).data || [];
       const hasSpecs = specs.length > 0 && specs.some(g => g.options && g.options.length > 0);
       setProductSpecMap(prev => ({ ...prev, [product.id]: hasSpecs }));
+      setProductSpecGroups(prev => ({ ...prev, [product.id]: specs }));
 
       if (hasSpecs) {
         // 有規格，顯示 Modal
@@ -133,7 +137,11 @@ function TakeoutOrderPage() {
       try {
         setLoading(true);
         setError("");
-        const storeRes = await getStore(storeId);
+        const [storeRes, productsRes, categoriesRes] = await Promise.all([
+          getStore(storeId),
+          getTakeoutProducts(storeId),
+          getPublicProductCategories(storeId)
+        ]);
         setStore(storeRes.data);
 
         if (storeRes.data.enable_takeout === false) {
@@ -142,11 +150,6 @@ function TakeoutOrderPage() {
           setError('店家目前已關閉外帶點餐功能。');
           return;
         }
-
-        const [productsRes, categoriesRes] = await Promise.all([
-          getTakeoutProducts(storeId),
-          getPublicProductCategories(storeId)
-        ]);
 
         setMenuItems(productsRes.data);
         setCategories(categoriesRes.data || []);
@@ -557,6 +560,7 @@ function TakeoutOrderPage() {
       {showSpecModal && selectedProduct && (
         <ProductSpecificationModal
           product={selectedProduct}
+          initialSpecGroups={productSpecGroups[selectedProduct.id]}
           onConfirm={handleSpecConfirm}
           onCancel={() => {
             setShowSpecModal(false);

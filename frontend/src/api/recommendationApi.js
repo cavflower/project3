@@ -1,4 +1,5 @@
 import api from './api';
+import { cachedGet } from './requestCache';
 
 /**
  * 獲取個人化推薦商品
@@ -23,14 +24,14 @@ export const getRecommendedStores = async (limit = 5, tags = null) => {
   if (tags && tags.length > 0) {
     params.tags = tags.join(',');
   }
-  return api.get('/intelligence/recommendations/stores/', { params });
+  return cachedGet(api, '/intelligence/recommendations/stores/', { params });
 };
 
 /**
  * 獲取用戶的食物偏好分析
  */
 export const getUserPreferences = async () => {
-  return api.get('/intelligence/recommendations/preferences/');
+  return cachedGet(api, '/intelligence/recommendations/preferences/');
 };
 
 /**
