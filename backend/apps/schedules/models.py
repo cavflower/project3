@@ -136,6 +136,9 @@ class Shift(models.Model):
         verbose_name = '排班時段'
         verbose_name_plural = '排班時段'
         ordering = ['date', 'start_hour', 'start_minute']
+        indexes = [
+            models.Index(fields=['store', 'date', 'start_hour', 'start_minute']),
+        ]
     
     def __str__(self):
         return f"{self.store.name} - {self.date} {self.get_shift_type_display()}"
@@ -277,6 +280,11 @@ class EmployeeScheduleRequest(models.Model):
         verbose_name_plural = '員工排班申請'
         ordering = ['-date', 'period_type', 'shift_type']
         unique_together = [['employee', 'store', 'date', 'period_type', 'shift_type']]
+        indexes = [
+            models.Index(fields=['store', '-date', '-created_at']),
+            models.Index(fields=['employee', '-date', '-created_at']),
+            models.Index(fields=['store', 'assignment_status', '-date']),
+        ]
     
     def __str__(self):
         return f"{self.employee.username} - {self.store.name} - {self.get_period_type_display()} {self.date} {self.get_shift_type_display()}"

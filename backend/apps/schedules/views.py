@@ -20,6 +20,13 @@ from apps.stores.models import Store
 from datetime import datetime, timedelta
 
 
+def get_merchant_store_id(user):
+    merchant = getattr(user, 'merchant_profile', None)
+    if not merchant:
+        return None
+    return Store.objects.filter(merchant=merchant).values_list('id', flat=True).first()
+
+
 class StaffViewSet(viewsets.ModelViewSet):
     """員工管理 ViewSet"""
     
@@ -30,14 +37,11 @@ class StaffViewSet(viewsets.ModelViewSet):
         """只返回當前商家的員工"""
         user = self.request.user
         
-        if not hasattr(user, 'merchant_profile'):
+        store_id = get_merchant_store_id(user)
+        if not store_id:
             return Staff.objects.none()
         
-        merchant = user.merchant_profile
-        if not hasattr(merchant, 'store') or not merchant.store:
-            return Staff.objects.none()
-        
-        return Staff.objects.filter(store=merchant.store)
+        return Staff.objects.filter(store_id=store_id).order_by('-created_at')
     
     def perform_create(self, serializer):
         """建立員工時自動設定店家"""
@@ -62,14 +66,11 @@ class JobRoleViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if not hasattr(user, 'merchant_profile'):
+        store_id = get_merchant_store_id(user)
+        if not store_id:
             return JobRole.objects.none()
 
-        merchant = user.merchant_profile
-        if not hasattr(merchant, 'store') or not merchant.store:
-            return JobRole.objects.none()
-
-        return JobRole.objects.filter(store=merchant.store)
+        return JobRole.objects.filter(store_id=store_id)
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -94,14 +95,11 @@ class ShiftViewSet(viewsets.ModelViewSet):
         """只返回當前商家的排班"""
         user = self.request.user
         
-        if not hasattr(user, 'merchant_profile'):
+        store_id = get_merchant_store_id(user)
+        if not store_id:
             return Shift.objects.none()
         
-        merchant = user.merchant_profile
-        if not hasattr(merchant, 'store') or not merchant.store:
-            return Shift.objects.none()
-        
-        return Shift.objects.filter(store=merchant.store).prefetch_related('assigned_staff')
+        return Shift.objects.filter(store_id=store_id).prefetch_related('assigned_staff')
     
     def perform_create(self, serializer):
         """建立排班時自動設定店家"""
@@ -447,12 +445,18 @@ class EmployeeScheduleRequestViewSet(viewsets.ModelViewSet):
         
         # 如果是店家，返回該店家所有員工的申請
         if hasattr(user, 'merchant_profile') and hasattr(user.merchant_profile, 'store'):
-            store = user.merchant_profile.store
-            return EmployeeScheduleRequest.objects.filter(store=store).select_related('employee', 'company', 'store')
+            store_id = get_merchant_store_id(user)
+            if not store_id:
+                return EmployeeScheduleRequest.objects.none()
+            return EmployeeScheduleRequest.objects.filter(store_id=store_id).select_related(
+                'employee', 'company', 'store'
+            ).order_by('-date', '-created_at')
         
         # 如果是員工（有 company_tax_id），返回該員工的申請
         elif user.company_tax_id:
-            return EmployeeScheduleRequest.objects.filter(employee=user).select_related('employee', 'company', 'store')
+            return EmployeeScheduleRequest.objects.filter(employee=user).select_related(
+                'employee', 'company', 'store'
+            ).order_by('-date', '-created_at')
         
         return EmployeeScheduleRequest.objects.none()
     

@@ -1,4 +1,5 @@
 import api from './api';
+import { cachedGet, clearRequestCache } from './requestCache';
 
 /**
  * 排班管理相關 API
@@ -9,7 +10,7 @@ import api from './api';
  * @returns {Promise}
  */
 export const getScheduleData = () => {
-  return api.get('/schedules/shifts/save_all/');
+  return cachedGet(api, '/schedules/shifts/save_all/', {}, 15 * 1000);
 };
 
 /**
@@ -18,7 +19,10 @@ export const getScheduleData = () => {
  * @returns {Promise}
  */
 export const saveScheduleData = (data) => {
-  return api.post('/schedules/shifts/save_all/', data);
+  return api.post('/schedules/shifts/save_all/', data).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -26,7 +30,7 @@ export const saveScheduleData = (data) => {
  * @returns {Promise}
  */
 export const getStaff = () => {
-  return api.get('/schedules/staff/');
+  return cachedGet(api, '/schedules/staff/', {}, 15 * 1000);
 };
 
 /**
@@ -35,7 +39,10 @@ export const getStaff = () => {
  * @returns {Promise}
  */
 export const createStaff = (staffData) => {
-  return api.post('/schedules/staff/', staffData);
+  return api.post('/schedules/staff/', staffData).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -45,7 +52,10 @@ export const createStaff = (staffData) => {
  * @returns {Promise}
  */
 export const updateStaff = (id, staffData) => {
-  return api.patch(`/schedules/staff/${id}/`, staffData);
+  return api.patch(`/schedules/staff/${id}/`, staffData).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -54,7 +64,10 @@ export const updateStaff = (id, staffData) => {
  * @returns {Promise}
  */
 export const deleteStaff = (id) => {
-  return api.delete(`/schedules/staff/${id}/`);
+  return api.delete(`/schedules/staff/${id}/`).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -62,7 +75,7 @@ export const deleteStaff = (id) => {
  * @returns {Promise}
  */
 export const getShifts = () => {
-  return api.get('/schedules/shifts/');
+  return cachedGet(api, '/schedules/shifts/', {}, 15 * 1000);
 };
 
 /**
@@ -71,7 +84,10 @@ export const getShifts = () => {
  * @returns {Promise}
  */
 export const createShift = (shiftData) => {
-  return api.post('/schedules/shifts/', shiftData);
+  return api.post('/schedules/shifts/', shiftData).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -81,7 +97,10 @@ export const createShift = (shiftData) => {
  * @returns {Promise}
  */
 export const updateShift = (id, shiftData) => {
-  return api.patch(`/schedules/shifts/${id}/`, shiftData);
+  return api.patch(`/schedules/shifts/${id}/`, shiftData).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -90,7 +109,10 @@ export const updateShift = (id, shiftData) => {
  * @returns {Promise}
  */
 export const deleteShift = (id) => {
-  return api.delete(`/schedules/shifts/${id}/`);
+  return api.delete(`/schedules/shifts/${id}/`).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -98,7 +120,7 @@ export const deleteShift = (id) => {
  * @returns {Promise}
  */
 export const getJobRoles = () => {
-  return api.get('/schedules/job-roles/');
+  return cachedGet(api, '/schedules/job-roles/', {}, 15 * 1000);
 };
 
 /**
@@ -107,7 +129,10 @@ export const getJobRoles = () => {
  * @returns {Promise}
  */
 export const createJobRole = (roleData) => {
-  return api.post('/schedules/job-roles/', roleData);
+  return api.post('/schedules/job-roles/', roleData).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -117,7 +142,10 @@ export const createJobRole = (roleData) => {
  * @returns {Promise}
  */
 export const updateJobRole = (id, roleData) => {
-  return api.patch(`/schedules/job-roles/${id}/`, roleData);
+  return api.patch(`/schedules/job-roles/${id}/`, roleData).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -126,7 +154,10 @@ export const updateJobRole = (id, roleData) => {
  * @returns {Promise}
  */
 export const deleteJobRole = (id) => {
-  return api.delete(`/schedules/job-roles/${id}/`);
+  return api.delete(`/schedules/job-roles/${id}/`).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**
@@ -173,7 +204,7 @@ export const getMyScheduleRequests = () => {
  * @returns {Promise}
  */
 export const getEmployeeRequests = () => {
-  return api.get('/schedules/employee-requests/');
+  return cachedGet(api, '/schedules/employee-requests/', {}, 15 * 1000);
 };
 
 /**
@@ -183,7 +214,10 @@ export const getEmployeeRequests = () => {
  * @returns {Promise}
  */
 export const updateScheduleRequest = (id, requestData) => {
-  return api.patch(`/schedules/employee-requests/${id}/`, requestData);
+  return api.patch(`/schedules/employee-requests/${id}/`, requestData).then((response) => {
+    clearRequestCache();
+    return response;
+  });
 };
 
 /**

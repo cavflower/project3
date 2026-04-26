@@ -326,9 +326,11 @@ const ScheduleManagementPage = () => {
     }
 
     const initializePageData = async () => {
-      await loadScheduleData();
-      await loadJobRoleList();
-      await loadEmployeeRequests();
+      await Promise.all([
+        loadScheduleData(),
+        loadJobRoleList(),
+        loadEmployeeRequests(),
+      ]);
     };
 
     initializePageData();
