@@ -8,6 +8,7 @@ from django.db import models
 import csv
 from .models import Ingredient
 from .serializers import IngredientSerializer, IngredientExportSerializer
+from apps.stores.models import Store
 
 
 class IngredientViewSet(viewsets.ModelViewSet):
@@ -25,10 +26,11 @@ class IngredientViewSet(viewsets.ModelViewSet):
             return Ingredient.objects.none()
         
         merchant = user.merchant_profile
-        if not hasattr(merchant, 'store') or not merchant.store:
+        store_id = Store.objects.filter(merchant=merchant).values_list('id', flat=True).first()
+        if not store_id:
             return Ingredient.objects.none()
         
-        return Ingredient.objects.filter(store=merchant.store)
+        return Ingredient.objects.filter(store_id=store_id).order_by('-created_at')
     
     def perform_create(self, serializer):
         """建立原物料時自動設定店家"""
@@ -39,11 +41,12 @@ class IngredientViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("您必須是商家才能新增原物料")
         
         merchant = user.merchant_profile
-        if not hasattr(merchant, 'store') or not merchant.store:
+        store_id = Store.objects.filter(merchant=merchant).values_list('id', flat=True).first()
+        if not store_id:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("您必須先建立店家才能新增原物料")
         
-        serializer.save(store=merchant.store)
+        serializer.save(store_id=store_id)
     
     @action(detail=False, methods=['get'])
     def low_stock(self, request):

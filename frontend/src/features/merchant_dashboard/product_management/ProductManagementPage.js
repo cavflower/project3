@@ -106,16 +106,17 @@ const ProductManagementPage = () => {
   };
 
   const handleEditClick = async (product) => {
+    setEditingProduct(product);
+    setSelectedCategory(categories.find(cat => cat.id === product.category));
+    setIsFormVisible(true);
+    setError('');
+
     try {
       const response = await getProductDetail(product.id, { include_ingredients: 1 });
       const fullProduct = response.data;
       setEditingProduct(fullProduct);
 
       // 找到商品所屬的類別
-      const productCategory = categories.find(cat => cat.id === fullProduct.category);
-      setSelectedCategory(productCategory);
-      setIsFormVisible(true);
-      setError('');
     } catch (err) {
       console.error('[ProductManagement] Error fetching product detail:', err);
       setError('無法載入商品詳細資料，請稍後再試。');
@@ -124,11 +125,13 @@ const ProductManagementPage = () => {
 
   const handleDelete = async (productId) => {
     if (window.confirm('您確定要刪除此商品嗎？')) {
+      const previousProducts = products;
+      setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
       try {
         await deleteProduct(productId);
-        setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
         setError('');
       } catch (err) {
+        setProducts(previousProducts);
         setError('刪除商品失敗。');
         console.error(err);
       }
@@ -136,7 +139,14 @@ const ProductManagementPage = () => {
   };
 
   const handleFormSuccess = (productData, isEdit = false) => {
-    fetchData();
+    setProducts(prevProducts => {
+      if (isEdit) {
+        return prevProducts.map(product => (
+          product.id === productData.id ? { ...product, ...productData } : product
+        ));
+      }
+      return [productData, ...prevProducts];
+    });
     setIsFormVisible(false);
     setEditingProduct(null);
     setSelectedCategory(null);

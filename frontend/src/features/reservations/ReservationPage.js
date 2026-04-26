@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import {
@@ -8,6 +8,13 @@ import {
 } from 'react-icons/fa';
 import { createReservation, getPublicTimeSlots } from '../../api/reservationApi';
 import styles from './ReservationPage.module.css';
+
+const getUserDisplayName = (user) => (
+  user?.name ||
+  user?.username ||
+  (user?.email ? user.email.split('@')[0] : '') ||
+  ''
+);
 
 const ReservationPage = () => {
   const { storeId } = useParams();
@@ -37,10 +44,11 @@ const ReservationPage = () => {
 
   // 可用時段
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
-  const [openWeekdays, setOpenWeekdays] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dateRange, setDateRange] = useState({ min: '' });
+  const timeSlotsCacheRef = useRef(new Map());
+  const latestTimeSlotRequestRef = useRef(0);
 
   // 使用 useCallback 避免不必要的重新渲染
   const fetchAvailableTimeSlots = useCallback(async (date) => {
@@ -50,6 +58,18 @@ const ReservationPage = () => {
       setAvailableTimeSlots([]);
       return;
     }
+
+    const cacheKey = `${storeId}:${date}`;
+    const cachedSlots = timeSlotsCacheRef.current.get(cacheKey);
+    if (cachedSlots) {
+      setAvailableTimeSlots(cachedSlots);
+      setLoading(false);
+      setError(cachedSlots.length === 0 ? '該日期尚無可訂位時段，請選擇其他日期' : null);
+      return;
+    }
+
+    const requestId = latestTimeSlotRequestRef.current + 1;
+    latestTimeSlotRequestRef.current = requestId;
 
     try {
       setLoading(true);
@@ -97,6 +117,9 @@ const ReservationPage = () => {
 
       console.log('✅ Filtered slots for', dayOfWeek, ':', daySlots);
 
+      if (latestTimeSlotRequestRef.current !== requestId) return;
+
+      timeSlotsCacheRef.current.set(cacheKey, daySlots);
       setAvailableTimeSlots(daySlots);
       setLoading(false);
 
@@ -105,6 +128,7 @@ const ReservationPage = () => {
         setError('該日期尚無可訂位時段，請選擇其他日期');
       }
     } catch (err) {
+      if (latestTimeSlotRequestRef.current !== requestId) return;
       console.error('Failed to fetch time slots:', err);
       setError('無法載入時段資料，請稍後再試');
       setAvailableTimeSlots([]);
@@ -120,28 +144,19 @@ const ReservationPage = () => {
   }, []);
 
   useEffect(() => {
-    const fetchOpenWeekdays = async () => {
-      if (!storeId) return;
+    if (!user) return;
 
-      try {
-        const response = await getPublicTimeSlots(storeId);
-        const allSlots = response.data.results || response.data;
-        const weekdays = Array.from(
-          new Set(
-            (allSlots || [])
-              .filter((slot) => slot.is_active)
-              .map((slot) => slot.day_of_week)
-          )
-        );
-
-        setOpenWeekdays(weekdays);
-      } catch (err) {
-        console.error('Failed to fetch open weekdays:', err);
-      }
-    };
-
-    fetchOpenWeekdays();
-  }, [storeId]);
+    setReservationData((prev) => ({
+      ...prev,
+      guestInfo: {
+        ...prev.guestInfo,
+        name: prev.guestInfo.name || getUserDisplayName(user),
+        gender: user.gender || prev.guestInfo.gender,
+        phone: prev.guestInfo.phone || user.phone_number || '',
+        email: prev.guestInfo.email || user.email || '',
+      },
+    }));
+  }, [user]);
 
   useEffect(() => {
     console.log('🔄 useEffect triggered - reservationData.date:', reservationData.date, 'storeId:', storeId);
@@ -172,12 +187,6 @@ const ReservationPage = () => {
 
     if (selectedDate < today) {
       setError('僅可預約今天之後的日期，請重新選擇。');
-      return;
-    }
-
-    const selectedWeekday = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][selectedDate.getDay()];
-    if (openWeekdays.length > 0 && !openWeekdays.includes(selectedWeekday)) {
-      setError('該日期為店家未營業時段，請選擇其他日期。');
       return;
     }
 
@@ -292,6 +301,9 @@ const ReservationPage = () => {
         reservationPayload.customer_gender = reservationData.guestInfo.gender;
       } else {
         // 會員也要加入性別資訊
+        reservationPayload.customer_name = getUserDisplayName(user);
+        reservationPayload.customer_phone = user.phone_number || '';
+        reservationPayload.customer_email = user.email || '';
         if (user.gender) {
           reservationPayload.customer_gender = user.gender;
         }
@@ -605,7 +617,7 @@ const ReservationPage = () => {
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>聯絡人：</span>
                     <span className={styles.infoValue}>
-                      {user ? user.username : reservationData.guestInfo.name}
+                      {user ? getUserDisplayName(user) : reservationData.guestInfo.name}
                       {user && user.gender && (
                         <span className={styles.genderSuffix}>
                           {user.gender === 'female' ? ' 小姐' :
@@ -623,7 +635,7 @@ const ReservationPage = () => {
                   <div className={styles.infoRow}>
                     <span className={styles.infoLabel}>聯絡電話：</span>
                     <span className={styles.infoValue}>
-                      {user ? user.phone_number : reservationData.guestInfo.phone}
+                      {user ? (user.phone_number || reservationData.guestInfo.phone || '未提供') : reservationData.guestInfo.phone}
                     </span>
                   </div>
                   {!user && reservationData.guestInfo.email && (

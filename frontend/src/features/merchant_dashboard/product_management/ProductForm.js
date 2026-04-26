@@ -289,7 +289,7 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
               value={formData.price}
               onChange={handleInputChange}
               onWheel={(e) => e.currentTarget.blur()}
-              placeholder="例如：67 或 67.50"
+              placeholder="價格"
               required
             />
           </div>

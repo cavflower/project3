@@ -1,8 +1,9 @@
 import api from './api';
+import { cachedGet, clearRequestCache } from './requestCache';
 
 // 取得所有原物料
 export const getIngredients = async () => {
-  const response = await api.get('/inventory/ingredients/');
+  const response = await cachedGet(api, '/inventory/ingredients/', {}, 15 * 1000);
   return response.data;
 };
 
@@ -15,24 +16,27 @@ export const getIngredient = async (id) => {
 // 新增原物料
 export const createIngredient = async (ingredientData) => {
   const response = await api.post('/inventory/ingredients/', ingredientData);
+  clearRequestCache();
   return response.data;
 };
 
 // 更新原物料
 export const updateIngredient = async (id, ingredientData) => {
   const response = await api.put(`/inventory/ingredients/${id}/`, ingredientData);
+  clearRequestCache();
   return response.data;
 };
 
 // 刪除原物料
 export const deleteIngredient = async (id) => {
   const response = await api.delete(`/inventory/ingredients/${id}/`);
+  clearRequestCache();
   return response.data;
 };
 
 // 取得低庫存原物料
 export const getLowStockIngredients = async () => {
-  const response = await api.get('/inventory/ingredients/low_stock/');
+  const response = await cachedGet(api, '/inventory/ingredients/low_stock/', {}, 15 * 1000);
   return response.data;
 };
 

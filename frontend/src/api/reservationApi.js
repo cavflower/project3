@@ -1,4 +1,5 @@
 import api from './api';
+import { cachedGet } from './requestCache';
 
 /**
  * 訂位相關 API
@@ -87,7 +88,7 @@ export const getPublicTimeSlots = (storeId, date = null) => {
   if (date) {
     params.append('date', date);
   }
-  return api.get(`/time-slots/?${params.toString()}`);
+  return cachedGet(api, `/time-slots/?${params.toString()}`, {}, 15 * 1000);
 };
 
 // ==================== 商家端 API ====================

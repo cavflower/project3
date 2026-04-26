@@ -455,6 +455,14 @@
     font-size: 12px;
 }
 
+.specInlineActionBtn {
+    min-width: 46px;
+    height: 36px;
+    padding: 0 12px;
+    justify-content: center;
+    white-space: nowrap;
+}
+
 .specIconBtnEdit {
     background: #f0f0f0;
     color: #333;

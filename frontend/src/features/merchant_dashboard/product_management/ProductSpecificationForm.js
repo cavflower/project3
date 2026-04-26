@@ -367,10 +367,10 @@ const ProductSpecificationForm = ({ product, onClose }) => {
                                                                     step="1"
                                                                 />
                                                             </div>
-                                                            <button type="submit" className={`${styles.specSaveBtn} ${styles.specIconBtnSmall}`} disabled={loading}>
+                                                            <button type="submit" className={`${styles.specSaveBtn} ${styles.specInlineActionBtn}`} disabled={loading}>
                                                                 <FaSave />
                                                             </button>
-                                                            <button type="button" className={`${styles.specCancelBtn} ${styles.specIconBtnSmall}`} onClick={resetOptionForm}>
+                                                            <button type="button" className={`${styles.specCancelBtn} ${styles.specInlineActionBtn}`} onClick={resetOptionForm}>
                                                                 取消
                                                             </button>
                                                         </form>
@@ -415,10 +415,10 @@ const ProductSpecificationForm = ({ product, onClose }) => {
                                                             step="1"
                                                         />
                                                     </div>
-                                                    <button type="submit" className={`${styles.specSaveBtn} ${styles.specIconBtnSmall}`} disabled={loading}>
+                                                    <button type="submit" className={`${styles.specSaveBtn} ${styles.specInlineActionBtn}`} disabled={loading}>
                                                         <FaPlus />
                                                     </button>
-                                                    <button type="button" className={`${styles.specCancelBtn} ${styles.specIconBtnSmall}`} onClick={resetOptionForm}>
+                                                    <button type="button" className={`${styles.specCancelBtn} ${styles.specInlineActionBtn}`} onClick={resetOptionForm}>
                                                         取消
                                                     </button>
                                                 </form>

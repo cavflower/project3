@@ -103,7 +103,7 @@ function IngredientForm({ ingredient, onClose }) {
           </div>
 
           <div className={styles.formRow}>
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="quantity">數量</label>
               <input
                 type="number"
@@ -116,7 +116,7 @@ function IngredientForm({ ingredient, onClose }) {
               />
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="unit">單位</label>
               <select
                 id="unit"
@@ -135,8 +135,8 @@ function IngredientForm({ ingredient, onClose }) {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
               <label htmlFor="cost_per_unit">單價 (NT$)</label>
               <input
                 type="number"
@@ -149,7 +149,7 @@ function IngredientForm({ ingredient, onClose }) {
               />
             </div>
 
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="minimum_stock">最低庫存量</label>
               <input
                 type="number"

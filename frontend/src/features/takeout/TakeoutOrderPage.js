@@ -18,6 +18,13 @@ const initialCart = {
 
 const formatPrice = (value) => Math.round(Number(value) || 0);
 
+const getUserDisplayName = (user) => (
+  user?.name ||
+  user?.username ||
+  (user?.email ? user.email.split('@')[0] : '') ||
+  ''
+);
+
 function cartReducer(state, action) {
   switch (action.type) {
     case "ADD_ITEM": {
@@ -92,8 +99,30 @@ function TakeoutOrderPage() {
   const [productSpecGroups, setProductSpecGroups] = useState({});
 
   // 如果從購物車頁面返回，恢復購物車狀態
-  const initialCartState = location.state?.cart || initialCart;
+  const initialCartState = useMemo(() => {
+    const savedCart = location.state?.cart || initialCart;
+    return {
+      ...savedCart,
+      contact: {
+        ...savedCart.contact,
+        name: savedCart.contact?.name || getUserDisplayName(user),
+        phone: savedCart.contact?.phone || user?.phone_number || '',
+      },
+    };
+  }, [location.state?.cart, user]);
   const [cart, dispatch] = useReducer(cartReducer, initialCartState);
+
+  useEffect(() => {
+    if (!user) return;
+
+    dispatch({
+      type: "UPDATE_CONTACT",
+      payload: {
+        name: cart.contact?.name || getUserDisplayName(user),
+        phone: cart.contact?.phone || user.phone_number || '',
+      },
+    });
+  }, [cart.contact?.name, cart.contact?.phone, user]);
 
   // 處理商品點擊：檢查是否有規格
   const handleProductClick = async (product) => {
@@ -203,10 +232,19 @@ function TakeoutOrderPage() {
   );
 
   const handleGoToCart = () => {
+    const cartWithContact = {
+      ...cart,
+      contact: {
+        ...cart.contact,
+        name: cart.contact?.name || getUserDisplayName(user),
+        phone: cart.contact?.phone || user?.phone_number || '',
+      },
+    };
+
     // 只傳遞可序列化的資料，不傳遞 dispatch 函數
     navigate(`/takeout/${storeId}/cart`, {
       state: {
-        cart: cart,
+        cart: cartWithContact,
         store: store,
         storeId: storeId,
         greenPoints: greenPoints

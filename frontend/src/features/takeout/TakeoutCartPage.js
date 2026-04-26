@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaArrowLeft, FaPlus, FaMinus, FaCoins } from "react-icons/fa";
 import { createTakeoutOrder } from "../../api/orderApi";
@@ -16,6 +16,13 @@ const paymentOptionsList = [
 
 const formatPrice = (value) => Math.round(Number(value) || 0);
 const CARRIER_BODY_REGEX = /^[0-9A-Z.+-]{7}$/;
+
+const getUserDisplayName = (user) => (
+  user?.name ||
+  user?.username ||
+  (user?.email ? user.email.split('@')[0] : '') ||
+  ''
+);
 
 const normalizeCarrierBody = (rawValue) =>
   (rawValue || '')
@@ -87,7 +94,7 @@ function TakeoutCartPage() {
 
   // 使用本地狀態管理購物車
   const [cartItems, setCartItems] = useState(initialCart?.items || []);
-  const [contactName, setContactName] = useState(initialCart?.contact?.name || user?.username || "");
+  const [contactName, setContactName] = useState(initialCart?.contact?.name || getUserDisplayName(user));
   const [contactPhone, setContactPhone] = useState(initialCart?.contact?.phone || user?.phone_number || "");
   const [pickupAt, setPickupAt] = useState(() => getInitialPickupAt(initialCart?.pickupAt));
   const [paymentMethod, setPaymentMethod] = useState(paymentOptionsList[0].value);
@@ -102,6 +109,11 @@ function TakeoutCartPage() {
   const [selectedCard, setSelectedCard] = useState(null);
 
   const slots = useMemo(() => buildPickupSlots(new Date()), []);
+  useEffect(() => {
+    if (!user) return;
+    setContactName((prev) => prev || getUserDisplayName(user));
+    setContactPhone((prev) => prev || user.phone_number || '');
+  }, [user]);
   const selectedPickupDate = useMemo(() => {
     const current = new Date(pickupAt);
     const matched = slots.find((slot) => slot.getTime() === current.getTime());
@@ -264,7 +276,7 @@ function TakeoutCartPage() {
 
     if (user) {
       // 已登入：使用使用者資料
-      finalName = user.username || user.email || "會員";
+      finalName = getUserDisplayName(user) || "會員";
       finalPhone = user.phone_number || "未提供";
     } else {
       // 未登入：必須填寫
@@ -504,7 +516,7 @@ function TakeoutCartPage() {
     let finalPhone = contactPhone;
 
     if (user) {
-      finalName = user.username || user.email || "會員";
+      finalName = getUserDisplayName(user) || "會員";
       finalPhone = user.phone_number || "未提供";
     } else {
       if (!contactName || !contactPhone) {
@@ -1005,7 +1017,7 @@ function TakeoutCartPage() {
                 <div className={styles['checkout-receipt-meta']}>
                   <div>
                     <label>聯絡人</label>
-                    <span>{user ? (user.username || user.email) : contactName}</span>
+                    <span>{user ? (getUserDisplayName(user) || contactName) : contactName}</span>
                   </div>
                   <div>
                     <label>聯絡電話</label>
