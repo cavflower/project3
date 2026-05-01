@@ -5,6 +5,8 @@ import ReservationList from './ReservationList';
 import styles from './ReservationManagementPage.module.css';
 import { getMyStore, getDineInLayout } from '../../../api/storeApi';
 import { normalizeDineInLayout } from '../../../utils/dineInLayout';
+import { db } from '../../../lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import {
   getMerchantReservations,
   updateReservationStatus,
@@ -47,6 +49,7 @@ const ReservationManagementPage = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [showAcceptDialog, setShowAcceptDialog] = useState(false);
   const [selectedAcceptReservation, setSelectedAcceptReservation] = useState(null);
+  const [storeId, setStoreId] = useState(null);
   const [tableFloors, setTableFloors] = useState([]);
   const [activeTableFloorId, setActiveTableFloorId] = useState('');
   const [acceptForm, setAcceptForm] = useState({
@@ -62,6 +65,7 @@ const ReservationManagementPage = () => {
   });
   const [tableMapZoom, setTableMapZoom] = useState(1);
   const tableMapViewportRef = useRef(null);
+  const realtimeRefreshTimerRef = useRef(null);
 
   const activeTableFloor = useMemo(
     () => tableFloors.find((floor) => floor.id === activeTableFloorId) || tableFloors[0] || null,
@@ -142,7 +146,7 @@ const ReservationManagementPage = () => {
     setStats(newStats);
   }, []);
 
-  const fetchReservations = useCallback(async () => {
+  const fetchReservations = useCallback(async ({ silent = false } = {}) => {
     try {
       const filters = selectedReservationDate
         ? { reservation_date: selectedReservationDate }
@@ -153,7 +157,9 @@ const ReservationManagementPage = () => {
       updateStats(reservationData);
     } catch (error) {
       console.error('Failed to fetch reservations:', error);
-      alert('無法載入訂位資料，請稍後再試。');
+      if (!silent) {
+        alert('無法載入訂位資料，請稍後再試。');
+      }
     }
   }, [selectedReservationDate, updateStats]);
 
@@ -195,6 +201,7 @@ const ReservationManagementPage = () => {
     try {
       const storeResponse = await getMyStore({ lite: 1 });
       const storeId = storeResponse.data?.id;
+      setStoreId(storeId || null);
       if (!storeId) {
         setTableFloors([]);
         setActiveTableFloorId('');
@@ -313,6 +320,103 @@ const ReservationManagementPage = () => {
       alert(errorMsg);
     }
   };
+
+  useEffect(() => {
+    if (!storeId) return undefined;
+
+    let isInitialSnapshot = true;
+
+    const scheduleRefresh = () => {
+      if (realtimeRefreshTimerRef.current) {
+        clearTimeout(realtimeRefreshTimerRef.current);
+      }
+
+      realtimeRefreshTimerRef.current = setTimeout(() => {
+        fetchReservations({ silent: true });
+      }, 250);
+    };
+
+    const reservationsRef = collection(db, 'reservations');
+    const reservationsQuery = query(reservationsRef, where('store_id', '==', storeId));
+
+    const unsubscribe = onSnapshot(
+      reservationsQuery,
+      (snapshot) => {
+        if (isInitialSnapshot) {
+          isInitialSnapshot = false;
+          return;
+        }
+
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            scheduleRefresh();
+            return;
+          }
+
+          if (change.type === 'modified') {
+            const updatedReservation = change.doc.data();
+            setReservations((prevReservations) => {
+              let matched = false;
+              const nextReservations = prevReservations.map((reservation) => {
+                if (String(reservation.id) !== change.doc.id) {
+                  return reservation;
+                }
+
+                matched = true;
+                return {
+                  ...reservation,
+                  status: updatedReservation.status ?? reservation.status,
+                  table_label: updatedReservation.table_label ?? reservation.table_label,
+                  merchant_note: updatedReservation.merchant_note ?? reservation.merchant_note,
+                  customer_name: updatedReservation.customer_name ?? reservation.customer_name,
+                  customer_phone: updatedReservation.customer_phone ?? reservation.customer_phone,
+                  reservation_date: updatedReservation.reservation_date ?? reservation.reservation_date,
+                  time_slot: updatedReservation.time_slot ?? reservation.time_slot,
+                  party_size: updatedReservation.party_size ?? reservation.party_size,
+                  children_count: updatedReservation.children_count ?? reservation.children_count,
+                };
+              });
+
+              if (!matched) {
+                scheduleRefresh();
+                return prevReservations;
+              }
+
+              updateStats(nextReservations);
+              return nextReservations;
+            });
+            return;
+          }
+
+          if (change.type === 'removed') {
+            removeReservationFromState(Number(change.doc.id));
+          }
+        });
+      },
+      (error) => {
+        console.error('[Reservations] Firestore listener error:', error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      if (realtimeRefreshTimerRef.current) {
+        clearTimeout(realtimeRefreshTimerRef.current);
+      }
+    };
+  }, [fetchReservations, removeReservationFromState, storeId, updateStats]);
+
+  useEffect(() => {
+    if (!storeId || activeTab !== 'reservations') return undefined;
+
+    const intervalId = setInterval(() => {
+      fetchReservations({ silent: true });
+    }, 5000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [activeTab, fetchReservations, storeId]);
 
   const handleCancelClick = (reservationId) => {
     setSelectedReservationId(reservationId);

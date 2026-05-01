@@ -2,10 +2,13 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
 import hashlib
 
 from .models import Reservation, ReservationChangeLog, TimeSlot
 from apps.stores.models import Store
+from apps.orders.models import Notification
+from apps.orders.serializers import NotificationSerializer
 from .serializers import (
     ReservationSerializer,
     ReservationCreateSerializer,
@@ -438,6 +441,28 @@ class MerchantReservationViewSet(viewsets.ModelViewSet):
         }
         
         return Response(stats)
+
+
+class ReservationNotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        reservation_content_type = ContentType.objects.get_for_model(Reservation)
+        return Notification.objects.filter(
+            user=self.request.user,
+            content_type=reservation_content_type,
+        ).order_by('-created_at')
+
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        self.get_queryset().update(is_read=True)
+        return Response({'status': 'success'})
+
+    @action(detail=False, methods=['delete'])
+    def delete_all(self, request):
+        self.get_queryset().delete()
+        return Response({'status': 'success'})
 
 
 class TimeSlotViewSet(viewsets.ModelViewSet):

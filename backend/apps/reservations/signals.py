@@ -1,8 +1,9 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 import threading
 
 from .models import Reservation
+from .firestore_services import delete_reservation_from_firestore, sync_reservation_to_firestore
 from .notification_services import (
     create_platform_reservation_notification,
     send_platform_line_reservation_cancelled_notification,
@@ -41,6 +42,8 @@ def reservation_track_previous_state(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Reservation)
 def reservation_send_platform_line_notifications(sender, instance, created, **kwargs):
+    sync_reservation_to_firestore(instance)
+
     if created:
         _send_line_async(send_platform_line_reservation_created_notification, instance)
         return
@@ -78,3 +81,8 @@ def reservation_send_platform_line_notifications(sender, instance, created, **kw
             f'{instance.store.name} 已取消你的訂位。',
         )
         _send_line_async(send_platform_line_reservation_cancelled_notification, instance)
+
+
+@receiver(post_delete, sender=Reservation)
+def reservation_delete_firestore_document(sender, instance, **kwargs):
+    delete_reservation_from_firestore(instance.id)

@@ -692,7 +692,15 @@ class NotificationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+        from django.contrib.contenttypes.models import ContentType
+        from apps.reservations.models import Reservation
+
+        reservation_content_type = ContentType.objects.get_for_model(Reservation)
+        return Notification.objects.filter(
+            user=self.request.user
+        ).exclude(
+            content_type=reservation_content_type
+        ).order_by('-created_at')
     
     @action(detail=False, methods=['post'])
     def mark_all_read(self, request):

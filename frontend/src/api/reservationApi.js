@@ -79,6 +79,18 @@ export const getReservationChangeLogs = (id) => {
   return api.get(`/reservations/${id}/change-logs/`, { authRole: AUTH_ROLES.CUSTOMER });
 };
 
+export const getReservationNotifications = () =>
+  api.get('/reservation-notifications/', { authRole: AUTH_ROLES.CUSTOMER });
+
+export const markAllReservationNotificationsAsRead = () =>
+  api.post('/reservation-notifications/mark_all_read/', {}, { authRole: AUTH_ROLES.CUSTOMER });
+
+export const deleteReservationNotification = (id) =>
+  api.delete(`/reservation-notifications/${id}/`, { authRole: AUTH_ROLES.CUSTOMER });
+
+export const deleteAllReservationNotifications = () =>
+  api.delete('/reservation-notifications/delete_all/', { authRole: AUTH_ROLES.CUSTOMER });
+
 /**
  * 查詢店家的可用訂位時段（公開 API，無需登入）
  * @param {number} storeId - 店家 ID
@@ -210,6 +222,10 @@ export default {
   updateReservation,
   cancelReservation,
   getReservationChangeLogs,
+  getReservationNotifications,
+  markAllReservationNotificationsAsRead,
+  deleteReservationNotification,
+  deleteAllReservationNotifications,
   getPublicTimeSlots,
   
   // 商家端
