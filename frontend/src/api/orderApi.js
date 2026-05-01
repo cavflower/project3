@@ -1,4 +1,5 @@
 import api from './api';
+import { AUTH_ROLES } from './authTokens';
 import { cachedGet } from './requestCache';
 
 export const getTakeoutProducts = (storeId) =>
@@ -12,10 +13,10 @@ export const getDineInProducts = (storeId) =>
   });
 
 export const createTakeoutOrder = (payload) =>
-  api.post('/orders/takeout/', payload);
+  api.post('/orders/takeout/', payload, { authRole: AUTH_ROLES.CUSTOMER });
 
 export const createDineInOrder = (payload) =>
-  api.post('/orders/dinein/', payload);
+  api.post('/orders/dinein/', payload, { authRole: AUTH_ROLES.CUSTOMER });
 
 export const getUserOrders = () =>
   api.get('/orders/customer-orders/', {

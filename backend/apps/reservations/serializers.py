@@ -550,6 +550,17 @@ class MerchantReservationUpdateSerializer(serializers.ModelSerializer):
         if normalized_value not in configured_labels:
             raise serializers.ValidationError('請從店家內用設定中已建立的桌位選擇桌號。')
 
+        is_occupied = Reservation.objects.filter(
+            store=store,
+            reservation_date=self.instance.reservation_date,
+            time_slot=self.instance.time_slot,
+            table_label=normalized_value,
+            status__in=['pending', 'confirmed'],
+        ).exclude(pk=self.instance.pk).exists()
+
+        if is_occupied:
+            raise serializers.ValidationError('此桌位在同一天同一個時段已被其他訂位使用，請選擇其他桌位。')
+
         return normalized_value
     
     def update(self, instance, validated_data):

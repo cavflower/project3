@@ -178,6 +178,10 @@
     background: #fafafa;
 }
 
+.slotCalendarCard:only-child {
+    grid-column: 1 / -1;
+}
+
 .slotCalendarHeader {
     display: flex;
     justify-content: space-between;

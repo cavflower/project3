@@ -1,4 +1,5 @@
 import api from './api';
+import { AUTH_ROLES } from './authTokens';
 import { cachedGet } from './requestCache';
 
 /**
@@ -13,7 +14,7 @@ import { cachedGet } from './requestCache';
  * @returns {Promise}
  */
 export const createReservation = (reservationData) => {
-  return api.post('/reservations/', reservationData);
+  return api.post('/reservations/', reservationData, { authRole: AUTH_ROLES.CUSTOMER });
 };
 
 /**
@@ -30,7 +31,7 @@ export const verifyGuestReservation = (phoneNumber) => {
  * @returns {Promise}
  */
 export const getMyReservations = () => {
-  return api.get('/reservations/');
+  return api.get('/reservations/', { authRole: AUTH_ROLES.CUSTOMER });
 };
 
 /**
@@ -39,7 +40,7 @@ export const getMyReservations = () => {
  * @returns {Promise}
  */
 export const getReservationDetail = (id) => {
-  return api.get(`/reservations/${id}/`);
+  return api.get(`/reservations/${id}/`, { authRole: AUTH_ROLES.CUSTOMER });
 };
 
 /**
@@ -51,7 +52,7 @@ export const getReservationDetail = (id) => {
  */
 export const updateReservation = (id, updateData, phoneNumber = null) => {
   const data = phoneNumber ? { ...updateData, phone_number: phoneNumber } : updateData;
-  return api.patch(`/reservations/${id}/`, data);
+  return api.patch(`/reservations/${id}/`, data, { authRole: AUTH_ROLES.CUSTOMER });
 };
 
 /**
@@ -66,7 +67,7 @@ export const cancelReservation = (id, cancelReason, phoneNumber = null) => {
   if (phoneNumber) {
     data.phone_number = phoneNumber;
   }
-  return api.post(`/reservations/${id}/cancel/`, data);
+  return api.post(`/reservations/${id}/cancel/`, data, { authRole: AUTH_ROLES.CUSTOMER });
 };
 
 /**
@@ -75,7 +76,7 @@ export const cancelReservation = (id, cancelReason, phoneNumber = null) => {
  * @returns {Promise}
  */
 export const getReservationChangeLogs = (id) => {
-  return api.get(`/reservations/${id}/change-logs/`);
+  return api.get(`/reservations/${id}/change-logs/`, { authRole: AUTH_ROLES.CUSTOMER });
 };
 
 /**

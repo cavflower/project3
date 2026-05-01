@@ -4,6 +4,7 @@ import { FaArrowLeft, FaPlus, FaMinus, FaCoins } from "react-icons/fa";
 import { createTakeoutOrder } from "../../api/orderApi";
 import api from "../../api/api";
 import surplusFoodApi from "../../api/surplusFoodApi";
+import { AUTH_ROLES } from "../../api/authTokens";
 import { useAuth } from "../../store/AuthContext";
 import CreditCardSelector from "../checkout/CreditCardSelector";
 import styles from './TakeoutCartPage.module.css';
@@ -422,7 +423,9 @@ function TakeoutCartPage() {
           notes: surplusNotes,
         };
 
-        const surplusResponse = await api.post('/surplus/orders/', surplusPayload);
+        const surplusResponse = await api.post('/surplus/orders/', surplusPayload, {
+          authRole: AUTH_ROLES.CUSTOMER,
+        });
         orderResults.push({
           type: 'surplus',
           code: surplusResponse.data?.order_number,

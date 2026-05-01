@@ -27,6 +27,7 @@ import styles from './ReservationCard.module.css';
  * @param {Function} actions.onEdit - 編輯回調
  * @param {Function} actions.onCancel - 取消回調
  * @param {Function} actions.onAccept - 接受回調（商家端）
+ * @param {Function} actions.onEditTable - 更改桌位回調（商家端）
  * @param {Function} actions.onComplete - 完成回調（商家端）
  * @param {Function} actions.onDelete - 刪除回調（商家端）
  * @param {boolean} showActions - 是否顯示操作按鈕
@@ -196,6 +197,11 @@ const ReservationCard = ({
               {status === 'confirmed' && actions.onComplete && (
                 <button className={styles['btn-complete']} onClick={() => actions.onComplete(id)}>
                   <FaCheck /> 完成
+                </button>
+              )}
+              {status === 'confirmed' && actions.onEditTable && (
+                <button className={styles['btn-edit']} onClick={() => actions.onEditTable(id)}>
+                  <FaChair /> 更改桌位
                 </button>
               )}
               {status === 'pending' && actions.onAccept && (

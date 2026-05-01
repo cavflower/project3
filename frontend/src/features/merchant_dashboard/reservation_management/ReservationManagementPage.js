@@ -20,6 +20,17 @@ const TABLE_MAP_MIN_ZOOM = 0.6;
 const TABLE_MAP_MAX_ZOOM = 1.8;
 const TABLE_MAP_ZOOM_STEP = 0.2;
 
+const getApiErrorMessage = (error, fallback) => {
+  const data = error?.response?.data;
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  if (data.error) return data.error;
+  if (data.detail) return data.detail;
+  if (Array.isArray(data.table_label) && data.table_label.length > 0) return data.table_label[0];
+  if (data.table_label) return String(data.table_label);
+  return fallback;
+};
+
 const ReservationManagementPage = () => {
   const [activeTab, setActiveTab] = useState('reservations'); // 'reservations' or 'settings'
   const [reservations, setReservations] = useState([]);
@@ -83,6 +94,26 @@ const ReservationManagementPage = () => {
     };
   }, [activeTableFloor]);
 
+  const occupiedTableLabels = useMemo(() => {
+    if (!selectedAcceptReservation) {
+      return new Set();
+    }
+
+    return new Set(
+      reservations
+        .filter((reservation) => (
+          reservation.id !== selectedAcceptReservation.id
+          && reservation.reservation_date === selectedAcceptReservation.reservation_date
+          && reservation.time_slot === selectedAcceptReservation.time_slot
+          && ['pending', 'confirmed'].includes(reservation.status)
+          && String(reservation.table_label || '').trim()
+        ))
+        .map((reservation) => String(reservation.table_label || '').trim())
+    );
+  }, [reservations, selectedAcceptReservation]);
+
+  const isEditingConfirmedReservation = selectedAcceptReservation?.status === 'confirmed';
+
   useEffect(() => {
     if (!isPanningTableMap) return;
 
@@ -129,6 +160,24 @@ const ReservationManagementPage = () => {
   useEffect(() => {
     fetchReservations();
   }, [fetchReservations]);
+
+  const replaceReservationInState = useCallback((updatedReservation) => {
+    setReservations((prevReservations) => {
+      const nextReservations = prevReservations.map((reservation) => (
+        reservation.id === updatedReservation.id ? updatedReservation : reservation
+      ));
+      updateStats(nextReservations);
+      return nextReservations;
+    });
+  }, [updateStats]);
+
+  const removeReservationFromState = useCallback((reservationId) => {
+    setReservations((prevReservations) => {
+      const nextReservations = prevReservations.filter((reservation) => reservation.id !== reservationId);
+      updateStats(nextReservations);
+      return nextReservations;
+    });
+  }, [updateStats]);
 
   const fetchTimeSlots = async () => {
     try {
@@ -243,19 +292,24 @@ const ReservationManagementPage = () => {
   const handleAcceptReservation = async () => {
     if (!selectedAcceptReservation) return;
 
+    const isEditingTable = selectedAcceptReservation.status === 'confirmed';
+
     try {
-      await updateReservationStatus(selectedAcceptReservation.id, {
+      const response = await updateReservationStatus(selectedAcceptReservation.id, {
         status: 'confirmed',
         table_label: acceptForm.tableLabel || '',
         merchant_note: acceptForm.merchantNote || '',
       });
-      await fetchReservations();
+      replaceReservationInState(response.data);
 
       resetAcceptDialog();
-      alert('訂位已確認！');
+      alert(isEditingTable ? '桌位已更新！' : '訂位已確認！');
     } catch (error) {
-      console.error('Failed to accept reservation:', error);
-      const errorMsg = error.response?.data?.error || '確認訂位失敗，請稍後再試。';
+      console.error(isEditingTable ? 'Failed to update reservation table:' : 'Failed to accept reservation:', error);
+      const errorMsg = getApiErrorMessage(
+        error,
+        isEditingTable ? '更改桌位失敗，請稍後再試。' : '確認訂位失敗，請稍後再試。'
+      );
       alert(errorMsg);
     }
   };
@@ -267,8 +321,8 @@ const ReservationManagementPage = () => {
 
   const handleCancelReservation = async () => {
     try {
-      await merchantCancelReservation(selectedReservationId, cancelReason);
-      await fetchReservations();
+      const response = await merchantCancelReservation(selectedReservationId, cancelReason);
+      replaceReservationInState(response.data);
       setShowCancelDialog(false);
       setCancelReason('');
       setSelectedReservationId(null);
@@ -284,8 +338,8 @@ const ReservationManagementPage = () => {
     if (!window.confirm('確定要將此訂位標記為已完成嗎？')) return;
 
     try {
-      await updateReservationStatus(reservationId, 'completed');
-      await fetchReservations();
+      const response = await updateReservationStatus(reservationId, 'completed');
+      replaceReservationInState(response.data);
       alert('訂位已完成！');
     } catch (error) {
       console.error('Failed to complete reservation:', error);
@@ -299,7 +353,7 @@ const ReservationManagementPage = () => {
 
     try {
       await deleteReservation(reservationId);
-      await fetchReservations();
+      removeReservationFromState(reservationId);
       alert('訂位記錄已刪除！');
     } catch (error) {
       console.error('Failed to delete reservation:', error);
@@ -422,8 +476,12 @@ const ReservationManagementPage = () => {
       {showAcceptDialog && (
         <div className={styles.dialogOverlay} onClick={resetAcceptDialog}>
           <div className={`${styles.dialogContent} ${styles.acceptDialogContent}`} onClick={(e) => e.stopPropagation()}>
-            <h3>確認訂位</h3>
-            <p>可直接點選桌位（分樓層）並填寫給顧客的備註。</p>
+            <h3>{isEditingConfirmedReservation ? '更改桌位' : '確認訂位'}</h3>
+            <p>
+              {isEditingConfirmedReservation
+                ? '可在完成訂位前調整桌位與給顧客的備註。'
+                : '可直接點選桌位（分樓層）並填寫給顧客的備註。'}
+            </p>
 
             <div className={styles.dialogFormGroup}>
               <label>指定桌位（選填）</label>
@@ -501,18 +559,25 @@ const ReservationManagementPage = () => {
                             : table.shape === 'square'
                               ? styles.tablePickItemSquare
                               : styles.tablePickItemCircle;
+                          const tableLabel = String(table.label || '').trim();
+                          const isOccupied = occupiedTableLabels.has(tableLabel);
 
                           return (
                             <button
                               key={table.id}
                               type="button"
                               data-table-pick="true"
-                              className={`${shapeClass} ${acceptForm.tableLabel === table.label ? styles.tablePickItemSelected : ''}`}
+                              className={`${shapeClass} ${acceptForm.tableLabel === table.label ? styles.tablePickItemSelected : ''} ${isOccupied ? styles.tablePickItemDisabled : ''}`}
                               style={{ left: table.x, top: table.y }}
-                              onClick={() => setAcceptForm((prev) => ({ ...prev, tableLabel: table.label }))}
+                              disabled={isOccupied}
+                              title={isOccupied ? '此桌位在同一天同一時段已被預約' : table.label}
+                              onClick={() => {
+                                if (isOccupied) return;
+                                setAcceptForm((prev) => ({ ...prev, tableLabel: table.label }));
+                              }}
                             >
                               <span>{table.label}</span>
-                              <small>{table.seats} 人</small>
+                              <small>{isOccupied ? '已被預約' : `${table.seats} 人`}</small>
                             </button>
                           );
                         })}
@@ -561,7 +626,7 @@ const ReservationManagementPage = () => {
                 className={styles.btnDanger}
                 onClick={handleAcceptReservation}
               >
-                確認受理
+                {isEditingConfirmedReservation ? '儲存變更' : '確認受理'}
               </button>
             </div>
           </div>

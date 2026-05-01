@@ -259,6 +259,10 @@ const LayoutApplicationPage = () => {
     [currentYear, selectedMonth]
   );
 
+  const activeSelectedSlots = useMemo(() => (
+    selectedSlots.includes('full_day') ? ['full_day'] : selectedSlots
+  ), [selectedSlots]);
+
   const requestCalendarCells = useMemo(
     () => buildCalendarCells(requestCalendarMonth.getFullYear(), requestCalendarMonth.getMonth() + 1),
     [requestCalendarMonth]
@@ -327,10 +331,16 @@ const LayoutApplicationPage = () => {
 
   const toggleSlotSelection = (slotKey) => {
     setSelectedSlots((prev) => {
-      if (prev.includes(slotKey)) {
-        return prev.filter((key) => key !== slotKey);
+      if (slotKey === 'full_day') {
+        return prev.includes('full_day') ? [] : ['full_day'];
       }
-      return [...prev, slotKey];
+
+      const withoutFullDay = prev.filter((key) => key !== 'full_day');
+
+      if (prev.includes(slotKey)) {
+        return withoutFullDay.filter((key) => key !== slotKey);
+      }
+      return [...withoutFullDay, slotKey];
     });
   };
 
@@ -362,7 +372,7 @@ const LayoutApplicationPage = () => {
       return;
     }
 
-    const totalSelectedCount = selectedSlots.reduce(
+    const totalSelectedCount = activeSelectedSlots.reduce(
       (sum, slotKey) => sum + ((selectedDatesBySlot[slotKey] || []).length),
       0
     );
@@ -376,7 +386,7 @@ const LayoutApplicationPage = () => {
     try {
       const storeId = parseInt(selectedStore, 10);
       const payloadItems = SHIFT_SLOTS
-        .filter((slot) => selectedSlots.includes(slot.key))
+        .filter((slot) => activeSelectedSlots.includes(slot.key))
         .flatMap((slot) => {
         const uniqueDates = [...new Set(selectedDatesBySlot[slot.key] || [])].sort();
         return uniqueDates.map((dateValue) => ({
@@ -575,7 +585,7 @@ const LayoutApplicationPage = () => {
               <label>可上班日期（各時段可獨立複選） *</label>
 
               <div className={styles.slotCalendarGrid}>
-                {SHIFT_SLOTS.filter((slot) => selectedSlots.includes(slot.key)).map((slot) => {
+                {SHIFT_SLOTS.filter((slot) => activeSelectedSlots.includes(slot.key)).map((slot) => {
                   const slotDates = selectedDatesBySlot[slot.key] || [];
                   return (
                     <div key={slot.key} className={styles.slotCalendarCard}>

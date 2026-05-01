@@ -148,6 +148,7 @@ const ReservationList = ({
               viewMode="merchant"
               actions={{
                 onAccept: () => onAccept(reservation),
+                onEditTable: () => onAccept(reservation),
                 onCancel,
                 onComplete,
                 onDelete,
