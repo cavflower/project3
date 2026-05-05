@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getLoyaltyAccounts } from '../../api/loyaltyApi';
+import { getStore } from '../../api/storeApi';
 import { FaGift, FaHistory, FaAward, FaStore, FaArrowLeft } from 'react-icons/fa';
 import styles from './CustomerLoyalty.module.css';
 
 const CustomerLoyalty = () => {
   const [accounts, setAccounts] = useState([]);
+  const [storeName, setStoreName] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { storeId } = useParams(); // 獲取店家 ID（如果有）
@@ -13,7 +15,10 @@ const CustomerLoyalty = () => {
 
   const fetchAccounts = useCallback(async () => {
     try {
-      const response = await getLoyaltyAccounts();
+      const [response, storeResponse] = await Promise.all([
+        getLoyaltyAccounts(),
+        storeId ? getStore(storeId).catch(() => null) : Promise.resolve(null),
+      ]);
       let accountsData = response.data;
 
       // 如果有 storeId，只顯示該店家的會員資料
@@ -21,6 +26,9 @@ const CustomerLoyalty = () => {
         accountsData = accountsData.filter(account =>
           Number(account.store) === Number(storeId)
         );
+        setStoreName(accountsData[0]?.store_name || storeResponse?.data?.name || '');
+      } else {
+        setStoreName('');
       }
 
       setAccounts(accountsData);
@@ -39,6 +47,13 @@ const CustomerLoyalty = () => {
   if (loading) {
     return <div className={styles.loading}>載入中...</div>;
   }
+
+  const pageTitle = storeId
+    ? `${storeName || '店家'}會員中心`
+    : '我的會員中心';
+  const pageDescription = storeId
+    ? `查看您在${storeName || '此店家'}的會員資訊和點數`
+    : '查看您在各店家的會員資訊和點數';
 
   return (
     <div className={styles['customer-loyalty']}>
@@ -65,12 +80,10 @@ const CustomerLoyalty = () => {
         )}
         <h1>
           <FaAward />
-          {storeId ? ' 店家會員中心' : ' 我的會員中心'}
+          {` ${pageTitle}`}
         </h1>
         <p>
-          {storeId
-            ? '查看您在此店家的會員資訊和點數'
-            : '查看您在各商家的會員資訊和點數'}
+          {pageDescription}
         </p>
 
       </div>

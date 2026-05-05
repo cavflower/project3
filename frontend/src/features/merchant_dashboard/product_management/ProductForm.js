@@ -17,6 +17,7 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
   const [tagInput, setTagInput] = useState('');
   const [ingredients, setIngredients] = useState([]);
   const [recipeIngredients, setRecipeIngredients] = useState([]);
+  const [useRecipeIngredients, setUseRecipeIngredients] = useState(false);
   const [selectedIngredientId, setSelectedIngredientId] = useState('');
   const [selectedIngredientUsage, setSelectedIngredientUsage] = useState('');
 
@@ -48,8 +49,10 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
           }))
         : [];
       setRecipeIngredients(existingRecipe);
+      setUseRecipeIngredients(existingRecipe.length > 0);
     } else {
       setRecipeIngredients([]);
+      setUseRecipeIngredients(false);
     }
   }, [product]);
 
@@ -198,20 +201,29 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
         data.append('food_tags', tag);
       });
 
-      const normalizedRecipe = recipeIngredients.map(item => ({
-        ingredient: Number(item.ingredient),
-        quantity_used: Number(item.quantity_used),
-      }));
+      if (useRecipeIngredients) {
+        const normalizedRecipe = recipeIngredients.map(item => ({
+          ingredient: Number(item.ingredient),
+          quantity_used: Number(item.quantity_used),
+        }));
 
-      const hasInvalidRecipe = normalizedRecipe.some(
-        item => Number.isNaN(item.quantity_used) || item.quantity_used <= 0
-      );
-      if (hasInvalidRecipe) {
-        setError('配方中的每份使用量必須是大於 0 的數字');
-        return;
+        if (normalizedRecipe.length === 0) {
+          setError('請至少加入一筆原物料配方，或取消勾選。');
+          return;
+        }
+
+        const hasInvalidRecipe = normalizedRecipe.some(
+          item => Number.isNaN(item.quantity_used) || item.quantity_used <= 0
+        );
+        if (hasInvalidRecipe) {
+          setError('配方中的每份使用量必須是大於 0 的數字');
+          return;
+        }
+
+        data.append('recipe_ingredients', JSON.stringify(normalizedRecipe));
+      } else {
+        data.append('recipe_ingredients', JSON.stringify([]));
       }
-
-      data.append('recipe_ingredients', JSON.stringify(normalizedRecipe));
 
       if (formData.image) {
         data.append('image', formData.image);
@@ -380,6 +392,19 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
             <label>商品原物料配方（每售出 1 份自動扣庫存）</label>
             <p className={styles.formHint}>設定每份商品會使用的原物料和數量，建立訂單時會自動扣減。</p>
 
+            <div className={styles.recipeToggle}>
+              <label className={styles.recipeToggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={useRecipeIngredients}
+                  onChange={(e) => setUseRecipeIngredients(e.target.checked)}
+                />
+                <span>啟用原物料配方，售出商品後自動扣庫存</span>
+              </label>
+            </div>
+
+            {useRecipeIngredients && (
+              <>
             <div className={styles.recipeAddRow}>
               <select
                 value={selectedIngredientId}
@@ -439,6 +464,8 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
                   </div>
                 ))}
               </div>
+            )}
+              </>
             )}
           </div>
 

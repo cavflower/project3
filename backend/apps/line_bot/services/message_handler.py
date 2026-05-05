@@ -74,6 +74,13 @@ class AIReplyService:
             store_config: StoreLineBotConfig 實例（可選，用於自訂系統提示詞）
         """
         self.store_config = store_config
+
+        # Prompt / conversation limits must exist even when platform AI settings
+        # are loaded successfully and __init__ returns early.
+        self.max_prompt_chars = 3600
+        self.max_history_messages = 2
+        self.max_history_message_chars = 120
+        self.max_output_tokens_cap = 450
         
         # 使用平台 AI 設定
         try:
