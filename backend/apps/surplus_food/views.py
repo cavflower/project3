@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
 from django.utils import timezone
 from django.db.models import Q, Count
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 import threading
 import logging
@@ -26,6 +26,23 @@ from django.db import transaction
 
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_date_range(date_value):
+    if not date_value or date_value == 'all':
+        return None, None
+
+    if date_value == 'today':
+        date_start = timezone.localdate()
+    else:
+        try:
+            date_start = datetime.strptime(date_value, '%Y-%m-%d').date()
+        except ValueError:
+            return None, None
+
+    start = timezone.make_aware(datetime.combine(date_start, datetime.min.time()))
+    end = start + timedelta(days=1)
+    return start, end
 
 # Firestore 初始化
 try:
@@ -298,6 +315,11 @@ class SurplusFoodOrderViewSet(viewsets.ModelViewSet):
             order_type_filter = self.request.query_params.get('order_type', None)
             if order_type_filter:
                 queryset = queryset.filter(order_type=order_type_filter)
+
+            date_filter = self.request.query_params.get('date', None)
+            date_start, date_end = _parse_date_range(date_filter)
+            if date_start and date_end:
+                queryset = queryset.filter(created_at__gte=date_start, created_at__lt=date_end)
 
             # 支援月份篩選（YYYY-MM）
             month_filter = self.request.query_params.get('month', None)

@@ -283,6 +283,13 @@
 }
 
 /* 操作按鈕 */
+.actionButtons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
 .btnAction {
     background: linear-gradient(135deg, #667eea 0%, #ef8e72 100%);
     color: white;
@@ -298,6 +305,15 @@
 .btnAction:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btnDangerAction {
+    background: #dc3545;
+    color: white;
+}
+
+.btnDangerAction:hover {
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.35);
 }
 
 /* Modal 樣式 */

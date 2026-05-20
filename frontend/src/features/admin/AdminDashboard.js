@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast } from '../../api/adminApi';
+import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast, terminateStorePartnership } from '../../api/adminApi';
 import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
 import styles from './AdminDashboard.module.css';
 
@@ -258,6 +258,30 @@ const AdminDashboard = () => {
     }
   };
 
+  // 解除合作
+  const handleTerminatePartnership = async (store) => {
+    const confirmed = window.confirm(
+      `確定要解除與「${store.name}」的合作嗎？\n\n此操作會刪除店家帳號、店家資料、商品、訂單、訂位、惜福品與相關設定，且無法復原。`
+    );
+
+    if (!confirmed) return;
+
+    const typedName = window.prompt(`請輸入店家名稱「${store.name}」確認刪除：`);
+    if (typedName !== store.name) {
+      alert('店家名稱不一致，已取消解除合作。');
+      return;
+    }
+
+    try {
+      await terminateStorePartnership(store.id);
+      setStores((prevStores) => prevStores.filter((item) => item.id !== store.id));
+      alert(`已解除與「${store.name}」的合作，並刪除店家相關資料。`);
+    } catch (err) {
+      console.error('解除合作失敗:', err);
+      alert('解除合作失敗：' + (err.response?.data?.error || err.message || '請稍後再試'));
+    }
+  };
+
   // 平台推播功能
   const handleOpenBroadcastModal = async () => {
     setShowBroadcastModal(true);
@@ -511,7 +535,7 @@ const AdminDashboard = () => {
                         <small className={styles.revenueMeta}>總收入 {formatCurrency(store.surplus_packaging_fee_amount)}</small>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className={styles.actionButtons}>
                           <button
                             className={styles.btnAction}
                             onClick={() => handleOpenStoreLineModal(store)}
@@ -519,6 +543,13 @@ const AdminDashboard = () => {
                             style={{ background: '#00B900', color: 'white' }}
                           >
                             LINE BOT
+                          </button>
+                          <button
+                            className={`${styles.btnAction} ${styles.btnDangerAction}`}
+                            onClick={() => handleTerminatePartnership(store)}
+                            title="解除合作並刪除店家所有資料"
+                          >
+                            解除合作
                           </button>
                         </div>
                       </td>

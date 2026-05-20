@@ -1,4 +1,3 @@
-import api from './api';
 import axios from 'axios';
 
 const baseURL = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000/api';
@@ -108,6 +107,13 @@ export const getTargetPreview = async () => {
     return response.data;
 };
 
+export const terminateStorePartnership = async (storeId) => {
+    const response = await axios.delete(`${baseURL}/stores/${storeId}/admin/terminate-partnership/`, {
+        headers: { 'X-Admin-Auth': 'true' }
+    });
+    return response.data;
+};
+
 /**
  * 快速備案推播（熱門店家）
  */
@@ -128,7 +134,7 @@ export const runAutoRecommendationPush = async (data = {}) => {
     return response.data;
 };
 
-export default {
+const adminApi = {
     getAISettings,
     updateAISettings,
     getLineSettings,
@@ -138,6 +144,9 @@ export default {
     sendPlatformBroadcast,
     getAvailableStores,
     getTargetPreview,
+    terminateStorePartnership,
     quickFallbackRecommendationPush,
     runAutoRecommendationPush,
 };
+
+export default adminApi;

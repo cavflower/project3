@@ -51,6 +51,32 @@ const buildSpecificationText = (rawSpecifications) => {
     .join('、');
 };
 
+const calculateOrderTotal = (order) => {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (Number.isFinite(Number(order?.total_amount))) {
+    return Number(order.total_amount);
+  }
+
+  return items.reduce((sum, item) => {
+    const itemSubtotal = Number(item.subtotal);
+    if (Number.isFinite(itemSubtotal)) return sum + itemSubtotal;
+
+    const quantity = Number(item.quantity || 1);
+    const unitPrice = Number(item.unit_price);
+    if (Number.isFinite(quantity) && Number.isFinite(unitPrice)) {
+      return sum + (quantity * unitPrice);
+    }
+    return sum;
+  }, 0);
+};
+
+const formatCurrency = (value) => `NT$ ${Math.round(Number(value) || 0)}`;
+
+const isCashPayment = (order) => {
+  const rawValue = `${order?.payment_method || ''} ${order?.payment_method_display || ''}`.toLowerCase();
+  return rawValue.includes('cash') || rawValue.includes('現金') || rawValue.includes('?暸');
+};
+
 function OrderManagementPage() {
   const { storeId: contextStoreId, loading: storeLoading } = useStore();
   const [storeId, setStoreId] = useState(null);
@@ -62,8 +88,12 @@ function OrderManagementPage() {
   const [updating, setUpdating] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all');
-  const [monthFilter, setMonthFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState('today');
   const [page, setPage] = useState(1);
+  const [cashCheckoutOrder, setCashCheckoutOrder] = useState(null);
+  const [checkoutTargetStatus, setCheckoutTargetStatus] = useState('completed');
+  const [receivedAmount, setReceivedAmount] = useState('');
+  const [printingDetails, setPrintingDetails] = useState(false);
   const pageSize = 9;
   const refreshTimerRef = useRef(null);
 
@@ -74,7 +104,10 @@ function OrderManagementPage() {
   }, [contextStoreId]);
 
   const monthOptions = useMemo(() => {
-    const options = [{ value: 'all', label: '全部月份' }];
+    const options = [
+      { value: 'all', label: '全部月份' },
+      { value: 'today', label: '今日' },
+    ];
     const now = new Date();
     for (let i = 0; i < 12; i += 1) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -118,7 +151,11 @@ function OrderManagementPage() {
 
       if (statusFilter !== 'all') params.status = statusFilter;
       if (channelFilter !== 'all') params.channel = channelFilter;
-      if (monthFilter !== 'all') params.month = monthFilter;
+      if (monthFilter === 'today') {
+        params.date = 'today';
+      } else if (monthFilter !== 'all') {
+        params.month = monthFilter;
+      }
 
       const ordersRes = await api.get('/orders/list/', { params });
       const normalized = normalizeOrdersResponse(ordersRes.data);
@@ -217,6 +254,7 @@ function OrderManagementPage() {
 
   const handleUpdateStatus = async (pickupNumber, status) => {
     const oldOrders = [...orders];
+    let success = false;
 
     setOrders((prev) =>
       prev.map((o) =>
@@ -227,6 +265,10 @@ function OrderManagementPage() {
     try {
       setUpdating(true);
       await api.patch(`/orders/status/${pickupNumber}/`, { status });
+      success = true;
+      if (status === 'accepted') {
+        window.alert('廚房已收到訂單');
+      }
     } catch (err) {
       console.error('update status error', err);
       setOrders(oldOrders);
@@ -234,6 +276,61 @@ function OrderManagementPage() {
     } finally {
       setUpdating(false);
       loadOrders({ silent: true });
+    }
+
+    return success;
+  };
+
+  const openCheckout = (order, targetStatus) => {
+    setCashCheckoutOrder(order);
+    setCheckoutTargetStatus(targetStatus);
+    setReceivedAmount('');
+  };
+
+  const handleAcceptOrder = (order) => {
+    if (order?.channel === 'dine_in') {
+      openCheckout(order, 'accepted');
+      return;
+    }
+
+    handleUpdateStatus(order.pickup_number || order.id, 'accepted');
+  };
+
+  const handleCompleteOrder = (order) => {
+    if (order?.channel === 'takeout') {
+      openCheckout(order, 'completed');
+      return;
+    }
+
+    handleUpdateStatus(order.pickup_number || order.id, 'completed');
+  };
+
+  const handleCloseCashCheckout = () => {
+    if (updating || printingDetails) return;
+    setCashCheckoutOrder(null);
+    setReceivedAmount('');
+  };
+
+  const handlePrintDetails = () => {
+    setPrintingDetails(true);
+
+    setTimeout(() => {
+      setPrintingDetails(false);
+      window.alert('列印完成');
+    }, 2000);
+  };
+
+  const handleCashCheckout = async () => {
+    if (!cashCheckoutOrder) return;
+
+    const success = await handleUpdateStatus(
+      cashCheckoutOrder.pickup_number || cashCheckoutOrder.id,
+      checkoutTargetStatus
+    );
+
+    if (success) {
+      setCashCheckoutOrder(null);
+      setReceivedAmount('');
     }
   };
 
@@ -380,10 +477,26 @@ function OrderManagementPage() {
               statusLabels={statusLabels}
               updating={updating}
               onUpdateStatus={handleUpdateStatus}
+              onAcceptOrder={handleAcceptOrder}
+              onCompleteOrder={handleCompleteOrder}
               onDelete={handleDelete}
             />
           ))}
         </div>
+      )}
+
+      {cashCheckoutOrder && (
+        <CashCheckoutModal
+          order={cashCheckoutOrder}
+          receivedAmount={receivedAmount}
+          onReceivedAmountChange={setReceivedAmount}
+          onClose={handleCloseCashCheckout}
+          onPrintDetails={handlePrintDetails}
+          onCheckout={handleCashCheckout}
+          printing={printingDetails}
+          updating={updating}
+          targetStatus={checkoutTargetStatus}
+        />
       )}
 
       <div className={styles.pagination}>
@@ -409,7 +522,7 @@ function OrderManagementPage() {
   );
 }
 
-const OrderCard = ({ order, formatUtensils, statusLabels, updating, onUpdateStatus, onDelete }) => {
+const OrderCard = ({ order, formatUtensils, statusLabels, updating, onUpdateStatus, onAcceptOrder, onCompleteOrder, onDelete }) => {
   const status = order.status || 'pending';
   const orderType = order.channel === 'takeout' ? '外帶訂單' : '內用訂單';
   const items = Array.isArray(order.items) ? order.items : [];
@@ -537,7 +650,7 @@ const OrderCard = ({ order, formatUtensils, statusLabels, updating, onUpdateStat
             <button
               className={`${styles.actionBtn} ${styles.btnAccept}`}
               disabled={updating}
-              onClick={() => onUpdateStatus(order.pickup_number || order.id, 'accepted')}
+              onClick={() => onAcceptOrder(order)}
             >
               接受
             </button>
@@ -574,7 +687,7 @@ const OrderCard = ({ order, formatUtensils, statusLabels, updating, onUpdateStat
           <button
             className={`${styles.actionBtn} ${styles.btnComplete}`}
             disabled={updating}
-            onClick={() => onUpdateStatus(order.pickup_number || order.id, 'completed')}
+            onClick={() => onCompleteOrder(order)}
           >
             完成訂單
           </button>
@@ -589,6 +702,129 @@ const OrderCard = ({ order, formatUtensils, statusLabels, updating, onUpdateStat
             刪除
           </button>
         )}
+      </div>
+    </div>
+  );
+};
+
+const CashCheckoutModal = ({
+  order,
+  receivedAmount,
+  onReceivedAmountChange,
+  onClose,
+  onPrintDetails,
+  onCheckout,
+  printing,
+  updating,
+  targetStatus,
+}) => {
+  const total = calculateOrderTotal(order);
+  const received = Number(receivedAmount);
+  const isCash = isCashPayment(order);
+  const hasEnoughCash = !isCash || (Number.isFinite(received) && received >= total);
+  const change = isCash && hasEnoughCash ? received - total : 0;
+  const items = Array.isArray(order.items) ? order.items : [];
+  const orderTypeText = order.channel === 'dine_in' ? '內用訂單' : '外帶訂單';
+  const paymentText = normalizePaymentMethodLabel(order.payment_method, order.payment_method_display);
+
+  return (
+    <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+      <div className={styles.checkoutModal}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h2 className={styles.modalTitle}>{targetStatus === 'accepted' ? '接受訂單結帳' : '完成訂單結帳'}</h2>
+            <p className={styles.modalSubtitle}>訂單 #{order.pickup_number || order.id}</p>
+          </div>
+          <button
+            type="button"
+            className={styles.modalCloseBtn}
+            onClick={onClose}
+            disabled={updating || printing}
+            aria-label="關閉"
+          >
+            x
+          </button>
+        </div>
+
+        <div className={styles.printArea}>
+          <div className={styles.receiptHeader}>
+            <strong>{orderTypeText}明細</strong>
+            <span>#{order.pickup_number || order.id}</span>
+          </div>
+
+          <div className={styles.receiptRows}>
+            {items.map((item, index) => {
+              const quantity = Number(item.quantity || 1);
+              const subtotal = Number.isFinite(Number(item.subtotal))
+                ? Number(item.subtotal)
+                : Number(item.unit_price || 0) * quantity;
+
+              return (
+                <div key={`${item.product_name || item.product_id}-${index}`} className={styles.receiptRow}>
+                  <span>{item.product_name || `商品 ${item.product_id || index + 1}`} x{quantity}</span>
+                  <strong>{formatCurrency(subtotal)}</strong>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className={styles.checkoutSummary}>
+            <div>
+              <span>訂單總金額</span>
+              <strong>{formatCurrency(total)}</strong>
+            </div>
+            <div>
+              <span>付款方式</span>
+              <strong>{paymentText}</strong>
+            </div>
+          </div>
+        </div>
+
+        {isCash ? (
+          <>
+            <label className={styles.cashInputGroup}>
+              <span>收款金額</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={receivedAmount}
+                onChange={(event) => onReceivedAmountChange(event.target.value)}
+                placeholder="請輸入客人支付金額"
+                autoFocus
+              />
+            </label>
+
+            <div className={styles.changePanel}>
+              <span>應找金額</span>
+              <strong>{hasEnoughCash ? formatCurrency(change) : '收款金額不足'}</strong>
+            </div>
+          </>
+        ) : (
+          <div className={styles.changePanel}>
+            <span>結帳狀態</span>
+            <strong>確認 {paymentText} 已完成</strong>
+          </div>
+        )}
+
+        <div className={styles.modalActions}>
+          <button
+            type="button"
+            className={`${styles.actionBtn} ${styles.btnReady}`}
+            onClick={onPrintDetails}
+            disabled={printing || updating}
+          >
+            {printing ? '列印中...' : '列印明細'}
+          </button>
+          <button
+            type="button"
+            className={`${styles.actionBtn} ${styles.btnComplete}`}
+            onClick={onCheckout}
+            disabled={!hasEnoughCash || updating || printing}
+          >
+            {updating ? '結帳中...' : '結帳'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -53,7 +53,7 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
             return ProductCategory.objects.none()
         return ProductCategory.objects.filter(store=merchant.store).annotate(
             products_count=Count('products', distinct=True)
-        )
+        ).order_by('display_order', 'name')
     
     def perform_create(self, serializer):
         merchant = getattr(self.request.user, 'merchant_profile', None)

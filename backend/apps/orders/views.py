@@ -13,7 +13,7 @@ from .models import TakeoutOrder, DineInOrder, Notification
 from apps.stores.models import Store
 from apps.surplus_food.models import SurplusFoodOrder
 from django.db.models import Q
-from datetime import datetime
+from datetime import datetime, timedelta
 import threading
 import logging
 
@@ -50,6 +50,24 @@ def _parse_month_range(month_value):
         month_end = month_start.replace(month=month_start.month + 1)
 
     return month_start, month_end
+
+
+def _parse_date_range(date_value):
+    """Parse today or YYYY-MM-DD and return (start, end) datetime tuple."""
+    if not date_value or date_value == 'all':
+        return None, None
+
+    if date_value == 'today':
+        date_start = timezone.localdate()
+    else:
+        try:
+            date_start = datetime.strptime(date_value, '%Y-%m-%d').date()
+        except ValueError:
+            return None, None
+
+    start = timezone.make_aware(datetime.combine(date_start, datetime.min.time()))
+    end = start + timedelta(days=1)
+    return start, end
 
 
 def _resolve_item_product_payload(item):
@@ -219,12 +237,14 @@ class OrderListView(generics.ListAPIView):
         status_filter = request.query_params.get('status')
         channel_filter = request.query_params.get('channel', 'all')
         month_filter = request.query_params.get('month', 'all')
+        date_filter = request.query_params.get('date')
         paginated = str(request.query_params.get('paginated', '0')).lower() in {'1', 'true', 'yes'}
         page = _parse_positive_int(request.query_params.get('page'), 1)
         page_size = min(_parse_positive_int(request.query_params.get('page_size'), 9), 50)
 
         month_start, month_end = _parse_month_range(month_filter)
-        count_cache_prefix = f"orders:list:store:{store_id}:status:{status_filter or 'all'}:month:{month_filter or 'all'}"
+        date_start, date_end = _parse_date_range(date_filter)
+        count_cache_prefix = f"orders:list:store:{store_id}:status:{status_filter or 'all'}:month:{month_filter or 'all'}:date:{date_filter or 'all'}"
 
         # 查詢外帶訂單 - 使用 prefetch_related 優化 items 查詢
         takeout_base_qs = TakeoutOrder.objects.filter(store_id=store_id, is_hidden_from_merchant=False).select_related(
@@ -243,6 +263,10 @@ class OrderListView(generics.ListAPIView):
         if month_start and month_end:
             takeout_base_qs = takeout_base_qs.filter(created_at__gte=month_start, created_at__lt=month_end)
             dinein_base_qs = dinein_base_qs.filter(created_at__gte=month_start, created_at__lt=month_end)
+
+        if date_start and date_end:
+            takeout_base_qs = takeout_base_qs.filter(created_at__gte=date_start, created_at__lt=date_end)
+            dinein_base_qs = dinein_base_qs.filter(created_at__gte=date_start, created_at__lt=date_end)
 
         # 非法 channel fallback 到 all
         if channel_filter not in {'all', 'takeout', 'dine_in'}:

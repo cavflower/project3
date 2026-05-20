@@ -220,6 +220,28 @@
   font-weight: 600;
 }
 
+.order-card-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-detail-btn {
+  border: 1px solid #b8c8e8;
+  background: #f4f7ff;
+  color: #355ca8;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+
+.order-detail-btn:hover {
+  background: #e9efff;
+}
+
 .unread {
   background: #f8f9fa;
   border-left: 4px solid #007bff;
@@ -456,6 +478,7 @@
   align-items: center;
   justify-content: center;
   padding: 9px 16px;
+  border: none;
   border-radius: 8px;
   text-decoration: none;
   font-size: 14px;

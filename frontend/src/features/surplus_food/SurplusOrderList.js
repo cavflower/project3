@@ -13,7 +13,11 @@ const SurplusOrderList = () => {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all');
-  const [monthFilter, setMonthFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState('today');
+  const [checkoutOrder, setCheckoutOrder] = useState(null);
+  const [checkoutAction, setCheckoutAction] = useState('complete');
+  const [receivedAmount, setReceivedAmount] = useState('');
+  const [printingDetails, setPrintingDetails] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState('連線中...');
   const [page, setPage] = useState(1);
   const pageSize = 9;
@@ -27,7 +31,10 @@ const SurplusOrderList = () => {
 
   // 產生月份選項（過去12個月）
   const monthOptions = useMemo(() => {
-    const options = [{ value: 'all', label: '全部月份' }];
+    const options = [
+      { value: 'today', label: '今日' },
+      { value: 'all', label: '全部月份' },
+    ];
     const now = new Date();
     for (let i = 0; i < 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -51,7 +58,11 @@ const SurplusOrderList = () => {
       const params = {};
       if (statusFilter !== 'all') params.status = statusFilter;
       if (channelFilter !== 'all') params.order_type = channelFilter;
-      if (monthFilter !== 'all') params.month = monthFilter;
+      if (monthFilter === 'today') {
+        params.date = 'today';
+      } else if (monthFilter !== 'all') {
+        params.month = monthFilter;
+      }
       params.page = page;
       params.page_size = pageSize;
 
@@ -167,6 +178,7 @@ const SurplusOrderList = () => {
     };
 
     const newStatus = statusMap[action];
+    let success = false;
 
     // 樂觀更新
     setOrders(prevOrders =>
@@ -189,10 +201,63 @@ const SurplusOrderList = () => {
       } else if (action === 'reject') {
         await surplusFoodApi.rejectOrder(orderId);
       }
+      success = true;
+      if (action === 'confirm') {
+        window.alert('廚房已收到訂單');
+      }
     } catch (error) {
       console.error('更新失敗:', error);
       alert('更新失敗');
       loadOrders();
+    }
+
+    return success;
+  };
+
+  const openCheckout = (order, action) => {
+    setCheckoutOrder(order);
+    setCheckoutAction(action);
+    setReceivedAmount('');
+  };
+
+  const handleAcceptOrder = (order) => {
+    if (order?.order_type === 'dine_in') {
+      openCheckout(order, 'confirm');
+      return;
+    }
+
+    handleUpdateStatus(order.id, 'confirm');
+  };
+
+  const handleCompleteOrder = (order) => {
+    if (order?.order_type === 'takeout') {
+      openCheckout(order, 'complete');
+      return;
+    }
+
+    handleUpdateStatus(order.id, 'complete');
+  };
+
+  const handleCloseCheckout = () => {
+    if (printingDetails) return;
+    setCheckoutOrder(null);
+    setReceivedAmount('');
+  };
+
+  const handlePrintDetails = () => {
+    setPrintingDetails(true);
+    setTimeout(() => {
+      setPrintingDetails(false);
+      window.alert('列印完成');
+    }, 2000);
+  };
+
+  const handleCheckout = async () => {
+    if (!checkoutOrder) return;
+    const success = await handleUpdateStatus(checkoutOrder.id, checkoutAction);
+    if (success) {
+      setCheckoutOrder(null);
+      setReceivedAmount('');
     }
   };
 
@@ -294,6 +359,8 @@ const SurplusOrderList = () => {
                     key={order.id}
                     order={order}
                     onUpdateStatus={handleUpdateStatus}
+                    onAcceptOrder={handleAcceptOrder}
+                    onCompleteOrder={handleCompleteOrder}
                     onDeleteOrder={handleDeleteOrder}
                   />
                 ))
@@ -323,13 +390,25 @@ const SurplusOrderList = () => {
               </div>
             </div>
           )}
+          {checkoutOrder && (
+            <SurplusCheckoutModal
+              order={checkoutOrder}
+              action={checkoutAction}
+              receivedAmount={receivedAmount}
+              onReceivedAmountChange={setReceivedAmount}
+              onClose={handleCloseCheckout}
+              onPrintDetails={handlePrintDetails}
+              onCheckout={handleCheckout}
+              printing={printingDetails}
+            />
+          )}
         </>
       )}
     </div>
   );
 };
 
-const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
+const OrderCard = ({ order, onUpdateStatus, onAcceptOrder, onCompleteOrder, onDeleteOrder }) => {
   const statusLabels = {
     pending: '待處理',
     confirmed: '已接受',
@@ -444,7 +523,7 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
           <>
             <button
               className={styles.btnSmSuccess}
-              onClick={() => onUpdateStatus(order.id, 'confirm')}
+              onClick={() => onAcceptOrder(order)}
             >
               確認訂單
             </button>
@@ -475,7 +554,7 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
         {order.status === 'ready' && (
           <button
             className={styles.btnSmSuccess}
-            onClick={() => onUpdateStatus(order.id, 'complete')}
+            onClick={() => onCompleteOrder(order)}
           >
             完成訂單
           </button>
@@ -488,6 +567,155 @@ const OrderCard = ({ order, onUpdateStatus, onDeleteOrder }) => {
             刪除
           </button>
         )}
+      </div>
+    </div>
+  );
+};
+
+const getSurplusOrderItems = (order) => {
+  if (Array.isArray(order.items) && order.items.length > 0) {
+    return order.items.map((item, index) => {
+      const quantity = Number(item.quantity || 1);
+      const unitPrice = Number(item.unit_price || item.surplus_food_detail?.surplus_price || 0);
+      return {
+        key: `${item.id || item.surplus_food || index}`,
+        name: item.surplus_food_title || item.snapshot_surplus_food_name || item.surplus_food_detail?.title || `惜福品 ${index + 1}`,
+        quantity,
+        subtotal: Number(item.subtotal || unitPrice * quantity),
+      };
+    });
+  }
+
+  if (order.surplus_food_detail) {
+    const quantity = Number(order.quantity || 1);
+    const unitPrice = Number(order.surplus_food_detail.surplus_price || 0);
+    return [{
+      key: 'single',
+      name: order.surplus_food_detail.title || '惜福品',
+      quantity,
+      subtotal: unitPrice * quantity,
+    }];
+  }
+
+  return [];
+};
+
+const getSurplusOrderTotal = (order) => {
+  const total = Number(order?.total_price);
+  if (Number.isFinite(total)) return total;
+  return getSurplusOrderItems(order).reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
+};
+
+const getPaymentMethodLabel = (order) => {
+  if (order.payment_method_display) return order.payment_method_display;
+  const map = {
+    cash: '現金',
+    credit_card: '信用卡',
+    line_pay: 'LINE Pay',
+    points: '點數兌換',
+  };
+  return map[order.payment_method] || order.payment_method || '未提供';
+};
+
+const isCashPayment = (order) => {
+  const raw = `${order?.payment_method || ''} ${order?.payment_method_display || ''}`.toLowerCase();
+  return raw.includes('cash') || raw.includes('現金') || raw.includes('?暸');
+};
+
+const formatCurrency = (value) => `NT$ ${Math.round(Number(value) || 0)}`;
+
+const SurplusCheckoutModal = ({
+  order,
+  action,
+  receivedAmount,
+  onReceivedAmountChange,
+  onClose,
+  onPrintDetails,
+  onCheckout,
+  printing,
+}) => {
+  const items = getSurplusOrderItems(order);
+  const total = getSurplusOrderTotal(order);
+  const paymentText = getPaymentMethodLabel(order);
+  const isCash = isCashPayment(order);
+  const received = Number(receivedAmount);
+  const canCheckout = !isCash || (Number.isFinite(received) && received >= total);
+  const change = isCash && canCheckout ? received - total : 0;
+  const orderTypeText = order.order_type === 'dine_in' ? '內用惜福訂單' : '外帶惜福訂單';
+
+  return (
+    <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+      <div className={`${styles.modalContent} ${styles.checkoutModal}`}>
+        <div className={styles.modalHeader}>
+          <h2>{action === 'confirm' ? '接受訂單結帳' : '完成訂單結帳'}</h2>
+          <button type="button" className={styles.closeBtn} onClick={onClose} disabled={printing}>
+            x
+          </button>
+        </div>
+
+        <div className={styles.modalBody}>
+          <div className={styles.checkoutReceipt}>
+            <div className={styles.checkoutReceiptHeader}>
+              <strong>{orderTypeText}明細</strong>
+              <span>#{order.pickup_number || order.order_number || order.id}</span>
+            </div>
+
+            <div className={styles.checkoutRows}>
+              {items.map((item) => (
+                <div key={item.key} className={styles.checkoutRow}>
+                  <span>{item.name} x{item.quantity}</span>
+                  <strong>{formatCurrency(item.subtotal)}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.checkoutSummary}>
+              <div>
+                <span>訂單總金額</span>
+                <strong>{formatCurrency(total)}</strong>
+              </div>
+              <div>
+                <span>付款方式</span>
+                <strong>{paymentText}</strong>
+              </div>
+            </div>
+          </div>
+
+          {isCash ? (
+            <>
+              <label className={styles.checkoutInputGroup}>
+                <span>收款金額</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={receivedAmount}
+                  onChange={(event) => onReceivedAmountChange(event.target.value)}
+                  placeholder="請輸入客人支付金額"
+                  autoFocus
+                />
+              </label>
+              <div className={styles.checkoutChangePanel}>
+                <span>應找金額</span>
+                <strong>{canCheckout ? formatCurrency(change) : '收款金額不足'}</strong>
+              </div>
+            </>
+          ) : (
+            <div className={styles.checkoutChangePanel}>
+              <span>結帳狀態</span>
+              <strong>確認 {paymentText} 已完成</strong>
+            </div>
+          )}
+
+          <div className={styles.checkoutActions}>
+            <button type="button" className={styles.btnSmPrimary} onClick={onPrintDetails} disabled={printing}>
+              {printing ? '列印中...' : '列印明細'}
+            </button>
+            <button type="button" className={styles.btnSmSuccess} onClick={onCheckout} disabled={!canCheckout || printing}>
+              結帳
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

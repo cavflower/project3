@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db import transaction
 from django.db.models import Count, DecimalField, F, OuterRef, Prefetch, Q, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 from .models import Store, StoreImage, MenuImage
@@ -78,7 +79,7 @@ class StoreViewSet(viewsets.ModelViewSet):
         根據操作類型返回適當的權限類
         """
         # published、retrieve、all（管理員功能）是公開 API，不需要認證
-        if self.action in ['published', 'retrieve', 'all']:
+        if self.action in ['published', 'retrieve', 'all', 'admin_terminate_partnership']:
             return [permissions.AllowAny()]
         if self.action in ['update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsStoreOwner()]
@@ -363,6 +364,52 @@ class StoreViewSet(viewsets.ModelViewSet):
         ).order_by('-created_at')
         serializer = self.get_serializer(stores, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['delete'], url_path='admin/terminate-partnership')
+    def admin_terminate_partnership(self, request, pk=None):
+        """
+        管理員解除合作：刪除店家、店家帳號與店家相關資料。
+        """
+        if request.headers.get('X-Admin-Auth') != 'true':
+            return Response(
+                {"error": "Admin auth required."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            store = Store.objects.select_related('merchant__user').get(pk=pk)
+        except Store.DoesNotExist:
+            return Response(
+                {"error": "Store not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        store_name = store.name
+        merchant = getattr(store, 'merchant', None)
+        merchant_user = getattr(merchant, 'user', None)
+
+        try:
+            with transaction.atomic():
+                # These logs intentionally use SET_NULL, so remove them explicitly
+                # when ending cooperation with a store.
+                from apps.line_bot.models import ConversationLog
+                ConversationLog.objects.filter(store=store).delete()
+
+                if merchant_user:
+                    merchant_user.delete()
+                elif merchant:
+                    merchant.delete()
+                else:
+                    store.delete()
+        except Exception as exc:
+            return Response(
+                {"error": f"Failed to terminate partnership: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return Response({
+            "message": f"{store_name} partnership terminated and related data deleted."
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def upload_menu_images(self, request, pk=None):

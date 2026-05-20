@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../store/AuthContext";
 import { db } from "../../lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import {
   getUserOrders,
   getOrderNotifications,
+  deleteCustomerOrder,
   markAllNotificationsAsRead,
   deleteNotification,
   deleteAllNotifications,
@@ -82,7 +83,6 @@ const normalizeOrderItems = (order) => {
       item.base_price
     );
     const specAdjPerUnit = calcSpecAdjustmentPerUnit(item);
-    const baseLine = (unitPrice || 0) * quantity;
     const lineWithSpec = ((unitPrice || 0) + specAdjPerUnit) * quantity;
     const lineTotal = pickFirstNumber(
       item.subtotal,
@@ -178,9 +178,36 @@ const getRealtimeTargets = (orders) => {
     .filter(Boolean);
 };
 
+const getOrderType = (order) => {
+  const raw = (
+    order?.order_type ||
+    order?.service_channel ||
+    order?.channel ||
+    ""
+  ).toString().toLowerCase();
+
+  if (raw === "dinein" || raw === "dine_in") return "dinein";
+  if (raw === "takeout" || raw === "take_away") return "takeout";
+  if (raw === "surplus") return "surplus";
+  if (order?.table_label) return "dinein";
+  if (order?.pickup_time || order?.total_price) return "surplus";
+  if (order?.order_type_display === "內用") return "dinein";
+  if (order?.order_type_display === "外帶") return "takeout";
+  if (order?.order_type_display === "惜食") return "surplus";
+  return "takeout";
+};
+
+const canReviewOrder = (order) => {
+  const orderType = getOrderType(order);
+  return order.status === "completed" && (orderType === "takeout" || orderType === "dinein");
+};
+
+const canDeleteOrder = (order) => ["completed", "rejected", "cancelled"].includes(order.status);
+
 const CustomerOrdersPage = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const refreshTimerRef = useRef(null);
 
   const [orders, setOrders] = useState([]);
@@ -354,6 +381,34 @@ const CustomerOrdersPage = () => {
     }
   };
 
+  const handleGoReview = (order) => {
+    const orderType = getOrderType(order);
+    navigate(`/review/${order.id}?type=${orderType}`);
+  };
+
+  const handleDeleteOrder = async (order) => {
+    if (!canDeleteOrder(order)) {
+      window.alert("只有已完成、已拒絕或已取消的訂單可以刪除資料");
+      return;
+    }
+
+    if (!window.confirm("確定要刪除此訂單資料嗎？刪除後將不會顯示在過往訂單中。")) return;
+
+    const orderType = getOrderType(order);
+    try {
+      await deleteCustomerOrder(orderType, order.id);
+      setOrders((prev) => prev.filter((item) => item.id !== order.id || getOrderType(item) !== orderType));
+      if (selectedOrder?.id === order.id && getOrderType(selectedOrder) === orderType) {
+        setSelectedOrder(null);
+      }
+      window.alert("訂單資料已刪除");
+    } catch (error) {
+      console.error("刪除訂單資料失敗:", error);
+      const detail = error.response?.data?.detail || "刪除訂單資料失敗，請稍後再試";
+      window.alert(detail);
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles["customer-orders-page"]}>
@@ -437,7 +492,33 @@ const CustomerOrdersPage = () => {
                         </div>
                       </div>
 
-                      <div className={styles["detail-hint"]}>點擊查看完整明細</div>
+                      <div className={styles["order-card-actions"]} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className={styles["order-detail-btn"]}
+                          onClick={() => setSelectedOrder(order)}
+                        >
+                          查看明細
+                        </button>
+                        {canReviewOrder(order) && (
+                          <button
+                            type="button"
+                            className={styles["order-review-btn"]}
+                            onClick={() => handleGoReview(order)}
+                          >
+                            前往評論
+                          </button>
+                        )}
+                        {canDeleteOrder(order) && (
+                          <button
+                            type="button"
+                            className={styles["order-delete-btn"]}
+                            onClick={() => handleDeleteOrder(order)}
+                          >
+                            刪除訂單資料
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -529,13 +610,15 @@ const CustomerOrdersPage = () => {
           getPaymentDisplay={getPaymentDisplay}
           formatTime={formatTime}
           getStatusText={getStatusText}
+          onReview={handleGoReview}
+          onDelete={handleDeleteOrder}
         />
       )}
     </div>
   );
 };
 
-const OrderDetailModal = ({ order, onClose, getPaymentDisplay, formatTime, getStatusText }) => {
+const OrderDetailModal = ({ order, onClose, getPaymentDisplay, formatTime, getStatusText, onReview, onDelete }) => {
   const items = normalizeOrderItems(order);
   const total = getOrderTotal(order, items);
   const orderNo = order.pickup_number || order.order_number || order.id;
@@ -613,6 +696,27 @@ const OrderDetailModal = ({ order, onClose, getPaymentDisplay, formatTime, getSt
               <span>桌號</span>
               <strong>{order.table_label}</strong>
             </div>
+          )}
+        </div>
+
+        <div className={styles["order-modal-actions"]}>
+          {canReviewOrder(order) && (
+            <button
+              type="button"
+              className={styles["order-review-btn"]}
+              onClick={() => onReview(order)}
+            >
+              前往評論
+            </button>
+          )}
+          {canDeleteOrder(order) && (
+            <button
+              type="button"
+              className={styles["order-delete-btn"]}
+              onClick={() => onDelete(order)}
+            >
+              刪除訂單資料
+            </button>
           )}
         </div>
       </div>

@@ -184,27 +184,33 @@ const ProductManagementPage = () => {
 
   // 按類別分組產品
   const groupProductsByCategory = () => {
-    const grouped = {};
+    const groupedCategories = categories
+      .filter(cat => cat.is_active)
+      .sort((a, b) => {
+        const orderA = Number(a.display_order ?? 0);
+        const orderB = Number(b.display_order ?? 0);
+        if (orderA !== orderB) return orderA - orderB;
+        return String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hant');
+      })
+      .map(category => ({
+        category,
+        products: []
+      }));
+
+    const groupedById = new Map(
+      groupedCategories.map((group) => [group.category.id, group])
+    );
 
     // 初始化所有啟用的類別
-    categories
-      .filter(cat => cat.is_active)
-      .sort((a, b) => a.display_order - b.display_order)
-      .forEach(category => {
-        grouped[category.id] = {
-          category,
-          products: []
-        };
-      });
-
     // 將產品分組到對應的類別
     products.forEach(product => {
-      if (product.category && grouped[product.category]) {
-        grouped[product.category].products.push(product);
+      const group = groupedById.get(product.category);
+      if (group) {
+        group.products.push(product);
       }
     });
 
-    return grouped;
+    return groupedCategories;
   };
 
   const getImageUrl = (imagePath) => {
@@ -294,7 +300,7 @@ const ProductManagementPage = () => {
       {takeoutError && <p className={styles.errorMessage}>{takeoutError}</p>}
 
       <div className={styles.categoriesSections}>
-        {Object.values(groupProductsByCategory()).map(({ category, products: categoryProducts }) => (
+        {groupProductsByCategory().map(({ category, products: categoryProducts }) => (
           <div key={category.id} className={styles.categorySection}>
             <div className={styles.categoryHeader}>
               <div className={styles.categoryTitle}>
