@@ -2,252 +2,386 @@
 
 .myReviewsPage {
     min-height: calc(100vh - 60px);
-    background: #f8f9fa;
-    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 8% 82%, rgba(249, 141, 63, 0.12), transparent 18rem),
+        radial-gradient(circle at 92% 78%, rgba(111, 139, 79, 0.1), transparent 16rem),
+        linear-gradient(180deg, #fffaf4 0%, #f8f2eb 100%);
+    padding: 2.7rem 2rem 3rem;
+}
+
+.myReviewsPage::before,
+.myReviewsPage::after {
+    content: "";
+    position: absolute;
+    width: 210px;
+    height: 210px;
+    border: 2px solid rgba(228, 185, 143, 0.22);
+    border-radius: 50%;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.myReviewsPage::before {
+    left: -76px;
+    bottom: 30px;
+    box-shadow: inset 0 0 0 22px rgba(255, 255, 255, 0.2);
+}
+
+.myReviewsPage::after {
+    right: -64px;
+    bottom: 48px;
+    box-shadow: inset 0 0 0 18px rgba(255, 255, 255, 0.22);
 }
 
 .container {
-    max-width: 900px;
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
     margin: 0 auto;
 }
 
-.pageTitle {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 2rem;
-    text-align: center;
-}
-
-.pendingSection {
-    background: white;
-    border-radius: 16px;
-    padding: 1.25rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    margin-bottom: 2rem;
-}
-
-.pendingHeader {
-    display: flex;
-    justify-content: space-between;
+.heroSection {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(380px, 640px);
     align-items: center;
-    margin-bottom: 0.9rem;
+    gap: 2rem;
+    margin-bottom: 1.7rem;
 }
 
-.pendingHeader h2 {
-    font-size: 1.1rem;
+.heroCopy {
+    padding-left: 0.15rem;
+}
+
+.pageTitle {
+    font-size: 2.55rem;
+    font-weight: 900;
+    color: #3c2618;
+    margin: 0 0 0.4rem;
+    letter-spacing: 0;
+    text-align: left;
+}
+
+.pageSubtitle {
     margin: 0;
-    color: #333;
-}
-
-.pendingHeader span {
-    font-size: 0.9rem;
-    color: #ff6b35;
+    color: #806e63;
+    font-size: 1.05rem;
     font-weight: 600;
 }
 
-.pendingEmpty {
-    margin: 0;
-    color: #777;
-    font-size: 0.95rem;
-}
-
-.pendingList {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-}
-
-.pendingItem {
-    display: flex;
-    justify-content: space-between;
+.pendingSection {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr) auto auto;
     align-items: center;
-    gap: 0.8rem;
-    padding: 0.9rem;
-    border: 1px solid #f0d7cd;
-    border-radius: 12px;
-    background: #fff8f5;
+    gap: 1rem;
+    min-height: 96px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(238, 221, 207, 0.78);
+    border-radius: 14px;
+    padding: 1.05rem 1.35rem;
+    box-shadow: 0 18px 45px rgba(103, 72, 46, 0.09);
+    color: inherit;
+    text-decoration: none;
 }
 
-.pendingInfo {
+.pendingIcon {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff0e6;
+    color: #ef7a22;
+    font-size: 1.65rem;
+}
+
+.pendingContent {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 }
 
-.pendingStore {
-    font-weight: 700;
-    color: #333;
+.pendingContent h2 {
+    margin: 0;
+    color: #3d2c21;
+    font-size: 1.06rem;
+    font-weight: 900;
 }
 
-.pendingMeta {
-    font-size: 0.9rem;
-    color: #777;
-}
-
-.pendingActions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    align-items: stretch;
-}
-
-.btnReviewOrder {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 96px;
-    padding: 0.5rem 0.9rem;
-    border-radius: 8px;
-    text-decoration: none;
-    background: linear-gradient(135deg, #ff6b35 0%, #e85a2a 100%);
-    color: white;
+.pendingContent p {
+    margin: 0;
+    color: #89766b;
+    font-size: 0.92rem;
     font-weight: 600;
 }
 
-.btnReviewOrder:hover {
-    color: white;
-    filter: brightness(0.96);
+.pendingCount {
+    color: #ff5c24;
+    font-size: 1.05rem;
+    font-weight: 900;
+    white-space: nowrap;
 }
 
+.pendingChevron {
+    color: #6f5d52;
+    font-size: 0.95rem;
+}
+
+.pendingEmpty,
+.pendingList,
+.pendingItem,
+.pendingInfo,
+.pendingStore,
+.pendingMeta,
+.pendingActions,
+.btnReviewOrder,
 .btnDismissOrder {
-    border: 1px solid #f0d7cd;
-    background: #fff;
-    color: #8a6d63;
-    border-radius: 8px;
-    font-weight: 600;
-    min-width: 96px;
-    padding: 0.5rem 0.9rem;
-    cursor: pointer;
+    color: inherit;
 }
 
-.btnDismissOrder:hover {
-    background: #fff4ef;
-}
-
-/* 統計區 */
 .statsSection {
-    display: flex;
-    gap: 1.5rem;
-    justify-content: center;
-    margin-bottom: 2rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.35rem;
+    margin-bottom: 1.8rem;
 }
 
 .statCard {
-    background: white;
-    border-radius: 16px;
-    padding: 1.5rem 2.5rem;
-    text-align: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    min-width: 140px;
+    display: grid;
+    grid-template-columns: 78px minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+    min-height: 118px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(238, 221, 207, 0.72);
+    border-radius: 13px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 18px 42px rgba(103, 72, 46, 0.08);
+}
+
+.statIcon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.statIconWarm {
+    color: #ef6a2e;
+    background: #fff0ea;
+}
+
+.statIconOrange {
+    color: #e47719;
+    background: #fff4e6;
+}
+
+.statIconGreen {
+    color: #4e8157;
+    background: #edf6ed;
 }
 
 .statValue {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #ff6b35;
+    font-size: 1.9rem;
+    line-height: 1;
+    font-weight: 900;
+    color: #ff5c24;
 }
 
 .statLabel {
-    font-size: 0.95rem;
-    color: #666;
-    margin-top: 0.3rem;
+    margin-top: 0.45rem;
+    color: #2e241d;
+    font-size: 1rem;
+    font-weight: 900;
 }
 
-/* 分頁標籤 */
+.statHint {
+    margin-top: 0.18rem;
+    color: #907f74;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.reviewPanel {
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(238, 221, 207, 0.8);
+    border-radius: 13px;
+    box-shadow: 0 22px 50px rgba(103, 72, 46, 0.09);
+}
+
+.reviewToolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    min-height: 58px;
+    padding: 0 1.35rem;
+    border-bottom: 1px solid #eee3db;
+}
+
 .tabs {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    background: white;
-    padding: 0.5rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    align-items: stretch;
+    gap: 1.2rem;
 }
 
 .tab {
-    flex: 1;
-    padding: 0.8rem 1.5rem;
+    position: relative;
+    padding: 1.05rem 0.25rem 0.95rem;
     border: none;
     background: transparent;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #666;
+    color: #5f554f;
+    font-size: 0.96rem;
+    font-weight: 900;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: color 0.2s ease;
 }
 
 .tab:hover {
-    background: #f0f0f0;
-    color: #333;
+    color: #ff5c24;
 }
 
 .tabActive {
-    flex: 1;
-    padding: 0.8rem 1.5rem;
+    position: relative;
+    padding: 1.05rem 0.25rem 0.95rem;
     border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
+    background: transparent;
+    color: #ff5c24;
+    font-size: 0.96rem;
+    font-weight: 900;
     cursor: pointer;
-    transition: all 0.3s ease;
-    background: linear-gradient(135deg, #ff6b35 0%, #e85a2a 100%);
-    color: white;
 }
 
-/* 評論列表 */
+.tabActive::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: #ff5c24;
+    border-radius: 999px 999px 0 0;
+}
+
+.sortControl {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.62rem 0.75rem;
+    border-radius: 10px;
+    background: #fbf7f3;
+    color: #765f51;
+    font-weight: 800;
+}
+
+.sortControl select {
+    border: 0;
+    background: transparent;
+    color: #4c3b30;
+    font: inherit;
+    font-weight: 900;
+    outline: none;
+    cursor: pointer;
+}
+
 .reviewsList {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0;
 }
 
-/* 評論卡片 */
 .reviewCard {
-    background: white;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    gap: 1.25rem;
+    background: rgba(255, 255, 255, 0.88);
+    border-radius: 0;
+    padding: 1.55rem 1.9rem;
+    box-shadow: none;
+    border-bottom: 1px solid #efe5de;
+    transition: background 0.2s ease;
 }
 
 .reviewCard:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    transform: none;
+    box-shadow: none;
+    background: #fff;
 }
 
 .productReview {
-    background: white;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border-left: 4px solid #4dabf7;
+    border-left: none;
 }
 
 .productReview:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    transform: none;
+    box-shadow: none;
 }
 
-.reviewHeader {
+.reviewMedia {
+    width: 58px;
+    height: 58px;
+    margin-top: 0.1rem;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff3ea;
+    border: 1px solid #ead8cc;
+    box-shadow: 0 8px 18px rgba(122, 88, 59, 0.1);
+}
+
+.reviewMedia img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.reviewThumbFallback {
+    width: 100%;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc6a29;
+    font-size: 1.5rem;
+}
+
+.reviewMain {
+    min-width: 0;
+}
+
+.reviewTop {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1rem;
+    gap: 1.25rem;
+    margin-bottom: 0.55rem;
+}
+
+.reviewTitleBlock {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
 }
 
 .reviewHeaderActions {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .storeName {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #333;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #231b17;
     text-decoration: none;
     transition: color 0.2s ease;
 }
@@ -263,15 +397,20 @@
 }
 
 .productName {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #333;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #231b17;
 }
 
 .storeLink {
-    font-size: 0.9rem;
-    color: #666;
+    width: max-content;
+    max-width: 100%;
+    font-size: 0.88rem;
+    color: #7d716b;
     text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .storeLink:hover {
@@ -279,16 +418,17 @@
 }
 
 .reviewDate {
-    font-size: 0.85rem;
-    color: #999;
+    color: #8c817b;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-/* 星星評分 */
 .reviewRating {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.7rem;
 }
 
 .stars {
@@ -297,86 +437,93 @@
 }
 
 .star {
-    font-size: 1.3rem;
-    color: #ddd;
+    font-size: 1.16rem;
+    color: #d7d2cf;
 }
 
 .starFilled {
-    font-size: 1.3rem;
-    color: #ffc107;
+    font-size: 1.16rem;
+    color: #ff9f1a;
 }
 
 .ratingText {
     font-size: 0.95rem;
-    color: #666;
-    font-weight: 600;
+    color: #5f524b;
+    font-weight: 900;
 }
 
-/* 評論標籤 */
 .reviewTags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+    gap: 0.45rem;
+    margin-bottom: 0.72rem;
 }
 
 .tag {
-    padding: 0.3rem 0.8rem;
-    background: #f0f7ff;
-    color: #4dabf7;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 500;
+    padding: 0.22rem 0.7rem;
+    background: #fff1e5;
+    color: #ef6a2e;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 900;
 }
 
-/* 評論內容 */
 .reviewContent {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 10px;
-    margin-bottom: 1rem;
+    background: linear-gradient(90deg, rgba(247, 244, 241, 0.92), rgba(255, 255, 255, 0.8));
+    padding: 0.72rem 1rem;
+    border-radius: 9px;
+    margin-top: 0.3rem;
 }
 
 .reviewContent p {
     margin: 0;
-    color: #495057;
-    line-height: 1.6;
+    color: #6d625d;
+    line-height: 1.55;
+    font-weight: 600;
 }
 
+.actionButton,
+.btnEditReview,
 .btnDeleteReview {
-    border: 1px solid #f2c8b5;
-    background: #fff6f2;
-    color: #d35b26;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.42rem;
+    min-height: 38px;
     border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    padding: 0.3rem 0.6rem;
+    font-size: 0.9rem;
+    font-weight: 900;
+    padding: 0.46rem 0.88rem;
     cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
 
+.editAction,
 .btnEditReview {
-    border: 1px solid #cfe2f8;
-    background: #eff6ff;
-    color: #2a5f95;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    padding: 0.3rem 0.6rem;
-    cursor: pointer;
+    border: 1px solid #eedbd1;
+    background: #fffaf6;
+    color: #744b31;
+}
+
+.deleteAction,
+.btnDeleteReview {
+    border: 1px solid #ffcfc3;
+    background: #fff7f4;
+    color: #ff4b2c;
 }
 
 .btnEditReview:hover {
-    background: #e2f0ff;
+    background: #fff2ea;
 }
 
 .btnDeleteReview:hover {
-    background: #ffe9df;
+    background: #ffebe5;
 }
 
 .reviewImageGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 0.6rem;
+    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    gap: 0.5rem;
     margin-top: 0.8rem;
 }
 
@@ -389,7 +536,7 @@
 
 .reviewImageItem img {
     width: 100%;
-    height: 95px;
+    height: 76px;
     object-fit: cover;
     display: block;
 }
@@ -710,34 +857,73 @@
         padding: 1rem;
     }
 
-    .pendingItem {
-        flex-direction: column;
-        align-items: flex-start;
+    .heroSection {
+        grid-template-columns: 1fr;
+        gap: 1rem;
     }
 
-    .pendingActions {
-        width: 100%;
+    .pageTitle {
+        font-size: 2rem;
     }
 
-    .btnReviewOrder {
-        width: 100%;
+    .pendingSection {
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 0.8rem;
     }
 
-    .btnDismissOrder {
-        width: 100%;
+    .pendingCount,
+    .pendingChevron {
+        grid-column: 2;
+        justify-self: start;
     }
 
     .statsSection {
-        flex-direction: column;
+        grid-template-columns: 1fr;
         gap: 1rem;
     }
 
     .statCard {
-        padding: 1rem 1.5rem;
+        grid-template-columns: 58px minmax(0, 1fr);
+        padding: 1rem;
     }
 
-    .reviewHeader {
+    .statIcon {
+        width: 52px;
+        height: 52px;
+    }
+
+    .reviewToolbar {
         flex-direction: column;
-        gap: 0.5rem;
+        align-items: stretch;
+        padding: 0.8rem 1rem;
+    }
+
+    .tabs {
+        justify-content: space-between;
+        gap: 0.65rem;
+    }
+
+    .sortControl {
+        justify-content: center;
+    }
+
+    .reviewCard {
+        grid-template-columns: 54px minmax(0, 1fr);
+        gap: 0.85rem;
+        padding: 1.15rem 1rem;
+    }
+
+    .reviewMedia {
+        width: 48px;
+        height: 48px;
+    }
+
+    .reviewTop {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .reviewHeaderActions {
+        justify-content: flex-start;
     }
 }

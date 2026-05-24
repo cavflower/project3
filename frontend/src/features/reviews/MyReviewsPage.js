@@ -1,8 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import {
+    FaChevronRight,
+    FaClipboardList,
+    FaPen,
+    FaRegCommentDots,
+    FaSortAmountDown,
+    FaStore,
+    FaTrash,
+    FaUtensils,
+} from 'react-icons/fa';
 import { useAuth } from '../../store/AuthContext';
 import { getUserOrders } from '../../api/orderApi';
 import api from '../../api/api';
+import { buildMediaUrl } from '../../api/apiConfig';
 import styles from './MyReviewsPage.module.css';
 
 const QUICK_TAGS = ['餐點美味', '服務親切', '份量充足', '環境乾淨'];
@@ -23,14 +34,6 @@ const getDismissedReviewOrderKeys = (user) => {
     }
 };
 
-const saveDismissedReviewOrderKeys = (user, keySet) => {
-    try {
-        window.localStorage.setItem(getDismissStorageKey(user), JSON.stringify(Array.from(keySet)));
-    } catch (error) {
-        // 忽略 localStorage 寫入失敗，避免影響主要流程
-    }
-};
-
 const buildReviewOrderKey = (orderType, orderId) => `${orderType}-${orderId}`;
 
 const MyReviewsPage = () => {
@@ -39,7 +42,8 @@ const MyReviewsPage = () => {
     const [productReviews, setProductReviews] = useState([]);
     const [reviewableOrders, setReviewableOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('store');
+    const [activeTab, setActiveTab] = useState('all');
+    const [sortOrder, setSortOrder] = useState('newest');
     const [savingEdit, setSavingEdit] = useState(false);
 
     const [editingStoreReview, setEditingStoreReview] = useState(null);
@@ -163,18 +167,6 @@ const MyReviewsPage = () => {
         });
     };
 
-    const formatDateTime = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleString('zh-TW', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
-
     const renderStars = (rating) => {
         return (
             <div className={styles.stars}>
@@ -220,9 +212,83 @@ const MyReviewsPage = () => {
         return null;
     };
 
-    const getStoreName = (review) => {
+    const getStoreName = useCallback((review) => {
         return review?.store_name || review?.store?.name || '店家';
-    };
+    }, []);
+
+    const getProductName = useCallback((review) => {
+        return review?.product_name || review?.product?.name || '菜品';
+    }, []);
+
+    const toMediaUrl = useCallback((value) => {
+        if (!value) return '';
+        const raw = typeof value === 'string'
+            ? value
+            : value.image_url || value.image || value.url || '';
+        return buildMediaUrl(raw) || '';
+    }, []);
+
+    const getStoreImageSource = useCallback((review) => toMediaUrl(
+        review?.store_image ||
+        review?.store_image_url ||
+        review?.store?.first_image ||
+        review?.store?.image ||
+        review?.store?.images?.[0]?.image ||
+        review?.store?.images?.[0]?.image_url
+    ), [toMediaUrl]);
+
+    const getProductImageSource = useCallback((review) => toMediaUrl(
+        review?.product_image ||
+        review?.product_image_url ||
+        review?.product?.image ||
+        review?.product?.image_url ||
+        review?.product?.images?.[0]?.image ||
+        review?.product?.images?.[0]?.image_url
+    ), [toMediaUrl]);
+
+    const reviewItems = useMemo(() => {
+        const storeItems = storeReviews.map((review) => ({
+            key: `store-${review.id}`,
+            type: 'store',
+            review,
+            title: getStoreName(review),
+            subtitle: '店家評論',
+            imageUrl: getStoreImageSource(review),
+            rating: Number(review.rating) || 0,
+            tags: Array.isArray(review.tags) ? review.tags : [],
+            comment: review.comment || '',
+            createdAt: review.created_at,
+        }));
+
+        const productItems = productReviews.map((review) => ({
+            key: `product-${review.id}`,
+            type: 'product',
+            review,
+            title: getProductName(review),
+            subtitle: getStoreName(review),
+            imageUrl: getProductImageSource(review),
+            rating: Number(review.rating) || 0,
+            tags: [],
+            comment: review.comment || '',
+            createdAt: review.created_at,
+        }));
+
+        return [...storeItems, ...productItems].sort((a, b) => {
+            const aTime = new Date(a.createdAt || 0).getTime();
+            const bTime = new Date(b.createdAt || 0).getTime();
+            return sortOrder === 'oldest' ? aTime - bTime : bTime - aTime;
+        });
+    }, [storeReviews, productReviews, sortOrder, getStoreName, getProductName, getStoreImageSource, getProductImageSource]);
+
+    const visibleReviewItems = useMemo(() => {
+        if (activeTab === 'all') return reviewItems;
+        return reviewItems.filter((item) => item.type === activeTab);
+    }, [activeTab, reviewItems]);
+
+    const firstReviewableOrder = reviewableOrders[0];
+    const firstReviewableOrderLink = firstReviewableOrder
+        ? `/review/${firstReviewableOrder.id}?type=${firstReviewableOrder.review_order_type}`
+        : null;
 
     const openStoreEditModal = (review) => {
         setEditingStoreReview(review);
@@ -448,16 +514,6 @@ const MyReviewsPage = () => {
         }
     };
 
-    const handleDismissReviewableOrder = (order) => {
-        const key = buildReviewOrderKey(order.review_order_type, order.id);
-        const dismissedOrderKeys = getDismissedReviewOrderKeys(user);
-        dismissedOrderKeys.add(key);
-        saveDismissedReviewOrderKeys(user, dismissedOrderKeys);
-        setReviewableOrders((prev) =>
-            prev.filter((item) => buildReviewOrderKey(item.review_order_type, item.id) !== key)
-        );
-    };
-
     if (!user) {
         return (
             <div className={styles.myReviewsPage}>
@@ -487,239 +543,217 @@ const MyReviewsPage = () => {
     return (
         <div className={styles.myReviewsPage}>
             <div className={styles.container}>
-                <h1 className={styles.pageTitle}>💬 我的評論</h1>
-
-                <div className={styles.pendingSection}>
-                    <div className={styles.pendingHeader}>
-                        <h2>待評論訂單</h2>
-                        <span>{reviewableOrders.length} 筆可評論</span>
+                <section className={styles.heroSection}>
+                    <div className={styles.heroCopy}>
+                        <h1 className={styles.pageTitle}>我的評論</h1>
+                        <p className={styles.pageSubtitle}>查看、管理與編輯你的店家與菜品評論</p>
                     </div>
-                    {reviewableOrders.length === 0 ? (
-                        <p className={styles.pendingEmpty}>目前沒有可評論的已完成訂單</p>
+
+                    {firstReviewableOrderLink ? (
+                        <Link to={firstReviewableOrderLink} className={styles.pendingSection}>
+                            <div className={styles.pendingIcon}><FaClipboardList /></div>
+                            <div className={styles.pendingContent}>
+                                <h2>待評論訂單</h2>
+                                <p>完成用餐後，分享你的真實體驗</p>
+                            </div>
+                            <span className={styles.pendingCount}>{reviewableOrders.length} 筆可評論</span>
+                            <FaChevronRight className={styles.pendingChevron} />
+                        </Link>
                     ) : (
-                        <div className={styles.pendingList}>
-                            {reviewableOrders.map((order) => {
-                                const orderNo = order.pickup_number || order.order_number || `#${order.id}`;
-                                const orderTypeText = order.review_order_type === 'dinein' ? '內用' : '外帶';
-                                return (
-                                    <div key={`${order.review_order_type}-${order.id}`} className={styles.pendingItem}>
-                                        <div className={styles.pendingInfo}>
-                                            <div className={styles.pendingStore}>{order.store_name || '店家'}</div>
-                                            <div className={styles.pendingMeta}>
-                                                {orderTypeText}訂單 {orderNo}
-                                            </div>
-                                            <div className={styles.pendingMeta}>{formatDateTime(order.created_at)}</div>
-                                        </div>
-                                        <div className={styles.pendingActions}>
-                                            <Link
-                                                to={`/review/${order.id}?type=${order.review_order_type}`}
-                                                className={styles.btnReviewOrder}
-                                            >
-                                                前往評論
-                                            </Link>
-                                            <button
-                                                type="button"
-                                                className={styles.btnDismissOrder}
-                                                onClick={() => handleDismissReviewableOrder(order)}
-                                            >
-                                                下次再說
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                        <div className={styles.pendingSection}>
+                            <div className={styles.pendingIcon}><FaClipboardList /></div>
+                            <div className={styles.pendingContent}>
+                                <h2>待評論訂單</h2>
+                                <p>完成用餐後，分享你的真實體驗</p>
+                            </div>
+                            <span className={styles.pendingCount}>{reviewableOrders.length} 筆可評論</span>
+                            <FaChevronRight className={styles.pendingChevron} />
                         </div>
                     )}
-                </div>
+                </section>
 
-                {/* 統計區 */}
                 <div className={styles.statsSection}>
                     <div className={styles.statCard}>
-                        <div className={styles.statValue}>{storeReviews.length}</div>
-                        <div className={styles.statLabel}>店家評論</div>
+                        <div className={`${styles.statIcon} ${styles.statIconWarm}`}><FaRegCommentDots /></div>
+                        <div>
+                            <div className={styles.statValue}>{storeReviews.length + productReviews.length}</div>
+                            <div className={styles.statLabel}>總評論數</div>
+                            <div className={styles.statHint}>你已發表的所有評論</div>
+                        </div>
                     </div>
                     <div className={styles.statCard}>
-                        <div className={styles.statValue}>{productReviews.length}</div>
-                        <div className={styles.statLabel}>菜品評論</div>
+                        <div className={`${styles.statIcon} ${styles.statIconOrange}`}><FaStore /></div>
+                        <div>
+                            <div className={styles.statValue}>{storeReviews.length}</div>
+                            <div className={styles.statLabel}>店家評論</div>
+                            <div className={styles.statHint}>關於餐廳的評價</div>
+                        </div>
+                    </div>
+                    <div className={styles.statCard}>
+                        <div className={`${styles.statIcon} ${styles.statIconGreen}`}><FaUtensils /></div>
+                        <div>
+                            <div className={styles.statValue}>{productReviews.length}</div>
+                            <div className={styles.statLabel}>菜品評論</div>
+                            <div className={styles.statHint}>關於菜品的評價</div>
+                        </div>
                     </div>
                 </div>
 
-                {/* 分頁標籤 */}
-                <div className={styles.tabs}>
-                    <button
-                        className={activeTab === 'store' ? styles.tabActive : styles.tab}
-                        onClick={() => setActiveTab('store')}
-                    >
-                        店家評論 ({storeReviews.length})
-                    </button>
-                    <button
-                        className={activeTab === 'product' ? styles.tabActive : styles.tab}
-                        onClick={() => setActiveTab('product')}
-                    >
-                        菜品評論 ({productReviews.length})
-                    </button>
-                </div>
+                <section className={styles.reviewPanel}>
+                    <div className={styles.reviewToolbar}>
+                        <div className={styles.tabs}>
+                            <button
+                                type="button"
+                                className={activeTab === 'all' ? styles.tabActive : styles.tab}
+                                onClick={() => setActiveTab('all')}
+                            >
+                                全部評論
+                            </button>
+                            <button
+                                type="button"
+                                className={activeTab === 'store' ? styles.tabActive : styles.tab}
+                                onClick={() => setActiveTab('store')}
+                            >
+                                店家評論
+                            </button>
+                            <button
+                                type="button"
+                                className={activeTab === 'product' ? styles.tabActive : styles.tab}
+                                onClick={() => setActiveTab('product')}
+                            >
+                                菜品評論
+                            </button>
+                        </div>
 
-                {/* 店家評論列表 */}
-                {activeTab === 'store' && (
-                    <div className={styles.reviewsList}>
-                        {storeReviews.length === 0 ? (
-                            <div className={styles.emptyState}>
-                                <p>您還沒有留下任何店家評論</p>
-                                <p className={styles.hint}>完成訂單後可以對店家進行評價</p>
-                            </div>
-                        ) : (
-                            storeReviews.map((review) => (
-                                <div key={review.id} className={styles.reviewCard}>
-                                    <div className={styles.reviewHeader}>
-                                        {getStoreId(review) ? (
-                                            <Link to={`/store/${getStoreId(review)}`} className={styles.storeName}>
-                                                🏪 {getStoreName(review)}
-                                            </Link>
-                                        ) : (
-                                            <span className={styles.storeName}>🏪 {getStoreName(review)}</span>
-                                        )}
-                                        <div className={styles.reviewHeaderActions}>
-                                            <span className={styles.reviewDate}>{formatDate(review.created_at)}</span>
-                                            <button
-                                                type="button"
-                                                className={styles.btnEditReview}
-                                                onClick={() => openStoreEditModal(review)}
-                                            >
-                                                編輯
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={styles.btnDeleteReview}
-                                                onClick={() => handleDeleteStoreReview(review.id)}
-                                            >
-                                                刪除
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className={styles.reviewRating}>
-                                        {renderStars(review.rating)}
-                                        <span className={styles.ratingText}>{review.rating} 分</span>
-                                    </div>
-
-                                    {review.tags && review.tags.length > 0 && (
-                                        <div className={styles.reviewTags}>
-                                            {review.tags.map((tag, index) => (
-                                                <span key={index} className={styles.tag}>{tag}</span>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {review.comment && (
-                                        <div className={styles.reviewContent}>
-                                            <p>{review.comment}</p>
-                                        </div>
-                                    )}
-
-                                    {Array.isArray(review.images) && review.images.length > 0 && (
-                                        <div className={styles.reviewImageGrid}>
-                                            {review.images.map((image) => (
-                                                <a
-                                                    key={image.id}
-                                                    href={image.image_url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className={styles.reviewImageItem}
-                                                >
-                                                    <img src={image.image_url} alt="評論圖片" />
-                                                </a>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {review.merchant_reply && (
-                                        <div className={styles.merchantReply}>
-                                            <div className={styles.replyHeader}>
-                                                <span className={styles.replyLabel}>商家回覆</span>
-                                                <span className={styles.replyDate}>{formatDate(review.replied_at)}</span>
-                                            </div>
-                                            <p className={styles.replyContent}>{review.merchant_reply}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            ))
-                        )}
+                        <label className={styles.sortControl}>
+                            <FaSortAmountDown />
+                            <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+                                <option value="newest">最新</option>
+                                <option value="oldest">最舊</option>
+                            </select>
+                        </label>
                     </div>
-                )}
 
-                {/* 菜品評論列表 */}
-                {activeTab === 'product' && (
                     <div className={styles.reviewsList}>
-                        {productReviews.length === 0 ? (
+                        {visibleReviewItems.length === 0 ? (
                             <div className={styles.emptyState}>
-                                <p>您還沒有留下任何菜品評論</p>
-                                <p className={styles.hint}>完成訂單後可以對菜品進行評價</p>
+                                <p>目前沒有符合條件的評論</p>
+                                <p className={styles.hint}>完成訂單後可以留下店家與菜品評價</p>
                             </div>
                         ) : (
-                            productReviews.map((review) => (
-                                <div key={review.id} className={styles.productReview}>
-                                    <div className={styles.reviewHeader}>
-                                        <div className={styles.productInfo}>
-                                            <span className={styles.productName}>🍽️ {review.product_name || review.product?.name || '菜品'}</span>
-                                            {getStoreId(review) ? (
-                                                <Link to={`/store/${getStoreId(review)}`} className={styles.storeLink}>
-                                                    @ {getStoreName(review)}
-                                                </Link>
+                            visibleReviewItems.map((item) => {
+                                const isStoreReview = item.type === 'store';
+                                const storeId = getStoreId(item.review);
+                                const reviewImages = Array.isArray(item.review.images) ? item.review.images : [];
+
+                                return (
+                                    <article key={item.key} className={styles.reviewCard}>
+                                        <div className={styles.reviewMedia}>
+                                            {item.imageUrl ? (
+                                                <img src={item.imageUrl} alt={isStoreReview ? `${item.title}店家圖片` : `${item.title}菜品圖片`} />
                                             ) : (
-                                                <span className={styles.storeLink}>@ {getStoreName(review)}</span>
+                                                <div className={styles.reviewThumbFallback}>
+                                                    {isStoreReview ? <FaStore /> : <FaUtensils />}
+                                                </div>
                                             )}
                                         </div>
-                                        <div className={styles.reviewHeaderActions}>
-                                            <span className={styles.reviewDate}>{formatDate(review.created_at)}</span>
-                                            <button
-                                                type="button"
-                                                className={styles.btnEditReview}
-                                                onClick={() => openProductEditModal(review)}
-                                            >
-                                                編輯
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={styles.btnDeleteReview}
-                                                onClick={() => handleDeleteProductReview(review.id)}
-                                            >
-                                                刪除
-                                            </button>
-                                        </div>
-                                    </div>
 
-                                    <div className={styles.reviewRating}>
-                                        {renderStars(review.rating)}
-                                        <span className={styles.ratingText}>{review.rating} 分</span>
-                                    </div>
+                                        <div className={styles.reviewMain}>
+                                            <div className={styles.reviewTop}>
+                                                <div className={styles.reviewTitleBlock}>
+                                                    {isStoreReview && storeId ? (
+                                                        <Link to={`/store/${storeId}`} className={styles.storeName}>
+                                                            {item.title}
+                                                        </Link>
+                                                    ) : (
+                                                        <span className={isStoreReview ? styles.storeName : styles.productName}>
+                                                            {item.title}
+                                                        </span>
+                                                    )}
+                                                    {!isStoreReview && (
+                                                        storeId ? (
+                                                            <Link to={`/store/${storeId}`} className={styles.storeLink}>
+                                                                {item.subtitle}
+                                                            </Link>
+                                                        ) : (
+                                                            <span className={styles.storeLink}>{item.subtitle}</span>
+                                                        )
+                                                    )}
+                                                </div>
 
-                                    {review.comment && (
-                                        <div className={styles.reviewContent}>
-                                            <p>{review.comment}</p>
-                                        </div>
-                                    )}
+                                                <div className={styles.reviewHeaderActions}>
+                                                    <span className={styles.reviewDate}>{formatDate(item.createdAt)}</span>
+                                                    <button
+                                                        type="button"
+                                                        className={`${styles.actionButton} ${styles.editAction}`}
+                                                        onClick={() => (isStoreReview ? openStoreEditModal(item.review) : openProductEditModal(item.review))}
+                                                    >
+                                                        <FaPen /> 編輯
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className={`${styles.actionButton} ${styles.deleteAction}`}
+                                                        onClick={() => (isStoreReview ? handleDeleteStoreReview(item.review.id) : handleDeleteProductReview(item.review.id))}
+                                                    >
+                                                        <FaTrash /> 刪除
+                                                    </button>
+                                                </div>
+                                            </div>
 
-                                    {Array.isArray(review.images) && review.images.length > 0 && (
-                                        <div className={styles.reviewImageGrid}>
-                                            {review.images.map((image) => (
-                                                <a
-                                                    key={image.id}
-                                                    href={image.image_url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className={styles.reviewImageItem}
-                                                >
-                                                    <img src={image.image_url} alt="菜品評論圖片" />
-                                                </a>
-                                            ))}
+                                            <div className={styles.reviewRating}>
+                                                {renderStars(item.rating)}
+                                                <span className={styles.ratingText}>{item.rating} 分</span>
+                                            </div>
+
+                                            {item.tags.length > 0 && (
+                                                <div className={styles.reviewTags}>
+                                                    {item.tags.map((tag, index) => (
+                                                        <span key={index} className={styles.tag}>{tag}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {item.comment && (
+                                                <div className={styles.reviewContent}>
+                                                    <p>{item.comment}</p>
+                                                </div>
+                                            )}
+
+                                            {reviewImages.length > 0 && (
+                                                <div className={styles.reviewImageGrid}>
+                                                    {reviewImages.map((image) => {
+                                                        const imageUrl = toMediaUrl(image.image_url);
+                                                        return (
+                                                            <a
+                                                                key={image.id}
+                                                                href={imageUrl}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className={styles.reviewImageItem}
+                                                            >
+                                                                <img src={imageUrl} alt={isStoreReview ? '店家評論圖片' : '菜品評論圖片'} />
+                                                            </a>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            {isStoreReview && item.review.merchant_reply && (
+                                                <div className={styles.merchantReply}>
+                                                    <div className={styles.replyHeader}>
+                                                        <span className={styles.replyLabel}>商家回覆</span>
+                                                        <span className={styles.replyDate}>{formatDate(item.review.replied_at)}</span>
+                                                    </div>
+                                                    <p className={styles.replyContent}>{item.review.merchant_reply}</p>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            ))
+                                    </article>
+                                );
+                            })
                         )}
                     </div>
-                )}
+                </section>
             </div>
 
             {editingStoreReview && (

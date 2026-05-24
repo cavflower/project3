@@ -17,6 +17,34 @@ const paymentOptionsList = [
 const formatPrice = (value) => Math.round(Number(value) || 0);
 const CARRIER_BODY_REGEX = /^[0-9A-Z.+-]{7}$/;
 
+const toMediaUrl = (value) => {
+  if (!value) return '';
+  const source = typeof value === 'string'
+    ? value
+    : value.image || value.image_url || value.url || '';
+  if (!source) return '';
+  return source.startsWith('http') ? source : `http://127.0.0.1:8000${source}`;
+};
+
+const getCartItemImageUrl = (item) => toMediaUrl(
+  item?.image ||
+  item?.image_url ||
+  item?.photo ||
+  item?.thumbnail ||
+  item?.product?.image ||
+  item?.menu_item?.image ||
+  item?.surplus_food?.image ||
+  item?.redemptionRule?.image
+);
+
+const getStoreImageUrl = (store) => toMediaUrl(
+  store?.first_image ||
+  store?.image ||
+  store?.images?.[0]?.image ||
+  store?.images?.[0]?.image_url ||
+  store?.store_images?.[0]?.image
+);
+
 const getUserDisplayName = (user) => (
   user?.name ||
   user?.username ||
@@ -529,8 +557,426 @@ function TakeoutCartPage() {
     await executeOrder(finalName, finalPhone, card, invoiceCarrier);
   };
 
+  const getCartKey = (item) => item.cartKey || (item.id != null ? item.id.toString() : item.name);
+  const totalQuantity = cartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const storeImageUrl = getStoreImageUrl(store);
+
+  const handleRemoveItem = (targetKey) => {
+    setCartItems((prevItems) =>
+      prevItems.filter((item) => getCartKey(item) !== targetKey)
+    );
+  };
+
+  const renderCartLine = (item) => {
+    const itemKey = getCartKey(item);
+    const displayName = item.title || item.name;
+    const displayPrice = item.finalPrice || item.price || 0;
+    const itemImageUrl = getCartItemImageUrl(item);
+    const specText = getSpecSummaryText(item.selectedSpecs || []);
+    const isRedemption = item.itemType === 'redemption';
+
+    return (
+      <div key={itemKey} className={styles['checkout-cart-item']}>
+        <div className={styles['checkout-cart-product']}>
+          <div className={styles['checkout-item-image']}>
+            {itemImageUrl ? (
+              <img src={itemImageUrl} alt={displayName} />
+            ) : (
+              <i className="bi bi-image" aria-hidden="true"></i>
+            )}
+          </div>
+          <div className={styles['checkout-item-copy']}>
+            <h3>{displayName}</h3>
+            {specText && <p>{specText}</p>}
+            {item.description && !specText && <p>{item.description}</p>}
+            <strong>NT$ {formatPrice(displayPrice)}</strong>
+          </div>
+        </div>
+
+        <div className={styles['checkout-qty-control']}>
+          <button type="button" onClick={() => handleQuantityChange(itemKey, -1)} aria-label="減少數量">
+            <FaMinus />
+          </button>
+          <span>{item.quantity || 1}</span>
+          <button
+            type="button"
+            onClick={() => handleQuantityChange(itemKey, 1)}
+            aria-label="增加數量"
+            disabled={item.remaining_quantity && item.quantity >= item.remaining_quantity}
+          >
+            <FaPlus />
+          </button>
+        </div>
+
+        <strong className={isRedemption ? styles['checkout-line-discount'] : styles['checkout-line-total']}>
+          {isRedemption && displayPrice < 0 ? '-' : ''}NT$ {formatPrice(Math.abs(displayPrice) * (item.quantity || 1))}
+        </strong>
+
+        <button
+          type="button"
+          className={styles['checkout-remove-btn']}
+          onClick={() => handleRemoveItem(itemKey)}
+          aria-label="移除商品"
+        >
+          ×
+        </button>
+      </div>
+    );
+  };
+
+  const compactCheckoutLayout = styles['checkout-layout'];
+  if (compactCheckoutLayout) {
+    return (
+      <div className={`${styles['takeout-cart-page']} ${styles['checkout-layout']}`}>
+        <div className={styles['checkout-topbar']}>
+          <button
+            type="button"
+            className={styles['checkout-back-btn']}
+            onClick={() => navigate(`/store/${storeId}/takeout`, {
+              state: {
+                cart: {
+                  items: cartItems,
+                  notes,
+                  pickupAt,
+                  contact: { name: contactName, phone: contactPhone },
+                  carrierCode: invoiceCarrierBody
+                }
+              }
+            })}
+          >
+            <FaArrowLeft />
+            返回菜單
+          </button>
+
+          <div className={styles['checkout-store-summary']}>
+            <div className={styles['checkout-store-image']}>
+              {storeImageUrl ? (
+                <img src={storeImageUrl} alt={store?.name} />
+              ) : (
+                <span>{store?.name?.slice(0, 1) || 'D'}</span>
+              )}
+            </div>
+            <div>
+              <h1>{store?.name}</h1>
+              <p><i className="bi bi-geo-alt" aria-hidden="true"></i>{store?.address}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles['checkout-grid']}>
+          <div className={styles['checkout-left']}>
+            <section className={styles['checkout-cart-panel']}>
+              <header className={styles['checkout-panel-header']}>
+                <i className="bi bi-cart3" aria-hidden="true"></i>
+                <span>購物車</span>
+              </header>
+
+              <div className={styles['checkout-cart-list']}>
+                {cartItems.length === 0 ? (
+                  <p className={styles['checkout-empty']}>購物車目前沒有商品</p>
+                ) : (
+                  cartItems.map(renderCartLine)
+                )}
+              </div>
+
+              <footer className={styles['checkout-cart-total']}>
+                <span>小計（{totalQuantity} 項）</span>
+                <strong>NT$ {formatPrice(total)}</strong>
+              </footer>
+            </section>
+
+            <div className={styles['checkout-benefits']}>
+              <div>
+                <i className="bi bi-shield-check" aria-hidden="true"></i>
+                <span>安心保障</span>
+                <small>餐點製作後通知取餐</small>
+              </div>
+              <div>
+                <i className="bi bi-scooter" aria-hidden="true"></i>
+                <span>快速取餐</span>
+                <small>依指定時間到店取餐</small>
+              </div>
+              <div>
+                <i className="bi bi-wallet2" aria-hidden="true"></i>
+                <span>多元付款</span>
+                <small>結帳流程更便利</small>
+              </div>
+            </div>
+          </div>
+
+          <aside className={styles['checkout-order-panel']}>
+            <header className={styles['checkout-order-header']}>
+              <i className="bi bi-clipboard2-check" aria-hidden="true"></i>
+              <span>訂單資訊</span>
+            </header>
+
+            <div className={styles['checkout-order-body']}>
+              {!user && (
+                <>
+                  <label className={styles['checkout-form-row']}>
+                    <span><i className="bi bi-person" aria-hidden="true"></i>姓名</span>
+                    <input
+                      type="text"
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      placeholder="請輸入姓名"
+                    />
+                  </label>
+                  <label className={styles['checkout-form-row']}>
+                    <span><i className="bi bi-telephone" aria-hidden="true"></i>電話</span>
+                    <input
+                      type="tel"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      placeholder="請輸入電話"
+                    />
+                  </label>
+                </>
+              )}
+
+              {selectedPickupDate && (
+                <div className={styles['checkout-form-row']}>
+                  <span><i className="bi bi-clock" aria-hidden="true"></i>取餐時間</span>
+                  <div className={styles['checkout-time-selects']}>
+                    <select
+                      value={selectedPickupDate.getHours()}
+                      onChange={(e) => handlePickupHourChange(e.target.value)}
+                    >
+                      {hourOptions.map((hour) => {
+                        const period = hour >= 12 ? '下午' : '上午';
+                        const displayHour = hour % 12 || 12;
+                        return (
+                          <option key={hour} value={hour}>
+                            {`${period}${displayHour}點`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <select
+                      value={selectedPickupDate.getMinutes()}
+                      onChange={(e) => handlePickupMinuteChange(e.target.value)}
+                    >
+                      {minuteOptions.map((minute) => (
+                        <option key={minute} value={minute}>
+                          {`${String(minute).padStart(2, '0')} 分`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <label className={styles['checkout-form-row']}>
+                <span><i className="bi bi-fork-knife" aria-hidden="true"></i>是否需要餐具</span>
+                <select value={useUtensils} onChange={(e) => setUseUtensils(e.target.value)}>
+                  <option value="yes">需要</option>
+                  <option value="no">不需要</option>
+                </select>
+              </label>
+
+              <label className={styles['checkout-form-row']}>
+                <span><i className="bi bi-receipt" aria-hidden="true"></i>發票載具（選填）</span>
+                <div className={styles['checkout-carrier-field']}>
+                  <span>/</span>
+                  <input
+                    type="text"
+                    value={invoiceCarrierBody}
+                    onChange={(e) => setInvoiceCarrierBody(normalizeCarrierBody(e.target.value))}
+                    maxLength={7}
+                    placeholder="請輸入 7 碼"
+                  />
+                </div>
+              </label>
+
+              <label className={styles['checkout-form-row']}>
+                <span><i className="bi bi-card-text" aria-hidden="true"></i>備註</span>
+                <input
+                  type="text"
+                  placeholder="如有特殊需求請在此說明..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </label>
+
+              <div className={styles['checkout-amount-box']}>
+                <div className={styles['checkout-amount-label']}>
+                  <i className="bi bi-wallet2" aria-hidden="true"></i>
+                  <span>訂單金額</span>
+                </div>
+                <div className={styles['checkout-amount-values']}>
+                  <div>
+                    <span>小計</span>
+                    <strong>NT$ {formatPrice(subtotal)}</strong>
+                  </div>
+                  {actualDiscount > 0 && (
+                    <div>
+                      <span>公益點數折抵</span>
+                      <strong>-NT$ {formatPrice(actualDiscount)}</strong>
+                    </div>
+                  )}
+                  <div>
+                    <span>總計</span>
+                    <strong>NT$ {formatPrice(total)}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className={styles['checkout-confirm-btn']}
+              onClick={() => setShowCheckoutModal(true)}
+              disabled={submitting || cartItems.length === 0}
+            >
+              確認訂單（NT$ {formatPrice(total)}）
+              <i className="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+          </aside>
+        </div>
+
+        {showCheckoutModal && (
+          <div className={styles['checkout-modal-overlay']} onClick={() => !submitting && setShowCheckoutModal(false)}>
+            <div className={styles['checkout-modal']} onClick={(e) => e.stopPropagation()}>
+              <button
+                className={`btn-close ${styles['receipt-close']}`}
+                onClick={() => setShowCheckoutModal(false)}
+                disabled={submitting}
+              >
+                ×
+              </button>
+
+              <div className="modal-body">
+                <div className={styles['checkout-receipt']}>
+                  <div className={styles['receipt-shop-name']}>{store?.name}</div>
+                  <div className={styles['receipt-info']}>
+                    <div>{store?.address}</div>
+                    <div>
+                      取餐時間：{new Date(pickupAt).toLocaleString("zh-TW", {
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+
+                  <table className={styles['checkout-receipt-table']}>
+                    <thead>
+                      <tr>
+                        <th>品項</th>
+                        <th>數量</th>
+                        <th>金額</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {regularItems.map((item) => (
+                        <tr key={item.cartKey || item.id}>
+                          <td>
+                            <span>{item.name}</span>
+                            {!!getSpecSummaryText(item.selectedSpecs || []) && (
+                              <small>
+                                {getSpecSummaryText(item.selectedSpecs || [])}
+                              </small>
+                            )}
+                          </td>
+                          <td>{item.quantity}</td>
+                          <td>NT$ {formatPrice((item.finalPrice || item.price) * item.quantity)}</td>
+                        </tr>
+                      ))}
+                      {surplusItems.map((item) => (
+                        <tr key={item.cartKey || item.id}>
+                          <td>
+                            <span>{item.title || item.name}</span>
+                            <small>惜食商品</small>
+                          </td>
+                          <td>{item.quantity}</td>
+                          <td>NT$ {formatPrice(item.price * item.quantity)}</td>
+                        </tr>
+                      ))}
+                      {redemptionItems.map((item) => (
+                        <tr key={item.cartKey || item.id}>
+                          <td>
+                            <span>{item.name}</span>
+                            <small>公益點數兌換</small>
+                          </td>
+                          <td>{item.quantity || 1}</td>
+                          <td>{item.redemptionRule?.redemption_type === 'discount' ? `-NT$ ${formatPrice(item.redemptionRule.discount_value)}` : 'NT$ 0'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className={styles['receipt-totals']}>
+                    <div>
+                      <span>小計</span>
+                      <span>NT$ {formatPrice(subtotal)}</span>
+                    </div>
+                    {actualDiscount > 0 && (
+                      <div className={styles['receipt-discount']}>
+                        <span>公益點數折抵</span>
+                        <span>-NT$ {formatPrice(actualDiscount)}</span>
+                      </div>
+                    )}
+                    <div className={styles['receipt-grand-total']}>
+                      <span>總計</span>
+                      <span>NT$ {formatPrice(total)}</span>
+                    </div>
+                  </div>
+
+                  {notes && (
+                    <div className={styles['checkout-receipt-notes']}>
+                      <label>備註</label>
+                      <p>{notes}</p>
+                    </div>
+                  )}
+
+                  <div className={styles['receipt-actions']}>
+                    <button
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowCheckoutModal(false)}
+                      disabled={submitting}
+                    >
+                      返回修改
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                    >
+                      {submitting
+                        ? '送出中...'
+                        : `確認送出（NT$ ${formatPrice(total)}）`}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showCardSelector && (
+          <CreditCardSelector
+            show={showCardSelector}
+            onHide={() => setShowCardSelector(false)}
+            amount={total}
+            onCardSelected={handleCardSelected}
+            onSkip={() => {
+              setShowCardSelector(false);
+              executeOrder(
+                getUserDisplayName(user) || contactName || "顧客",
+                user?.phone_number || contactPhone || "",
+                null,
+                invoiceCarrierBody ? `/${invoiceCarrierBody}` : ''
+              );
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className={`${styles['takeout-cart-page']} container`} style={{ marginTop: "8px", marginBottom: "40px" }}>
+    <div className={`${styles['takeout-cart-page']} container`}>
       <div className="row mb-4">
         <div className="col-12">
           <button
@@ -923,7 +1369,7 @@ function TakeoutCartPage() {
               <p className="fw-bold text-muted mb-2">備註</p>
               <textarea
                 className="form-control"
-                rows="3"
+                rows="2"
                 placeholder="如有特殊需求請在此說明..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}

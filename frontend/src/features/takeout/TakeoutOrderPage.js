@@ -85,8 +85,10 @@ function TakeoutOrderPage() {
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState("");
   const categoryRefs = useRef({});
+  const menuScrollRef = useRef(null);
   const [greenPoints, setGreenPoints] = useState(null);
   const [redemptionRules, setRedemptionRules] = useState([]);
   const [showGreenPointSection, setShowGreenPointSection] = useState(false);
@@ -230,6 +232,95 @@ function TakeoutOrderPage() {
     () => cart.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0),
     [cart.items]
   );
+
+  const totalQuantity = useMemo(
+    () => cart.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    [cart.items]
+  );
+
+  const filteredMenuItems = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return menuItems;
+
+    return menuItems.filter((item) => {
+      const category = categories.find((cat) => cat.id === item.category);
+      const searchableText = [
+        item.name,
+        item.description,
+        item.category_name,
+        item.category?.name,
+        category?.name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return searchableText.includes(keyword);
+    });
+  }, [categories, menuItems, searchTerm]);
+
+  const displayCategories = useMemo(() => {
+    if (!categories.length) {
+      return filteredMenuItems.length
+        ? [{ id: 'all-products', name: '全部', description: '所有商品' }]
+        : [];
+    }
+    return categories.filter((category) =>
+      filteredMenuItems.some((item) => item.category === category.id)
+    );
+  }, [categories, filteredMenuItems]);
+
+  useEffect(() => {
+    if (!displayCategories.length) return;
+    setSelectedCategory((current) =>
+      displayCategories.some((category) => category.id === current)
+        ? current
+        : displayCategories[0].id
+    );
+  }, [displayCategories]);
+
+  useEffect(() => {
+    const scrollContainer = menuScrollRef.current;
+    if (!scrollContainer || displayCategories.length === 0) return undefined;
+
+    let ticking = false;
+    const updateActiveCategory = () => {
+      ticking = false;
+      const containerTop = scrollContainer.getBoundingClientRect().top;
+      let activeId = displayCategories[0].id;
+
+      displayCategories.forEach((category) => {
+        const section = categoryRefs.current[category.id];
+        if (!section) return;
+        const sectionTop = section.getBoundingClientRect().top - containerTop;
+        if (sectionTop <= 130) {
+          activeId = category.id;
+        }
+      });
+
+      setSelectedCategory((current) => (current === activeId ? current : activeId));
+    };
+
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(updateActiveCategory);
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    updateActiveCategory();
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [displayCategories]);
+
+  const scrollToCategory = (categoryId) => {
+    const scrollContainer = menuScrollRef.current;
+    const target = categoryRefs.current[categoryId];
+    if (!scrollContainer || !target) return;
+    setSelectedCategory(categoryId);
+    scrollContainer.scrollTo({
+      top: target.offsetTop - 14,
+      behavior: 'smooth',
+    });
+  };
 
   const handleGoToCart = () => {
     const cartWithContact = {
@@ -382,219 +473,206 @@ function TakeoutOrderPage() {
     );
   }
 
+  const storeImageSource = store?.first_image || store?.images?.[0]?.image || store?.images?.[0]?.image_url || '';
+  const storeImageUrl = storeImageSource
+    ? (storeImageSource.startsWith('http') ? storeImageSource : `http://127.0.0.1:8000${storeImageSource}`)
+    : '';
+
   return (
-    <div className={`${styles['takeout-page']} container`} style={{ marginTop: "8px" }}>
-      <div className="row mb-4">
-        <div className="col-12">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h2 className="mb-1">{store?.name}</h2>
-              <p className="text-muted mb-2">{store?.address}</p>
-              <div className="d-flex flex-wrap gap-3 align-items-center">
-                <span>
-                  <i className="bi bi-telephone me-1" />
-                  {store?.phone}
-                </span>
-                {user && greenPoints !== null && (
-                  <span className={styles['green-points-badge']}>
-                    <FaCoins style={{ color: '#4CAF50', marginRight: '4px' }} />
-                    線色點數：{greenPoints} 點
-                  </span>
-                )}
-              </div>
-            </div>
+    <div className={styles['takeout-page']}>
+      <section className={styles['takeout-store-card']}>
+        <div className={styles['takeout-store-image']}>
+          {storeImageUrl ? (
+            <img src={storeImageUrl} alt={store?.name} />
+          ) : (
+            <span>DV</span>
+          )}
+        </div>
+        <div className={styles['takeout-store-copy']}>
+          <h1>{store?.name}</h1>
+          <p><i className="bi bi-geo-alt" aria-hidden="true"></i>{store?.address}</p>
+          <div>
+            {store?.phone && <span><i className="bi bi-telephone" aria-hidden="true"></i>{store.phone}</span>}
+            {user && greenPoints !== null && (
+              <span className={styles['green-points-badge']}>
+                <FaCoins />
+                綠色點數：{greenPoints} 點
+              </span>
+            )}
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="row g-4">
-        <div className="col-12">
-          {/* 類別導航標籤 + 購物車按鈕 */}
-          {categories.length > 0 && (
-            <div className={`${styles['category-nav-tabs']} mb-3`}>
-              <div className={styles['nav-tabs-scroll']}>
-                {categories.map((category) => {
-                  const categoryProducts = menuItems.filter(item => item.category === category.id);
-                  return (
-                    <button
-                      key={category.id}
-                      className={`${styles['category-nav-btn']} ${selectedCategory === category.id ? styles.active : ''}`}
-                      onClick={() => {
-                        setSelectedCategory(category.id);
-                        categoryRefs.current[category.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }}
-                    >
-                      {category.name}
-                      {categoryProducts.length > 0 && (
-                        <span className={styles['category-count']}>{categoryProducts.length}</span>
-                      )}
-                    </button>
-                  );
-                })}
+      <section className={styles['takeout-menu-shell']}>
+        <aside className={styles['takeout-category-sidebar']}>
+          {displayCategories.map((category) => {
+            const categoryProducts = category.id === 'all-products'
+              ? filteredMenuItems
+              : filteredMenuItems.filter((item) => item.category === category.id);
+            return (
+              <button
+                key={category.id}
+                type="button"
+                className={`${styles['side-category-btn']} ${selectedCategory === category.id ? styles.active : ''}`}
+                onClick={() => scrollToCategory(category.id)}
+              >
+                <i className="bi bi-grid" aria-hidden="true"></i>
+                <span>
+                  <strong>{category.name}</strong>
+                  <small>{category.description || `${categoryProducts.length} 項商品`}</small>
+                </span>
+              </button>
+            );
+          })}
 
-
-                {/* 購物車按鈕 */}
-                <button
-                  className={styles['cart-nav-btn']}
-                  onClick={handleGoToCart}
-                >
-                  <FaShoppingCart size={18} />
-                  {cart.items.length > 0 && (
-                    <span className={styles['cart-badge']}>{cart.items.length}</span>
-                  )}
-                </button>
-
-                {/* 綠色點數按鈕 */}
-                {redemptionRules.length > 0 && (
-                  <button
-                    className={`${styles['category-nav-btn']} ${styles['green-points-nav-btn']} ${showGreenPointSection ? styles.active : ''}`}
-                    onClick={() => {
-                      setShowGreenPointSection(!showGreenPointSection);
-                      setSelectedCategory(null);
-                      setTimeout(() => {
-                        greenPointRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }, 100);
-                    }}
-                  >
-                    綠色點數
-                  </button>
-                )}
-
-                {/* 惜福專區按鈕 */}
-                <button
-                  className={`${styles['surplus-zone-nav-btn']} ${!store?.enable_surplus_food ? 'disabled' : ''}`}
-                  onClick={() => store?.enable_surplus_food && navigate(`/store/${storeId}/surplus`, {
-                    state: { cart: cart }
-                  })}
-                  disabled={!store?.enable_surplus_food}
-                  style={!store?.enable_surplus_food ? { cursor: 'not-allowed', opacity: 0.5, backgroundColor: '#ccc' } : {}}
-                >
-                  惜福專區
-                </button>
-              </div>
-            </div>
+          {redemptionRules.length > 0 && (
+            <button
+              type="button"
+              className={`${styles['side-category-btn']} ${showGreenPointSection ? styles.active : ''}`}
+              onClick={() => {
+                setShowGreenPointSection(true);
+                setTimeout(() => greenPointRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+              }}
+            >
+              <i className="bi bi-star" aria-hidden="true"></i>
+              <span>
+                <strong>人氣推薦</strong>
+                <small>點數兌換優惠</small>
+              </span>
+            </button>
           )}
 
-          {/* 綠色點數兌換區 */}
-          {showGreenPointSection && redemptionRules.length > 0 && (
-            <div ref={greenPointRef} className={`card shadow-sm mb-4 ${styles['takeout-card']} ${styles['category-section']}`}>
-              <div className={`card-header ${styles['takeout-card-header']}`} style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)' }}>
-                <strong>綠色點數兌換</strong>
-              </div>
-              <div className="card-body">
-                {redemptionRules.map((rule) => {
-                  const canRedeem = greenPoints !== null && greenPoints >= rule.required_points;
-                  const cartItem = cart.items.find(item => item.id === `redemption_${rule.id}`);
-                  const quantity = cartItem ? cartItem.quantity : 0;
-                  const maxQty = rule.redemption_type === 'discount' ? 1 : (rule.max_quantity_per_order || 1);
+          <button
+            type="button"
+            className={`${styles['side-category-btn']} ${!store?.enable_surplus_food ? styles.disabled : ''}`}
+            onClick={() => store?.enable_surplus_food && navigate(`/store/${storeId}/surplus`, { state: { cart } })}
+            disabled={!store?.enable_surplus_food}
+          >
+            <i className="bi bi-basket" aria-hidden="true"></i>
+            <span>
+              <strong>惜福專區</strong>
+              <small>即期餐點優惠</small>
+            </span>
+          </button>
+        </aside>
 
-                  return (
-                    <div
-                      key={rule.id}
-                      className="d-flex justify-content-between align-items-center border-bottom py-3"
-                    >
-                      <div className="flex-grow-1">
-                        <h5 className="mb-1">
-                          {rule.name}
-                          <span className={`badge ms-2 ${rule.redemption_type === 'discount' ? 'bg-warning text-dark' : 'bg-info'}`}>
-                            {rule.redemption_type === 'discount' ? '折扣' : '商品'}
-                          </span>
-                        </h5>
-                        <p className="text-muted mb-1">
-                          需要點數：<strong className="text-success">{rule.required_points} 點</strong>
-                          {rule.redemption_type === 'product' && maxQty > 1 && (
-                            <span className="ms-2 text-muted">（單筆最多 {maxQty} 份）</span>
-                          )}
-                        </p>
-                        {rule.redemption_type === 'discount' && (
-                          <p className="text-success mb-0">折抵 NT$ {rule.discount_value}</p>
-                        )}
-                        {rule.redemption_type === 'product' && rule.product_name && (
-                          <p className="text-success mb-0">免費商品：{rule.product_name}</p>
-                        )}
-                      </div>
-                      <div className="d-flex align-items-center gap-2">
-                        {quantity > 0 ? (
-                          <div className={`${styles['quantity-control']} d-flex align-items-center gap-2`}>
-                            <button
-                              className={`${styles['quantity-btn']} rounded-circle`}
-                              onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: `redemption_${rule.id}` })}
-                            >
-                              <FaMinus size={12} />
-                            </button>
-                            <span className={styles['quantity-display']}>{quantity}</span>
-                            <button
-                              className={`${styles['quantity-btn']} rounded-circle`}
-                              onClick={() => handleSelectRedemption(rule)}
-                              disabled={quantity >= maxQty || !canRedeem}
-                              style={(quantity >= maxQty || !canRedeem) ? { opacity: 0.5 } : {}}
-                            >
-                              <FaPlus size={12} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className={`${styles['add-btn']} rounded-circle`}
-                            onClick={() => handleSelectRedemption(rule)}
-                            disabled={!canRedeem}
-                            style={!canRedeem ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                            title={!canRedeem ? '點數不足' : '添加兌換'}
-                          >
-                            <FaPlus size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        <div className={styles['takeout-menu-main']}>
+          <div className={styles['takeout-menu-toolbar']}>
+            <div className={styles['takeout-filter-pills']}>
+              <button
+                type="button"
+                className={styles.active}
+                onClick={() => displayCategories[0] && scrollToCategory(displayCategories[0].id)}
+              >
+                <i className="bi bi-grid" aria-hidden="true"></i>全部
+              </button>
+              {displayCategories.slice(0, 2).map((category) => (
+                <button key={category.id} type="button" onClick={() => scrollToCategory(category.id)}>
+                  {category.name}
+                  <span>{category.id === 'all-products' ? filteredMenuItems.length : filteredMenuItems.filter((item) => item.category === category.id).length}</span>
+                </button>
+              ))}
             </div>
-          )}
+            <label className={styles['takeout-search-box']}>
+              <i className="bi bi-search" aria-hidden="true"></i>
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="搜尋餐點名稱"
+                aria-label="搜尋餐點名稱"
+              />
+            </label>
+            <button
+              type="button"
+              className={styles['takeout-cart-button']}
+              onClick={handleGoToCart}
+              disabled={cart.items.length === 0}
+            >
+              <FaShoppingCart />
+              購物車
+              {totalQuantity > 0 && <span>{totalQuantity}</span>}
+              <strong>共 NT$ {formatPrice(total)}</strong>
+            </button>
+          </div>
 
-          {/* 按類別分組顯示商品 */}
-          {categories.length === 0 ? (
-            <div className={`card shadow-sm mb-4 ${styles['takeout-card']}`}>
-              <div className={`card-header ${styles['takeout-card-header']}`}>
-                <strong>餐點列表</strong>
-              </div>
-              <div className="card-body">
-                {menuItems.length === 0 && (
-                  <p className="text-muted">目前尚無外帶餐點。</p>
-                )}
-                <div className={styles['menu-product-grid']}>
-                  {menuItems.map(renderMenuItemCard)}
-                </div>
-              </div>
-            </div>
-          ) : (
-            categories.map((category) => {
-              const categoryProducts = menuItems.filter(item => item.category === category.id);
-              if (categoryProducts.length === 0) return null;
-
-              return (
-                <div
-                  key={category.id}
-                  ref={el => categoryRefs.current[category.id] = el}
-                  className={`card shadow-sm mb-4 ${styles['takeout-card']} ${styles['category-section']}`}
-                >
-                  <div className={`card-header ${styles['takeout-card-header']}`}>
-                    <strong>{category.name}</strong>
-                    {category.description && (
-                      <small className="d-block mt-1" style={{ opacity: 0.9 }}>{category.description}</small>
-                    )}
+          <div className={styles['takeout-scroll-area']} ref={menuScrollRef}>
+            {showGreenPointSection && redemptionRules.length > 0 && (
+              <section ref={greenPointRef} className={styles['menu-category-section']}>
+                <header>
+                  <div>
+                    <i className="bi bi-star" aria-hidden="true"></i>
+                    <h2>人氣推薦</h2>
+                    <p>使用綠色點數兌換優惠</p>
                   </div>
-                  <div className="card-body">
+                </header>
+                <div className={styles['redemption-list']}>
+                  {redemptionRules.map((rule) => {
+                    const canRedeem = greenPoints !== null && greenPoints >= rule.required_points;
+                    return (
+                      <button
+                        key={rule.id}
+                        type="button"
+                        className={styles['redemption-card']}
+                        onClick={() => handleSelectRedemption(rule)}
+                        disabled={!canRedeem}
+                      >
+                        <strong>{rule.name}</strong>
+                        <span>{rule.required_points} 點</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {displayCategories.length === 0 ? (
+              <div className={styles['takeout-empty']}>目前沒有可供點選的商品</div>
+            ) : (
+              displayCategories.map((category) => {
+                const categoryProducts = category.id === 'all-products'
+                  ? filteredMenuItems
+                  : filteredMenuItems.filter((item) => item.category === category.id);
+                if (categoryProducts.length === 0) return null;
+
+                return (
+                  <section
+                    key={category.id}
+                    ref={(el) => { categoryRefs.current[category.id] = el; }}
+                    className={styles['menu-category-section']}
+                  >
+                    <header>
+                      <div>
+                        <i className="bi bi-tag" aria-hidden="true"></i>
+                        <h2>{category.name}</h2>
+                        <p>{category.description || '精選商品，美味滿分'}</p>
+                      </div>
+                      <button type="button" onClick={() => scrollToCategory(category.id)}>
+                        查看全部 <i className="bi bi-chevron-right" aria-hidden="true"></i>
+                      </button>
+                    </header>
                     <div className={styles['menu-product-grid']}>
                       {categoryProducts.map(renderMenuItemCard)}
                     </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
+                  </section>
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
-      {/* 規格選擇 Modal */}
+      </section>
+
+      <button
+        type="button"
+        className={styles['floating-cart-btn']}
+        onClick={handleGoToCart}
+        disabled={cart.items.length === 0}
+      >
+        <FaShoppingCart />
+        {totalQuantity > 0 && <span>{totalQuantity}</span>}
+        <strong>NT$ {formatPrice(total)}</strong>
+      </button>
+
       {showSpecModal && selectedProduct && (
         <ProductSpecificationModal
           product={selectedProduct}
@@ -608,6 +686,7 @@ function TakeoutOrderPage() {
       )}
     </div>
   );
+
 }
 
 export default TakeoutOrderPage;

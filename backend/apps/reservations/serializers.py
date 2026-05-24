@@ -412,14 +412,13 @@ class TimeSlotWithAvailabilitySerializer(serializers.ModelSerializer):
         if not date:
             return 0
 
-        # obj 是 TimeSlot 實例，需要構造時間字串來匹配 Reservation 的 time_slot CharField
-        if obj.end_time:
-            time_str = f"{obj.start_time.strftime('%H:%M')}-{obj.end_time.strftime('%H:%M')}"
-        else:
-            time_str = obj.start_time.strftime('%H:%M')
-
         booking_map = self._get_booking_map_for_date(obj.store_id, date)
-        return booking_map.get(time_str, 0)
+        start_time_str = obj.start_time.strftime('%H:%M')
+        current = booking_map.get(start_time_str, 0)
+        if obj.end_time:
+            legacy_range_str = f"{start_time_str}-{obj.end_time.strftime('%H:%M')}"
+            current += booking_map.get(legacy_range_str, 0)
+        return current
     
     def get_available(self, obj):
         """檢查時段是否還有空位"""

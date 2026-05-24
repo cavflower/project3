@@ -8,7 +8,6 @@ import Footer from './components/layout/Footer';
 import Sidebar from './components/layout/Sidebar';
 
 // 頁面元件
-import HomePage from './features/home/HomePage';
 // import LoginPage from './features/authentication/LoginPage';
 // import RegisterPage from './features/authentication/RegisterPage';
 import CustomerLoginPage from './features/authentication/CustomerLoginPage';
@@ -122,6 +121,14 @@ function App() {
   const isAuthLayoutRoute =
     location.pathname.startsWith('/login') ||
     location.pathname.startsWith('/register');
+  const isStoreDetailRoute = /^\/store\/[^/]+\/?$/.test(location.pathname);
+  const isTakeoutOrderRoute = /^\/store\/[^/]+\/takeout\/?$/.test(location.pathname);
+  const isCompactCheckoutRoute = /^\/takeout\/[^/]+\/cart\/?$/.test(location.pathname);
+  const isProfileFitRoute = location.pathname === '/profile' || location.pathname === '/customer/coupons';
+  const isReservationFitRoute =
+    /^\/reservation\/new\/[^/]+\/?$/.test(location.pathname) ||
+    location.pathname === '/reservation/success';
+  const useBareLayout = isAuthLayoutRoute;
 
   const toggleSidebar = () => {
     setSidebarOpen(!isSidebarOpen);
@@ -131,15 +138,15 @@ function App() {
     // 2. 必須用 <BrowserRouter> 包裹整個應用程式
 
     <div className="App">
-      {!isAuthLayoutRoute && <Navbar toggleSidebar={toggleSidebar} />}
-      {!isAuthLayoutRoute && <Sidebar isOpen={isSidebarOpen} />}
-      <div className={`main-content ${isAuthLayoutRoute ? 'auth-layout' : ''}`}>
-        <main className={isAuthLayoutRoute ? 'auth-main' : ''}>
+      {!useBareLayout && <Navbar toggleSidebar={toggleSidebar} />}
+      {!useBareLayout && <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />}
+      <div className={`main-content ${isAuthLayoutRoute ? 'auth-layout' : ''} ${isStoreDetailRoute || isTakeoutOrderRoute || isCompactCheckoutRoute ? 'store-detail-layout' : ''} ${isProfileFitRoute ? 'profile-fit-layout' : ''} ${isReservationFitRoute ? 'reservation-fit-layout' : ''}`}>
+        <main className={`${isAuthLayoutRoute ? 'auth-main' : ''} ${isReservationFitRoute ? 'reservation-main' : ''}`}>
           {/* 3. 路由配置 */}
           <Routes>
 
             {/* 首頁 (/)：公開 */}
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<CustomerHomePage />} />
 
             {/* 登入頁 */}
             <Route path="/login/customer" element={<CustomerLoginPage />} />
@@ -372,6 +379,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/customer/coupons"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* 會員制度管理頁面路由（商家端） */}
             <Route
@@ -465,7 +480,7 @@ function App() {
 
           </Routes>
         </main>
-        {!isAuthLayoutRoute && <Footer />}
+        {!useBareLayout && !isStoreDetailRoute && !isTakeoutOrderRoute && !isCompactCheckoutRoute && !isProfileFitRoute && !isReservationFitRoute && <Footer />}
       </div>
     </div>
 
