@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../store/AuthContext';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { authApi } from '../../api/authApi';
 import { clearTokens } from '../../api/authTokens';
 import styles from './LoginPage.module.css';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ImageCarousel from '../../components/common/ImageCarousel';
 
 const CustomerLoginPage = () => {
@@ -18,6 +18,7 @@ const CustomerLoginPage = () => {
 
   // 使用多種方式獲取 redirect 參數
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const urlParams = new URLSearchParams(window.location.search);
   const redirectUrl = searchParams.get('redirect') || urlParams.get('redirect');
@@ -26,6 +27,12 @@ const CustomerLoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+
+  useEffect(() => {
+    if (redirectUrl === '/customer-home') {
+      navigate('/customer-home', { replace: true });
+    }
+  }, [navigate, redirectUrl]);
 
   // Debug: log redirect URL
   console.log('Window location search:', window.location.search);

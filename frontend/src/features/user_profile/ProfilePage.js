@@ -1,39 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { bindLine } from '../../api/lineLoginApi';
-import { claimPlatformCoupon, getMyPlatformCoupons } from '../../api/loyaltyApi';
 import PaymentCards from './PaymentCards';
 import LineBinding from '../../components/user/LineBinding';
 import MerchantLineBinding from '../../components/merchant/MerchantLineBinding';
+import { FiCheckCircle, FiChevronRight, FiHeart, FiLogOut, FiMail, FiUser, FiUsers } from 'react-icons/fi';
 import styles from './ProfilePage.module.css';
-
-const formatCouponValue = (coupon) => {
-  const amount = Number(coupon.discount_value || 0);
-  if (coupon.discount_type === 'percent') {
-    return `${amount}% 折扣`;
-  }
-  return `折抵 NT$ ${amount.toLocaleString('zh-TW')}`;
-};
-
-const formatCouponStatus = (coupon) => {
-  if (coupon.status === 'used') return '已使用';
-  if (coupon.is_expired || coupon.status === 'expired') return '已過期';
-  return '可使用';
-};
-
-const formatCouponExpiry = (value) => {
-  if (!value) return '未設定期限';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
 
 const ProfilePage = () => {
   const { user, updateUser, logout, loading } = useAuth();
@@ -47,10 +20,6 @@ const ProfilePage = () => {
   });
   const [currentPlan, setCurrentPlan] = useState('');
   const [avatarPreview, setAvatarPreview] = useState('');
-  const [platformCoupons, setPlatformCoupons] = useState([]);
-  const [couponsLoading, setCouponsLoading] = useState(false);
-  const [couponClaiming, setCouponClaiming] = useState(false);
-  const [handledCouponToken, setHandledCouponToken] = useState('');
   const fileInputRef = useRef(null);
 
   const personalSectionRef = useRef(null);
@@ -59,21 +28,6 @@ const ProfilePage = () => {
   const paymentCardsRef = useRef(null);
   const merchantLineSectionRef = useRef(null);
 
-  const loadPlatformCoupons = useCallback(async () => {
-    if (!user || user.user_type !== 'customer') return;
-
-    try {
-      setCouponsLoading(true);
-      const response = await getMyPlatformCoupons();
-      const data = response?.data ?? response;
-      setPlatformCoupons(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('載入優惠券失敗:', error);
-      setPlatformCoupons([]);
-    } finally {
-      setCouponsLoading(false);
-    }
-  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -115,42 +69,7 @@ const ProfilePage = () => {
     doBind();
   }, [searchParams, user]);
 
-  useEffect(() => {
-    if (user?.user_type === 'customer') {
-      loadPlatformCoupons();
-    }
-  }, [loadPlatformCoupons, user]);
 
-  useEffect(() => {
-    const couponClaimToken = searchParams.get('coupon_claim_token');
-    if (
-      !couponClaimToken ||
-      !user ||
-      user.user_type !== 'customer' ||
-      couponClaiming ||
-      handledCouponToken === couponClaimToken
-    ) {
-      return;
-    }
-
-    const claimCoupon = async () => {
-      try {
-        setCouponClaiming(true);
-        setHandledCouponToken(couponClaimToken);
-        const response = await claimPlatformCoupon(couponClaimToken);
-        const result = response?.data ?? response;
-        await loadPlatformCoupons();
-        alert(result.message || '優惠券已存入您的帳戶');
-      } catch (error) {
-        alert(error.response?.data?.detail || '優惠券領取失敗');
-      } finally {
-        setCouponClaiming(false);
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    };
-
-    claimCoupon();
-  }, [couponClaiming, handledCouponToken, loadPlatformCoupons, searchParams, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -234,6 +153,10 @@ const ProfilePage = () => {
     }
   };
 
+  const handleHelpCenter = () => {
+    alert('客服中心功能建置中，請先透過 LINE 或店家資訊聯繫我們。');
+  };
+
   if (loading || !user) return <div>載入個人資料中...</div>;
 
   const membershipLabel = user.user_type === 'merchant' ? '店家會員' : '平台會員';
@@ -252,8 +175,6 @@ const ProfilePage = () => {
         <div className={styles['profile-container']}>
           <form onSubmit={handleSubmit} className={styles['profile-form']}>
             <div className={styles['profile-sidebar']}>
-              <h1>個人資料設定</h1>
-
               <div className={styles['avatar-shell']}>
                 <div className={styles['avatar-upload-container']} onClick={() => fileInputRef.current.click()}>
                   <img src={avatarPreview} alt="Avatar" className={styles['avatar-preview']} />
@@ -267,75 +188,48 @@ const ProfilePage = () => {
                 <p className={styles['sidebar-name']}>{formData.username || '使用者'}</p>
                 <p className={styles['sidebar-subtitle']}>{accountTypeLabel}</p>
                 <div className={styles['sidebar-level-chip']}>{membershipLabel}</div>
-                <div className={styles['sidebar-meta-grid']}>
-                  <div className={styles['meta-tile']}>
-                    <span className={styles['meta-label']}>Email 綁定</span>
-                    <span className={styles['meta-value']}>{formData.email ? '已完成' : '未設定'}</span>
-                  </div>
-                  <div className={styles['meta-tile']}>
-                    <span className={styles['meta-label']}>公司加入</span>
-                    <span className={styles['meta-value']}>{user.company_tax_id ? '已加入' : '未加入'}</span>
-                  </div>
-                </div>
               </div>
 
+                <div className={styles['sidebar-meta-grid']}>
+                  <div className={styles['meta-tile']}>
+                    <FiMail className={styles['meta-icon']} />
+                    <span className={styles['meta-label']}>Email 綁定</span>
+                    <span className={styles['meta-value']}>
+                      <FiCheckCircle />
+                      {formData.email ? '已完成' : '未設定'}
+                    </span>
+                  </div>
+                  <div className={styles['meta-tile']}>
+                    <FiUsers className={styles['meta-icon']} />
+                    <span className={styles['meta-label']}>公司加入</span>
+                    <span className={styles['meta-value']}>
+                      <FiCheckCircle />
+                      {user.company_tax_id ? '已加入' : '未加入'}
+                    </span>
+                  </div>
+                </div>
+
               {user.user_type === 'customer' ? (
-                <div className={styles['sidebar-coupon-panel']}>
-                  <div className={styles['coupon-panel-header']}>
-                    <div>
-                      <p className={styles['quick-title']}>我的優惠券</p>
-                      <span className={styles['coupon-count']}>{platformCoupons.length} 張</span>
+                <div className={styles['customer-sidebar-stack']}>
+                  <div className={styles['sidebar-help-card']}>
+                    <div className={styles['help-copy']}>
+                      <p className={styles['help-title']}>需要幫助嗎？</p>
+                      <p className={styles['help-text']}>查看常見問題或聯繫客服，我們很樂意為您服務！</p>
+                      <button type="button" className={styles['help-link-btn']} onClick={handleHelpCenter}>
+                        前往客服中心
+                        <FiChevronRight />
+                      </button>
                     </div>
-                    <button type="button" className={styles['coupon-refresh-btn']} onClick={loadPlatformCoupons}>
-                      重新整理
-                    </button>
+                    <div className={styles['help-art']} aria-hidden="true">
+                      <FiHeart className={styles['help-heart']} />
+                      <span className={styles['help-sparkle-one']} />
+                      <span className={styles['help-sparkle-two']} />
+                      <span className={styles['help-cloche']} />
+                    </div>
                   </div>
 
-                  {couponClaiming && (
-                    <div className={styles['coupon-claiming-tip']}>正在同步剛領取的優惠券...</div>
-                  )}
-
-                  {couponsLoading ? (
-                    <div className={styles['coupon-empty-state']}>載入優惠券中...</div>
-                  ) : platformCoupons.length === 0 ? (
-                    <div className={styles['coupon-empty-state']}>
-                      目前還沒有平台優惠券。之後從 LINE 領取的優惠券都會存放在這裡。
-                    </div>
-                  ) : (
-                    <div className={styles['coupon-list']}>
-                      {platformCoupons.map((coupon) => (
-                        <div key={coupon.id} className={styles['coupon-card']}>
-                          <div className={styles['coupon-card-top']}>
-                            <div>
-                              <p className={styles['coupon-title']}>{coupon.title}</p>
-                              <p className={styles['coupon-code']}>{coupon.code}</p>
-                            </div>
-                            <span
-                              className={`${styles['coupon-status']} ${
-                                coupon.status === 'used'
-                                  ? styles['coupon-status-used']
-                                  : coupon.is_expired || coupon.status === 'expired'
-                                    ? styles['coupon-status-expired']
-                                    : styles['coupon-status-active']
-                              }`}
-                            >
-                              {formatCouponStatus(coupon)}
-                            </span>
-                          </div>
-                          <p className={styles['coupon-value']}>{formatCouponValue(coupon)}</p>
-                          {coupon.description && (
-                            <p className={styles['coupon-description']}>{coupon.description}</p>
-                          )}
-                          <div className={styles['coupon-meta']}>
-                            <span>最低消費 NT$ {Number(coupon.min_order_amount || 0).toLocaleString('zh-TW')}</span>
-                            <span>到期：{formatCouponExpiry(coupon.expires_at)}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
                   <button type="button" className={styles['customer-logout-btn']} onClick={() => logout()}>
+                    <FiLogOut />
                     登出
                   </button>
                 </div>
@@ -368,40 +262,52 @@ const ProfilePage = () => {
             </div>
 
             <div className={styles['profile-main']} ref={personalSectionRef}>
-              <div className={styles['form-group']}>
-                <label htmlFor="username">使用者名稱</label>
-                <input type="text" id="username" name="username" value={formData.username} onChange={handleChange} required />
-              </div>
+              <section className={styles['personal-settings-card']}>
+                <h1 className={styles['profile-main-title']}>
+                  <FiUser />
+                  個人資料設定
+                </h1>
 
-              <div className={styles['form-group']}>
-                <label htmlFor="email">電子郵件</label>
-                <input type="email" id="email" name="email" value={formData.email} readOnly />
-              </div>
+                <div className={styles['personal-form-panel']}>
+                  <div className={styles['form-group']}>
+                    <label htmlFor="username">使用者名稱</label>
+                    <input type="text" id="username" name="username" value={formData.username} onChange={handleChange} required />
+                  </div>
 
-              <div className={styles['form-group']}>
-                <label htmlFor="phone_number">手機號碼</label>
-                <input type="tel" id="phone_number" name="phone_number" value={formData.phone_number} onChange={handleChange} />
-              </div>
+                  <div className={styles['form-group']}>
+                    <label htmlFor="email">電子郵件</label>
+                    <div className={styles['readonly-field']}>
+                      <input type="email" id="email" name="email" value={formData.email} readOnly />
+                      <FiCheckCircle />
+                    </div>
+                  </div>
 
-              <div className={styles['form-group']}>
-                <label htmlFor="gender">性別</label>
-                <div className={styles['gender-radio-group']}>
-                  <label className={styles['radio-option']}>
-                    <input type="radio" name="gender" value="female" checked={formData.gender === 'female'} onChange={handleChange} />
-                    <span>女性</span>
-                  </label>
-                  <label className={styles['radio-option']}>
-                    <input type="radio" name="gender" value="male" checked={formData.gender === 'male'} onChange={handleChange} />
-                    <span>男性</span>
-                  </label>
-                  <label className={styles['radio-option']}>
-                    <input type="radio" name="gender" value="other" checked={formData.gender === 'other'} onChange={handleChange} />
-                    <span>其他</span>
-                  </label>
+                  <div className={styles['form-group']}>
+                    <label htmlFor="phone_number">手機號碼</label>
+                    <input type="tel" id="phone_number" name="phone_number" value={formData.phone_number} onChange={handleChange} />
+                  </div>
+
+                  <div className={styles['form-group']}>
+                    <label htmlFor="gender">性別</label>
+                    <div className={styles['gender-radio-group']}>
+                      <label className={styles['radio-option']}>
+                        <input type="radio" name="gender" value="female" checked={formData.gender === 'female'} onChange={handleChange} />
+                        <span>女性</span>
+                      </label>
+                      <label className={styles['radio-option']}>
+                        <input type="radio" name="gender" value="male" checked={formData.gender === 'male'} onChange={handleChange} />
+                        <span>男性</span>
+                      </label>
+                      <label className={styles['radio-option']}>
+                        <input type="radio" name="gender" value="other" checked={formData.gender === 'other'} onChange={handleChange} />
+                        <span>其他</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <button type="submit" className={styles['submit-btn']}>儲存變更</button>
                 </div>
-              </div>
-
-              <button type="submit" className={styles['submit-btn']}>儲存變更</button>
+              </section>
 
               {user.user_type === 'customer' && (
                 <section className={styles['inline-tools-section']}>

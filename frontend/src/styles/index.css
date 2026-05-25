@@ -14,6 +14,8 @@ html {
   -webkit-text-size-adjust: 100%; /* 防止 iOS Safari 自動調整文字大小 */
   -moz-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -26,7 +28,14 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   zoom: 1; /* 重置縮放 */
-  transform: scale(1); /* 重置變換 */
+  transform: none; /* 避免影響 fixed 彈窗定位 */
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 code {
@@ -58,6 +67,80 @@ main {
   flex: 1 0 auto;
   min-height: 0;
   padding: 0.5rem 2rem 2rem;
+}
+
+.main-content.store-detail-layout {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.main-content.store-detail-layout main {
+  padding: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main-content.profile-fit-layout {
+  box-sizing: border-box;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main-content.profile-fit-layout main {
+  padding: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main-content.reservation-fit-layout {
+  box-sizing: border-box;
+  position: fixed;
+  top: var(--navbar-height);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: auto;
+  min-height: 0;
+  padding-top: 0;
+  overflow: hidden;
+}
+
+.main-content.reservation-fit-layout main {
+  box-sizing: border-box;
+  flex: none;
+  height: 100%;
+  padding: 0.75rem 1.5rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .main-content.profile-fit-layout {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .main-content.profile-fit-layout main {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 860px) {
+  .main-content.reservation-fit-layout {
+    position: static;
+    inset: auto;
+    height: auto;
+    min-height: 100dvh;
+    padding-top: var(--navbar-height);
+    overflow: visible;
+  }
+
+  .main-content.reservation-fit-layout main {
+    height: auto;
+    overflow: visible;
+  }
 }
 
 .main-content.auth-layout .auth-main {

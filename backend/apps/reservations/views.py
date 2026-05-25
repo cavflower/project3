@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import Sum
 import hashlib
 
 from .models import Reservation, ReservationChangeLog, TimeSlot
@@ -103,9 +104,17 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     store=store,
                     day_of_week=day_of_week,
                     start_time=start_time,
-                    end_time__isnull=True,
                     is_active=True
                 ).first()
+
+                if not time_slot_obj:
+                    time_slot_obj = TimeSlot.objects.filter(
+                        store=store,
+                        day_of_week=day_of_week,
+                        start_time__lte=start_time,
+                        end_time__gt=start_time,
+                        is_active=True
+                    ).order_by('-start_time').first()
             
             if not time_slot_obj:
                 return Response(
@@ -126,9 +135,15 @@ class ReservationViewSet(viewsets.ModelViewSet):
             )
         
         # 檢查時段容量
-        from django.db.models import Sum
+        time_slot_values = [time_slot_str]
+        if time_slot_obj.end_time:
+            start_time_value = time_slot_obj.start_time.strftime('%H:%M')
+            legacy_range_value = f"{start_time_value}-{time_slot_obj.end_time.strftime('%H:%M')}"
+            if time_slot_str == start_time_value:
+                time_slot_values.append(legacy_range_value)
+
         reservations = Reservation.objects.filter(
-            time_slot=time_slot_str,
+            time_slot__in=time_slot_values,
             store=store,
             reservation_date=reservation_date,
             status__in=['pending', 'confirmed']
@@ -570,6 +585,100 @@ class PublicTimeSlotViewSet(viewsets.ReadOnlyModelViewSet):
                 return TimeSlot.objects.none()
         
         return queryset.order_by('day_of_week', 'start_time')
+
+    def list(self, request, *args, **kwargs):
+        date_str = request.query_params.get('date')
+        if not date_str:
+            return super().list(request, *args, **kwargs)
+
+        from datetime import datetime, timedelta
+
+        try:
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response(
+                {'error': 'Invalid date format. Expected YYYY-MM-DD.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        day_of_week = [
+            'monday',
+            'tuesday',
+            'wednesday',
+            'thursday',
+            'friday',
+            'saturday',
+            'sunday',
+        ][date_obj.weekday()]
+
+        queryset = self.filter_queryset(self.get_queryset()).filter(day_of_week=day_of_week)
+        booking_map = self._get_booking_map_for_date(
+            request.query_params.get('store_id'),
+            date_obj
+        )
+
+        expanded_slots = []
+        for slot in queryset:
+            expanded_slots.extend(self._expand_time_slot(slot, booking_map, timedelta(minutes=30)))
+
+        return Response(expanded_slots)
+
+    def _expand_time_slot(self, slot, booking_map, interval):
+        from datetime import datetime
+
+        slots = []
+        current = datetime.combine(datetime.today(), slot.start_time)
+        if slot.end_time:
+            end = datetime.combine(datetime.today(), slot.end_time)
+        else:
+            end = current + interval
+
+        while current < end:
+            time_value = current.time().strftime('%H:%M')
+            current_bookings = booking_map.get(time_value, 0)
+            if slot.end_time and time_value == slot.start_time.strftime('%H:%M'):
+                legacy_range_value = f"{time_value}-{slot.end_time.strftime('%H:%M')}"
+                current_bookings += booking_map.get(legacy_range_value, 0)
+
+            slots.append({
+                'id': f'{slot.id}-{time_value}',
+                'source_slot_id': slot.id,
+                'store': slot.store_id,
+                'day_of_week': slot.day_of_week,
+                'start_time': current.time().strftime('%H:%M:%S'),
+                'end_time': None,
+                'range_start_time': slot.start_time.strftime('%H:%M:%S'),
+                'range_end_time': slot.end_time.strftime('%H:%M:%S') if slot.end_time else None,
+                'max_capacity': slot.max_capacity,
+                'max_party_size': slot.max_party_size,
+                'current_bookings': current_bookings,
+                'available': current_bookings < slot.max_capacity,
+                'is_active': slot.is_active,
+            })
+            current += interval
+
+        return slots
+
+    def _get_booking_map_for_date(self, store_id, date_obj):
+        filters = {
+            'reservation_date': date_obj,
+            'status__in': ['pending', 'confirmed'],
+        }
+        if store_id and store_id != 'undefined':
+            try:
+                filters['store_id'] = int(store_id)
+            except (ValueError, TypeError):
+                return {}
+
+        rows = Reservation.objects.filter(**filters).values('time_slot').annotate(
+            total_adults=Sum('party_size'),
+            total_children=Sum('children_count')
+        )
+
+        return {
+            row['time_slot']: (row['total_adults'] or 0) + (row['total_children'] or 0)
+            for row in rows
+        }
     
     def get_serializer_class(self):
         """根據 query param 決定使用哪個 serializer"""

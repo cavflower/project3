@@ -1,264 +1,351 @@
-/* 訂位成功頁面 - CSS Module */
-
 .reservationSuccessPage {
-    min-height: 100vh;
-    background: var(--bg-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 46px;
+  background:
+    radial-gradient(circle at 22% 14%, rgba(223, 239, 199, 0.5), transparent 22%),
+    linear-gradient(180deg, #fffdfa 0%, #fbf7f1 100%);
+  color: #2b3035;
 }
 
 .successContainer {
-    max-width: 600px;
-    width: 100%;
-    background: white;
-    border-radius: 16px;
-    padding: 60px 40px;
-    text-align: center;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  width: min(980px, 100%);
+  max-height: 100%;
+  display: grid;
+  grid-template-rows: auto auto auto auto auto auto;
+  gap: 26px;
+  padding: 0 26px 10px;
+  box-sizing: border-box;
 }
 
-.successIcon {
-    font-size: 80px;
-    color: #4caf50;
-    margin-bottom: 20px;
-    animation: scaleIn 0.5s ease-out;
+.successHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
 }
 
-@keyframes scaleIn {
-    0% {
-        transform: scale(0);
-    }
-
-    50% {
-        transform: scale(1.1);
-    }
-
-    100% {
-        transform: scale(1);
-    }
+.successMark {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #4f884d;
+  background: radial-gradient(circle, #e6f0d8 0%, #dfeac9 100%);
+  font-size: 44px;
 }
 
-.successContainer h1 {
-    font-size: 32px;
-    color: var(--text-color);
-    margin-bottom: 15px;
+.successMark::before,
+.successMark::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #b7c78c;
+  clip-path: polygon(50% 0%, 64% 36%, 100% 50%, 64% 64%, 50% 100%, 36% 64%, 0% 50%, 36% 36%);
 }
 
-.successMessage {
-    font-size: 16px;
-    color: var(--text-color);
-    opacity: 0.8;
-    margin-bottom: 40px;
-    line-height: 1.6;
+.successMark::before {
+  left: -18px;
+  top: 12px;
 }
 
-/* 訪客驗證資訊 */
-.guestInfoSection {
-    margin-bottom: 30px;
+.successMark::after {
+  right: -14px;
+  top: 6px;
 }
 
-.importantNotice {
-    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-    border-left: 4px solid #ffc107;
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    text-align: left;
+.successHeader h1 {
+  margin: 0;
+  font-size: 38px;
+  line-height: 1.1;
+  color: #3b3f42;
+  font-weight: 900;
 }
 
-.importantNotice h3 {
-    margin: 0 0 0.5rem 0;
-    color: #856404;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.successHeader p {
+  margin: 10px 0 0;
+  color: #676f78;
+  font-size: 15px;
+  font-weight: 600;
 }
 
-.importantNotice p {
-    margin: 0;
-    color: #856404;
-    font-size: 0.9rem;
+.numberCard {
+  width: min(680px, 76%);
+  min-height: 76px;
+  margin: 4px auto 0;
+  padding: 12px 22px;
+  display: grid;
+  grid-template-columns: 78px 1px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 22px;
+  border: 1px solid #6d9b66;
+  border-radius: 6px;
+  background: rgba(250, 255, 247, 0.72);
 }
 
-/* 手機號碼提醒卡片 */
-.phoneReminderCard {
-    background: linear-gradient(135deg, #FDF8F5, #FFE8E0);
-    border: 2px solid var(--primary-color, #E87A5D);
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-align: left;
-    margin-bottom: 1.5rem;
+.ticketIcon {
+  justify-self: center;
+  color: #6d9b66;
+  font-size: 36px;
 }
 
-.phoneReminderCard .cardHeader {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    color: var(--primary-color, #E87A5D);
-    font-weight: 600;
-    font-size: 1rem;
+.numberDivider {
+  width: 1px;
+  height: 48px;
+  background: #e2e5dc;
 }
 
-.phoneDisplay {
-    background: white;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 0.75rem;
-    text-align: center;
+.numberContent span {
+  display: block;
+  margin-bottom: 6px;
+  color: #76806d;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.phoneText {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary-color, #E87A5D);
-    letter-spacing: 0.05em;
-    font-family: 'Courier New', monospace;
+.numberContent strong {
+  display: block;
+  color: #5d9656;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: 6px;
 }
 
-.phoneHint {
-    margin: 0;
-    font-size: 0.85rem;
-    color: #856404;
-    text-align: center;
-    font-style: italic;
+.copyButton {
+  border: 0;
+  background: transparent;
+  color: #6d9b66;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
 }
 
-.guestNotice {
-    background: #e3f2fd;
-    border-left: 4px solid #2196f3;
-    padding: 1rem;
-    border-radius: 8px;
-    text-align: left;
+.infoSection,
+.nextSection {
+  display: grid;
+  gap: 16px;
 }
 
-.guestNotice p {
-    margin: 0.5rem 0;
-    color: #1565c0;
-    font-size: 0.9rem;
+.infoSection h2,
+.nextSection h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #363b40;
+  font-weight: 900;
 }
 
-.guestNotice strong {
-    color: #0d47a1;
+.infoGrid {
+  min-height: 122px;
+  padding: 24px;
+  border: 1px solid #ead8c9;
+  border-radius: 8px;
+  background: rgba(255, 254, 252, 0.92);
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr 1fr 1.35fr;
+  gap: 14px;
+  align-items: start;
 }
 
-.successInfo {
-    margin-bottom: 40px;
+.infoItem,
+.nextGrid article {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
 }
 
-.infoCard {
-    display: flex;
-    align-items: flex-start;
-    gap: 20px;
-    background: var(--bg-color);
-    padding: 25px;
-    border-radius: 12px;
-    text-align: left;
-    border: 2px solid var(--secondary-color);
+.infoItem svg,
+.nextGrid svg {
+  flex: 0 0 auto;
+  color: #6a8f60;
+  font-size: 24px;
+  margin-top: 2px;
 }
 
-.cardIcon {
-    font-size: 40px;
-    color: var(--primary-color);
-    flex-shrink: 0;
+.infoItem span {
+  display: block;
+  margin-bottom: 8px;
+  color: #7c858d;
+  font-size: 13px;
+  font-weight: 800;
 }
 
-.cardContent h3 {
-    margin: 0 0 15px 0;
-    font-size: 18px;
-    color: var(--text-color);
+.infoItem strong,
+.nextGrid strong {
+  display: block;
+  color: #373d43;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.35;
 }
 
-.cardContent ul {
-    margin: 0;
-    padding-left: 20px;
+.infoItem small,
+.nextGrid span {
+  display: block;
+  margin-top: 4px;
+  color: #6c737b;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
-.cardContent li {
-    margin-bottom: 8px;
-    color: var(--text-color);
-    opacity: 0.8;
+.nextGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
 }
 
-.reservationNumberSection {
-    margin-bottom: 1.5rem;
+.nextGrid article {
+  min-height: 98px;
+  padding: 22px 24px;
+  border: 1px solid #e1e5dc;
+  border-radius: 8px;
+  background: rgba(255, 255, 252, 0.8);
+  box-sizing: border-box;
 }
 
-.reservationNumberCard {
-    background: var(--bg-color);
-    padding: 1.5rem;
-    border-radius: 12px;
-    border: 2px solid var(--secondary-color);
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 6px;
 }
 
-.reservationNumberCard .label {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 0.5rem;
+.primaryButton,
+.outlineButton,
+.secondaryButton {
+  height: 58px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.reservationNumber {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--primary-color, #E87A5D);
-    letter-spacing: 2px;
-    font-family: 'Courier New', monospace;
+.primaryButton {
+  color: #fff;
+  border: 1px solid #57964d;
+  background: linear-gradient(135deg, #5a9e51, #4f9149);
+  box-shadow: 0 10px 20px rgba(82, 143, 72, 0.18);
 }
 
-.actionButtons {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+.outlineButton {
+  color: #4f9149;
+  border: 1px solid #6d9b66;
+  background: rgba(255, 255, 255, 0.92);
 }
 
-.btnPrimary,
-.btnSecondary {
-    padding: 15px 30px;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.secondaryButton {
+  color: #5a5f64;
+  border: 1px solid #9f9f9f;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.primaryButton:hover,
+.outlineButton:hover,
+.secondaryButton:hover {
+  transform: translateY(-1px);
+}
+
+.noticeText {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: #8b8f94;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-height: 720px) {
+  .reservationSuccessPage {
+    padding-top: 12px;
+  }
+
+  .successContainer {
     gap: 10px;
+    padding: 0 24px 6px;
+  }
+
+  .successMark {
+    width: 72px;
+    height: 72px;
+    font-size: 36px;
+  }
+
+  .successHeader h1 {
+    font-size: 32px;
+  }
+
+  .successHeader p {
+    margin-top: 6px;
+    font-size: 14px;
+  }
+
+  .numberCard {
+    min-height: 62px;
+    padding: 8px 18px;
+  }
+
+  .numberContent strong {
+    font-size: 28px;
+  }
+
+  .infoGrid {
+    min-height: 84px;
+    padding: 12px 16px;
+  }
+
+  .nextGrid article {
+    min-height: 64px;
+    padding: 12px 16px;
+  }
+
+  .primaryButton,
+  .outlineButton,
+  .secondaryButton {
+    height: 46px;
+  }
 }
 
-.btnPrimary {
-    background: linear-gradient(135deg, var(--primary-color), var(--highlight-color));
-    color: white;
-}
+@media (max-width: 860px) {
+  .reservationSuccessPage {
+    height: auto;
+    min-height: calc(100dvh - var(--navbar-height, 60px));
+    overflow: visible;
+    padding: 16px 0;
+  }
 
-.btnPrimary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(232, 122, 93, 0.4);
-}
+  .successContainer {
+    width: 100%;
+  }
 
-.btnSecondary {
-    background: white;
-    color: var(--primary-color);
-    border: 2px solid var(--primary-color);
-}
+  .successHeader,
+  .numberCard,
+  .infoGrid,
+  .nextGrid,
+  .actionGrid {
+    grid-template-columns: 1fr;
+  }
 
-.btnSecondary:hover {
-    background: var(--secondary-color);
-}
+  .successHeader {
+    justify-content: flex-start;
+  }
 
-@media (max-width: 768px) {
-    .successContainer {
-        padding: 40px 20px;
-    }
-
-    .successIcon {
-        font-size: 60px;
-    }
-
-    .successContainer h1 {
-        font-size: 24px;
-    }
+  .numberCard {
+    width: 100%;
+  }
 }

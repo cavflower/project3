@@ -1,13 +1,26 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import {
-  FaCheckCircle,
   FaArrowLeft,
-  FaArrowRight
+  FaArrowRight,
+  FaCalendarAlt,
+  FaCheckCircle,
+  FaClock,
+  FaMapMarkerAlt,
+  FaRegCalendarAlt,
+  FaShieldAlt,
+  FaUsers,
 } from 'react-icons/fa';
 import { createReservation, getPublicTimeSlots } from '../../api/reservationApi';
+import { getStore } from '../../api/storeApi';
+import { buildMediaUrl } from '../../api/apiConfig';
 import styles from './ReservationPage.module.css';
+
+const RESTAURANT_FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80';
+
+const stepLabels = ['選擇資訊', '確認內容', '訂位完成'];
 
 const getUserDisplayName = (user) => (
   user?.name ||
@@ -16,20 +29,39 @@ const getUserDisplayName = (user) => (
   ''
 );
 
+const getStoreImageSource = (store) => (
+  store?.first_image ||
+  store?.image ||
+  store?.images?.[0]?.image ||
+  store?.images?.[0]?.image_url ||
+  store?.store_images?.[0]?.image ||
+  ''
+);
+
+const formatDate = (dateString) => {
+  if (!dateString) return '尚未選擇';
+  const date = new Date(`${dateString}T00:00:00`);
+  return date.toLocaleDateString('zh-TW', {
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+  });
+};
+
 const ReservationPage = () => {
   const { storeId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  console.log('🚀 ReservationPage mounted, storeId:', storeId);
-
-  // 訂位步驟狀態
+  const [store, setStore] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [reservationData, setReservationData] = useState({
     date: '',
     partySize: 2,
     childrenCount: 0,
     timeSlot: '',
+    selectedSlotId: null,
+    maxPartySize: null,
     guestInfo: {
       name: '',
       gender: 'female',
@@ -38,23 +70,21 @@ const ReservationPage = () => {
     },
     specialRequests: '',
   });
-
-  // 步驟定義：1.選擇訂位資訊 2.特殊需求(會員)/填寫資料+特殊需求(訪客) 3.確認訂位
-  const totalSteps = 3; // 會員和訪客都是3步驟
-
-  // 可用時段
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [dateRange, setDateRange] = useState({ min: '' });
+  const [dateRange, setDateRange] = useState({ min: '', max: '' });
   const timeSlotsCacheRef = useRef(new Map());
   const latestTimeSlotRequestRef = useRef(0);
 
-  // 使用 useCallback 避免不必要的重新渲染
+  const restaurantName = store?.name || '餐廳名稱';
+  const restaurantAddress = store?.address || '餐廳地址';
+  const storeImageUrl = buildMediaUrl(getStoreImageSource(store)) || RESTAURANT_FALLBACK_IMAGE;
+  const totalSteps = stepLabels.length;
+
   const fetchAvailableTimeSlots = useCallback(async (date) => {
-    // 驗證 storeId 是否存在
     if (!storeId) {
-      setError('店家資訊錯誤，請重新選擇店家');
+      setError('找不到餐廳資訊，請重新進入訂位頁。');
       setAvailableTimeSlots([]);
       return;
     }
@@ -64,7 +94,7 @@ const ReservationPage = () => {
     if (cachedSlots) {
       setAvailableTimeSlots(cachedSlots);
       setLoading(false);
-      setError(cachedSlots.length === 0 ? '該日期尚無可訂位時段，請選擇其他日期' : null);
+      setError(cachedSlots.length === 0 ? '這天目前沒有可預約時段。' : null);
       return;
     }
 
@@ -74,34 +104,24 @@ const ReservationPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const selectedDate = new Date(date);
-      const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][selectedDate.getDay()];
 
-      console.log('🔍 Debug - Fetching time slots:', {
-        date,
-        selectedDate,
-        dayOfWeek,
-        storeId
-      });
+      const selectedDate = new Date(`${date}T00:00:00`);
+      const dayOfWeek = [
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+      ][selectedDate.getDay()];
 
-      // 傳遞日期參數以獲取容量資訊
-      const dateStr = selectedDate.toISOString().split('T')[0];
-      const response = await getPublicTimeSlots(storeId, dateStr);
-      const allSlots = response.data.results || response.data;
-
-      console.log('📥 API Response:', {
-        totalSlots: allSlots.length,
-        slots: allSlots
-      });
-
-      // 篩選該星期的時段，並且只顯示啟用的時段
+      const response = await getPublicTimeSlots(storeId, date);
+      const allSlots = response.data.results || response.data || [];
       const daySlots = allSlots
-        .filter(slot => slot.day_of_week === dayOfWeek && slot.is_active)
-        .map(slot => {
-          // 處理時間顯示（如果沒有結束時間，只顯示開始時間）
-          const timeDisplay = slot.end_time
-            ? `${slot.start_time.substring(0, 5)}-${slot.end_time.substring(0, 5)}`
-            : slot.start_time.substring(0, 5);
+        .filter((slot) => slot.day_of_week === dayOfWeek && slot.is_active)
+        .map((slot) => {
+          const timeDisplay = slot.start_time.substring(0, 5);
 
           return {
             id: slot.id,
@@ -115,33 +135,55 @@ const ReservationPage = () => {
           };
         });
 
-      console.log('✅ Filtered slots for', dayOfWeek, ':', daySlots);
-
       if (latestTimeSlotRequestRef.current !== requestId) return;
 
       timeSlotsCacheRef.current.set(cacheKey, daySlots);
       setAvailableTimeSlots(daySlots);
-      setLoading(false);
-
-      // 如果該日沒有時段，顯示提示訊息
-      if (daySlots.length === 0) {
-        setError('該日期尚無可訂位時段，請選擇其他日期');
-      }
+      setError(daySlots.length === 0 ? '這天目前沒有可預約時段。' : null);
     } catch (err) {
       if (latestTimeSlotRequestRef.current !== requestId) return;
       console.error('Failed to fetch time slots:', err);
-      setError('無法載入時段資料，請稍後再試');
+      setError('時段載入失敗，請稍後再試。');
       setAvailableTimeSlots([]);
-      setLoading(false);
+    } finally {
+      if (latestTimeSlotRequestRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [storeId]);
 
   useEffect(() => {
     const today = new Date();
+    const maxDate = new Date(today);
+    maxDate.setDate(today.getDate() + 90);
+
     setDateRange({
       min: today.toISOString().split('T')[0],
+      max: maxDate.toISOString().split('T')[0],
     });
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadStore = async () => {
+      if (!storeId) return;
+
+      try {
+        const response = await getStore(storeId);
+        if (active) {
+          setStore(response.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch store:', err);
+      }
+    };
+
+    loadStore();
+    return () => {
+      active = false;
+    };
+  }, [storeId]);
 
   useEffect(() => {
     if (!user) return;
@@ -159,24 +201,30 @@ const ReservationPage = () => {
   }, [user]);
 
   useEffect(() => {
-    console.log('🔄 useEffect triggered - reservationData.date:', reservationData.date, 'storeId:', storeId);
     if (reservationData.date && storeId) {
-      console.log('📅 Date changed, fetching time slots for:', reservationData.date);
       fetchAvailableTimeSlots(reservationData.date);
     } else {
-      console.log('⚠️ Not fetching - date or storeId missing');
+      setAvailableTimeSlots([]);
     }
   }, [reservationData.date, storeId, fetchAvailableTimeSlots]);
 
+  const availableAdultOptions = useMemo(() => (
+    Array.from({ length: 20 }, (_, index) => index + 1)
+  ), []);
+
+  const availableChildrenOptions = useMemo(() => (
+    Array.from({ length: 11 }, (_, index) => index)
+  ), []);
+
   const handleDateSelect = (date) => {
-    console.log('📆 handleDateSelect called with:', date);
     if (!date) {
-      setReservationData({
-        ...reservationData,
+      setReservationData((prev) => ({
+        ...prev,
         date: '',
         timeSlot: '',
         selectedSlotId: null,
-      });
+        maxPartySize: null,
+      }));
       setError(null);
       return;
     }
@@ -186,106 +234,123 @@ const ReservationPage = () => {
     today.setHours(0, 0, 0, 0);
 
     if (selectedDate < today) {
-      setError('僅可預約今天之後的日期，請重新選擇。');
+      setError('不能預約過去的日期。');
       return;
     }
 
     setError(null);
-    setReservationData({
-      ...reservationData,
+    setReservationData((prev) => ({
+      ...prev,
       date,
       timeSlot: '',
       selectedSlotId: null,
-    });
-  };
-
-  const handlePartySizeChange = (size) => {
-    setReservationData({ ...reservationData, partySize: size });
-  };
-
-  const handleChildrenCountChange = (count) => {
-    setReservationData({ ...reservationData, childrenCount: count });
+      maxPartySize: null,
+    }));
   };
 
   const handleTimeSlotSelect = (slot) => {
-    setReservationData({
-      ...reservationData,
+    if (!slot) {
+      setReservationData((prev) => ({
+        ...prev,
+        timeSlot: '',
+        selectedSlotId: null,
+        maxPartySize: null,
+      }));
+      return;
+    }
+
+    setReservationData((prev) => ({
+      ...prev,
       timeSlot: slot.time,
       selectedSlotId: slot.id,
-      maxPartySize: slot.max_party_size
-    });
+      maxPartySize: slot.max_party_size,
+    }));
   };
 
-  const handleGuestInfoChange = (e) => {
-    const { name, value } = e.target;
-    setReservationData({
-      ...reservationData,
+  const handleTimeSelectChange = (event) => {
+    const slot = availableTimeSlots.find((item) => String(item.id) === event.target.value);
+    handleTimeSlotSelect(slot);
+  };
+
+  const handleGuestInfoChange = (event) => {
+    const { name, value } = event.target;
+    setReservationData((prev) => ({
+      ...prev,
       guestInfo: {
-        ...reservationData.guestInfo,
+        ...prev.guestInfo,
         [name]: value,
       },
-    });
+    }));
+  };
+
+  const validateSelectionStep = () => {
+    if (!reservationData.date) {
+      alert('請選擇用餐日期。');
+      return false;
+    }
+
+    if (!reservationData.partySize) {
+      alert('請選擇用餐人數。');
+      return false;
+    }
+
+    if (!reservationData.timeSlot) {
+      alert('請選擇用餐時段。');
+      return false;
+    }
+
+    const selectedSlot = availableTimeSlots.find(
+      (slot) => String(slot.id) === String(reservationData.selectedSlotId)
+    );
+    if (selectedSlot) {
+      const totalPeople = reservationData.partySize + (reservationData.childrenCount || 0);
+      if (totalPeople > selectedSlot.max_party_size) {
+        alert(`此時段最多可容納 ${selectedSlot.max_party_size} 位。`);
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const validateGuestStep = () => {
+    if (currentStep !== 2 || user) return true;
+
+    if (!reservationData.guestInfo.name.trim()) {
+      alert('請填寫訂位姓名。');
+      return false;
+    }
+
+    if (!reservationData.guestInfo.phone.trim()) {
+      alert('請填寫聯絡電話。');
+      return false;
+    }
+
+    if (!/\d/.test(reservationData.guestInfo.phone)) {
+      alert('請輸入有效的聯絡電話。');
+      return false;
+    }
+
+    return true;
   };
 
   const handleNextStep = () => {
-    // 驗證步驟1：選擇訂位資訊
-    if (currentStep === 1) {
-      if (!reservationData.date) {
-        alert('請選擇訂位日期');
-        return;
-      }
-      if (!reservationData.partySize) {
-        alert('請選擇用餐人數');
-        return;
-      }
-      if (!reservationData.timeSlot) {
-        alert('請選擇訂位時段');
-        return;
-      }
+    if (currentStep === 1 && !validateSelectionStep()) return;
+    if (!validateGuestStep()) return;
 
-      // 驗證總人數是否超過單筆限制
-      const selectedSlot = availableTimeSlots.find(slot => slot.time === reservationData.timeSlot);
-      if (selectedSlot) {
-        const totalPeople = reservationData.partySize + (reservationData.childrenCount || 0);
-        if (totalPeople > selectedSlot.max_party_size) {
-          alert(`總人數（大人+小孩）不能超過 ${selectedSlot.max_party_size} 人`);
-          return;
-        }
-      }
-    }
-
-    // 驗證步驟2：訪客填寫聯絡資料
-    if (currentStep === 2 && !user) {
-      if (!reservationData.guestInfo.name || reservationData.guestInfo.name.trim() === '') {
-        alert('請填寫訂位人姓名');
-        return;
-      }
-      if (!reservationData.guestInfo.phone || reservationData.guestInfo.phone.trim() === '') {
-        alert('請填寫聯絡電話');
-        return;
-      }
-      // 簡單驗證電話格式（至少要有數字）
-      const phoneRegex = /\d/;
-      if (!phoneRegex.test(reservationData.guestInfo.phone)) {
-        alert('請輸入有效的電話號碼');
-        return;
-      }
-    }
-
-    setCurrentStep(currentStep + 1);
+    setCurrentStep((step) => Math.min(step + 1, totalSteps));
   };
 
   const handlePreviousStep = () => {
-    setCurrentStep(currentStep - 1);
+    setCurrentStep((step) => Math.max(step - 1, 1));
   };
 
   const handleSubmitReservation = async () => {
     try {
       setLoading(true);
 
-      // 準備訂位資料
       const reservationPayload = {
-        store: parseInt(storeId),
+        store: parseInt(storeId, 10),
         reservation_date: reservationData.date,
         time_slot: reservationData.timeSlot,
         party_size: reservationData.partySize,
@@ -293,14 +358,12 @@ const ReservationPage = () => {
         special_requests: reservationData.specialRequests || '',
       };
 
-      // 如果是訪客，加入訪客資訊
       if (!user) {
         reservationPayload.customer_name = reservationData.guestInfo.name;
         reservationPayload.customer_phone = reservationData.guestInfo.phone;
         reservationPayload.customer_email = reservationData.guestInfo.email || '';
         reservationPayload.customer_gender = reservationData.guestInfo.gender;
       } else {
-        // 會員也要加入性別資訊
         reservationPayload.customer_name = getUserDisplayName(user);
         reservationPayload.customer_phone = user.phone_number || '';
         reservationPayload.customer_email = user.email || '';
@@ -310,369 +373,377 @@ const ReservationPage = () => {
       }
 
       const response = await createReservation(reservationPayload);
+      const createdReservation = response.data || {};
 
-      setLoading(false);
+      const successState = {
+        reservation: createdReservation,
+        reservationNumber: createdReservation.reservation_number,
+        isGuest: !user,
+        phone: createdReservation.customer_phone || reservationPayload.customer_phone,
+        email: createdReservation.customer_email || reservationPayload.customer_email,
+        storeName: createdReservation.store_name || restaurantName,
+        storeAddress: createdReservation.store_address || restaurantAddress,
+        reservationDate: createdReservation.reservation_date || reservationPayload.reservation_date,
+        timeSlot: createdReservation.time_slot || reservationPayload.time_slot,
+        partySize: createdReservation.party_size ?? reservationPayload.party_size,
+        childrenCount: createdReservation.children_count ?? reservationPayload.children_count,
+      };
 
-      // 導向成功頁面，並傳遞訂位編號
-      navigate('/reservation/success', {
-        state: {
-          reservationNumber: response.data.reservation_number,
-          isGuest: !user,
-          phone: user ? user.phone_number : reservationData.guestInfo.phone
-        }
-      });
-    } catch (error) {
-      console.error('訂位失敗:', error);
-      setLoading(false);
-      const errorMsg = error.response?.data?.error ||
-        error.response?.data?.detail ||
+      try {
+        sessionStorage.setItem('dineverse:lastReservationSuccess', JSON.stringify(successState));
+      } catch (storageError) {
+        console.warn('Unable to persist reservation success data:', storageError);
+      }
+
+      navigate('/reservation/success', { state: successState });
+    } catch (err) {
+      console.error('Reservation failed:', err);
+      const errorMsg = err.response?.data?.error ||
+        err.response?.data?.detail ||
         '訂位失敗，請稍後再試。';
       alert(errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const options = { month: 'long', day: 'numeric', weekday: 'short' };
-    return date.toLocaleDateString('zh-TW', options);
-  };
+  const renderStepper = () => (
+    <div className={styles.stepper} aria-label="訂位步驟">
+      {stepLabels.map((label, index) => {
+        const stepNumber = index + 1;
+        const isActive = currentStep === stepNumber;
+        const isDone = currentStep > stepNumber;
 
-  const getStepTitle = () => {
-    if (user) {
-      const titles = {
-        1: '選擇訂位資訊',
-        2: '特殊需求（可選）',
-        3: '確認訂位',
-      };
-      return titles[currentStep];
-    } else {
-      const titles = {
-        1: '選擇訂位資訊',
-        2: '填寫訂位資料',
-        3: '確認訂位',
-      };
-      return titles[currentStep];
-    }
-  };
+        return (
+          <React.Fragment key={label}>
+            <div
+              className={`${styles.stepItem} ${isActive ? styles.stepItemActive : ''} ${isDone ? styles.stepItemDone : ''}`}
+            >
+              <span className={styles.stepBadge}>{isDone ? <FaCheckCircle /> : stepNumber}</span>
+              <span>{label}</span>
+            </div>
+            {index < stepLabels.length - 1 && <span className={styles.stepLine} aria-hidden="true" />}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+
+  const renderSidebar = () => (
+    <aside className={styles.bookingSidebar}>
+      <div className={styles.sideImageWrap}>
+        <img src={storeImageUrl} alt={restaurantName} />
+      </div>
+      <div className={styles.sideIntro}>
+        <h1>立即訂位</h1>
+        <p>預訂您的美好用餐時光</p>
+      </div>
+      <div className={styles.sideFeatureList}>
+        <div className={styles.sideFeature}>
+          <span><FaRegCalendarAlt /></span>
+          <div>
+            <strong>快速預訂</strong>
+            <small>輕鬆選擇日期與時間</small>
+          </div>
+        </div>
+        <div className={styles.sideFeature}>
+          <span><FaCheckCircle /></span>
+          <div>
+            <strong>即時確認</strong>
+            <small>訂位完成後立即通知</small>
+          </div>
+        </div>
+        <div className={styles.sideFeature}>
+          <span><FaShieldAlt /></span>
+          <div>
+            <strong>安心保障</strong>
+            <small>我們為您的用餐體驗把關</small>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+
+  const renderSelectionStep = () => (
+    <div className={styles.selectionStep}>
+      <section className={styles.formCard}>
+        <h2 className={styles.sectionTitle}>
+          <FaCalendarAlt />
+          用餐日期與時間
+        </h2>
+        <div className={styles.fieldGrid}>
+          <label className={styles.inputShell}>
+            <FaRegCalendarAlt />
+            <input
+              type="date"
+              value={reservationData.date}
+              onChange={(event) => handleDateSelect(event.target.value)}
+              min={dateRange.min}
+              max={dateRange.max}
+              aria-label="用餐日期"
+            />
+          </label>
+          <label className={styles.inputShell}>
+            <FaClock />
+            <select
+              value={reservationData.selectedSlotId || ''}
+              onChange={handleTimeSelectChange}
+              disabled={!reservationData.date || loading || availableTimeSlots.length === 0}
+              aria-label="用餐時間"
+            >
+              <option value="">
+                {loading ? '時段讀取中' : reservationData.date ? '選擇時間' : '請先選擇日期'}
+              </option>
+              {availableTimeSlots.map((slot) => (
+                <option key={slot.id} value={slot.id} disabled={!slot.available}>
+                  {slot.time}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className={styles.formHint}>可預約今日後 90 天內的時段</p>
+        {error && <p className={styles.inlineError}>{error}</p>}
+      </section>
+
+      <section className={styles.formCard}>
+        <h2 className={styles.sectionTitle}>
+          <FaUsers />
+          用餐人數
+        </h2>
+        <div className={styles.fieldGrid}>
+          <label className={styles.selectField}>
+            <span>大人</span>
+            <select
+              value={reservationData.partySize}
+              onChange={(event) => setReservationData((prev) => ({
+                ...prev,
+                partySize: parseInt(event.target.value, 10),
+              }))}
+            >
+              {availableAdultOptions.map((count) => (
+                <option key={count} value={count}>{count} 位大人</option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.selectField}>
+            <span>小孩（0-12 歲）</span>
+            <select
+              value={reservationData.childrenCount}
+              onChange={(event) => setReservationData((prev) => ({
+                ...prev,
+                childrenCount: parseInt(event.target.value, 10),
+              }))}
+            >
+              {availableChildrenOptions.map((count) => (
+                <option key={count} value={count}>{count} 位小孩</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className={styles.formHint}>大人 + 小孩總人數不得超過餐廳可容納上限</p>
+      </section>
+
+      <section className={styles.summaryCard}>
+        <div className={styles.summaryStore}>
+          <img src={storeImageUrl} alt={restaurantName} />
+          <div>
+            <strong>{restaurantName}</strong>
+            <span><FaMapMarkerAlt />{restaurantAddress}</span>
+          </div>
+        </div>
+        <div className={styles.summaryDivider} />
+        <div className={styles.summaryInfo}>
+          <strong>用餐資訊</strong>
+          <span><FaClock />{formatDate(reservationData.date)} {reservationData.timeSlot || '尚未選擇時間'}</span>
+          <span><FaUsers />{reservationData.partySize} 位大人 · {reservationData.childrenCount} 位小孩</span>
+        </div>
+        <button className={styles.primaryAction} type="button" onClick={handleNextStep}>
+          下一步
+          <FaArrowRight />
+        </button>
+      </section>
+    </div>
+  );
+
+  const renderGuestFields = () => (
+    <div className={styles.detailForm}>
+      <div className={styles.formRow}>
+        <label className={styles.detailField}>
+          <span>訂位姓名 *</span>
+          <input
+            type="text"
+            name="name"
+            value={reservationData.guestInfo.name}
+            onChange={handleGuestInfoChange}
+            placeholder="請輸入姓名"
+            required
+          />
+        </label>
+        <label className={styles.detailField}>
+          <span>稱謂</span>
+          <select
+            name="gender"
+            value={reservationData.guestInfo.gender}
+            onChange={handleGuestInfoChange}
+          >
+            <option value="female">女士</option>
+            <option value="male">先生</option>
+            <option value="other">其他</option>
+          </select>
+        </label>
+      </div>
+      <div className={styles.formRow}>
+        <label className={styles.detailField}>
+          <span>聯絡電話 *</span>
+          <input
+            type="tel"
+            name="phone"
+            value={reservationData.guestInfo.phone}
+            onChange={handleGuestInfoChange}
+            placeholder="0912-345-678"
+            required
+          />
+        </label>
+        <label className={styles.detailField}>
+          <span>Email</span>
+          <input
+            type="email"
+            name="email"
+            value={reservationData.guestInfo.email}
+            onChange={handleGuestInfoChange}
+            placeholder="example@email.com"
+          />
+        </label>
+      </div>
+    </div>
+  );
+
+  const renderDetailStep = () => (
+    <section className={styles.flowCard}>
+      <div className={styles.flowHeader}>
+        <h2>確認訂位內容</h2>
+        <p>確認用餐資訊，必要時留下備註給餐廳。</p>
+      </div>
+
+      <div className={styles.confirmGrid}>
+        <div>
+          <span>餐廳</span>
+          <strong>{restaurantName}</strong>
+        </div>
+        <div>
+          <span>用餐日期</span>
+          <strong>{formatDate(reservationData.date)}</strong>
+        </div>
+        <div>
+          <span>用餐時間</span>
+          <strong>{reservationData.timeSlot}</strong>
+        </div>
+        <div>
+          <span>用餐人數</span>
+          <strong>{reservationData.partySize} 位大人 · {reservationData.childrenCount} 位小孩</strong>
+        </div>
+      </div>
+
+      {!user && renderGuestFields()}
+
+      <label className={styles.detailField}>
+        <span>特殊需求</span>
+        <textarea
+          value={reservationData.specialRequests}
+          onChange={(event) => setReservationData((prev) => ({
+            ...prev,
+            specialRequests: event.target.value,
+          }))}
+          placeholder="例如兒童椅、靠窗座位、飲食禁忌等"
+          rows="5"
+        />
+      </label>
+
+      <div className={styles.actionRow}>
+        <button className={styles.secondaryAction} type="button" onClick={handlePreviousStep}>
+          <FaArrowLeft />
+          上一步
+        </button>
+        <button className={styles.primaryAction} type="button" onClick={handleNextStep}>
+          下一步
+          <FaArrowRight />
+        </button>
+      </div>
+    </section>
+  );
+
+  const renderConfirmationStep = () => (
+    <section className={styles.flowCard}>
+      <div className={styles.flowHeader}>
+        <h2>送出訂位</h2>
+        <p>請再次確認以下資訊，送出後餐廳將收到您的訂位。</p>
+      </div>
+
+      <div className={styles.confirmationCard}>
+        <h3><FaCheckCircle /> 訂位明細</h3>
+        <div className={styles.infoRow}>
+          <span>餐廳</span>
+          <strong>{restaurantName}</strong>
+        </div>
+        <div className={styles.infoRow}>
+          <span>地址</span>
+          <strong>{restaurantAddress}</strong>
+        </div>
+        <div className={styles.infoRow}>
+          <span>日期</span>
+          <strong>{formatDate(reservationData.date)}</strong>
+        </div>
+        <div className={styles.infoRow}>
+          <span>時間</span>
+          <strong>{reservationData.timeSlot}</strong>
+        </div>
+        <div className={styles.infoRow}>
+          <span>人數</span>
+          <strong>{reservationData.partySize} 位大人 · {reservationData.childrenCount} 位小孩</strong>
+        </div>
+        <div className={styles.infoRow}>
+          <span>聯絡人</span>
+          <strong>{user ? getUserDisplayName(user) : reservationData.guestInfo.name}</strong>
+        </div>
+        {reservationData.specialRequests && (
+          <div className={styles.infoRow}>
+            <span>備註</span>
+            <strong>{reservationData.specialRequests}</strong>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.actionRow}>
+        <button className={styles.secondaryAction} type="button" onClick={handlePreviousStep}>
+          <FaArrowLeft />
+          上一步
+        </button>
+        <button
+          className={styles.primaryAction}
+          type="button"
+          onClick={handleSubmitReservation}
+          disabled={loading}
+        >
+          <FaCheckCircle />
+          {loading ? '送出中' : '確認訂位'}
+        </button>
+      </div>
+    </section>
+  );
 
   return (
     <div className={styles.reservationPage}>
-      <div className={styles.reservationContainer}>
-        {/* 進度條 */}
-        <div className={styles.progressHeader}>
-          <button className={styles.btnBack} onClick={() => navigate(-1)}>
-            <FaArrowLeft /> 返回
-          </button>
-          <h1>{getStepTitle()}</h1>
-          <div className={styles.stepIndicator}>
-            步驟 {currentStep} / {totalSteps}
+      <div className={styles.bookingShell}>
+        {renderSidebar()}
+        <main className={styles.bookingMain}>
+          {renderStepper()}
+          <div className={styles.stepStage}>
+            {currentStep === 1 && renderSelectionStep()}
+            {currentStep === 2 && renderDetailStep()}
+            {currentStep === 3 && renderConfirmationStep()}
           </div>
-        </div>
-
-        <div className={styles.progressBarContainer}>
-          <div
-            className={styles.progressBarFill}
-            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-          />
-        </div>
-
-        {/* 步驟內容 */}
-        <div className={styles.stepContent}>
-          {/* 步驟 1: 選擇訂位資訊（日期+人數+時段） */}
-          {currentStep === 1 && (
-            <div className={styles.reservationInfoSelection}>
-              {/* 日期選擇 */}
-              <div className={styles.sectionBlock}>
-                <h3 className={styles.sectionTitle}>用餐日期</h3>
-                <div>
-                  <input
-                    type="date"
-                    className={styles.customSelect}
-                    value={reservationData.date}
-                    onChange={(e) => handleDateSelect(e.target.value)}
-                    min={dateRange.min}
-                  />
-                  <small className={styles.formHint}>
-                    可預約今天之後的日期，並僅開放有營業時段的日期。
-                  </small>
-                </div>
-              </div>
-
-              {/* 人數選擇 */}
-              <div className={styles.sectionBlock}>
-                <h3 className={styles.sectionTitle}>用餐人數</h3>
-                <div className={styles.partySizeRow}>
-                  <div className={styles.partySizeItem}>
-                    <label className={styles.selectLabel}>大人</label>
-                    <select
-                      className={styles.customSelect}
-                      value={reservationData.partySize}
-                      onChange={(e) => handlePartySizeChange(parseInt(e.target.value))}
-                    >
-                      {[...Array(20)].map((_, i) => (
-                        <option key={i + 1} value={i + 1}>
-                          {i + 1} 位大人
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className={styles.partySizeItem}>
-                    <label className={styles.selectLabel}>小孩</label>
-                    <select
-                      className={styles.customSelect}
-                      value={reservationData.childrenCount}
-                      onChange={(e) => handleChildrenCountChange(parseInt(e.target.value))}
-                    >
-                      {[...Array(11)].map((_, i) => (
-                        <option key={i} value={i}>
-                          {i} 位小孩
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <small className={styles.formHint}>
-                  大人+小孩不能超過單筆人數上限
-                </small>
-              </div>
-
-              {/* 時段選擇 */}
-              {reservationData.date && (
-                <div className={styles.sectionBlock}>
-                  <h3 className={styles.sectionTitle}>訂位時段</h3>
-                  {loading ? (
-                    <div className={styles.loadingMessage}>載入時段中...</div>
-                  ) : error ? (
-                    <div className={styles.errorMessage}>{error}</div>
-                  ) : availableTimeSlots.length === 0 ? (
-                    <div className={styles.noSlotsMessage}>該日期尚無可訂位時段，請選擇其他日期</div>
-                  ) : (
-                    <div className={styles.timeSlotCompact}>
-                      {availableTimeSlots.map((slot) => (
-                        <button
-                          key={slot.id}
-                          className={reservationData.timeSlot === slot.time ? styles.timeSlotBtnSelected : (!slot.available ? styles.timeSlotBtnDisabled : styles.timeSlotBtn)}
-                          onClick={() => slot.available && handleTimeSlotSelect(slot)}
-                          disabled={!slot.available}
-                        >
-                          <div className={styles.slotTime}>{slot.time}</div>
-                          <div className={styles.slotCapacity}>單筆限 {slot.max_party_size} 人</div>
-                          {slot.available ? (
-                            <div className={styles.slotStatusAvailable}>
-                              可訂 ({slot.capacity - slot.current_bookings} 位)
-                            </div>
-                          ) : (
-                            <div className={styles.slotStatusFull}>已滿</div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 步驟 2: 填寫資料（僅訪客） */}
-          {currentStep === 2 && !user && (
-            <div className={styles.guestInfoForm}>
-              <div className={styles.formNotice}>
-                <p>請填寫您的聯絡資訊，以便我們確認訂位</p>
-              </div>
-
-              {/* 姓名與性別 */}
-              <div className={styles.formRowInline}>
-                <div className={`${styles.formGroup} ${styles.flexGrow}`}>
-                  <label>訂位人姓名 *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={reservationData.guestInfo.name}
-                    onChange={handleGuestInfoChange}
-                    placeholder="請輸入您的姓名"
-                    required
-                  />
-                </div>
-                <div className={`${styles.formGroup} ${styles.genderGroup}`}>
-                  <label>&nbsp;</label>
-                  <div className={styles.genderOptions}>
-                    <label className={styles.genderOption}>
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="female"
-                        checked={reservationData.guestInfo.gender === 'female'}
-                        onChange={handleGuestInfoChange}
-                      />
-                      <span className={styles.genderLabel}>小姐</span>
-                    </label>
-                    <label className={styles.genderOption}>
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="male"
-                        checked={reservationData.guestInfo.gender === 'male'}
-                        onChange={handleGuestInfoChange}
-                      />
-                      <span className={styles.genderLabel}>先生</span>
-                    </label>
-                    <label className={styles.genderOption}>
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="other"
-                        checked={reservationData.guestInfo.gender === 'other'}
-                        onChange={handleGuestInfoChange}
-                      />
-                      <span className={styles.genderLabel}>其他</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>電話 *</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={reservationData.guestInfo.phone}
-                  onChange={handleGuestInfoChange}
-                  placeholder="0912-345-678"
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={reservationData.guestInfo.email}
-                  onChange={handleGuestInfoChange}
-                  placeholder="example@email.com"
-                />
-              </div>
-
-              {/* 特殊需求 */}
-              <div className={styles.formGroup}>
-                <label>特殊需求</label>
-                <textarea
-                  className={styles.specialRequestsTextarea}
-                  value={reservationData.specialRequests}
-                  onChange={(e) => setReservationData({
-                    ...reservationData,
-                    specialRequests: e.target.value
-                  })}
-                  placeholder="如：兒童座椅、過敏資訊等"
-                  rows="4"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* 步驟 2: 會員用戶填寫特殊需求 */}
-          {currentStep === 2 && user && (
-            <div className={styles.specialRequestsSection}>
-              <div className={styles.formNotice}>
-                <p>如有特殊需求（如兒童座椅、過敏資訊等），請在此填寫</p>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>特殊需求</label>
-                <textarea
-                  className={styles.specialRequestsTextarea}
-                  value={reservationData.specialRequests}
-                  onChange={(e) => setReservationData({
-                    ...reservationData,
-                    specialRequests: e.target.value
-                  })}
-                  placeholder="如：兒童座椅、過敏資訊等"
-                  rows="6"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* 確認訂位步驟（會員和訪客都顯示） */}
-          {currentStep === 3 && (
-            <div className={styles.confirmationSection}>
-              <div className={styles.confirmationCard}>
-                <h3><FaCheckCircle /> 請確認您的訂位資訊</h3>
-                <div className={styles.infoGroup}>
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>訂位日期：</span>
-                    <span className={styles.infoValue}>{formatDate(reservationData.date)}</span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>用餐時段：</span>
-                    <span className={styles.infoValue}>{reservationData.timeSlot}</span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>用餐人數：</span>
-                    <span className={styles.infoValue}>
-                      {reservationData.partySize} 位大人
-                      {reservationData.childrenCount > 0 && ` + ${reservationData.childrenCount} 位小孩`}
-                      （共 {reservationData.partySize + reservationData.childrenCount} 位）
-                    </span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>聯絡人：</span>
-                    <span className={styles.infoValue}>
-                      {user ? getUserDisplayName(user) : reservationData.guestInfo.name}
-                      {user && user.gender && (
-                        <span className={styles.genderSuffix}>
-                          {user.gender === 'female' ? ' 小姐' :
-                            user.gender === 'male' ? ' 先生' : ''}
-                        </span>
-                      )}
-                      {!user && reservationData.guestInfo.gender && (
-                        <span className={styles.genderSuffix}>
-                          {reservationData.guestInfo.gender === 'female' ? ' 小姐' :
-                            reservationData.guestInfo.gender === 'male' ? ' 先生' : ''}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>聯絡電話：</span>
-                    <span className={styles.infoValue}>
-                      {user ? (user.phone_number || reservationData.guestInfo.phone || '未提供') : reservationData.guestInfo.phone}
-                    </span>
-                  </div>
-                  {!user && reservationData.guestInfo.email && (
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Email：</span>
-                      <span className={styles.infoValue}>{reservationData.guestInfo.email}</span>
-                    </div>
-                  )}
-                  {reservationData.specialRequests && (
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>特殊需求：</span>
-                      <span className={styles.infoValue}>{reservationData.specialRequests}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 導航按鈕 */}
-        <div className={styles.navigationButtons}>
-          {currentStep > 1 && (
-            <button className={styles.btnPrevious} onClick={handlePreviousStep}>
-              <FaArrowLeft /> 上一步
-            </button>
-          )}
-          {currentStep < totalSteps ? (
-            <button className={styles.btnNext} onClick={handleNextStep}>
-              下一步 <FaArrowRight />
-            </button>
-          ) : (
-            <button className={styles.btnConfirm} onClick={handleSubmitReservation}>
-              <FaCheckCircle /> 確認訂位
-            </button>
-          )}
-        </div>
+        </main>
       </div>
     </div>
   );

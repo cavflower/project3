@@ -31,7 +31,7 @@ class StoreReviewViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = StoreReview.objects.select_related(
             'user', 'store', 'takeout_order', 'dinein_order'
-        ).prefetch_related('images')
+        ).prefetch_related('images', 'store__images')
         
         # 篩選店家
         store_id = self.request.query_params.get('store_id')
@@ -182,7 +182,7 @@ class StoreReviewViewSet(viewsets.ModelViewSet):
         queryset = StoreReview.objects.filter(user=request.user).select_related(
             'store', 'takeout_order', 'dinein_order'
         ).prefetch_related(
-            'images'
+            'images', 'store__images'
         ).order_by('-created_at')
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

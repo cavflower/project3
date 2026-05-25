@@ -143,22 +143,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   // 登出功能
-  const logout = (redirectPath = null) => {
+  const logout = (redirectPath = '/customer-home') => {
     console.log("登出");
-    const currentUserType = user?.user_type || 'customer';
     setUser(null);
     setCachedUser(null); // 清除快取的用戶資料
 
     // 清除對應用戶類型的 token
-    clearTokens(currentUserType);
+    clearTokens();
 
     // 如果有指定的 redirect 路徑，導向該路徑
     if (redirectPath) {
       navigate(redirectPath);
     } else {
       // 根據用戶類型導向對應的登入頁
-      const loginPath = currentUserType === 'merchant' ? '/login/merchant' : '/login/customer';
-      navigate(loginPath);
+      navigate('/customer-home');
     }
   };
 
