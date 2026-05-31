@@ -47,6 +47,9 @@ export const updateMerchantMembershipLevel = (id, data) =>
 export const deleteMerchantMembershipLevel = (id) =>
   api.delete(`/loyalty/merchant/membership-levels/${id}/`);
 
+export const getMerchantMembers = () =>
+  api.get('/loyalty/merchant/members/');
+
 // 會員等級相關 API（公開）
 export const getMembershipLevels = (storeId) => 
   api.get(`/stores/${storeId}/membership-levels/`);

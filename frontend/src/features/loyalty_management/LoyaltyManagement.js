@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './LoyaltyManagement.module.css';
-import { FaArrowLeft, FaCoins, FaAward, FaGift, FaPlus, FaTrash } from 'react-icons/fa';
+import { FaArrowLeft, FaCoins, FaAward, FaGift, FaPlus, FaTrash, FaUsers } from 'react-icons/fa';
 import api from '../../api/api';
 import {
   createMerchantMembershipLevel,
   deleteMerchantMembershipLevel,
   getMerchantMembershipLevels,
+  getMerchantMembers,
   updateMerchantMembershipLevel,
 } from '../../api/loyaltyApi';
 
@@ -17,6 +18,7 @@ const LoyaltyManagement = () => {
 
 
   const [levels, setLevels] = useState([]);
+  const [members, setMembers] = useState([]);
 
   const [pointRules, setPointRules] = useState([]);
 
@@ -35,6 +37,7 @@ const LoyaltyManagement = () => {
   useEffect(() => {
     loadPointRules();
     loadMembershipLevels();
+    loadMembers();
   }, []);
 
   const loadPointRules = async () => {
@@ -87,6 +90,19 @@ const LoyaltyManagement = () => {
     }
   };
 
+  const loadMembers = async () => {
+    try {
+      setLoading(true);
+      const response = await getMerchantMembers();
+      setMembers(response?.data ?? response ?? []);
+    } catch (error) {
+      console.error('載入會員資料失敗:', error);
+      alert('載入會員資料失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <div className={styles['loyalty-management']}>
@@ -112,6 +128,12 @@ const LoyaltyManagement = () => {
           onClick={() => setActiveTab('membership-levels')}
         >
           <FaAward /> 會員等級
+        </button>
+        <button
+          className={activeTab === 'members' ? `${styles['nav-tab']} ${styles['active']}` : styles['nav-tab']}
+          onClick={() => setActiveTab('members')}
+        >
+          <FaUsers /> 現有會員
         </button>
         <button
           className={activeTab === 'redemptions' ? `${styles['nav-tab']} ${styles['active']}` : styles['nav-tab']}
@@ -144,6 +166,14 @@ const LoyaltyManagement = () => {
           />
         )}
 
+        {activeTab === 'members' && (
+          <MembersSection
+            members={members}
+            loading={loading}
+            loadMembers={loadMembers}
+          />
+        )}
+
         {activeTab === 'redemptions' && (
           <RedemptionsSection
             redemptions={redemptions}
@@ -155,6 +185,85 @@ const LoyaltyManagement = () => {
         )}
       </main>
     </div>
+  );
+};
+
+const formatMemberDate = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
+const MembersSection = ({ members, loading, loadMembers }) => {
+  return (
+    <section className={styles['loyalty-section']}>
+      <div className={styles['section-header']}>
+        <div>
+          <h2>現有會員</h2>
+          <p className={styles['section-subtitle']}>
+            目前共有 {members.length} 位會員
+          </p>
+        </div>
+        <button className="btn btn-secondary" onClick={loadMembers} disabled={loading}>
+          重新整理
+        </button>
+      </div>
+
+      {members.length === 0 ? (
+        <div className={styles['empty-state']}>
+          <FaUsers className={styles['empty-icon']} />
+          <h3>目前沒有會員資料</h3>
+          <p>當顧客加入或產生點數帳戶後，會顯示在這裡。</p>
+        </div>
+      ) : (
+        <div className={styles['members-table']}>
+          <table>
+            <thead>
+              <tr>
+                <th>會員名稱</th>
+                <th>Email</th>
+                <th>電話</th>
+                <th>會員等級</th>
+                <th>可用點數</th>
+                <th>累積點數</th>
+                <th>加入日期</th>
+                <th>最後更新</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((member) => (
+                <tr key={member.id}>
+                  <td>
+                    <div className={styles['member-name-cell']}>
+                      {member.avatar_url ? (
+                        <img src={member.avatar_url} alt="" className={styles['member-avatar']} />
+                      ) : (
+                        <span className={styles['member-avatar-fallback']}>
+                          {(member.username || member.email || '?').slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <span>{member.username || '-'}</span>
+                    </div>
+                  </td>
+                  <td>{member.email || '-'}</td>
+                  <td>{member.phone_number || '-'}</td>
+                  <td>{member.current_level_name || '一般會員'}</td>
+                  <td>{Number(member.available_points || 0).toLocaleString()}</td>
+                  <td>{Number(member.total_points || 0).toLocaleString()}</td>
+                  <td>{formatMemberDate(member.user_created_at || member.created_at)}</td>
+                  <td>{formatMemberDate(member.updated_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 };
 

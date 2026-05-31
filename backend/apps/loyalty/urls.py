@@ -4,6 +4,7 @@ from .views import (
 	MerchantPointRuleViewSet,
 	MerchantMembershipLevelViewSet,
 	MerchantRedemptionProductViewSet,
+	MerchantCustomerLoyaltyAccountViewSet,
 	PublicRedemptionProductViewSet,
 	CustomerLoyaltyAccountViewSet,
 	PointTransactionViewSet,
@@ -18,6 +19,7 @@ router.register(r'merchant/point-rules', MerchantPointRuleViewSet, basename='mer
 router.register(r'merchant/membership-levels', MerchantMembershipLevelViewSet, basename='merchant-membership-level')
 router.register(r'merchant/redemptions', MerchantRedemptionProductViewSet, basename='merchant-redemption')
 router.register(r'merchant/redemption-management', MerchantRedemptionManagementViewSet, basename='merchant-redemption-management')
+router.register(r'merchant/members', MerchantCustomerLoyaltyAccountViewSet, basename='merchant-member')
 
 # 顧客端路由
 router.register(r'customer/accounts', CustomerLoyaltyAccountViewSet, basename='customer-loyalty-account')

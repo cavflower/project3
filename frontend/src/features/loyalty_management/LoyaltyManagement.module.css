@@ -915,3 +915,65 @@ transition: all 0.3s;
 .rules-table tr:hover {
   background: #f9f9f9;
 }
+
+.members-table {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.members-table table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.members-table th {
+  background: #f9f9f9;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: #666;
+  border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
+}
+
+.members-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 13px;
+  color: #333;
+  vertical-align: middle;
+}
+
+.members-table tr:hover {
+  background: #f9f9f9;
+}
+
+.member-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+}
+
+.member-avatar,
+.member-avatar-fallback {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex: 0 0 32px;
+}
+
+.member-avatar {
+  object-fit: cover;
+}
+
+.member-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8f2ff;
+  color: #0066cc;
+  font-weight: 700;
+}

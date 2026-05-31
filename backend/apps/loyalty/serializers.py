@@ -57,6 +57,31 @@ class CustomerLoyaltyAccountSerializer(serializers.ModelSerializer):
 		read_only_fields = ['id', 'user', 'store', 'total_points', 'available_points', 'current_level', 'created_at', 'updated_at']
 
 
+class MerchantCustomerLoyaltyAccountSerializer(serializers.ModelSerializer):
+	user_id = serializers.IntegerField(source='user.id', read_only=True)
+	username = serializers.CharField(source='user.username', read_only=True)
+	email = serializers.EmailField(source='user.email', read_only=True)
+	phone_number = serializers.CharField(source='user.phone_number', read_only=True)
+	gender = serializers.CharField(source='user.gender', read_only=True)
+	avatar_url = serializers.CharField(source='user.avatar_url', read_only=True)
+	user_created_at = serializers.DateTimeField(source='user.created_at', read_only=True)
+	current_level_name = serializers.CharField(source='current_level.name', read_only=True)
+	current_level_discount = serializers.DecimalField(
+		source='current_level.discount_percent', max_digits=5, decimal_places=2, read_only=True
+	)
+	store_name = serializers.CharField(source='store.name', read_only=True)
+
+	class Meta:
+		model = CustomerLoyaltyAccount
+		fields = [
+			'id', 'user_id', 'username', 'email', 'phone_number', 'gender', 'avatar_url',
+			'user_created_at', 'store', 'store_name', 'total_points', 'available_points',
+			'current_level', 'current_level_name', 'current_level_discount',
+			'created_at', 'updated_at'
+		]
+		read_only_fields = fields
+
+
 class PointTransactionSerializer(serializers.ModelSerializer):
 	transaction_type_display = serializers.CharField(source='get_transaction_type_display', read_only=True)
 

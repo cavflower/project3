@@ -11,6 +11,7 @@ from .serializers import (
 	MembershipLevelSerializer,
 	RedemptionProductSerializer,
 	CustomerLoyaltyAccountSerializer,
+	MerchantCustomerLoyaltyAccountSerializer,
 	PointTransactionSerializer,
 	RedemptionSerializer,
 	RedemptionCreateSerializer,
@@ -103,6 +104,19 @@ class MerchantRedemptionProductViewSet(viewsets.ModelViewSet, MerchantOnlyMixin)
 		if not store:
 			raise serializers.ValidationError('User is not a merchant or store not configured')
 		serializer.save(store=store)
+
+
+class MerchantCustomerLoyaltyAccountViewSet(viewsets.ReadOnlyModelViewSet, MerchantOnlyMixin):
+	serializer_class = MerchantCustomerLoyaltyAccountSerializer
+	permission_classes = [permissions.IsAuthenticated]
+
+	def get_queryset(self):
+		store = self.get_store()
+		if not store:
+			return CustomerLoyaltyAccount.objects.none()
+		return CustomerLoyaltyAccount.objects.filter(store=store).select_related(
+			'user', 'store', 'current_level'
+		).order_by('-updated_at', '-created_at')
 
 
 class PublicRedemptionProductViewSet(viewsets.ReadOnlyModelViewSet):
