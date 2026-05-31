@@ -1,0 +1,374 @@
+.page {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 24px;
+  padding: 28px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(31, 45, 61, 0.08);
+  padding: 24px;
+}
+
+.panel h1 {
+  margin: 0 0 10px;
+  color: #263547;
+  font-size: 1.7rem;
+}
+
+.panel p {
+  margin: 0;
+  color: #667085;
+  line-height: 1.6;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #475467;
+  font-weight: 700;
+}
+
+.dateInput,
+.assignForm input,
+.assignForm textarea {
+  width: 100%;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #263547;
+  font: inherit;
+}
+
+.floorSection {
+  border: 1px solid #eef1f6;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8fafc;
+}
+
+.floorSection h2,
+.selectedCard h2 {
+  margin: 0;
+  color: #263547;
+  font-size: 1.1rem;
+}
+
+.floorTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.floorTab,
+.floorTabActive {
+  border: 1px solid #d9e0ea;
+  border-radius: 999px;
+  background: #fff;
+  color: #475467;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 7px 13px;
+}
+
+.floorTabActive {
+  border-color: #ff7043;
+  color: #ff7043;
+  background: #fff3ed;
+}
+
+.notice {
+  border: 1px solid #ffd4c2;
+  border-radius: 8px;
+  background: #fff7f2;
+  color: #b54708;
+  line-height: 1.5;
+  padding: 12px;
+}
+
+.statusLegend {
+  display: grid;
+  gap: 8px;
+  color: #475467;
+  font-size: 0.9rem;
+}
+
+.statusLegend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dotAvailable,
+.dotReserved,
+.dotOccupied {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dotAvailable {
+  background: #d0d5dd;
+}
+
+.dotReserved {
+  background: #f59e0b;
+}
+
+.dotOccupied {
+  background: #16a34a;
+}
+
+.selectedCard,
+.emptyHint {
+  border: 1px solid #eef1f6;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.selectedHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.selectedHeader p {
+  margin-top: 4px;
+}
+
+.iconButton {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #f2f4f7;
+  color: #667085;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.reservationBox,
+.walkInBox {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.reservationBox {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.walkInBox {
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+}
+
+.reservationItem {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  color: #475467;
+}
+
+.reservationItem span:first-child {
+  font-weight: 800;
+  color: #92400e;
+}
+
+.assignForm {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.assignForm label {
+  display: grid;
+  gap: 7px;
+  color: #475467;
+  font-weight: 700;
+}
+
+.assignButton,
+.releaseButton,
+.toolbar button {
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.assignButton {
+  background: #ff7043;
+  color: #fff;
+  padding: 12px 16px;
+}
+
+.releaseButton {
+  background: #15803d;
+  color: #fff;
+  padding: 10px 14px;
+}
+
+.assignButton:disabled,
+.releaseButton:disabled,
+.toolbar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.emptyHint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #667085;
+  background: #f8fafc;
+}
+
+.mapArea {
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.toolbar div {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.toolbar strong {
+  color: #263547;
+}
+
+.toolbar span {
+  color: #667085;
+}
+
+.toolbar button {
+  background: #263547;
+  color: #fff;
+  padding: 10px 14px;
+}
+
+.canvas {
+  min-height: 620px;
+  position: relative;
+  overflow: auto;
+  border: 2px dashed #d7dce5;
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(0deg, rgba(99, 110, 132, 0.08), rgba(99, 110, 132, 0.08) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(90deg, rgba(99, 110, 132, 0.08), rgba(99, 110, 132, 0.08) 1px, transparent 1px, transparent 40px),
+    #f6f8fb;
+}
+
+.tableBase {
+  position: absolute;
+  border: 2px solid transparent;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(18, 38, 63, 0.16);
+  color: #263547;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.tableBase:hover {
+  transform: translateY(-2px);
+}
+
+.tableRectangle {
+  composes: tableBase;
+  width: 140px;
+  height: 82px;
+  border-radius: 8px;
+}
+
+.tableSquare {
+  composes: tableBase;
+  width: 92px;
+  height: 92px;
+  border-radius: 8px;
+}
+
+.tableCircle {
+  composes: tableBase;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+}
+
+.tableBase span {
+  font-weight: 900;
+}
+
+.tableBase small {
+  color: #667085;
+  margin-top: 5px;
+}
+
+.tableReserved {
+  border-color: #f59e0b;
+}
+
+.tableReserved small {
+  color: #92400e;
+}
+
+.tableOccupied {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.tableOccupied small {
+  color: #166534;
+}
+
+.tableSelected {
+  box-shadow: 0 0 0 4px rgba(255, 112, 67, 0.18), 0 8px 18px rgba(18, 38, 63, 0.16);
+}
+
+.emptyCanvas {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #667085;
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .canvas {
+    min-height: 520px;
+  }
+}

@@ -8,6 +8,7 @@ import {
   FiClipboard,
   FiClock,
   FiGrid,
+  FiMap,
   FiMessageSquare,
   FiPackage,
   FiSettings,
@@ -107,6 +108,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         items: [
           { key: 'merchant-products', to: '/merchant/products', label: '商品管理', icon: <FiPackage /> },
           { key: 'merchant-dinein', to: '/merchant/dine-in', label: '內用設定', icon: <FiGrid /> },
+          { key: 'merchant-seating', to: '/merchant/seating', label: '現場座位', icon: <FiMap /> },
           { key: 'merchant-settings', to: '/merchant/settings', label: '店家設定', icon: <FiSettings /> },
         ],
       },

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.db.models import Sum
 from django.utils import timezone
-from .models import Reservation, ReservationChangeLog, TimeSlot
+from .models import Reservation, ReservationChangeLog, TimeSlot, WalkInSeating
 from apps.stores.models import Store
 from apps.users.models import User
 
@@ -495,6 +495,48 @@ class MerchantReservationSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'reservation_number', 'created_at', 'updated_at']
 
 
+class WalkInSeatingSerializer(serializers.ModelSerializer):
+    store_name = serializers.CharField(source='store.name', read_only=True)
+
+    class Meta:
+        model = WalkInSeating
+        fields = [
+            'id',
+            'store',
+            'store_name',
+            'table_label',
+            'party_name',
+            'party_size',
+            'notes',
+            'status',
+            'created_by',
+            'seated_at',
+            'released_at',
+            'updated_at',
+        ]
+        read_only_fields = [
+            'id',
+            'store',
+            'store_name',
+            'status',
+            'created_by',
+            'seated_at',
+            'released_at',
+            'updated_at',
+        ]
+
+    def validate_party_size(self, value):
+        if value < 1:
+            raise serializers.ValidationError('Party size must be at least 1.')
+        return value
+
+    def validate_table_label(self, value):
+        normalized_value = (value or '').strip()
+        if not normalized_value:
+            raise serializers.ValidationError('Table label is required.')
+        return normalized_value
+
+
 class MerchantReservationUpdateSerializer(serializers.ModelSerializer):
     """商家更新訂位狀態序列化器"""
     
@@ -504,7 +546,7 @@ class MerchantReservationUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['confirmed_at']
 
     def validate_table_label(self, value):
-        """桌號必須存在於店家已設定的內用桌位配置中。"""
+        """Validate one or more comma-separated configured table labels."""
         normalized_value = (value or '').strip()
         if not normalized_value:
             return ''
@@ -526,12 +568,10 @@ class MerchantReservationUpdateSerializer(serializers.ModelSerializer):
                         configured_labels.append(label)
 
         if isinstance(layout, list):
-            # 相容舊格式（桌位列表）與列表型樓層格式
             has_floor_tables = any(
                 isinstance(item, dict) and isinstance(item.get('tables'), list)
                 for item in layout
             )
-
             if has_floor_tables:
                 for floor in layout:
                     if isinstance(floor, dict):
@@ -546,22 +586,40 @@ class MerchantReservationUpdateSerializer(serializers.ModelSerializer):
                     if isinstance(floor, dict):
                         collect_labels_from_tables(floor.get('tables'))
 
-        if normalized_value not in configured_labels:
-            raise serializers.ValidationError('請從店家內用設定中已建立的桌位選擇桌號。')
+        selected_labels = [
+            label.strip()
+            for label in normalized_value.split(',')
+            if label.strip()
+        ]
+        selected_labels = list(dict.fromkeys(selected_labels))
+        if not selected_labels:
+            return ''
 
-        is_occupied = Reservation.objects.filter(
+        missing_labels = [label for label in selected_labels if label not in configured_labels]
+        if missing_labels:
+            raise serializers.ValidationError(f"These tables are not configured: {', '.join(missing_labels)}")
+
+        same_slot_reservations = Reservation.objects.filter(
             store=store,
             reservation_date=self.instance.reservation_date,
             time_slot=self.instance.time_slot,
-            table_label=normalized_value,
             status__in=['pending', 'confirmed'],
-        ).exclude(pk=self.instance.pk).exists()
+        ).exclude(pk=self.instance.pk).values_list('table_label', flat=True)
 
-        if is_occupied:
-            raise serializers.ValidationError('此桌位在同一天同一個時段已被其他訂位使用，請選擇其他桌位。')
+        occupied_labels = set()
+        for table_label in same_slot_reservations:
+            occupied_labels.update(
+                label.strip()
+                for label in (table_label or '').split(',')
+                if label.strip()
+            )
 
-        return normalized_value
-    
+        conflicting_labels = [label for label in selected_labels if label in occupied_labels]
+        if conflicting_labels:
+            raise serializers.ValidationError(f"These tables are already assigned for this time slot: {', '.join(conflicting_labels)}")
+
+        return ', '.join(selected_labels)
+
     def update(self, instance, validated_data):
         """更新訂位狀態"""
         from django.utils import timezone

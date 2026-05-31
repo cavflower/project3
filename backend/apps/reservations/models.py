@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 from apps.users.models import User
 from apps.stores.models import Store
 import secrets
@@ -312,3 +313,43 @@ class TimeSlot(models.Model):
         if self.end_time:
             time_display += f"-{self.end_time.strftime('%H:%M')}"
         return f"{self.store.name} - {self.get_day_of_week_display()} {time_display}"
+
+
+class WalkInSeating(models.Model):
+    """On-site table assignment for walk-in customers."""
+
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('released', 'Released'),
+    ]
+
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name='walk_in_seatings',
+    )
+    table_label = models.CharField(max_length=100)
+    party_name = models.CharField(max_length=100, blank=True, default='')
+    party_size = models.PositiveIntegerField(default=1)
+    notes = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_walk_in_seatings',
+    )
+    seated_at = models.DateTimeField(auto_now_add=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-seated_at']
+        indexes = [
+            models.Index(fields=['store', 'status', 'seated_at']),
+            models.Index(fields=['store', 'table_label', 'status']),
+        ]
+
+    def __str__(self):
+        return f"{self.store.name} - {self.table_label} ({self.status})"

@@ -122,14 +122,18 @@ const ReservationPage = () => {
         .filter((slot) => slot.day_of_week === dayOfWeek && slot.is_active)
         .map((slot) => {
           const timeDisplay = slot.start_time.substring(0, 5);
+          const capacity = Number(slot.max_capacity || 0);
+          const currentBookings = Number(slot.current_bookings || 0);
+          const remainingCapacity = Math.max(0, capacity - currentBookings);
 
           return {
             id: slot.id,
             time: timeDisplay,
-            available: slot.available !== undefined ? slot.available : true,
-            capacity: slot.max_capacity,
-            max_party_size: slot.max_party_size,
-            current_bookings: slot.current_bookings || 0,
+            available: slot.available !== undefined ? slot.available && remainingCapacity > 0 : remainingCapacity > 0,
+            capacity,
+            max_party_size: Number(slot.max_party_size || 0),
+            current_bookings: currentBookings,
+            remaining_capacity: remainingCapacity,
             start_time: slot.start_time,
             end_time: slot.end_time,
           };
@@ -267,11 +271,6 @@ const ReservationPage = () => {
     }));
   };
 
-  const handleTimeSelectChange = (event) => {
-    const slot = availableTimeSlots.find((item) => String(item.id) === event.target.value);
-    handleTimeSlotSelect(slot);
-  };
-
   const handleGuestInfoChange = (event) => {
     const { name, value } = event.target;
     setReservationData((prev) => ({
@@ -306,6 +305,11 @@ const ReservationPage = () => {
       const totalPeople = reservationData.partySize + (reservationData.childrenCount || 0);
       if (totalPeople > selectedSlot.max_party_size) {
         alert(`此時段最多可容納 ${selectedSlot.max_party_size} 位。`);
+        return false;
+      }
+
+      if (totalPeople > selectedSlot.remaining_capacity) {
+        alert(`此時段目前只剩 ${selectedSlot.remaining_capacity} 人可訂。`);
         return false;
       }
     }
@@ -471,7 +475,7 @@ const ReservationPage = () => {
           <FaCalendarAlt />
           用餐日期與時間
         </h2>
-        <div className={styles.fieldGrid}>
+        <div className={styles.dateGrid}>
           <label className={styles.inputShell}>
             <FaRegCalendarAlt />
             <input
@@ -483,24 +487,41 @@ const ReservationPage = () => {
               aria-label="用餐日期"
             />
           </label>
-          <label className={styles.inputShell}>
+        </div>
+
+        <div className={styles.timeSlotSection}>
+          <h3 className={styles.subsectionTitle}>
             <FaClock />
-            <select
-              value={reservationData.selectedSlotId || ''}
-              onChange={handleTimeSelectChange}
-              disabled={!reservationData.date || loading || availableTimeSlots.length === 0}
-              aria-label="用餐時間"
-            >
-              <option value="">
-                {loading ? '時段讀取中' : reservationData.date ? '選擇時間' : '請先選擇日期'}
-              </option>
-              {availableTimeSlots.map((slot) => (
-                <option key={slot.id} value={slot.id} disabled={!slot.available}>
-                  {slot.time}
-                </option>
-              ))}
-            </select>
-          </label>
+            訂位時段
+          </h3>
+          {!reservationData.date && (
+            <p className={styles.formHint}>請先選擇用餐日期。</p>
+          )}
+          {reservationData.date && loading && (
+            <div className={styles.timeSlotHint}>時段讀取中...</div>
+          )}
+          {reservationData.date && !loading && availableTimeSlots.length > 0 && (
+            <div className={styles.timeSlotGrid}>
+              {availableTimeSlots.map((slot) => {
+                const isSelected = String(reservationData.selectedSlotId) === String(slot.id);
+                return (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    className={`${styles.timeSlotCard} ${isSelected ? styles.timeSlotCardSelected : ''}`}
+                    disabled={!slot.available}
+                    onClick={() => handleTimeSlotSelect(slot)}
+                  >
+                    <strong>{slot.time}</strong>
+                    <span>單筆限 {slot.max_party_size} 人</span>
+                    <small className={slot.available ? styles.slotAvailable : styles.slotFull}>
+                      {slot.available ? `可訂 (${slot.remaining_capacity} 位)` : '已額滿'}
+                    </small>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
         <p className={styles.formHint}>可預約今日後 90 天內的時段</p>
         {error && <p className={styles.inlineError}>{error}</p>}

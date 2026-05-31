@@ -235,6 +235,110 @@
   gap: 16px;
 }
 
+.dateGrid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr);
+  gap: 16px;
+}
+
+.timeSlotSection {
+  margin-top: 14px;
+}
+
+.subsectionTitle {
+  margin: 0 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #17212b;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.subsectionTitle::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  border-radius: 999px;
+  background: #e98062;
+}
+
+.subsectionTitle svg {
+  display: none;
+}
+
+.timeSlotGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
+  gap: 12px;
+  max-height: 142px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.timeSlotCard {
+  min-height: 104px;
+  border: 1px solid #f1cbbb;
+  border-radius: 8px;
+  background: #fff;
+  color: #17212b;
+  cursor: pointer;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 7px;
+  padding: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.timeSlotCard:hover:not(:disabled),
+.timeSlotCardSelected {
+  border-color: #e98062;
+  box-shadow: 0 10px 22px rgba(185, 91, 63, 0.12);
+  transform: translateY(-1px);
+}
+
+.timeSlotCard:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.timeSlotCard strong {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.timeSlotCard span {
+  color: #69717b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.timeSlotCard small {
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 10px;
+}
+
+.slotAvailable {
+  background: #eaf8ef;
+  color: #198754;
+}
+
+.slotFull {
+  background: #f3f4f6;
+  color: #7a828c;
+}
+
+.timeSlotHint {
+  color: #8a8f97;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 12px 0;
+}
+
 .inputShell,
 .selectField select,
 .detailField input,

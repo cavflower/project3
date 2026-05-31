@@ -33,6 +33,19 @@ const getApiErrorMessage = (error, fallback) => {
   return fallback;
 };
 
+const splitTableLabels = (value) => (
+  String(value || '')
+    .split(',')
+    .map((label) => label.trim())
+    .filter(Boolean)
+);
+
+const getReservationPartySize = (reservation) => (
+  Number(reservation?.party_size || 0) + Number(reservation?.children_count || 0)
+);
+
+const getTableSeats = (table) => Math.max(0, Number(table?.seats || 0));
+
 const ReservationManagementPage = () => {
   const [activeTab, setActiveTab] = useState('reservations'); // 'reservations' or 'settings'
   const [reservations, setReservations] = useState([]);
@@ -53,7 +66,7 @@ const ReservationManagementPage = () => {
   const [tableFloors, setTableFloors] = useState([]);
   const [activeTableFloorId, setActiveTableFloorId] = useState('');
   const [acceptForm, setAcceptForm] = useState({
-    tableLabel: '',
+    tableLabels: [],
     merchantNote: '',
   });
   const [isPanningTableMap, setIsPanningTableMap] = useState(false);
@@ -112,11 +125,32 @@ const ReservationManagementPage = () => {
           && ['pending', 'confirmed'].includes(reservation.status)
           && String(reservation.table_label || '').trim()
         ))
-        .map((reservation) => String(reservation.table_label || '').trim())
+        .flatMap((reservation) => splitTableLabels(reservation.table_label))
     );
   }, [reservations, selectedAcceptReservation]);
 
   const isEditingConfirmedReservation = selectedAcceptReservation?.status === 'confirmed';
+
+  const selectedTableLabels = useMemo(
+    () => acceptForm.tableLabels || [],
+    [acceptForm.tableLabels]
+  );
+
+  const selectedTableSeatCount = useMemo(() => {
+    const selectedSet = new Set(selectedTableLabels);
+    return tableFloors.reduce((total, floor) => (
+      total + (floor.tables || []).reduce((floorTotal, table) => (
+        selectedSet.has(table.label) ? floorTotal + getTableSeats(table) : floorTotal
+      ), 0)
+    ), 0);
+  }, [selectedTableLabels, tableFloors]);
+
+  const acceptReservationPartySize = useMemo(
+    () => getReservationPartySize(selectedAcceptReservation),
+    [selectedAcceptReservation]
+  );
+
+  const remainingSeatCount = Math.max(0, acceptReservationPartySize - selectedTableSeatCount);
 
   useEffect(() => {
     if (!isPanningTableMap) return;
@@ -229,7 +263,7 @@ const ReservationManagementPage = () => {
   const resetAcceptDialog = () => {
     setShowAcceptDialog(false);
     setSelectedAcceptReservation(null);
-    setAcceptForm({ tableLabel: '', merchantNote: '' });
+    setAcceptForm({ tableLabels: [], merchantNote: '' });
     setActiveTableFloorId(tableFloors[0]?.id || '');
     setIsPanningTableMap(false);
     setTableMapZoom(1);
@@ -276,20 +310,21 @@ const ReservationManagementPage = () => {
     viewport.scrollTop = tableMapPanStart.scrollTop - deltaY;
   };
 
-  const findFloorByTableLabel = (tableLabel) => {
-    if (!tableLabel) return null;
+  const findFloorByTableLabels = (tableLabels) => {
+    if (!tableLabels.length) return null;
+    const labelSet = new Set(tableLabels);
     return tableFloors.find((floor) =>
-      (floor.tables || []).some((table) => table.label === tableLabel)
+      (floor.tables || []).some((table) => labelSet.has(table.label))
     ) || null;
   };
 
   const handleAcceptClick = (reservation) => {
-    const initialTableLabel = reservation.table_label || '';
-    const selectedFloor = findFloorByTableLabel(initialTableLabel);
+    const initialTableLabels = splitTableLabels(reservation.table_label);
+    const selectedFloor = findFloorByTableLabels(initialTableLabels);
 
     setSelectedAcceptReservation(reservation);
     setAcceptForm({
-      tableLabel: selectedFloor ? initialTableLabel : '',
+      tableLabels: selectedFloor ? initialTableLabels : [],
       merchantNote: reservation.merchant_note || '',
     });
     setActiveTableFloorId(selectedFloor?.id || tableFloors[0]?.id || '');
@@ -300,11 +335,17 @@ const ReservationManagementPage = () => {
     if (!selectedAcceptReservation) return;
 
     const isEditingTable = selectedAcceptReservation.status === 'confirmed';
+    const tableLabelPayload = selectedTableLabels.join(', ');
+
+    if (selectedTableLabels.length > 0 && remainingSeatCount > 0) {
+      alert(`還需要 ${remainingSeatCount} 個座位容量。請繼續選擇桌位，或清除桌位改為不指定。`);
+      return;
+    }
 
     try {
       const response = await updateReservationStatus(selectedAcceptReservation.id, {
         status: 'confirmed',
-        table_label: acceptForm.tableLabel || '',
+        table_label: tableLabelPayload,
         merchant_note: acceptForm.merchantNote || '',
       });
       replaceReservationInState(response.data);
@@ -319,6 +360,32 @@ const ReservationManagementPage = () => {
       );
       alert(errorMsg);
     }
+  };
+
+  const toggleAcceptTable = (table) => {
+    const tableLabel = String(table.label || '').trim();
+    if (!tableLabel) return;
+
+    setAcceptForm((prev) => {
+      const currentLabels = prev.tableLabels || [];
+      const isSelected = currentLabels.includes(tableLabel);
+
+      if (isSelected) {
+        return {
+          ...prev,
+          tableLabels: currentLabels.filter((label) => label !== tableLabel),
+        };
+      }
+
+      if (remainingSeatCount <= 0) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        tableLabels: [...currentLabels, tableLabel],
+      };
+    });
   };
 
   useEffect(() => {
@@ -633,6 +700,12 @@ const ReservationManagementPage = () => {
                     ))}
                   </div>
 
+                  <div className={styles.tableCapacitySummary}>
+                    <span>訂位人數：<strong>{acceptReservationPartySize}</strong></span>
+                    <span>已選容量：<strong>{selectedTableSeatCount}</strong></span>
+                    <span>剩餘需安排：<strong>{remainingSeatCount}</strong></span>
+                  </div>
+
                   <div
                     ref={tableMapViewportRef}
                     className={`${styles.tablePickViewport} ${isPanningTableMap ? styles.tablePickViewportPanning : ''}`}
@@ -665,19 +738,20 @@ const ReservationManagementPage = () => {
                               : styles.tablePickItemCircle;
                           const tableLabel = String(table.label || '').trim();
                           const isOccupied = occupiedTableLabels.has(tableLabel);
+                          const isSelected = selectedTableLabels.includes(tableLabel);
 
                           return (
                             <button
                               key={table.id}
                               type="button"
                               data-table-pick="true"
-                              className={`${shapeClass} ${acceptForm.tableLabel === table.label ? styles.tablePickItemSelected : ''} ${isOccupied ? styles.tablePickItemDisabled : ''}`}
+                              className={`${shapeClass} ${isSelected ? styles.tablePickItemSelected : ''} ${isOccupied ? styles.tablePickItemDisabled : ''}`}
                               style={{ left: table.x, top: table.y }}
                               disabled={isOccupied}
                               title={isOccupied ? '此桌位在同一天同一時段已被預約' : table.label}
                               onClick={() => {
                                 if (isOccupied) return;
-                                setAcceptForm((prev) => ({ ...prev, tableLabel: table.label }));
+                                toggleAcceptTable(table);
                               }}
                             >
                               <span>{table.label}</span>
@@ -697,12 +771,12 @@ const ReservationManagementPage = () => {
                     <button
                       type="button"
                       className={styles.btnSecondary}
-                      onClick={() => setAcceptForm((prev) => ({ ...prev, tableLabel: '' }))}
+                      onClick={() => setAcceptForm((prev) => ({ ...prev, tableLabels: [] }))}
                     >
                       不指定桌位
                     </button>
-                    {acceptForm.tableLabel && (
-                      <span className={styles.selectedTableText}>已選擇：{acceptForm.tableLabel}</span>
+                    {selectedTableLabels.length > 0 && (
+                      <span className={styles.selectedTableText}>已選擇：{selectedTableLabels.join(', ')}</span>
                     )}
                   </div>
                 </>

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { v4 as uuid } from 'uuid';
 import {
@@ -25,6 +26,7 @@ const MAX_SEATS = 12;
 const clampSeats = (value) => Math.min(MAX_SEATS, Math.max(MIN_SEATS, value));
 
 const DineInSettingsPage = () => {
+  const navigate = useNavigate();
   const [storeId, setStoreId] = useState(null);
   const [isLoadingStore, setIsLoadingStore] = useState(true);
   const [floors, setFloors] = useState([]);
@@ -254,6 +256,13 @@ const DineInSettingsPage = () => {
   return (
     <div className={styles.dineinSettingsContainer}>
       <div className={styles.dineinTopBar}>
+        <button
+          className={styles.seatingButton}
+          type="button"
+          onClick={() => navigate('/merchant/seating')}
+        >
+          現場座位安排
+        </button>
         <button
           className={styles.saveButton}
           type="button"

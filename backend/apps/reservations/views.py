@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
@@ -6,7 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.models import Sum
 import hashlib
 
-from .models import Reservation, ReservationChangeLog, TimeSlot
+from .models import Reservation, ReservationChangeLog, TimeSlot, WalkInSeating
 from apps.stores.models import Store
 from apps.orders.models import Notification
 from apps.orders.serializers import NotificationSerializer
@@ -20,6 +20,7 @@ from .serializers import (
     TimeSlotSerializer,
     MerchantReservationSerializer,
     MerchantReservationUpdateSerializer,
+    WalkInSeatingSerializer,
 )
 
 
@@ -456,6 +457,64 @@ class MerchantReservationViewSet(viewsets.ModelViewSet):
         }
         
         return Response(stats)
+
+
+class WalkInSeatingViewSet(viewsets.ModelViewSet):
+    """Merchant-managed walk-in table assignments."""
+
+    serializer_class = WalkInSeatingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_store_id(self):
+        user = self.request.user
+        if getattr(user, 'user_type', None) != 'merchant':
+            return None
+        return Store.objects.filter(
+            merchant__user_id=user.id
+        ).values_list('id', flat=True).first()
+
+    def get_queryset(self):
+        store_id = self.get_store_id()
+        if not store_id:
+            return WalkInSeating.objects.none()
+
+        queryset = WalkInSeating.objects.filter(store_id=store_id)
+
+        seating_date = self.request.query_params.get('date')
+        if seating_date:
+            queryset = queryset.filter(seated_at__date=seating_date)
+
+        seating_status = self.request.query_params.get('status')
+        if seating_status and seating_status != 'all':
+            queryset = queryset.filter(status=seating_status)
+
+        return queryset.select_related('store', 'created_by')
+
+    def perform_create(self, serializer):
+        store_id = self.get_store_id()
+        if not store_id:
+            raise permissions.PermissionDenied("Only merchants with a store can assign seats.")
+
+        table_label = serializer.validated_data.get('table_label', '').strip()
+        is_occupied = WalkInSeating.objects.filter(
+            store_id=store_id,
+            table_label=table_label,
+            status='active',
+        ).exists()
+        if is_occupied:
+            raise serializers.ValidationError({'table_label': 'This table already has an active walk-in assignment.'})
+
+        serializer.save(store_id=store_id, created_by=self.request.user)
+
+    @action(detail=True, methods=['post'], url_path='release')
+    def release(self, request, pk=None):
+        seating = self.get_object()
+        if seating.status != 'released':
+            seating.status = 'released'
+            seating.released_at = timezone.now()
+            seating.save(update_fields=['status', 'released_at', 'updated_at'])
+
+        return Response(WalkInSeatingSerializer(seating).data)
 
 
 class ReservationNotificationViewSet(viewsets.ModelViewSet):

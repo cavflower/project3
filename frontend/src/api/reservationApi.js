@@ -149,6 +149,18 @@ export const deleteReservation = (id) => {
   return api.delete(`/merchant/reservations/${id}/`);
 };
 
+export const getWalkInSeatings = (filters = {}) => {
+  return api.get('/merchant/walk-in-seatings/', { params: filters });
+};
+
+export const createWalkInSeating = (data) => {
+  return api.post('/merchant/walk-in-seatings/', data);
+};
+
+export const releaseWalkInSeating = (id) => {
+  return api.post(`/merchant/walk-in-seatings/${id}/release/`);
+};
+
 /**
  * 取得訂位統計資訊
  * @returns {Promise}
@@ -233,6 +245,9 @@ export default {
   updateReservationStatus,
   merchantCancelReservation,
   deleteReservation,
+  getWalkInSeatings,
+  createWalkInSeating,
+  releaseWalkInSeating,
   getReservationStats,
   getReservationSettings,
   updateReservationSettings,

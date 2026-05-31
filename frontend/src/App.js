@@ -53,6 +53,7 @@ import SurplusZonePage from './features/takeout/SurplusZonePage';
 import DineInOrderPage from './features/dine_in/DineInOrderPage';
 import DineInCartPage from './features/dine_in/DineInCartPage';
 import DineInSettingsPage from './features/merchant_dashboard/dine_in/DineInSettingsPage';
+import WalkInSeatingPage from './features/merchant_dashboard/dine_in/WalkInSeatingPage';
 import SurplusFoodManagement from './features/surplus_food/SurplusFoodManagement';
 import OrderManagementPage from './features/merchant_dashboard/order_management/OrderManagementPage';
 import FinancialReportPage from './features/merchant_dashboard/financial_report/FinancialReportPage';
@@ -222,6 +223,9 @@ function App() {
 
             {/* 內用設定 */}
             <Route path="/merchant/dine-in" element={<ProtectedRoute><DineInSettingsPage /></ProtectedRoute>}
+            />
+
+            <Route path="/merchant/seating" element={<ProtectedRoute><WalkInSeatingPage /></ProtectedRoute>}
             />
 
             {/* 商家評論管理 */}

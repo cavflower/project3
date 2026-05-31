@@ -22,6 +22,20 @@
     cursor: pointer;
 }
 
+.seatingButton {
+    padding: 10px 18px;
+    border: 1px solid #ff8a65;
+    border-radius: 10px;
+    background: #fff;
+    color: #ff6f43;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.seatingButton:hover {
+    background: #fff4ee;
+}
+
 .saveButton:disabled {
     opacity: 0.5;
     cursor: not-allowed;

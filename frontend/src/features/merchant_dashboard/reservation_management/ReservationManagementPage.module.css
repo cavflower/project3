@@ -730,6 +730,24 @@
     cursor: grabbing;
 }
 
+.tableCapacitySummary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin: 10px 0;
+    padding: 10px 12px;
+    border: 1px solid #d8ebe2;
+    border-radius: 8px;
+    background: #f4fbf7;
+    color: #36545a;
+    font-size: 0.9rem;
+}
+
+.tableCapacitySummary strong {
+    color: #17633d;
+}
+
 .tablePickItem,
 .tablePickItemRectangle,
 .tablePickItemSquare,

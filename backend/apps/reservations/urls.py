@@ -6,12 +6,14 @@ from .views import (
     ReservationNotificationViewSet,
     TimeSlotViewSet,
     PublicTimeSlotViewSet,
+    WalkInSeatingViewSet,
 )
 
 router = DefaultRouter()
 router.register(r'reservations', ReservationViewSet, basename='reservation')
 router.register(r'reservation-notifications', ReservationNotificationViewSet, basename='reservation-notification')
 router.register(r'merchant/reservations', MerchantReservationViewSet, basename='merchant-reservation')
+router.register(r'merchant/walk-in-seatings', WalkInSeatingViewSet, basename='walk-in-seating')
 router.register(r'merchant/time-slots', TimeSlotViewSet, basename='time-slot')
 router.register(r'time-slots', PublicTimeSlotViewSet, basename='public-time-slot')
 
