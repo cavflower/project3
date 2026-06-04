@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiCalendar, FiRefreshCw, FiUserPlus, FiUsers, FiXCircle } from 'react-icons/fi';
+import { FiCalendar, FiChevronLeft, FiChevronRight, FiRefreshCw, FiUserPlus, FiUsers, FiXCircle } from 'react-icons/fi';
 import { getMyStore, getDineInLayout } from '../../../api/storeApi';
 import {
   createWalkInSeating,
@@ -14,6 +14,38 @@ const getTodayString = () => {
   const now = new Date();
   const offset = now.getTimezoneOffset();
   return new Date(now.getTime() - offset * 60000).toISOString().slice(0, 10);
+};
+
+const parseDateString = (dateString) => {
+  const [year, month, day] = String(dateString || '').split('-').map(Number);
+  if (!year || !month || !day) return new Date();
+  return new Date(year, month - 1, day);
+};
+
+const formatDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getMonthString = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+const getCalendarDays = (monthString) => {
+  const [year, month] = monthString.split('-').map(Number);
+  const firstDate = new Date(year, month - 1, 1);
+  const startOffset = firstDate.getDay();
+  const startDate = new Date(year, month - 1, 1 - startOffset);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + index);
+    return {
+      value: formatDateString(date),
+      day: date.getDate(),
+      isCurrentMonth: date.getMonth() === month - 1,
+    };
+  });
 };
 
 const getTableClass = (shape) => {
@@ -32,6 +64,7 @@ const WalkInSeatingPage = () => {
   const [floors, setFloors] = useState([]);
   const [activeFloorId, setActiveFloorId] = useState('');
   const [selectedDate, setSelectedDate] = useState(getTodayString());
+  const [calendarMonth, setCalendarMonth] = useState(() => getMonthString(parseDateString(getTodayString())));
   const [selectedTable, setSelectedTable] = useState(null);
   const [reservations, setReservations] = useState([]);
   const [walkIns, setWalkIns] = useState([]);
@@ -85,6 +118,29 @@ const WalkInSeatingPage = () => {
     if (!selectedTable?.label) return null;
     return walkInMap.get(selectedTable.label) || null;
   }, [selectedTable, walkInMap]);
+
+  const calendarDays = useMemo(() => getCalendarDays(calendarMonth), [calendarMonth]);
+
+  const calendarTitle = useMemo(() => {
+    const [year, month] = calendarMonth.split('-').map(Number);
+    return `${year} 年 ${month} 月`;
+  }, [calendarMonth]);
+
+  const changeSelectedDate = (dateString) => {
+    setSelectedDate(dateString);
+    setCalendarMonth(getMonthString(parseDateString(dateString)));
+    setSelectedTable(null);
+  };
+
+  const moveCalendarMonth = (direction) => {
+    const [year, month] = calendarMonth.split('-').map(Number);
+    const nextMonth = new Date(year, month - 1 + direction, 1);
+    setCalendarMonth(getMonthString(nextMonth));
+  };
+
+  const goToday = () => {
+    changeSelectedDate(getTodayString());
+  };
 
   const loadLayout = useCallback(async () => {
     const storeResponse = await getMyStore({ lite: 1 });
@@ -221,12 +277,48 @@ const WalkInSeatingPage = () => {
           <FiCalendar />
           查看日期
         </label>
-        <input
-          className={styles.dateInput}
-          type="date"
-          value={selectedDate}
-          onChange={(event) => setSelectedDate(event.target.value)}
-        />
+        <section className={styles.calendarCard}>
+          <div className={styles.calendarHeader}>
+            <button type="button" className={styles.calendarNavButton} onClick={() => moveCalendarMonth(-1)} aria-label="上一個月">
+              <FiChevronLeft />
+            </button>
+            <strong>{calendarTitle}</strong>
+            <button type="button" className={styles.calendarNavButton} onClick={() => moveCalendarMonth(1)} aria-label="下一個月">
+              <FiChevronRight />
+            </button>
+          </div>
+          <div className={styles.calendarWeekdays}>
+            {['日', '一', '二', '三', '四', '五', '六'].map((dayName) => (
+              <span key={dayName}>{dayName}</span>
+            ))}
+          </div>
+          <div className={styles.calendarGrid}>
+            {calendarDays.map((day) => {
+              const isSelected = day.value === selectedDate;
+              const isToday = day.value === getTodayString();
+
+              return (
+                <button
+                  key={day.value}
+                  type="button"
+                  className={[
+                    styles.calendarDay,
+                    day.isCurrentMonth ? '' : styles.calendarDayMuted,
+                    isSelected ? styles.calendarDaySelected : '',
+                    isToday ? styles.calendarDayToday : '',
+                  ].join(' ')}
+                  onClick={() => changeSelectedDate(day.value)}
+                >
+                  {day.day}
+                </button>
+              );
+            })}
+          </div>
+          <div className={styles.calendarFooter}>
+            <span>{selectedDate}</span>
+            <button type="button" onClick={goToday}>今天</button>
+          </div>
+        </section>
 
         <section className={styles.floorSection}>
           <h2>樓層</h2>

@@ -36,7 +36,6 @@
   font-weight: 700;
 }
 
-.dateInput,
 .assignForm input,
 .assignForm textarea {
   width: 100%;
@@ -45,6 +44,115 @@
   padding: 10px 12px;
   color: #263547;
   font: inherit;
+}
+
+.calendarCard {
+  border: 1px solid #eef1f6;
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 14px;
+}
+
+.calendarHeader {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  align-items: center;
+  gap: 8px;
+  color: #263547;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.calendarHeader strong {
+  font-size: 1rem;
+}
+
+.calendarNavButton {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #475467;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.calendarWeekdays,
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendarWeekdays {
+  color: #667085;
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.calendarDay {
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  color: #263547;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.calendarDay:hover {
+  border-color: #ffb199;
+  background: #fff7f2;
+}
+
+.calendarDayMuted {
+  color: #98a2b3;
+  background: #f6f8fb;
+}
+
+.calendarDayToday {
+  border-color: #263547;
+}
+
+.calendarDaySelected {
+  border-color: #ff7043;
+  background: #ff7043;
+  color: #fff;
+}
+
+.calendarDaySelected:hover {
+  background: #ff7043;
+  color: #fff;
+}
+
+.calendarFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.calendarFooter span {
+  color: #667085;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.calendarFooter button {
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #475467;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 7px 12px;
 }
 
 .floorSection {
