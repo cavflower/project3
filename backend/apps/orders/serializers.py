@@ -172,7 +172,7 @@ class TakeoutOrderSerializer(serializers.ModelSerializer):
         # 從 request 獲取用戶資訊（如果已登入）
         request = self.context.get('request')
         user = None
-        if request and request.user.is_authenticated:
+        if request and request.user.is_authenticated and not self.context.get('counter_order'):
             validated_data['user'] = request.user
             user = request.user
 
@@ -375,7 +375,7 @@ class DineInOrderSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
 
         user = None
-        if request and request.user.is_authenticated:
+        if request and request.user.is_authenticated and not self.context.get('counter_order'):
             validated_data['user'] = request.user
             user = request.user
 

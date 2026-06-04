@@ -346,6 +346,295 @@
 }
 
 /* 分頁 */
+.counterOrderBtn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f19173, #ff7b54);
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(241, 145, 115, 0.24);
+}
+
+.counterOrderBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.counterModal {
+    width: min(1080px, 100%);
+    max-height: calc(100vh - 40px);
+    overflow: auto;
+    background: #ffffff;
+    border: 1px solid #dbe7e4;
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+    padding: 20px;
+}
+
+.counterTypeGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.counterTypeGrid button {
+    min-height: 140px;
+    border: 1px solid #dbe7e4;
+    border-radius: 10px;
+    background: #fbfdfc;
+    color: #233235;
+    display: grid;
+    align-content: center;
+    gap: 8px;
+    cursor: pointer;
+    text-align: left;
+    padding: 22px;
+}
+
+.counterTypeGrid button:hover {
+    border-color: #1abc9c;
+    box-shadow: 0 8px 18px rgba(26, 188, 156, 0.1);
+}
+
+.counterTypeGrid strong {
+    font-size: 1.2rem;
+}
+
+.counterTypeGrid span {
+    color: #667f82;
+}
+
+.counterSection {
+    display: grid;
+    gap: 14px;
+}
+
+.counterStepHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    color: #233235;
+}
+
+.counterStepHeader span {
+    color: #667f82;
+    font-size: 0.9rem;
+}
+
+.counterFloorTabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.counterFloor,
+.counterFloorActive {
+    border: 1px solid #dae4e1;
+    border-radius: 999px;
+    padding: 8px 14px;
+    background: #ffffff;
+    color: #5f7477;
+    cursor: pointer;
+}
+
+.counterFloorActive {
+    background: #1abc9c;
+    border-color: #1abc9c;
+    color: #ffffff;
+}
+
+.counterTableGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.counterTable,
+.counterTableActive {
+    min-height: 82px;
+    border: 1px solid #dbe7e4;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #233235;
+    display: grid;
+    align-content: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.counterTable span,
+.counterTableActive span {
+    color: #667f82;
+    font-size: 0.86rem;
+}
+
+.counterTableActive {
+    border-color: #f19173;
+    background: #fff4ef;
+    box-shadow: 0 0 0 2px rgba(241, 145, 115, 0.18);
+}
+
+.counterMenuLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 18px;
+}
+
+.counterMenuList,
+.counterCartPanel {
+    border: 1px solid #e3ecea;
+    border-radius: 12px;
+    padding: 14px;
+    background: #fbfdfc;
+}
+
+.counterMenuList {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+}
+
+.counterProductRow {
+    width: 100%;
+    border: 1px solid #e3ecea;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.counterProductRow:hover:not(:disabled) {
+    border-color: #1abc9c;
+    background: #f4fbf9;
+}
+
+.counterProductRow:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.counterProductRow span {
+    display: grid;
+    gap: 4px;
+}
+
+.counterProductRow small {
+    color: #667f82;
+}
+
+.counterProductRow b {
+    white-space: nowrap;
+    color: #167d68;
+}
+
+.counterCartPanel {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+}
+
+.counterTableSummary {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fff4ef;
+    color: #9b4a30;
+    font-weight: 700;
+}
+
+.counterCartItems {
+    display: grid;
+    gap: 10px;
+    max-height: 320px;
+    overflow: auto;
+}
+
+.counterEmptyText {
+    margin: 0;
+    color: #667f82;
+    padding: 18px 0;
+    text-align: center;
+}
+
+.counterCartItem {
+    border: 1px solid #e3ecea;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.counterCartItem div:first-child {
+    display: grid;
+    gap: 3px;
+}
+
+.counterCartItem small {
+    color: #667f82;
+}
+
+.counterCartItem span {
+    color: #167d68;
+    font-weight: 700;
+}
+
+.counterQtyControl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.counterQtyControl button {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #dae4e1;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #233235;
+    cursor: pointer;
+}
+
+.counterField {
+    display: grid;
+    gap: 6px;
+}
+
+.counterField span {
+    color: #667f82;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.counterField select,
+.counterField textarea {
+    width: 100%;
+    border: 1px solid #dae4e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #233235;
+    padding: 10px 12px;
+}
+
+.counterField textarea {
+    resize: vertical;
+}
+
+.counterFooterActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
 .pagination {
     display: flex;
     justify-content: space-between;
@@ -621,6 +910,22 @@
 
     .modalActions {
         flex-direction: column;
+    }
+
+    .counterTypeGrid,
+    .counterMenuLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .counterStepHeader,
+    .counterFooterActions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .counterProductRow,
+    .counterCartItem {
+        grid-template-columns: 1fr;
     }
 
     .filterBtn,

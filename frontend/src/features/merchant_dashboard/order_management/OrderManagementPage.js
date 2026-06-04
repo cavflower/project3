@@ -1,8 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../../api/api';
+import { createMerchantCounterOrder, getDineInProducts, getTakeoutProducts } from '../../../api/orderApi';
+import { getDineInLayout } from '../../../api/storeApi';
 import { useStore } from '../../../store/StoreContext';
 import { db } from '../../../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { getPublicSpecificationGroups } from '../../../api/productApi';
+import ProductSpecificationModal from '../../../components/common/ProductSpecificationModal';
+import { normalizeDineInLayout } from '../../../utils/dineInLayout';
 import styles from './OrderManagementPage.module.css';
 
 const statusLabels = {
@@ -78,7 +83,7 @@ const isCashPayment = (order) => {
 };
 
 function OrderManagementPage() {
-  const { storeId: contextStoreId, loading: storeLoading } = useStore();
+  const { store, storeId: contextStoreId, loading: storeLoading } = useStore();
   const [storeId, setStoreId] = useState(null);
   const [orders, setOrders] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -94,6 +99,7 @@ function OrderManagementPage() {
   const [checkoutTargetStatus, setCheckoutTargetStatus] = useState('completed');
   const [receivedAmount, setReceivedAmount] = useState('');
   const [printingDetails, setPrintingDetails] = useState(false);
+  const [counterOrderOpen, setCounterOrderOpen] = useState(false);
   const pageSize = 9;
   const refreshTimerRef = useRef(null);
 
@@ -404,6 +410,14 @@ function OrderManagementPage() {
           <h1 className={styles.pageTitle}>訂單管理</h1>
           <p className={styles.pageSubtitle}>店家 ID：{storeId}</p>
         </div>
+        <button
+          type="button"
+          className={styles.counterOrderBtn}
+          onClick={() => setCounterOrderOpen(true)}
+          disabled={!storeId}
+        >
+          現場點餐
+        </button>
       </div>
 
       <div className={styles.filterBar}>
@@ -485,6 +499,19 @@ function OrderManagementPage() {
         </div>
       )}
 
+      {counterOrderOpen && (
+        <CounterOrderModal
+          storeId={storeId}
+          store={store}
+          onClose={() => setCounterOrderOpen(false)}
+          onCreated={() => {
+            setCounterOrderOpen(false);
+            setPage(1);
+            loadOrders({ silent: true });
+          }}
+        />
+      )}
+
       {cashCheckoutOrder && (
         <CashCheckoutModal
           order={cashCheckoutOrder}
@@ -521,6 +548,380 @@ function OrderManagementPage() {
     </div>
   );
 }
+
+const counterPaymentOptions = [
+  { value: 'cash', label: '現金' },
+  { value: 'credit_card', label: '信用卡' },
+  { value: 'line_pay', label: 'LINE Pay' },
+];
+
+const getCounterItemKey = (item) => {
+  const specKey = item.specKey || (item.selectedSpecs || [])
+    .map((spec) => `${spec.groupName}:${spec.optionName}`)
+    .join('|');
+  return specKey ? `${item.id}_${specKey}` : String(item.id);
+};
+
+const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
+  const [orderType, setOrderType] = useState('');
+  const [step, setStep] = useState('type');
+  const [floors, setFloors] = useState([]);
+  const [activeFloorId, setActiveFloorId] = useState('');
+  const [selectedTables, setSelectedTables] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [notes, setNotes] = useState('');
+  const [loadingMenu, setLoadingMenu] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productSpecGroups, setProductSpecGroups] = useState({});
+
+  const activeFloor = useMemo(
+    () => floors.find((floor) => floor.id === activeFloorId) || floors[0] || null,
+    [floors, activeFloorId]
+  );
+
+  const cartTotal = useMemo(
+    () => cart.reduce((sum, item) => sum + Number(item.orderPrice || item.price || 0) * Number(item.quantity || 1), 0),
+    [cart]
+  );
+
+  const loadTables = useCallback(async () => {
+    if (!storeId) return;
+    const layoutData = store?.dine_in_layout || (await getDineInLayout(storeId)).data;
+    const normalized = normalizeDineInLayout(layoutData);
+    const usableFloors = normalized.floors.map((floor) => ({
+      ...floor,
+      tables: (floor.tables || []).filter((table) => String(table.label || '').trim()),
+    }));
+    setFloors(usableFloors);
+    setActiveFloorId(normalized.activeFloorId || usableFloors[0]?.id || '');
+  }, [store, storeId]);
+
+  const loadMenu = useCallback(async (nextType) => {
+    if (!storeId) return;
+    setLoadingMenu(true);
+    try {
+      const response = nextType === 'takeout'
+        ? await getTakeoutProducts(storeId)
+        : await getDineInProducts(storeId);
+      setMenuItems(response.data || []);
+    } catch (error) {
+      console.error('counter menu load error', error);
+      window.alert('載入菜單失敗，請稍後再試');
+    } finally {
+      setLoadingMenu(false);
+    }
+  }, [storeId]);
+
+  const handleSelectType = async (nextType) => {
+    setOrderType(nextType);
+    setCart([]);
+    setSelectedTables([]);
+    await loadMenu(nextType);
+    if (nextType === 'dine_in') {
+      await loadTables();
+      setStep('table');
+    } else {
+      setStep('menu');
+    }
+  };
+
+  const toggleTable = (label) => {
+    setSelectedTables((prev) => (
+      prev.includes(label)
+        ? prev.filter((item) => item !== label)
+        : [...prev, label]
+    ));
+  };
+
+  const addToCart = (product) => {
+    const orderPrice = Number(product.finalPrice ?? product.price ?? 0);
+    const item = {
+      ...product,
+      orderPrice,
+      selectedSpecs: product.selectedSpecs || [],
+      cartKey: getCounterItemKey(product),
+    };
+    setCart((prev) => {
+      const existing = prev.find((cartItem) => cartItem.cartKey === item.cartKey);
+      if (existing) {
+        return prev.map((cartItem) => (
+          cartItem.cartKey === item.cartKey
+            ? { ...cartItem, quantity: Number(cartItem.quantity || 1) + 1 }
+            : cartItem
+        ));
+      }
+      return [...prev, { ...item, quantity: 1 }];
+    });
+  };
+
+  const decrementCartItem = (cartKey) => {
+    setCart((prev) => prev
+      .map((item) => (
+        item.cartKey === cartKey
+          ? { ...item, quantity: Number(item.quantity || 1) - 1 }
+          : item
+      ))
+      .filter((item) => Number(item.quantity || 0) > 0));
+  };
+
+  const handleProductClick = async (product) => {
+    if (product.is_orderable === false || product.is_sold_out_by_ingredients) return;
+
+    try {
+      const cachedSpecs = productSpecGroups[product.id];
+      const specs = Array.isArray(cachedSpecs)
+        ? cachedSpecs
+        : (await getPublicSpecificationGroups(product.id)).data || [];
+      setProductSpecGroups((prev) => ({ ...prev, [product.id]: specs }));
+
+      if (specs.length > 0 && specs.some((group) => group.options && group.options.length > 0)) {
+        setSelectedProduct(product);
+        return;
+      }
+    } catch (error) {
+      console.error('counter specs load error', error);
+    }
+
+    addToCart(product);
+  };
+
+  const handleSpecConfirm = (productWithSpecs) => {
+    addToCart(productWithSpecs);
+    setSelectedProduct(null);
+  };
+
+  const handleSubmit = async () => {
+    if (!cart.length) {
+      window.alert('請至少選擇一個餐點');
+      return;
+    }
+    if (orderType === 'dine_in' && selectedTables.length === 0) {
+      window.alert('內用單請先選擇桌位');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        order_type: orderType,
+        payment_method: paymentMethod,
+        notes,
+        customer_name: '現場客人',
+        customer_phone: '0000000000',
+        table_labels: orderType === 'dine_in' ? selectedTables : undefined,
+        items: cart.map((item) => ({
+          product: item.id,
+          quantity: Number(item.quantity || 1),
+          unit_price: Number(item.orderPrice || item.price || 0),
+          specifications: item.selectedSpecs || [],
+        })),
+      };
+
+      const response = await createMerchantCounterOrder(payload);
+      window.alert(`已建立現場訂單：#${response.data?.order_number || response.data?.pickup_number || ''}`);
+      onCreated();
+    } catch (error) {
+      console.error('counter order create error', error);
+      const detail = error.response?.data?.detail || JSON.stringify(error.response?.data || {}) || '建立訂單失敗';
+      window.alert(detail);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+      <div className={styles.counterModal}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h2 className={styles.modalTitle}>現場點餐</h2>
+            <p className={styles.modalSubtitle}>
+              {orderType === 'dine_in' ? '內用單' : orderType === 'takeout' ? '外帶單' : '請選擇訂單類型'}
+            </p>
+          </div>
+          <button type="button" className={styles.modalCloseBtn} onClick={onClose} disabled={submitting}>
+            x
+          </button>
+        </div>
+
+        {step === 'type' && (
+          <div className={styles.counterTypeGrid}>
+            <button type="button" onClick={() => handleSelectType('dine_in')}>
+              <strong>內用單</strong>
+              <span>先選擇桌位，再開始點餐</span>
+            </button>
+            <button type="button" onClick={() => handleSelectType('takeout')}>
+              <strong>外帶單</strong>
+              <span>直接進入菜單點餐</span>
+            </button>
+          </div>
+        )}
+
+        {step === 'table' && (
+          <div className={styles.counterSection}>
+            <div className={styles.counterStepHeader}>
+              <strong>選擇桌位</strong>
+              <span>可複選：{selectedTables.length ? selectedTables.join(', ') : '尚未選擇'}</span>
+            </div>
+            <div className={styles.counterFloorTabs}>
+              {floors.map((floor) => (
+                <button
+                  key={floor.id}
+                  type="button"
+                  className={activeFloor?.id === floor.id ? styles.counterFloorActive : styles.counterFloor}
+                  onClick={() => setActiveFloorId(floor.id)}
+                >
+                  {floor.name}
+                </button>
+              ))}
+            </div>
+            <div className={styles.counterTableGrid}>
+              {(activeFloor?.tables || []).map((table) => {
+                const label = String(table.label || '').trim();
+                const selected = selectedTables.includes(label);
+                return (
+                  <button
+                    key={table.id || label}
+                    type="button"
+                    className={selected ? styles.counterTableActive : styles.counterTable}
+                    onClick={() => toggleTable(label)}
+                  >
+                    <strong>{label}</strong>
+                    <span>{table.seats || 0} 人</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className={styles.counterFooterActions}>
+              <button type="button" className={styles.paginBtn} onClick={() => setStep('type')}>
+                上一步
+              </button>
+              <button
+                type="button"
+                className={`${styles.actionBtn} ${styles.btnAccept}`}
+                onClick={() => setStep('menu')}
+                disabled={selectedTables.length === 0}
+              >
+                開始點餐
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 'menu' && (
+          <div className={styles.counterMenuLayout}>
+            <div className={styles.counterMenuList}>
+              <div className={styles.counterStepHeader}>
+                <strong>菜單</strong>
+                <span>{loadingMenu ? '載入中...' : `${menuItems.length} 項餐點`}</span>
+              </div>
+              {menuItems.map((product) => {
+                const disabled = product.is_orderable === false || product.is_sold_out_by_ingredients;
+                return (
+                  <button
+                    key={product.id}
+                    type="button"
+                    className={styles.counterProductRow}
+                    onClick={() => handleProductClick(product)}
+                    disabled={disabled}
+                  >
+                    <span>
+                      <strong>{product.name}</strong>
+                      {product.description && <small>{product.description}</small>}
+                    </span>
+                    <b>NT$ {Math.round(Number(product.price || 0))}</b>
+                  </button>
+                );
+              })}
+            </div>
+
+            <aside className={styles.counterCartPanel}>
+              <div className={styles.counterStepHeader}>
+                <strong>訂單內容</strong>
+                <span>NT$ {Math.round(cartTotal)}</span>
+              </div>
+              {orderType === 'dine_in' && (
+                <div className={styles.counterTableSummary}>桌位：{selectedTables.join(', ')}</div>
+              )}
+              <div className={styles.counterCartItems}>
+                {cart.length === 0 ? (
+                  <p className={styles.counterEmptyText}>尚未選擇餐點</p>
+                ) : cart.map((item) => (
+                  <div key={item.cartKey} className={styles.counterCartItem}>
+                    <div>
+                      <strong>{item.name}</strong>
+                      {(item.selectedSpecs || []).length > 0 && (
+                        <small>
+                          {item.selectedSpecs.map((spec) => `${spec.groupName}: ${spec.optionName}`).join('、')}
+                        </small>
+                      )}
+                      <span>NT$ {Math.round(Number(item.orderPrice || 0))}</span>
+                    </div>
+                    <div className={styles.counterQtyControl}>
+                      <button type="button" onClick={() => decrementCartItem(item.cartKey)}>-</button>
+                      <b>{item.quantity}</b>
+                      <button type="button" onClick={() => addToCart(item)}>+</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <label className={styles.counterField}>
+                <span>付款方式</span>
+                <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
+                  {counterPaymentOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className={styles.counterField}>
+                <span>備註</span>
+                <textarea
+                  rows="3"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="例如：少冰、餐具、客人特殊需求"
+                />
+              </label>
+
+              <div className={styles.counterFooterActions}>
+                <button
+                  type="button"
+                  className={styles.paginBtn}
+                  onClick={() => setStep(orderType === 'dine_in' ? 'table' : 'type')}
+                  disabled={submitting}
+                >
+                  上一步
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.actionBtn} ${styles.btnComplete}`}
+                  onClick={handleSubmit}
+                  disabled={submitting || cart.length === 0}
+                >
+                  {submitting ? '建立中...' : '建立訂單'}
+                </button>
+              </div>
+            </aside>
+          </div>
+        )}
+      </div>
+
+      {selectedProduct && (
+        <ProductSpecificationModal
+          product={selectedProduct}
+          initialSpecGroups={productSpecGroups[selectedProduct.id]}
+          onConfirm={handleSpecConfirm}
+          onCancel={() => setSelectedProduct(null)}
+        />
+      )}
+    </div>
+  );
+};
 
 const OrderCard = ({ order, formatUtensils, statusLabels, updating, onUpdateStatus, onAcceptOrder, onCompleteOrder, onDelete }) => {
   const status = order.status || 'pending';

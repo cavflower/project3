@@ -202,7 +202,7 @@ class DineInOrder(models.Model):
         verbose_name='發票載具',
         help_text='格式：/XXXXXXX'
     )
-    table_label = models.CharField(max_length=20, verbose_name='桌號')
+    table_label = models.CharField(max_length=100, verbose_name='桌號')
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, verbose_name='付款方式')
     notes = models.TextField(blank=True, verbose_name='備註')
     order_number = models.CharField(max_length=10, unique=True, verbose_name='訂單號碼')

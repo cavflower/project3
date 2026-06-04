@@ -386,6 +386,86 @@ class DineInOrderCreateView(generics.CreateAPIView):
         return context
 
 
+class MerchantCounterOrderCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            store = request.user.merchant_profile.store
+        except Exception:
+            return Response(
+                {'detail': '找不到店家店鋪資料'},
+                status=http_status.HTTP_400_BAD_REQUEST
+            )
+
+        payload = request.data.copy()
+        order_type = payload.get('order_type') or payload.get('service_channel') or payload.get('channel')
+        if order_type == 'dinein':
+            order_type = 'dine_in'
+        if order_type not in {'takeout', 'dine_in'}:
+            return Response(
+                {'detail': 'order_type must be takeout or dine_in'},
+                status=http_status.HTTP_400_BAD_REQUEST
+            )
+
+        items = payload.get('items') or []
+        if not isinstance(items, list) or len(items) == 0:
+            return Response(
+                {'detail': '請至少選擇一個餐點'},
+                status=http_status.HTTP_400_BAD_REQUEST
+            )
+
+        payload['store'] = store.id
+        payload.setdefault('customer_name', '現場客人')
+        payload.setdefault('customer_phone', '0000000000')
+        payload.setdefault('invoice_carrier', '')
+        payload.setdefault('notes', '')
+        payload.setdefault('payment_method', 'cash')
+
+        if order_type == 'takeout':
+            payload.setdefault('pickup_at', timezone.now().isoformat())
+            payload.setdefault('use_utensils', True)
+            serializer = TakeoutOrderSerializer(
+                data=payload,
+                context={'request': request, 'store': store, 'counter_order': True}
+            )
+            channel = 'takeout'
+        else:
+            table_labels = payload.get('table_labels')
+            if isinstance(table_labels, list):
+                cleaned_labels = [str(label).strip() for label in table_labels if str(label).strip()]
+                payload['table_label'] = ', '.join(cleaned_labels)
+            else:
+                payload['table_label'] = str(payload.get('table_label') or '').strip()
+
+            if not payload.get('table_label'):
+                return Response(
+                    {'detail': '內用單請先選擇桌位'},
+                    status=http_status.HTTP_400_BAD_REQUEST
+                )
+
+            payload.setdefault('use_eco_tableware', False)
+            serializer = DineInOrderSerializer(
+                data=payload,
+                context={'request': request, 'store': store, 'counter_order': True}
+            )
+            channel = 'dine_in'
+
+        serializer.is_valid(raise_exception=True)
+        order = serializer.save()
+        order_number = getattr(order, 'pickup_number', None) or getattr(order, 'order_number', None)
+
+        return Response({
+            'id': order.id,
+            'pickup_number': order_number,
+            'order_number': order_number,
+            'channel': channel,
+            'status': order.status,
+            'table_label': getattr(order, 'table_label', ''),
+            'payment_method': order.payment_method,
+        }, status=http_status.HTTP_201_CREATED)
+
+
 class OrderStatusUpdateView(APIView):
     """訂單狀態更新 API - 支援外帶和內用訂單"""
     permission_classes = [permissions.AllowAny]

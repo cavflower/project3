@@ -18,6 +18,9 @@ export const createTakeoutOrder = (payload) =>
 export const createDineInOrder = (payload) =>
   api.post('/orders/dinein/', payload, { authRole: AUTH_ROLES.CUSTOMER });
 
+export const createMerchantCounterOrder = (payload) =>
+  api.post('/orders/merchant/counter/', payload, { authRole: AUTH_ROLES.MERCHANT });
+
 export const getUserOrders = () =>
   api.get('/orders/customer-orders/', {
     backgroundRequest: true,

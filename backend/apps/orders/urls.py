@@ -10,6 +10,7 @@ from .views import (
     CustomerOrderDeleteView,
     NotificationViewSet,
     MerchantPendingOrdersView,
+    MerchantCounterOrderCreateView,
     GuestOrderLookupView
 )
 
@@ -21,6 +22,7 @@ urlpatterns = [
     path('customer-orders/', CustomerOrderListView.as_view(), name='customer-orders'),
     path('customer-orders/<str:order_type>/<int:order_id>/', CustomerOrderDeleteView.as_view(), name='customer-order-delete'),
     path('merchant/pending/', MerchantPendingOrdersView.as_view(), name='merchant-pending-orders'),
+    path('merchant/counter/', MerchantCounterOrderCreateView.as_view(), name='merchant-counter-order'),
     path('guest/lookup/', GuestOrderLookupView.as_view(), name='guest-order-lookup'),
     path('takeout/', TakeoutOrderCreateView.as_view(), name='takeout-order'),
     path('dinein/', DineInOrderCreateView.as_view(), name='dinein-order'),
