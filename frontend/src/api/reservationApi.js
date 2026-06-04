@@ -161,6 +161,12 @@ export const releaseWalkInSeating = (id) => {
   return api.post(`/merchant/walk-in-seatings/${id}/release/`);
 };
 
+export const assignWalkInSeating = (id, tableLabels) => {
+  return api.post(`/merchant/walk-in-seatings/${id}/assign/`, {
+    table_labels: tableLabels,
+  });
+};
+
 /**
  * 取得訂位統計資訊
  * @returns {Promise}
@@ -248,6 +254,7 @@ export default {
   getWalkInSeatings,
   createWalkInSeating,
   releaseWalkInSeating,
+  assignWalkInSeating,
   getReservationStats,
   getReservationSettings,
   updateReservationSettings,

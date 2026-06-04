@@ -488,23 +488,133 @@ class WalkInSeatingViewSet(viewsets.ModelViewSet):
         if seating_status and seating_status != 'all':
             queryset = queryset.filter(status=seating_status)
 
-        return queryset.select_related('store', 'created_by')
+        return queryset.select_related('store', 'created_by').order_by('seated_at')
+
+    def _split_table_labels(self, table_label):
+        return [
+            label.strip()
+            for label in (table_label or '').split(',')
+            if label.strip()
+        ]
+
+    def _normalize_table_labels(self, raw_labels):
+        if isinstance(raw_labels, str):
+            raw_labels = raw_labels.split(',')
+        if not isinstance(raw_labels, list):
+            raw_labels = []
+        return list(dict.fromkeys(
+            str(label).strip()
+            for label in raw_labels
+            if str(label).strip()
+        ))
+
+    def _get_configured_table_labels(self, store):
+        layout = store.dine_in_layout or []
+        labels = []
+
+        def collect(tables):
+            if not isinstance(tables, list):
+                return
+            for table in tables:
+                if isinstance(table, dict):
+                    label = (table.get('label') or '').strip()
+                    if label:
+                        labels.append(label)
+
+        if isinstance(layout, list):
+            has_floor_tables = any(
+                isinstance(item, dict) and isinstance(item.get('tables'), list)
+                for item in layout
+            )
+            if has_floor_tables:
+                for floor in layout:
+                    if isinstance(floor, dict):
+                        collect(floor.get('tables'))
+            else:
+                collect(layout)
+
+        if isinstance(layout, dict):
+            floors = layout.get('floors')
+            if isinstance(floors, list):
+                for floor in floors:
+                    if isinstance(floor, dict):
+                        collect(floor.get('tables'))
+
+        return set(labels)
+
+    def _get_occupied_labels(self, store_id, exclude_pk=None):
+        queryset = WalkInSeating.objects.filter(
+            store_id=store_id,
+            status='active',
+        )
+        if exclude_pk:
+            queryset = queryset.exclude(pk=exclude_pk)
+
+        occupied = set()
+        for table_label in queryset.values_list('table_label', flat=True):
+            occupied.update(self._split_table_labels(table_label))
+        return occupied
+
+    def _generate_waiting_number(self, store_id):
+        today = timezone.localdate()
+        used_numbers = WalkInSeating.objects.filter(
+            store_id=store_id,
+            seated_at__date=today,
+        ).exclude(waiting_number='').values_list('waiting_number', flat=True)
+
+        max_number = 0
+        for number in used_numbers:
+            if str(number).isdigit():
+                max_number = max(max_number, int(number))
+
+        return f'{max_number + 1:03d}'
 
     def perform_create(self, serializer):
         store_id = self.get_store_id()
         if not store_id:
             raise permissions.PermissionDenied("Only merchants with a store can assign seats.")
 
-        table_label = serializer.validated_data.get('table_label', '').strip()
-        is_occupied = WalkInSeating.objects.filter(
+        serializer.save(
             store_id=store_id,
-            table_label=table_label,
-            status='active',
-        ).exists()
-        if is_occupied:
-            raise serializers.ValidationError({'table_label': 'This table already has an active walk-in assignment.'})
+            created_by=self.request.user,
+            waiting_number=self._generate_waiting_number(store_id),
+            table_label='',
+            status='waiting',
+        )
 
-        serializer.save(store_id=store_id, created_by=self.request.user)
+    @action(detail=True, methods=['post'], url_path='assign')
+    def assign(self, request, pk=None):
+        seating = self.get_object()
+        store = seating.store
+        selected_labels = self._normalize_table_labels(
+            request.data.get('table_labels', request.data.get('table_label', []))
+        )
+        if not selected_labels:
+            return Response(
+                {'table_labels': ['Select at least one table.']},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        configured_labels = self._get_configured_table_labels(store)
+        missing_labels = [label for label in selected_labels if label not in configured_labels]
+        if missing_labels:
+            return Response(
+                {'table_labels': [f"These tables are not configured: {', '.join(missing_labels)}"]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        occupied_labels = self._get_occupied_labels(store.id, exclude_pk=seating.pk)
+        conflicting_labels = [label for label in selected_labels if label in occupied_labels]
+        if conflicting_labels:
+            return Response(
+                {'table_labels': [f"These tables are already occupied: {', '.join(conflicting_labels)}"]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        seating.table_label = ', '.join(selected_labels)
+        seating.status = 'active'
+        seating.save(update_fields=['table_label', 'status', 'updated_at'])
+        return Response(WalkInSeatingSerializer(seating).data)
 
     @action(detail=True, methods=['post'], url_path='release')
     def release(self, request, pk=None):

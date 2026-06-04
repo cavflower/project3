@@ -319,6 +319,7 @@ class WalkInSeating(models.Model):
     """On-site table assignment for walk-in customers."""
 
     STATUS_CHOICES = [
+        ('waiting', 'Waiting'),
         ('active', 'Active'),
         ('released', 'Released'),
     ]
@@ -328,11 +329,12 @@ class WalkInSeating(models.Model):
         on_delete=models.CASCADE,
         related_name='walk_in_seatings',
     )
-    table_label = models.CharField(max_length=100)
+    waiting_number = models.CharField(max_length=10, blank=True, default='')
+    table_label = models.CharField(max_length=100, blank=True, default='')
     party_name = models.CharField(max_length=100, blank=True, default='')
     party_size = models.PositiveIntegerField(default=1)
     notes = models.TextField(blank=True, default='')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='waiting')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -348,8 +350,10 @@ class WalkInSeating(models.Model):
         ordering = ['-seated_at']
         indexes = [
             models.Index(fields=['store', 'status', 'seated_at']),
+            models.Index(fields=['store', 'waiting_number', 'seated_at']),
             models.Index(fields=['store', 'table_label', 'status']),
         ]
 
     def __str__(self):
-        return f"{self.store.name} - {self.table_label} ({self.status})"
+        display = self.table_label or self.waiting_number or self.pk
+        return f"{self.store.name} - {display} ({self.status})"

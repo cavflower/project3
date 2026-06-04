@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiCalendar, FiChevronLeft, FiChevronRight, FiRefreshCw, FiUserPlus, FiUsers, FiXCircle } from 'react-icons/fi';
+import { FiCalendar, FiChevronLeft, FiChevronRight, FiRefreshCw, FiUserPlus, FiXCircle } from 'react-icons/fi';
 import { getMyStore, getDineInLayout } from '../../../api/storeApi';
 import {
+  assignWalkInSeating,
   createWalkInSeating,
   getMerchantReservations,
   getWalkInSeatings,
@@ -48,15 +49,17 @@ const getCalendarDays = (monthString) => {
   });
 };
 
+const splitTableLabels = (tableLabel) => (
+  String(tableLabel || '')
+    .split(',')
+    .map((label) => label.trim())
+    .filter(Boolean)
+);
+
 const getTableClass = (shape) => {
   if (shape === 'square') return styles.tableSquare;
   if (shape === 'circle') return styles.tableCircle;
   return styles.tableRectangle;
-};
-
-const formatReservationSummary = (reservation) => {
-  const total = Number(reservation.party_size || 0) + Number(reservation.children_count || 0);
-  return `${reservation.time_slot} ${reservation.customer_name || '未命名'} ${total || reservation.party_size}人`;
 };
 
 const WalkInSeatingPage = () => {
@@ -65,7 +68,9 @@ const WalkInSeatingPage = () => {
   const [activeFloorId, setActiveFloorId] = useState('');
   const [selectedDate, setSelectedDate] = useState(getTodayString());
   const [calendarMonth, setCalendarMonth] = useState(() => getMonthString(parseDateString(getTodayString())));
-  const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedWaitingId, setSelectedWaitingId] = useState(null);
+  const [selectedTableLabels, setSelectedTableLabels] = useState([]);
+  const [selectedActiveSeating, setSelectedActiveSeating] = useState(null);
   const [reservations, setReservations] = useState([]);
   const [walkIns, setWalkIns] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,43 +86,47 @@ const WalkInSeatingPage = () => {
     [floors, activeFloorId]
   );
 
+  const waitingList = useMemo(
+    () => walkIns.filter((seating) => seating.status === 'waiting'),
+    [walkIns]
+  );
+
+  const activeSeatings = useMemo(
+    () => walkIns.filter((seating) => seating.status === 'active'),
+    [walkIns]
+  );
+
+  const selectedWaiting = useMemo(
+    () => waitingList.find((seating) => seating.id === selectedWaitingId) || null,
+    [selectedWaitingId, waitingList]
+  );
+
   const reservationMap = useMemo(() => {
     const map = new Map();
     reservations
       .filter((reservation) => ['pending', 'confirmed'].includes(reservation.status))
       .forEach((reservation) => {
-        const label = String(reservation.table_label || '').trim();
-        if (!label) return;
-        if (!map.has(label)) map.set(label, []);
-        map.get(label).push(reservation);
+        splitTableLabels(reservation.table_label).forEach((label) => {
+          if (!map.has(label)) map.set(label, []);
+          map.get(label).push(reservation);
+        });
       });
-
-    map.forEach((items) => {
-      items.sort((a, b) => String(a.time_slot || '').localeCompare(String(b.time_slot || '')));
-    });
-
     return map;
   }, [reservations]);
 
   const walkInMap = useMemo(() => {
     const map = new Map();
-    walkIns
-      .filter((seating) => seating.status === 'active')
-      .forEach((seating) => {
-        map.set(String(seating.table_label || '').trim(), seating);
+    activeSeatings.forEach((seating) => {
+      splitTableLabels(seating.table_label).forEach((label) => {
+        map.set(label, seating);
       });
+    });
     return map;
-  }, [walkIns]);
+  }, [activeSeatings]);
 
   const selectedReservations = useMemo(() => {
-    if (!selectedTable?.label) return [];
-    return reservationMap.get(selectedTable.label) || [];
-  }, [reservationMap, selectedTable]);
-
-  const selectedWalkIn = useMemo(() => {
-    if (!selectedTable?.label) return null;
-    return walkInMap.get(selectedTable.label) || null;
-  }, [selectedTable, walkInMap]);
+    return selectedTableLabels.flatMap((label) => reservationMap.get(label) || []);
+  }, [reservationMap, selectedTableLabels]);
 
   const calendarDays = useMemo(() => getCalendarDays(calendarMonth), [calendarMonth]);
 
@@ -129,17 +138,15 @@ const WalkInSeatingPage = () => {
   const changeSelectedDate = (dateString) => {
     setSelectedDate(dateString);
     setCalendarMonth(getMonthString(parseDateString(dateString)));
-    setSelectedTable(null);
+    setSelectedWaitingId(null);
+    setSelectedTableLabels([]);
+    setSelectedActiveSeating(null);
   };
 
   const moveCalendarMonth = (direction) => {
     const [year, month] = calendarMonth.split('-').map(Number);
     const nextMonth = new Date(year, month - 1 + direction, 1);
     setCalendarMonth(getMonthString(nextMonth));
-  };
-
-  const goToday = () => {
-    changeSelectedDate(getTodayString());
   };
 
   const loadLayout = useCallback(async () => {
@@ -168,7 +175,7 @@ const WalkInSeatingPage = () => {
   const loadOperationalData = useCallback(async () => {
     const [reservationResponse, walkInResponse] = await Promise.all([
       getMerchantReservations({ reservation_date: selectedDate }),
-      getWalkInSeatings({ date: selectedDate, status: 'active' }),
+      getWalkInSeatings({ date: selectedDate, status: 'all' }),
     ]);
 
     setReservations(reservationResponse.data.results || reservationResponse.data || []);
@@ -185,7 +192,7 @@ const WalkInSeatingPage = () => {
       }
     } catch (error) {
       console.error('Failed to load seating data:', error);
-      setMessage('讀取座位安排資料失敗，請稍後再試。');
+      setMessage('讀取現場桌位資料失敗，請稍後再試。');
     } finally {
       setIsLoading(false);
     }
@@ -199,24 +206,9 @@ const WalkInSeatingPage = () => {
     if (!storeId) return;
     loadOperationalData().catch((error) => {
       console.error('Failed to reload operational data:', error);
-      setMessage('重新讀取當日資料失敗。');
+      setMessage('更新現場桌位資料失敗。');
     });
   }, [loadOperationalData, storeId]);
-
-  const handleTableClick = (table) => {
-    const normalizedTable = {
-      ...table,
-      label: String(table.label || '').trim(),
-    };
-    const tableReservations = reservationMap.get(normalizedTable.label) || [];
-    setSelectedTable(normalizedTable);
-
-    if (tableReservations.length > 0) {
-      setMessage(`${normalizedTable.label} 今日已有訂位：${tableReservations.map(formatReservationSummary).join('、')}`);
-    } else {
-      setMessage('');
-    }
-  };
 
   const resetForm = () => {
     setForm({
@@ -225,41 +217,94 @@ const WalkInSeatingPage = () => {
     });
   };
 
-  const handleAssignWalkIn = async (event) => {
+  const handleCreateWaiting = async (event) => {
     event.preventDefault();
-    if (!selectedTable || selectedWalkIn) return;
-
     setIsSaving(true);
     try {
-      await createWalkInSeating({
-        table_label: selectedTable.label,
+      const response = await createWalkInSeating({
         party_size: Number(form.party_size) || 1,
         notes: form.notes,
       });
       resetForm();
       await loadOperationalData();
-      setMessage(`${selectedTable.label} 已安排現場客人入座。`);
+      setSelectedWaitingId(response.data.id);
+      setSelectedTableLabels([]);
+      setSelectedActiveSeating(null);
+      setMessage(`已建立候位號碼 ${response.data.waiting_number}`);
     } catch (error) {
-      console.error('Failed to assign walk-in seating:', error);
-      const apiMessage = error.response?.data?.table_label?.[0] || error.response?.data?.detail;
-      setMessage(apiMessage || '安排入座失敗，請確認座位是否已被占用。');
+      console.error('Failed to create waiting party:', error);
+      const apiMessage = error.response?.data?.party_size?.[0] || error.response?.data?.detail;
+      setMessage(apiMessage || '建立候位號碼失敗，請確認人數後再試。');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleWaitingClick = (seating) => {
+    setSelectedWaitingId(seating.id);
+    setSelectedTableLabels([]);
+    setSelectedActiveSeating(null);
+    setMessage(`已選擇候位 ${seating.waiting_number}，請在桌位圖上選擇一張或多張桌。`);
+  };
+
+  const handleTableClick = (table) => {
+    const label = String(table.label || '').trim();
+    if (!label) return;
+
+    const occupiedSeating = walkInMap.get(label);
+    if (occupiedSeating && occupiedSeating.id !== selectedWaitingId) {
+      setSelectedActiveSeating(occupiedSeating);
+      setSelectedWaitingId(null);
+      setSelectedTableLabels(splitTableLabels(occupiedSeating.table_label));
+      setMessage('');
+      return;
+    }
+
+    if (!selectedWaiting) {
+      setMessage('請先選擇等候區的候位號碼，再點選要安排的桌位。');
+      return;
+    }
+
+    setSelectedActiveSeating(null);
+    setSelectedTableLabels((prev) => (
+      prev.includes(label)
+        ? prev.filter((item) => item !== label)
+        : [...prev, label]
+    ));
+  };
+
+  const handleAssignSelectedWaiting = async () => {
+    if (!selectedWaiting || selectedTableLabels.length === 0) return;
+    setIsSaving(true);
+    try {
+      await assignWalkInSeating(selectedWaiting.id, selectedTableLabels);
+      await loadOperationalData();
+      setMessage(`候位 ${selectedWaiting.waiting_number} 已安排入座。`);
+      setSelectedWaitingId(null);
+      setSelectedTableLabels([]);
+    } catch (error) {
+      console.error('Failed to assign waiting party:', error);
+      const apiMessage = error.response?.data?.table_labels?.[0] || error.response?.data?.detail;
+      setMessage(apiMessage || '安排桌位失敗，請確認桌位是否已被佔用。');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleReleaseWalkIn = async () => {
-    if (!selectedWalkIn) return;
-    if (!window.confirm(`確認釋放 ${selectedWalkIn.table_label}？`)) return;
+    if (!selectedActiveSeating) return;
+    if (!window.confirm(`確定釋放 ${selectedActiveSeating.table_label}？`)) return;
 
     setIsSaving(true);
     try {
-      await releaseWalkInSeating(selectedWalkIn.id);
+      await releaseWalkInSeating(selectedActiveSeating.id);
       await loadOperationalData();
-      setMessage(`${selectedWalkIn.table_label} 已釋放。`);
+      setMessage(`${selectedActiveSeating.table_label} 已釋放。`);
+      setSelectedActiveSeating(null);
+      setSelectedTableLabels([]);
     } catch (error) {
       console.error('Failed to release walk-in seating:', error);
-      setMessage('釋放座位失敗，請稍後再試。');
+      setMessage('釋放桌位失敗，請稍後再試。');
     } finally {
       setIsSaving(false);
     }
@@ -269,8 +314,8 @@ const WalkInSeatingPage = () => {
     <div className={styles.page}>
       <aside className={styles.panel}>
         <div>
-          <h1>現場座位安排</h1>
-          <p>安排臨時到店客人入座，並查看今天該桌的訂位時段。</p>
+          <h1>現場桌位安排</h1>
+          <p>先建立候位號碼，再從等候區選取號碼並安排一張或多張桌。</p>
         </div>
 
         <label className={styles.fieldLabel}>
@@ -316,7 +361,7 @@ const WalkInSeatingPage = () => {
           </div>
           <div className={styles.calendarFooter}>
             <span>{selectedDate}</span>
-            <button type="button" onClick={goToday}>今天</button>
+            <button type="button" onClick={() => changeSelectedDate(getTodayString())}>今天</button>
           </div>
         </section>
 
@@ -330,7 +375,8 @@ const WalkInSeatingPage = () => {
                 className={activeFloor?.id === floor.id ? styles.floorTabActive : styles.floorTab}
                 onClick={() => {
                   setActiveFloorId(floor.id);
-                  setSelectedTable(null);
+                  setSelectedTableLabels([]);
+                  setSelectedActiveSeating(null);
                 }}
               >
                 {floor.name}
@@ -345,82 +391,41 @@ const WalkInSeatingPage = () => {
           <span><i className={styles.dotAvailable} />可安排</span>
           <span><i className={styles.dotReserved} />今日有訂位</span>
           <span><i className={styles.dotOccupied} />現場入座</span>
+          <span><i className={styles.dotSelected} />本次選取</span>
         </section>
 
-        {selectedTable ? (
-          <section className={styles.selectedCard}>
-            <div className={styles.selectedHeader}>
-              <div>
-                <h2>{selectedTable.label}</h2>
-                <p>{selectedTable.seats || 0} 人桌</p>
-              </div>
-              <button type="button" className={styles.iconButton} onClick={() => setSelectedTable(null)}>
-                <FiXCircle />
-              </button>
-            </div>
+        <form className={styles.waitingForm} onSubmit={handleCreateWaiting}>
+          <h2>新增候位</h2>
+          <label>
+            入桌人數
+            <input
+              type="number"
+              min="1"
+              value={form.party_size}
+              onChange={(event) => setForm((prev) => ({ ...prev, party_size: event.target.value }))}
+            />
+          </label>
+          <label>
+            備註
+            <textarea
+              rows="3"
+              value={form.notes}
+              onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+              placeholder="例如：靠近出餐口、等朋友"
+            />
+          </label>
+          <button type="submit" className={styles.assignButton} disabled={isSaving}>
+            <FiUserPlus />
+            產生候位號碼
+          </button>
+        </form>
 
-            {selectedReservations.length > 0 && (
-              <div className={styles.reservationBox}>
-                <strong>今日訂位提醒</strong>
-                {selectedReservations.map((reservation) => (
-                  <div key={reservation.id} className={styles.reservationItem}>
-                    <span>{reservation.time_slot}</span>
-                    <span>{reservation.customer_name}</span>
-                    <small>{Number(reservation.party_size || 0) + Number(reservation.children_count || 0)} 人</small>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {selectedWalkIn ? (
-              <div className={styles.walkInBox}>
-                <strong>目前現場入座</strong>
-                <p>{selectedWalkIn.party_size} 人</p>
-                {selectedWalkIn.notes && <small>{selectedWalkIn.notes}</small>}
-                <button type="button" className={styles.releaseButton} onClick={handleReleaseWalkIn} disabled={isSaving}>
-                  釋放座位
-                </button>
-              </div>
-            ) : (
-              <form className={styles.assignForm} onSubmit={handleAssignWalkIn}>
-                <label>
-                  人數
-                  <input
-                    type="number"
-                    min="1"
-                    max={selectedTable.seats || 20}
-                    value={form.party_size}
-                    onChange={(event) => setForm((prev) => ({ ...prev, party_size: event.target.value }))}
-                  />
-                </label>
-                <label>
-                  備註
-                  <textarea
-                    rows="3"
-                    value={form.notes}
-                    onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
-                    placeholder="例如：靠近出餐口、等朋友"
-                  />
-                </label>
-                <button type="submit" className={styles.assignButton} disabled={isSaving}>
-                  <FiUserPlus />
-                  安排入座
-                </button>
-              </form>
-            )}
-          </section>
-        ) : (
-          <div className={styles.emptyHint}>
-            <FiUsers />
-            <span>點選右側座位來安排現場客人。</span>
-          </div>
-        )}
       </aside>
 
       <main className={styles.mapArea}>
         <div className={styles.toolbar}>
           <div>
-            <strong>{activeFloor?.name || '座位圖'}</strong>
+            <strong>{activeFloor?.name || '桌位圖'}</strong>
             <span>{selectedDate}</span>
           </div>
           <button type="button" onClick={refreshAll} disabled={isLoading}>
@@ -433,8 +438,9 @@ const WalkInSeatingPage = () => {
           {(activeFloor?.tables || []).map((table) => {
             const label = String(table.label || '').trim();
             const hasReservation = reservationMap.has(label);
-            const hasWalkIn = walkInMap.has(label);
-            const selected = selectedTable?.id === table.id;
+            const occupiedSeating = walkInMap.get(label);
+            const hasWalkIn = Boolean(occupiedSeating);
+            const selected = selectedTableLabels.includes(label);
 
             return (
               <button
@@ -450,17 +456,103 @@ const WalkInSeatingPage = () => {
                 onClick={() => handleTableClick(table)}
               >
                 <span>{label}</span>
-                <small>{hasWalkIn ? '現場入座' : hasReservation ? '今日訂位' : `${table.seats} 人`}</small>
+                <small>
+                  {hasWalkIn
+                    ? `${occupiedSeating.waiting_number} · ${occupiedSeating.party_size} 人`
+                    : hasReservation
+                      ? '今日有訂位'
+                      : `${table.seats} 人`}
+                </small>
               </button>
             );
           })}
 
           {!isLoading && (activeFloor?.tables || []).length === 0 && (
             <div className={styles.emptyCanvas}>
-              尚未設定座位圖，請先到內用設定新增桌位。
+              尚未設定桌位，請先到內用設定新增桌位。
             </div>
           )}
         </div>
+
+        <section className={styles.waitingArea}>
+          <div className={styles.sectionHeader}>
+            <h2>等候區</h2>
+            <span>{waitingList.length} 組</span>
+          </div>
+          {waitingList.length > 0 ? (
+            <div className={styles.waitingList}>
+              {waitingList.map((seating) => (
+                <button
+                  key={seating.id}
+                  type="button"
+                  className={selectedWaitingId === seating.id ? styles.waitingTicketActive : styles.waitingTicket}
+                  onClick={() => handleWaitingClick(seating)}
+                >
+                  <strong>{seating.waiting_number}</strong>
+                  <span>{seating.party_size} 人</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.emptyText}>目前沒有等候組別。</p>
+          )}
+        </section>
+
+        {selectedWaiting && (
+          <section className={styles.selectedCard}>
+            <div className={styles.selectedHeader}>
+              <div>
+                <h2>候位 {selectedWaiting.waiting_number}</h2>
+                <p>{selectedWaiting.party_size} 人</p>
+              </div>
+              <button type="button" className={styles.iconButton} onClick={() => setSelectedWaitingId(null)}>
+                <FiXCircle />
+              </button>
+            </div>
+            <div className={styles.tableSelectionSummary}>
+              <strong>已選桌位</strong>
+              <span>{selectedTableLabels.length ? selectedTableLabels.join(', ') : '尚未選擇'}</span>
+            </div>
+            {selectedReservations.length > 0 && (
+              <div className={styles.reservationBox}>
+                <strong>選取桌位今日訂位</strong>
+                {selectedReservations.map((reservation) => (
+                  <div key={reservation.id} className={styles.reservationItem}>
+                    <span>{reservation.time_slot}</span>
+                    <span>{reservation.customer_name}</span>
+                    <small>{Number(reservation.party_size || 0) + Number(reservation.children_count || 0)} 人</small>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              className={styles.assignButton}
+              onClick={handleAssignSelectedWaiting}
+              disabled={isSaving || selectedTableLabels.length === 0}
+            >
+              安排入座
+            </button>
+          </section>
+        )}
+
+        {selectedActiveSeating && (
+          <section className={styles.selectedCard}>
+            <div className={styles.selectedHeader}>
+              <div>
+                <h2>候位 {selectedActiveSeating.waiting_number}</h2>
+                <p>{selectedActiveSeating.party_size} 人 · {selectedActiveSeating.table_label}</p>
+              </div>
+              <button type="button" className={styles.iconButton} onClick={() => setSelectedActiveSeating(null)}>
+                <FiXCircle />
+              </button>
+            </div>
+            {selectedActiveSeating.notes && <p className={styles.emptyText}>{selectedActiveSeating.notes}</p>}
+            <button type="button" className={styles.releaseButton} onClick={handleReleaseWalkIn} disabled={isSaving}>
+              釋放桌位
+            </button>
+          </section>
+        )}
       </main>
     </div>
   );

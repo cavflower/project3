@@ -504,6 +504,7 @@ class WalkInSeatingSerializer(serializers.ModelSerializer):
             'id',
             'store',
             'store_name',
+            'waiting_number',
             'table_label',
             'party_name',
             'party_size',
@@ -532,8 +533,6 @@ class WalkInSeatingSerializer(serializers.ModelSerializer):
 
     def validate_table_label(self, value):
         normalized_value = (value or '').strip()
-        if not normalized_value:
-            raise serializers.ValidationError('Table label is required.')
         return normalized_value
 
 
