@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getAISettings, updateAISettings, getLineSettings, updateLineSettings, getTargetPreview, createPlatformBroadcast, sendPlatformBroadcast, terminateStorePartnership } from '../../api/adminApi';
 import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './AdminDashboard.module.css';
 
 const AdminDashboard = () => {
@@ -352,9 +353,9 @@ const AdminDashboard = () => {
 
   const getPlanName = (plan) => {
     const planNames = {
-      'basic': '基本方案',
+      'basic': '一般方案',
       'premium': '進階方案',
-      'enterprise': '企業方案'
+      'enterprise': '高級方案'
     };
     return planNames[plan] || '未設定';
   };
@@ -397,10 +398,7 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className={styles.adminDashboard}>
-        <div className={styles.loadingContainer}>
-          <div className="spinner-border text-primary" role="status" />
-          <p className="mt-3">載入中...</p>
-        </div>
+        <SkeletonLoader variant="cards" cards={6} />
       </div>
     );
   }

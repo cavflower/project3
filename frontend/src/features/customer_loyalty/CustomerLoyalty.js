@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getLoyaltyAccounts } from '../../api/loyaltyApi';
 import { getStore } from '../../api/storeApi';
 import { FaGift, FaHistory, FaAward, FaStore, FaArrowLeft } from 'react-icons/fa';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './CustomerLoyalty.module.css';
 
 const CustomerLoyalty = () => {
@@ -45,7 +46,7 @@ const CustomerLoyalty = () => {
   }, [fetchAccounts]);
 
   if (loading) {
-    return <div className={styles.loading}>載入中...</div>;
+    return <SkeletonLoader rows={5} />;
   }
 
   const pageTitle = storeId

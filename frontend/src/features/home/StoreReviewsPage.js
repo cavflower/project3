@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
 import api from '../../api/api';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import pageStyles from './StoreReviewsPage.module.css';
 import reviewStyles from './StorePage.module.css';
 
@@ -167,12 +168,7 @@ function StoreReviewsPage() {
           </header>
 
           {loading ? (
-            <div className={pageStyles['loading-card']}>
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">載入中...</span>
-              </div>
-              <p>載入評論中...</p>
-            </div>
+            <SkeletonLoader variant="list" rows={5} />
           ) : (
             <div className={reviewStyles['store-reviews-container']}>
               <div className={reviewStyles['reviews-stats-row']}>

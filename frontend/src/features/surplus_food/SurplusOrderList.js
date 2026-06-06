@@ -3,6 +3,7 @@ import { surplusFoodApi } from '../../api/surplusFoodApi';
 import { useStore } from '../../store/StoreContext';
 import { db } from '../../lib/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './SurplusFoodManagement.module.css';
 
 const SurplusOrderList = () => {
@@ -347,7 +348,7 @@ const SurplusOrderList = () => {
       </div>
 
       {loading ? (
-        <div className={styles.loading}>載入中...</div>
+        <SkeletonLoader variant="list" rows={5} />
       ) : (
         <>
           <div className={styles.ordersList}>

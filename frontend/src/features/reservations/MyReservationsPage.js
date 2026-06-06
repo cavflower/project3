@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { FaCalendarAlt, FaTrash, FaTimes } from 'react-icons/fa';
 import ReservationCard from '../../components/reservations/ReservationCard';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import {
   getMyReservations,
   verifyGuestReservation,
@@ -192,10 +193,7 @@ const MyReservationsPage = () => {
   if (loading) {
     return (
       <div className={styles.myReservationsPage}>
-        <div className={styles.loadingContainer}>
-          <div className="spinner"></div>
-          <p>載入中...</p>
-        </div>
+        <SkeletonLoader variant="list" rows={5} />
       </div>
     );
   }

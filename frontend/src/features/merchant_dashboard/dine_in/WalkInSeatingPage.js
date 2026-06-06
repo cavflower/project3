@@ -1,11 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FiCalendar, FiChevronLeft, FiChevronRight, FiRefreshCw, FiUserPlus, FiXCircle } from 'react-icons/fi';
-import { getMyStore, getDineInLayout } from '../../../api/storeApi';
 import {
   assignWalkInSeating,
   createWalkInSeating,
-  getMerchantReservations,
-  getWalkInSeatings,
+  getWalkInSeatingOverview,
   releaseWalkInSeating,
 } from '../../../api/reservationApi';
 import { normalizeDineInLayout } from '../../../utils/dineInLayout';
@@ -65,7 +63,7 @@ const getTableClass = (shape) => {
 };
 
 const WalkInSeatingPage = () => {
-  const [storeId, setStoreId] = useState(null);
+  const autoRefreshKeyRef = useRef('');
   const [floors, setFloors] = useState([]);
   const [activeFloorId, setActiveFloorId] = useState('');
   const [selectedDate, setSelectedDate] = useState(getTodayString());
@@ -152,19 +150,9 @@ const WalkInSeatingPage = () => {
     setCalendarMonth(getMonthString(nextMonth));
   };
 
-  const loadLayout = useCallback(async () => {
-    const storeResponse = await getMyStore({ lite: 1 });
-    const nextStoreId = storeResponse.data?.id || null;
-    setStoreId(nextStoreId);
-
-    if (!nextStoreId) {
-      setFloors([]);
-      setActiveFloorId('');
-      return null;
-    }
-
-    const layoutResponse = await getDineInLayout(nextStoreId);
-    const normalized = normalizeDineInLayout(layoutResponse.data);
+  const loadOverview = useCallback(async () => {
+    const response = await getWalkInSeatingOverview({ date: selectedDate, status: 'all' });
+    const normalized = normalizeDineInLayout(response.data.layout);
     const usableFloors = normalized.floors.map((floor) => ({
       ...floor,
       tables: (floor.tables || []).filter((table) => String(table.label || '').trim()),
@@ -172,46 +160,29 @@ const WalkInSeatingPage = () => {
 
     setFloors(usableFloors);
     setActiveFloorId(normalized.activeFloorId || usableFloors[0]?.id || '');
-    return nextStoreId;
-  }, []);
-
-  const loadOperationalData = useCallback(async () => {
-    const [reservationResponse, walkInResponse] = await Promise.all([
-      getMerchantReservations({ reservation_date: selectedDate }),
-      getWalkInSeatings({ date: selectedDate, status: 'all' }),
-    ]);
-
-    setReservations(reservationResponse.data.results || reservationResponse.data || []);
-    setWalkIns(walkInResponse.data.results || walkInResponse.data || []);
+    setReservations(response.data.reservations || []);
+    setWalkIns(response.data.walk_ins || []);
   }, [selectedDate]);
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true);
     setMessage('');
     try {
-      const nextStoreId = storeId || await loadLayout();
-      if (nextStoreId) {
-        await loadOperationalData();
-      }
+      await loadOverview();
     } catch (error) {
       console.error('Failed to load seating data:', error);
       setMessage('讀取現場桌位資料失敗，請稍後再試。');
     } finally {
       setIsLoading(false);
     }
-  }, [loadLayout, loadOperationalData, storeId]);
+  }, [loadOverview]);
 
   useEffect(() => {
+    const autoRefreshKey = selectedDate;
+    if (autoRefreshKeyRef.current === autoRefreshKey) return;
+    autoRefreshKeyRef.current = autoRefreshKey;
     refreshAll();
-  }, [refreshAll]);
-
-  useEffect(() => {
-    if (!storeId) return;
-    loadOperationalData().catch((error) => {
-      console.error('Failed to reload operational data:', error);
-      setMessage('更新現場桌位資料失敗。');
-    });
-  }, [loadOperationalData, storeId]);
+  }, [refreshAll, selectedDate]);
 
   const resetForm = () => {
     setForm({
@@ -229,7 +200,7 @@ const WalkInSeatingPage = () => {
         notes: form.notes,
       });
       resetForm();
-      await loadOperationalData();
+      await loadOverview();
       setSelectedWaitingId(response.data.id);
       setSelectedTableLabels([]);
       setSelectedActiveSeating(null);
@@ -281,7 +252,7 @@ const WalkInSeatingPage = () => {
     setIsSaving(true);
     try {
       await assignWalkInSeating(selectedWaiting.id, selectedTableLabels);
-      await loadOperationalData();
+      await loadOverview();
       setMessage(`候位 ${selectedWaiting.waiting_number} 已安排入座。`);
       setSelectedWaitingId(null);
       setSelectedTableLabels([]);
@@ -301,7 +272,7 @@ const WalkInSeatingPage = () => {
     setIsSaving(true);
     try {
       await releaseWalkInSeating(selectedWaiting.id);
-      await loadOperationalData();
+      await loadOverview();
       setMessage(`候位 ${selectedWaiting.waiting_number} 已取消。`);
       setSelectedWaitingId(null);
       setSelectedTableLabels([]);
@@ -328,7 +299,7 @@ const WalkInSeatingPage = () => {
     setIsSaving(true);
     try {
       await releaseWalkInSeating(selectedActiveSeating.id);
-      await loadOperationalData();
+      await loadOverview();
       setMessage(`${selectedActiveSeating.table_label} 已釋放。`);
       setSelectedActiveSeating(null);
       setSelectedTableLabels([]);

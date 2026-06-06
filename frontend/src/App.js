@@ -70,6 +70,7 @@ import LineCallbackPage from './features/line_callback/LineCallbackPage';
 
 // Context
 import { useAuth } from './store/AuthContext';
+import SkeletonLoader from './components/common/SkeletonLoader';
 
 /**
  * 受保護路由元件
@@ -79,19 +80,7 @@ function ProtectedRoute({ children }) {
   const { isLoggedIn, loading } = useAuth(); // 確保 AuthContext 有回傳 loading
 
   if (loading) {
-    // 在驗證還在載入時顯示載入中，不要重定向
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '50vh',
-        fontSize: '1.2rem',
-        color: '#666'
-      }}>
-        載入中...
-      </div>
-    );
+    return <SkeletonLoader rows={5} sidebar />;
   }
 
   if (!isLoggedIn) {

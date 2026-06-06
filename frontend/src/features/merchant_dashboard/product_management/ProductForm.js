@@ -4,6 +4,25 @@ import styles from './ProductForm.module.css';
 import { createProduct, updateProduct } from '../../../api/productApi';
 import { getIngredients } from '../../../api/inventoryApi';
 
+const DEFAULT_FOOD_TAGS = [
+  '辣',
+  '不辣',
+  '素食',
+  '健康',
+  '低卡',
+  '高蛋白',
+  '清爽',
+  '濃郁',
+  '甜',
+  '鹹',
+  '酸',
+  '日式',
+  '韓式',
+  '台式',
+  '美式',
+  '義式',
+];
+
 const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -84,23 +103,28 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
     }));
   };
 
-  const handleAddTag = (e) => {
-    e.preventDefault();
-    const trimmedTag = tagInput.trim();
+  const addFoodTag = (tag) => {
+    const trimmedTag = String(tag || '').trim();
 
-    if (!trimmedTag) return;
+    if (!trimmedTag) return false;
 
-    // 檢查是否已存在
     if (formData.food_tags.includes(trimmedTag)) {
-      alert('此標籤已存在');
-      return;
+      alert('此標籤已經加入');
+      return false;
     }
 
     setFormData(prev => ({
       ...prev,
       food_tags: [...prev.food_tags, trimmedTag]
     }));
-    setTagInput('');
+    return true;
+  };
+
+  const handleAddTag = (e) => {
+    e.preventDefault();
+    if (addFoodTag(tagInput)) {
+      setTagInput('');
+    }
   };
 
   const handleRemoveTag = (tagToRemove) => {
@@ -367,6 +391,27 @@ const ProductForm = ({ product, initialCategory, onSuccess, onCancel }) => {
               >
                 新增
               </button>
+            </div>
+
+            <div className={styles.defaultTagsSection}>
+              <span className={styles.defaultTagsLabel}>常用標籤</span>
+              <div className={styles.defaultTagsList}>
+                {DEFAULT_FOOD_TAGS.map((tag) => {
+                  const selected = formData.food_tags.includes(tag);
+
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      className={selected ? styles.defaultTagSelected : styles.defaultTagButton}
+                      onClick={() => addFoodTag(tag)}
+                      disabled={selected}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {formData.food_tags.length > 0 && (

@@ -6,6 +6,7 @@ import {
   getMyScheduleRequests,
   deleteScheduleRequest,
 } from '../../api/scheduleApi';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './LayoutApplicationPage.module.css';
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
@@ -468,9 +469,7 @@ const LayoutApplicationPage = () => {
     return (
       <div className={styles.layoutApplicationPage}>
         <div className={styles.container}>
-          <div className={styles.errorMessage}>
-            <p>載入中...</p>
-          </div>
+          <SkeletonLoader rows={5} />
         </div>
       </div>
     );

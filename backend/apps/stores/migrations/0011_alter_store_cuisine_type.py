@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stores', '0006_alter_store_tags_allow_null'),
+        ('stores', '0009_remove_store_category_store_cuisine_type'),
     ]
 
     operations = [

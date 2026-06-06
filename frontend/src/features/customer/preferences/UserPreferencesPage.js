@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { FaHeart, FaChartBar, FaUtensils } from 'react-icons/fa';
 import { getUserPreferences } from '../../../api/recommendationApi';
 import styles from './UserPreferencesPage.module.css';
+import SkeletonLoader from '../../../components/common/SkeletonLoader';
 
 const UserPreferencesPage = () => {
   const [preferences, setPreferences] = useState(null);
@@ -29,7 +30,7 @@ const UserPreferencesPage = () => {
   if (loading) {
     return (
       <div className={styles.preferencesPage}>
-        <div className={styles.loadingState}>載入中...</div>
+        <SkeletonLoader rows={5} />
       </div>
     );
   }
@@ -112,7 +113,7 @@ const UserPreferencesPage = () => {
         <div className={styles.recommendationTip}>
           <FaHeart className={styles.tipIcon} />
           <div className={styles.tipContent}>
-            <h3>如何獲得個人化推薦？</h3>
+            <h3>如何獲得個人化推薦?</h3>
             <p>繼續探索並訂購您喜歡的美食，系統會自動學習您的偏好，為您推薦更多合適的商品！</p>
           </div>
         </div>

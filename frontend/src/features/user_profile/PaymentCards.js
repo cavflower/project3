@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api/api';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './PaymentCards.module.css';
 
 const WALLET_THEMES = ['stripe', 'wise', 'paypal'];
@@ -146,7 +147,7 @@ const PaymentCards = ({ stretch = false }) => {
   const hiddenCardsCount = Math.max(orderedCards.length - 2, 0);
   const getCardTheme = (index) => WALLET_THEMES[index % WALLET_THEMES.length];
 
-  if (loading) return <div>載入信用卡中...</div>;
+  if (loading) return <SkeletonLoader variant="list" rows={3} />;
 
   return (
     <div className={`${styles['payment-cards-section']} ${stretch ? styles.stretch : ''}`}>

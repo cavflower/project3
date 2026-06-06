@@ -7,6 +7,7 @@ import { db } from '../../../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { getPublicSpecificationGroups } from '../../../api/productApi';
 import ProductSpecificationModal from '../../../components/common/ProductSpecificationModal';
+import SkeletonLoader from '../../../components/common/SkeletonLoader';
 import { normalizeDineInLayout } from '../../../utils/dineInLayout';
 import styles from './OrderManagementPage.module.css';
 
@@ -384,12 +385,7 @@ function OrderManagementPage() {
   };
 
   if (loading) {
-    return (
-      <div className={`${styles.orderPage} container text-center py-5`}>
-        <div className="spinner-border text-primary" role="status" />
-        <p className="mt-3">載入中...</p>
-      </div>
-    );
+    return <SkeletonLoader variant="list" rows={8} />;
   }
 
   if (error) {

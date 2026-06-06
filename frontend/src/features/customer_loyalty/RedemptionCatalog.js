@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getRedemptionProducts, getLoyaltyAccounts, createRedemption } from '../../api/loyaltyApi';
 import { FaGift, FaCheck, FaTimes } from 'react-icons/fa';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './RedemptionCatalog.module.css';
 
 const RedemptionCatalog = () => {
@@ -62,7 +63,7 @@ const RedemptionCatalog = () => {
     : products.filter(p => p.store === parseInt(selectedStore));
 
   if (loading) {
-    return <div className={styles.loading}>載入中...</div>;
+    return <SkeletonLoader variant="cards" cards={4} title={false} />;
   }
 
   return (

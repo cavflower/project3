@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import api from '../../api/api';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './MerchantReviews.module.css';
 
 const MerchantReviews = () => {
@@ -126,10 +127,7 @@ const MerchantReviews = () => {
   if (loading) {
     return (
       <div className={styles.merchantReviewsPage}>
-        <div className={styles.loadingContainer}>
-          <div className={styles.spinner}></div>
-          <p>載入評論中...</p>
-        </div>
+        <SkeletonLoader variant="list" rows={6} />
       </div>
     );
   }

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { FaLine, FaCheckCircle, FaBell, FaChartLine, FaBoxes, FaExclamationTriangle } from 'react-icons/fa';
 import { getMerchantLineStatus, bindMerchantLine, unbindMerchantLine, updateMerchantLinePreferences } from '../../../api/merchantLineApi';
 import { getLineAuthUrl } from '../../../api/lineLoginApi';
+import SkeletonLoader from '../../../components/common/SkeletonLoader';
 import styles from './MerchantLineBinding.module.css';
 
 /**
@@ -114,7 +115,6 @@ const MerchantLineBinding = () => {
             await updateMerchantLinePreferences({ [key]: value });
             setSuccessMessage('通知設定已更新');
         } catch (err) {
-            // 回滾
             setPreferences(preferences);
             setError('更新通知設定失敗');
         } finally {
@@ -136,10 +136,7 @@ const MerchantLineBinding = () => {
     if (loading) {
         return (
             <div className={styles.merchantLineBinding}>
-                <div className={styles.loading}>
-                    <div className={styles.loadingSpinner}></div>
-                    <span>載入中...</span>
-                </div>
+                <SkeletonLoader rows={4} />
             </div>
         );
     }
@@ -276,7 +273,6 @@ const MerchantLineBinding = () => {
                     </div>
                 </>
             ) : (
-                /* 未綁定狀態 */
                 <div className={styles.statusUnbound}>
                     <p>尚未綁定 LINE 帳號</p>
                     <button

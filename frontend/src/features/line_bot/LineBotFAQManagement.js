@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllFAQs, createFAQ, updateFAQ, deleteFAQ, getPopularFAQs } from '../../api/lineBotApi';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './LineBotFAQManagement.module.css';
 
 const LineBotFAQManagement = () => {
@@ -144,7 +145,7 @@ const LineBotFAQManagement = () => {
   };
 
   if (loading) {
-    return <div className={styles.loading}>載入中...</div>;
+    return <SkeletonLoader variant="list" rows={5} />;
   }
 
   return (

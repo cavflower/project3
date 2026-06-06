@@ -5,6 +5,7 @@ import { bindLine } from '../../api/lineLoginApi';
 import PaymentCards from './PaymentCards';
 import LineBinding from '../../components/user/LineBinding';
 import MerchantLineBinding from '../../components/merchant/MerchantLineBinding';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import { FiCheckCircle, FiChevronRight, FiHeart, FiLogOut, FiMail, FiUser, FiUsers } from 'react-icons/fi';
 import styles from './ProfilePage.module.css';
 
@@ -115,9 +116,9 @@ const ProfilePage = () => {
 
   const getPlanName = (plan) => {
     const planNames = {
-      basic: '基本方案',
+      basic: '一般方案',
       premium: '進階方案',
-      enterprise: '企業方案',
+      enterprise: '高級方案',
     };
     return planNames[plan] || '尚未選擇方案';
   };
@@ -157,7 +158,7 @@ const ProfilePage = () => {
     alert('客服中心功能建置中，請先透過 LINE 或店家資訊聯繫我們。');
   };
 
-  if (loading || !user) return <div>載入個人資料中...</div>;
+  if (loading || !user) return <SkeletonLoader rows={7} sidebar />;
 
   const membershipLabel = user.user_type === 'merchant' ? '店家會員' : '平台會員';
   const accountTypeLabel = user.user_type === 'merchant' ? '店家帳戶' : '一般帳戶';
@@ -333,7 +334,7 @@ const ProfilePage = () => {
 
               {currentPlan === 'basic' && (
                 <div className={styles['plan-details']}>
-                  <p className={styles['plan-price']}>NT$ 499 / 月</p>
+                  <p className={styles['plan-price']}>NT$ 1,800 / 月</p>
                   <ul className={styles['plan-features']}>
                     <li>基本店家管理與上架功能</li>
                     <li>一般會員經營工具</li>
@@ -344,7 +345,7 @@ const ProfilePage = () => {
 
               {currentPlan === 'premium' && (
                 <div className={styles['plan-details']}>
-                  <p className={styles['plan-price']}>NT$ 999 / 月</p>
+                  <p className={styles['plan-price']}>NT$ 2,000 / 月</p>
                   <ul className={styles['plan-features']}>
                     <li>進階數據分析與推播功能</li>
                     <li>完整會員經營與優惠工具</li>
@@ -355,7 +356,7 @@ const ProfilePage = () => {
 
               {currentPlan === 'enterprise' && (
                 <div className={styles['plan-details']}>
-                  <p className={styles['plan-price']}>NT$ 2,499 / 月</p>
+                  <p className={styles['plan-price']}>NT$ 3,000 / 月</p>
                   <ul className={styles['plan-features']}>
                     <li>企業級管理與多角色支援</li>
                     <li>API 串接與完整後台權限</li>

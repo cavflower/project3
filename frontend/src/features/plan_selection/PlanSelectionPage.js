@@ -12,9 +12,9 @@ const PlanSelectionPage = () => {
   const navigate = useNavigate();
 
   const plans = [
-    { id: 'basic', name: '基本方案', price: 'NT$ 499/月', features: ['平台基礎功能(販賣、排班...)', '基本訂單管理+惜福品', '營運報表'] },
-    { id: 'premium', name: '進階方案', price: 'NT$ 999/月', features: ['包含基本方案所有功能', '開放特殊功能(訂位、會員)', '中優先級別'] },
-    { id: 'enterprise', name: '企業方案', price: 'NT$ 2,499/月', features: ['包含進階方案所有功能', 'LINE BOT個人化推播', '高優先級別'] },
+    { id: 'basic', name: '一般方案', price: 'NT$ 1,800/月', features: ['平台基礎功能（販賣、排班）', '基本訂單管理與惜福品', '營運報表'] },
+    { id: 'premium', name: '進階方案', price: 'NT$ 2,000/月', features: ['包含一般方案所有功能', '開放訂位與會員功能', '中優先級別'] },
+    { id: 'enterprise', name: '高級方案', price: 'NT$ 3,000/月', features: ['包含進階方案所有功能', 'LINE BOT 個人化推播', '高優先級別'] },
   ];
 
   const handleSubmit = async (e) => {

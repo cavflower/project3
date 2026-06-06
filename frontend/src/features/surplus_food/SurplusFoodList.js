@@ -4,6 +4,7 @@ import { surplusFoodApi } from '../../api/surplusFoodApi';
 import SurplusFoodForm from './SurplusFoodForm';
 import SurplusFoodCard from '../../components/surplusfood/SurplusFoodCard';
 import CategoryForm from './CategoryForm';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './SurplusFoodList.module.css';
 
 const SurplusFoodList = () => {
@@ -175,7 +176,7 @@ const SurplusFoodList = () => {
       </div>
 
       {loading ? (
-        <div className={styles.loading}>載入中...</div>
+        <SkeletonLoader variant="cards" cards={4} title={false} />
       ) : (
         <div className={styles.categoriesSections}>
           {Object.values(groupFoodsByCategory()).map(({ category, foods }) => (

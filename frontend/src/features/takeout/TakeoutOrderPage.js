@@ -7,6 +7,7 @@ import { getPublicProductCategories, getPublicSpecificationGroups } from "../../
 import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
 import ProductSpecificationModal from "../../components/common/ProductSpecificationModal";
+import SkeletonLoader from "../../components/common/SkeletonLoader";
 import styles from './TakeoutOrderPage.module.css';
 
 const initialCart = {
@@ -457,12 +458,7 @@ function TakeoutOrderPage() {
   };
 
   if (loading) {
-    return (
-      <div className={`${styles['takeout-page']} container py-5 text-center`}>
-        <div className="spinner-border text-primary" role="status" />
-        <p className="mt-3">載入中...</p>
-      </div>
-    );
+    return <SkeletonLoader variant="cards" cards={8} />;
   }
 
   if (error) {
@@ -530,13 +526,18 @@ function TakeoutOrderPage() {
               type="button"
               className={`${styles['side-category-btn']} ${showGreenPointSection ? styles.active : ''}`}
               onClick={() => {
-                setShowGreenPointSection(true);
-                setTimeout(() => greenPointRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+                setShowGreenPointSection((current) => {
+                  const next = !current;
+                  if (next) {
+                    setTimeout(() => greenPointRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+                  }
+                  return next;
+                });
               }}
             >
               <i className="bi bi-star" aria-hidden="true"></i>
               <span>
-                <strong>人氣推薦</strong>
+                <strong>點數兌換</strong>
                 <small>點數兌換優惠</small>
               </span>
             </button>
@@ -602,7 +603,7 @@ function TakeoutOrderPage() {
                 <header>
                   <div>
                     <i className="bi bi-star" aria-hidden="true"></i>
-                    <h2>人氣推薦</h2>
+                    <h2>點數兌換</h2>
                     <p>使用綠色點數兌換優惠</p>
                   </div>
                 </header>

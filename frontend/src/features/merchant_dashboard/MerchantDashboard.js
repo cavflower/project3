@@ -7,6 +7,7 @@ import { getLowStockIngredients } from '../../api/inventoryApi';
 import { getMerchantPendingOrders } from '../../api/orderApi';
 import { db } from '../../lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './MerchantDashboard.module.css';
 
 
@@ -537,9 +538,7 @@ const MerchantDashboard = () => {
   if (storeLoading) {
     return (
       <div className={styles.merchantDashboard}>
-        <div className={styles.loadingContainer}>
-          <p>載入中...</p>
-        </div>
+        <SkeletonLoader rows={5} sidebar />
       </div>
     );
   }
@@ -611,9 +610,7 @@ const MerchantDashboard = () => {
           <div className={styles.statsCard}>
             <h3>🔔 待確認訂單 {!loading && `(${pendingOrders.length})`}</h3>
             {loading ? (
-              <div className={styles.allGood}>
-                <p>載入中...</p>
-              </div>
+              <SkeletonLoader variant="list" rows={3} />
             ) : pendingOrders.length > 0 ? (
               <div className={styles.pendingOrdersList}>
                 <div
@@ -653,9 +650,7 @@ const MerchantDashboard = () => {
           <div className={styles.statsCard}>
             <h3>⚠️ 庫存不足提醒 {!loading && `(${lowStockItems.length})`}</h3>
             {loading ? (
-              <div className={styles.allGood}>
-                <p>載入中...</p>
-              </div>
+              <SkeletonLoader variant="list" rows={3} />
             ) : lowStockItems.length > 0 ? (
               <div className={styles.lowStockList}>
                 {lowStockItems.slice(0, 5).map(item => (

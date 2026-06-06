@@ -4,6 +4,7 @@ import { getPublishedStores } from '../../api/storeApi';
 import { getRecommendedStores, getUserPreferences } from '../../api/recommendationApi';
 import { useAuth } from '../../store/AuthContext';
 import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import taiwanesePorkRiceImage from '../../assets/category-taiwanese-pork-rice.png';
 import styles from './CustomerHomePage.module.css';
 
@@ -886,15 +887,7 @@ function CustomerHomePage() {
         )}
 
         {loading && (
-          <div className={styles.grid}>
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <div key={item} className={`${styles.storeCard} ${styles.skeleton}`}>
-                <div className={styles.skeletonImage} />
-                <div className={styles.skeletonLine} />
-                <div className={styles.skeletonLineShort} />
-              </div>
-            ))}
-          </div>
+          <SkeletonLoader variant="cards" cards={6} title={false} />
         )}
 
         {!loading && stores.length > 0 && (

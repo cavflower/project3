@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
 import { getDineInProducts } from '../../api/orderApi';
 import { useAuth } from '../../store/AuthContext';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './DineInMenuPage.module.css';
 
 const DineInMenuPage = () => {
@@ -43,9 +44,7 @@ const DineInMenuPage = () => {
   if (loading) {
     return (
       <div className={styles.dineinMenuPage}>
-        <div className={styles.menuCard}>
-          <p>載入菜單中...</p>
-        </div>
+        <SkeletonLoader variant="cards" cards={6} />
       </div>
     );
   }

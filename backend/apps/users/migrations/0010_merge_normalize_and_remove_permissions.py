@@ -82,9 +82,4 @@ class Migration(migrations.Migration):
             model_name='user',
             name='user_permissions',
         ),
-        migrations.AddField(
-            model_name='user',
-            name='is_superuser',
-            field=models.BooleanField(default=False, verbose_name='超級用戶'),
-        ),
     ]

@@ -3,8 +3,24 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
 import api from '../../api/api';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import { getStoreBusinessStatus } from '../../utils/storeBusinessStatus';
 import styles from './StorePage.module.css';
+
+const getCuisineTypeName = (type) => {
+  const cuisineTypes = {
+    japanese: '日式',
+    korean: '韓式',
+    american: '美式',
+    taiwanese: '台式',
+    western: '西式',
+    beverages: '飲料',
+    desserts: '甜點',
+    other: '其他',
+  };
+
+  return cuisineTypes[type] || type || '其他';
+};
 
 function StorePage() {
   const { storeId } = useParams();
@@ -97,14 +113,7 @@ function StorePage() {
 
 
   if (loading) {
-    return (
-      <div className={`container ${styles['store-loading-container']}`}>
-        <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
-          <span className="visually-hidden">載入中...</span>
-        </div>
-        <p className="mt-4" style={{ fontSize: '1.1rem', color: '#6c757d' }}>載入店家資料中...</p>
-      </div>
-    );
+    return <SkeletonLoader rows={8} sidebar />;
   }
 
   if (error || !store) {
@@ -122,6 +131,7 @@ function StorePage() {
   }
 
   const openingHoursList = formatOpeningHours(store.opening_hours);
+  const cuisineTypeName = getCuisineTypeName(store.cuisine_type);
   const businessStatus = getStoreBusinessStatus(store);
   const smokingPolicyText = store.smoking_policy === 'no_smoking'
     ? '全面禁菸'
@@ -169,7 +179,7 @@ function StorePage() {
   });
   const signatureItems = [
     {
-      title: `${store.cuisine_type || '主廚'}精選`,
+      title: `${cuisineTypeName || '主廚'}精選`,
       tag: '人氣推薦',
       price: avgBudget ? `$${avgBudget.toLocaleString()}` : '依現場為準',
       image: storeImages[1]?.image || null,
@@ -266,7 +276,7 @@ function StorePage() {
           <div className={styles['soft-hero-info']}>
             <div className={styles['soft-title-row']}>
               <h1>{store.name}</h1>
-              {store.cuisine_type && <span>{store.cuisine_type}</span>}
+              {store.cuisine_type && <span>{cuisineTypeName}</span>}
             </div>
             <div className={styles['soft-meta-row']}>
               <span className={businessStatus.isOpenNow ? styles['soft-open'] : styles['soft-closed']}>

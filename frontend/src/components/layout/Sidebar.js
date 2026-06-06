@@ -116,7 +116,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         title: '營運管理',
         items: [
           { key: 'merchant-schedule', to: '/merchant/schedule', label: '排班管理', icon: <FiCalendar /> },
-          { key: 'merchant-actual-schedule', to: '/merchant/actual-schedule', label: '實際工時', icon: <FiClock /> },
+          { key: 'merchant-actual-schedule', to: '/merchant/actual-schedule', label: '實際班表', icon: <FiClock /> },
           { key: 'merchant-inventory', to: '/merchant/inventory', label: '庫存管理', icon: <FiClipboard /> },
           { key: 'merchant-reports', to: '/merchant/reports', label: '財務報表', icon: <FiTrendingUp /> },
         ],

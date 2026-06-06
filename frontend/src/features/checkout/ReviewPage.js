@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { FaStar, FaRegStar, FaUtensils, FaStore, FaSmile, FaThumbsUp, FaCheckCircle } from 'react-icons/fa';
 import { getUserOrders } from '../../api/orderApi';
 import api from '../../api/api';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './ReviewPage.module.css';
 
 function ReviewPage() {
@@ -318,9 +319,7 @@ function ReviewPage() {
   if (loading) {
     return (
       <div className={styles['review-page']}>
-        <div className={styles['review-container']}>
-          <p>載入中...</p>
-        </div>
+        <SkeletonLoader rows={6} />
       </div>
     );
   }

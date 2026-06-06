@@ -332,9 +332,7 @@ class MerchantReservationViewSet(viewsets.ModelViewSet):
         if not store_id:
             return Reservation.objects.none()
 
-        queryset = Reservation.objects.filter(
-            store_id=store_id
-        ).select_related('store', 'user')
+        queryset = Reservation.objects.filter(store_id=store_id)
 
         status_filter = self.request.query_params.get('status')
         if status_filter and status_filter != 'all':
@@ -348,7 +346,30 @@ class MerchantReservationViewSet(viewsets.ModelViewSet):
         if customer_name:
             queryset = queryset.filter(customer_name__icontains=customer_name.strip())
 
-        return queryset.order_by('-reservation_date', '-created_at')
+        return queryset.only(
+            'id',
+            'reservation_number',
+            'store_id',
+            'user_id',
+            'customer_name',
+            'customer_phone',
+            'customer_email',
+            'customer_gender',
+            'reservation_date',
+            'time_slot',
+            'party_size',
+            'children_count',
+            'special_requests',
+            'table_label',
+            'merchant_note',
+            'status',
+            'cancelled_at',
+            'cancelled_by',
+            'cancel_reason',
+            'created_at',
+            'updated_at',
+            'confirmed_at',
+        ).order_by('-reservation_date', '-created_at')
     
     def get_serializer_class(self):
         if self.action in ['update', 'partial_update', 'update_status']:
@@ -488,7 +509,93 @@ class WalkInSeatingViewSet(viewsets.ModelViewSet):
         if seating_status and seating_status != 'all':
             queryset = queryset.filter(status=seating_status)
 
-        return queryset.select_related('store', 'created_by').order_by('seated_at')
+        return queryset.only(
+            'id',
+            'store_id',
+            'waiting_number',
+            'table_label',
+            'party_name',
+            'party_size',
+            'notes',
+            'status',
+            'created_by_id',
+            'seated_at',
+            'released_at',
+            'updated_at',
+        ).order_by('seated_at')
+
+    @action(detail=False, methods=['get'], url_path='overview')
+    def overview(self, request):
+        user = request.user
+        if getattr(user, 'user_type', None) != 'merchant':
+            raise permissions.PermissionDenied("Only merchants can view walk-in seating data.")
+
+        store = Store.objects.filter(
+            merchant__user_id=user.id
+        ).only('id', 'dine_in_layout').first()
+        if not store:
+            return Response(
+                {'detail': 'Store not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        seating_date = request.query_params.get('date')
+
+        reservations = Reservation.objects.filter(store_id=store.id)
+        if seating_date:
+            reservations = reservations.filter(reservation_date=seating_date)
+        reservations = reservations.only(
+            'id',
+            'reservation_number',
+            'store_id',
+            'user_id',
+            'customer_name',
+            'customer_phone',
+            'customer_email',
+            'customer_gender',
+            'reservation_date',
+            'time_slot',
+            'party_size',
+            'children_count',
+            'special_requests',
+            'table_label',
+            'merchant_note',
+            'status',
+            'cancelled_at',
+            'cancelled_by',
+            'cancel_reason',
+            'created_at',
+            'updated_at',
+            'confirmed_at',
+        ).order_by('-reservation_date', '-created_at')
+
+        walk_ins = WalkInSeating.objects.filter(store_id=store.id)
+        if seating_date:
+            walk_ins = walk_ins.filter(seated_at__date=seating_date)
+        seating_status = request.query_params.get('status')
+        if seating_status and seating_status != 'all':
+            walk_ins = walk_ins.filter(status=seating_status)
+        walk_ins = walk_ins.only(
+            'id',
+            'store_id',
+            'waiting_number',
+            'table_label',
+            'party_name',
+            'party_size',
+            'notes',
+            'status',
+            'created_by_id',
+            'seated_at',
+            'released_at',
+            'updated_at',
+        ).order_by('seated_at')
+
+        return Response({
+            'store_id': store.id,
+            'layout': store.dine_in_layout or [],
+            'reservations': MerchantReservationSerializer(reservations, many=True).data,
+            'walk_ins': WalkInSeatingSerializer(walk_ins, many=True).data,
+        })
 
     def _split_table_labels(self, table_label):
         return [

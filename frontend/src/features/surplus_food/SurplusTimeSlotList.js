@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
 import TimeSlotForm from './TimeSlotForm';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './SurplusFoodManagement.module.css';
 
 const SurplusTimeSlotList = () => {
@@ -121,7 +122,7 @@ const SurplusTimeSlotList = () => {
       </div>
 
       {loading ? (
-        <div className={styles.loading}>載入中...</div>
+        <SkeletonLoader variant="list" rows={4} />
       ) : (
         <div className={styles.timeslotsContainer}>
           {dayOrder.map(day => {

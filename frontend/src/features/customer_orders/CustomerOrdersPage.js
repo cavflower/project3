@@ -12,6 +12,7 @@ import {
   deleteAllNotifications,
 } from "../../api/orderApi";
 import { FaTrash, FaTimes } from "react-icons/fa";
+import SkeletonLoader from "../../components/common/SkeletonLoader";
 import styles from "./CustomerOrdersPage.module.css";
 
 const STATUS_MAP = {
@@ -412,11 +413,7 @@ const CustomerOrdersPage = () => {
   if (loading) {
     return (
       <div className={styles["customer-orders-page"]}>
-        <div className="loading-container">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">載入中...</span>
-          </div>
-        </div>
+        <SkeletonLoader variant="list" rows={6} />
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getMyRedemptions, cancelRedemption } from '../../api/loyaltyApi';
 import { FaBarcode, FaClock, FaCheckCircle, FaTimesCircle, FaHourglassHalf } from 'react-icons/fa';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './MyRedemptions.module.css';
 
 const MyRedemptions = () => {
@@ -58,7 +59,7 @@ const MyRedemptions = () => {
     : redemptions.filter(r => r.status === filter);
 
   if (loading) {
-    return <div className={styles.loading}>載入中...</div>;
+    return <SkeletonLoader variant="list" rows={4} />;
   }
 
   return (

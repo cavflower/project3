@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getPointTransactions, getLoyaltyAccounts } from '../../api/loyaltyApi';
 import { FaHistory, FaArrowUp, FaArrowDown, FaAdjust, FaClock } from 'react-icons/fa';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './PointsHistory.module.css';
 
 const PointsHistory = () => {
@@ -56,7 +57,7 @@ const PointsHistory = () => {
     });
 
   if (loading) {
-    return <div className={styles.loading}>載入中...</div>;
+    return <SkeletonLoader variant="list" rows={5} />;
   }
 
   return (

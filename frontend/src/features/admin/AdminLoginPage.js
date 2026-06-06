@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styles from '../authentication/LoginPage.module.css';
 
 const AdminLoginPage = () => {
@@ -40,6 +40,9 @@ const AdminLoginPage = () => {
     <div className={styles['auth-page']}>
       <div className={`${styles['auth-container']} ${styles['admin-theme']}`}>
         <form className={styles['auth-form']} onSubmit={handleSubmit}>
+          <div className={styles['form-top-row']}>
+            <Link to="/" className={styles['back-home-link']}>返回首頁</Link>
+          </div>
           <h2>平台管理員登入</h2>
           <p className={styles['form-subtitle']}>
             DineVerse 後台管理系統

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { FaCalendarAlt, FaClock, FaUsers, FaStore, FaChild } from 'react-icons/fa';
 import { getReservationDetail, updateReservation, getPublicTimeSlots } from '../../api/reservationApi';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './EditReservationPage.module.css';
 
 const EditReservationPage = () => {
@@ -184,9 +185,7 @@ const EditReservationPage = () => {
   if (loading) {
     return (
       <div className={styles.editReservationPage}>
-        <div className={styles.loadingContainer}>
-          <p>載入中...</p>
-        </div>
+        <SkeletonLoader rows={5} />
       </div>
     );
   }

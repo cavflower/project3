@@ -193,7 +193,7 @@ class Reservation(models.Model):
     @property
     def is_guest_reservation(self):
         """判斷是否為訪客訂位"""
-        return self.user is None
+        return self.user_id is None
     
     @property
     def can_edit(self):

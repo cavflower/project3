@@ -153,6 +153,10 @@ export const getWalkInSeatings = (filters = {}) => {
   return api.get('/merchant/walk-in-seatings/', { params: filters });
 };
 
+export const getWalkInSeatingOverview = (filters = {}) => {
+  return api.get('/merchant/walk-in-seatings/overview/', { params: filters });
+};
+
 export const createWalkInSeating = (data) => {
   return api.post('/merchant/walk-in-seatings/', data);
 };
@@ -252,6 +256,7 @@ export default {
   merchantCancelReservation,
   deleteReservation,
   getWalkInSeatings,
+  getWalkInSeatingOverview,
   createWalkInSeating,
   releaseWalkInSeating,
   assignWalkInSeating,

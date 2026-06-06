@@ -7,6 +7,7 @@ import { getPublicProductCategories, getPublicSpecificationGroups } from '../../
 import surplusFoodApi from '../../api/surplusFoodApi';
 import { useAuth } from "../../store/AuthContext";
 import ProductSpecificationModal from '../../components/common/ProductSpecificationModal';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import '../takeout/TakeoutOrderPage.module.css';
 
 const cartReducer = (state, action) => {
@@ -288,12 +289,7 @@ function DineInOrderPage() {
   };
 
   if (loading) {
-    return (
-      <div className="takeout-page container py-5 text-center">
-        <div className="spinner-border text-primary" role="status" />
-        <p className="mt-3">載入中...</p>
-      </div>
-    );
+    return <SkeletonLoader variant="cards" cards={8} />;
   }
 
   if (error || !store) {

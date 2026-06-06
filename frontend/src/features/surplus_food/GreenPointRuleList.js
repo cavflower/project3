@@ -15,6 +15,7 @@ import {
     FaTimes
 } from 'react-icons/fa';
 import surplusFoodApi from '../../api/surplusFoodApi';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './SurplusFoodManagement.module.css';
 
 // 環保行為類型（只保留兩種）
@@ -288,7 +289,7 @@ const GreenPointRuleList = () => {
     };
 
     if (loadingRules || loadingRedemption) {
-        return <div className={styles.loading}>載入中...</div>;
+        return <SkeletonLoader variant="list" rows={4} />;
     }
 
     return (

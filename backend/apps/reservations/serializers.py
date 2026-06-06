@@ -459,9 +459,15 @@ class TimeSlotWithAvailabilitySerializer(serializers.ModelSerializer):
 
 class MerchantReservationSerializer(serializers.ModelSerializer):
     """商家端訂位序列化器 - 包含更多管理資訊"""
-    store_name = serializers.CharField(source='store.name', read_only=True)
-    user_email = serializers.EmailField(source='user.email', read_only=True, allow_null=True)
+    store_name = serializers.SerializerMethodField()
+    user_email = serializers.SerializerMethodField()
     is_guest_reservation = serializers.BooleanField(read_only=True)
+
+    def get_store_name(self, obj):
+        return ''
+
+    def get_user_email(self, obj):
+        return obj.customer_email or ''
     
     class Meta:
         model = Reservation
@@ -496,7 +502,10 @@ class MerchantReservationSerializer(serializers.ModelSerializer):
 
 
 class WalkInSeatingSerializer(serializers.ModelSerializer):
-    store_name = serializers.CharField(source='store.name', read_only=True)
+    store_name = serializers.SerializerMethodField()
+
+    def get_store_name(self, obj):
+        return ''
 
     class Meta:
         model = WalkInSeating

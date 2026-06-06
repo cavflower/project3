@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useReducer, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { FaPlus, FaMinus, FaShoppingCart, FaArrowLeft, FaCoins } from "react-icons/fa";
+import { FaPlus, FaMinus, FaShoppingCart, FaCoins } from "react-icons/fa";
 import { getStore } from "../../api/storeApi";
 import api from "../../api/api";
 import surplusFoodApi from "../../api/surplusFoodApi";
 import { useAuth } from "../../store/AuthContext";
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import takeoutStyles from './TakeoutOrderPage.module.css';
 import styles from './SurplusZonePage.module.css';
 
@@ -63,8 +64,10 @@ function SurplusZonePage() {
   const [surplusItems, setSurplusItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState("");
   const categoryRefs = useRef({});
+  const menuScrollRef = useRef(null);
   const [greenPoints, setGreenPoints] = useState(null);
   const [redemptionRules, setRedemptionRules] = useState([]);
   const [showGreenPointSection, setShowGreenPointSection] = useState(false);
@@ -157,6 +160,65 @@ function SurplusZonePage() {
     [cart.items]
   );
 
+  const totalQuantity = useMemo(
+    () => cart.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    [cart.items]
+  );
+
+  const filteredSurplusItems = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return surplusItems;
+
+    return surplusItems.filter((item) => {
+      const category = categories.find((cat) => cat.id === item.category);
+      const searchableText = [
+        item.title,
+        item.name,
+        item.description,
+        item.category_name,
+        category?.name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchableText.includes(keyword);
+    });
+  }, [categories, searchTerm, surplusItems]);
+
+  const displayCategories = useMemo(() => {
+    if (!categories.length) {
+      return filteredSurplusItems.length
+        ? [{ id: 'all-surplus', name: '全部', description: '所有惜福商品' }]
+        : [];
+    }
+
+    return categories.filter((category) =>
+      filteredSurplusItems.some((item) => item.category === category.id)
+    );
+  }, [categories, filteredSurplusItems]);
+
+  useEffect(() => {
+    if (!displayCategories.length) return;
+    setSelectedCategory((current) =>
+      displayCategories.some((category) => category.id === current)
+        ? current
+        : displayCategories[0].id
+    );
+  }, [displayCategories]);
+
+  const scrollToCategory = (categoryId) => {
+    const scrollContainer = menuScrollRef.current;
+    const target = categoryRefs.current[categoryId];
+    if (!scrollContainer || !target) return;
+    setSelectedCategory(categoryId);
+    setShowGreenPointSection(false);
+    scrollContainer.scrollTo({
+      top: target.offsetTop - 14,
+      behavior: 'smooth',
+    });
+  };
+
   const handleGoToCart = () => {
     // 判斷是從內用還是外帶進來
     if (tableLabel) {
@@ -202,12 +264,7 @@ function SurplusZonePage() {
   };
 
   if (loading) {
-    return (
-      <div className={`${takeoutStyles['takeout-page']} container py-5 text-center`}>
-        <div className="spinner-border text-primary" role="status" />
-        <p className="mt-3">載入中...</p>
-      </div>
-    );
+    return <SkeletonLoader variant="cards" cards={8} />;
   }
 
   if (error) {
@@ -218,407 +275,312 @@ function SurplusZonePage() {
     );
   }
 
-  return (
-    <div className={`${takeoutStyles['takeout-page']} ${styles['surplus-zone-page']} container`} style={{ marginTop: "8px" }}>
-      <div className="row mb-4">
-        <div className="col-12">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h2 className="mb-1">{store?.name} - 惜福專區</h2>
-              <p className="text-muted mb-2">{store?.address}</p>
-              <div className="d-flex flex-wrap gap-3 align-items-center">
-                <span>
-                  <i className="bi bi-telephone me-1" />
-                  {store?.phone}
-                </span>
-                {user && greenPoints !== null && (
-                  <span className={takeoutStyles['green-points-badge']}>
-                    <FaCoins style={{ color: '#4CAF50', marginRight: '4px' }} />
-                    綠色點數：{greenPoints} 點
-                  </span>
+  const storeImageSource = store?.first_image || store?.images?.[0]?.image || store?.images?.[0]?.image_url || '';
+  const storeImageUrl = storeImageSource
+    ? (storeImageSource.startsWith('http') ? storeImageSource : `http://127.0.0.1:8000${storeImageSource}`)
+    : '';
+
+  const renderSurplusItemCard = (item) => {
+    const cartItem = cart.items.find((ci) => ci.id === item.id);
+    const quantity = cartItem ? cartItem.quantity : 0;
+    const surplusPrice = Number(item.surplus_price) || 0;
+    const originalPrice = Number(item.original_price) || 0;
+    const hasDiscount = originalPrice > 0 && surplusPrice > 0 && originalPrice > surplusPrice;
+    const imageUrl = item.image
+      ? (item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`)
+      : '';
+    const conditionText = item.condition === 'near_expiry'
+      ? '即期品'
+      : item.condition === 'surplus'
+        ? '剩餘品'
+        : item.condition
+          ? '外包裝損傷'
+          : '';
+
+    return (
+      <article key={item.id} className={`${takeoutStyles['menu-product-card']} ${styles['surplus-product-card']}`}>
+        <span className={takeoutStyles['card-shine']} aria-hidden="true" />
+        <span className={takeoutStyles['card-glow']} aria-hidden="true" />
+        {conditionText && <span className={takeoutStyles['card-badge']}>{conditionText}</span>}
+
+        <div className={takeoutStyles['menu-product-content']}>
+          <div className={takeoutStyles['menu-product-image-wrap']}>
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={item.title}
+                className={takeoutStyles['menu-product-image']}
+              />
+            ) : (
+              <div className={takeoutStyles['menu-product-image-fallback']} aria-hidden="true">DV</div>
+            )}
+          </div>
+
+          <div className={takeoutStyles['menu-product-info']}>
+            <h5 className={takeoutStyles['menu-product-title']}>{item.title}</h5>
+            <p className={takeoutStyles['menu-product-subtitle']}>
+              剩餘 {item.remaining_quantity} 份
+              {item.expiry_date ? ` · ${new Date(item.expiry_date).toLocaleDateString('zh-TW')}` : ''}
+            </p>
+            <p className={takeoutStyles['menu-product-description']}>
+              {item.description || '惜福精選餐點'}
+            </p>
+            <div className={takeoutStyles['menu-product-footer']}>
+              <div className={styles['surplus-price-stack']}>
+                {hasDiscount && (
+                  <span className={styles['original-price']}>原價 NT$ {formatPrice(originalPrice)}</span>
                 )}
+                <strong className={`${takeoutStyles['menu-product-price']} ${styles['surplus-price']}`}>
+                  惜福價 NT$ {formatPrice(surplusPrice)}
+                </strong>
               </div>
+              {quantity === 0 ? (
+                <button
+                  className={`btn rounded-circle ${takeoutStyles['card-action-btn']}`}
+                  onClick={() =>
+                    dispatch({
+                      type: "ADD_ITEM",
+                      payload: {
+                        ...item,
+                        price: surplusPrice,
+                        itemType: 'surplus',
+                        original_price: originalPrice
+                      },
+                    })
+                  }
+                  disabled={item.remaining_quantity <= 0}
+                  title="加入購物車"
+                >
+                  <FaPlus />
+                </button>
+              ) : (
+                <div className={`${takeoutStyles['product-qty-control']} d-flex align-items-center gap-2`}>
+                  <button
+                    className={`btn rounded-circle ${takeoutStyles['product-qty-btn']}`}
+                    onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
+                  >
+                    <FaMinus />
+                  </button>
+                  <span className={takeoutStyles['quantity-display']}>{quantity}</span>
+                  <button
+                    className={`btn rounded-circle ${takeoutStyles['product-qty-btn']}`}
+                    onClick={() =>
+                      dispatch({
+                        type: "ADD_ITEM",
+                        payload: {
+                          ...item,
+                          price: surplusPrice,
+                          itemType: 'surplus',
+                          original_price: originalPrice
+                        },
+                      })
+                    }
+                    disabled={item.remaining_quantity <= quantity}
+                  >
+                    <FaPlus />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
+      </article>
+    );
+  };
 
-      <div className="row g-4">
-        <div className="col-12">
-          {/* 導航標籤列：返回按鈕 + 類別標籤 + 購物車按鈕 */}
-          <div className={`${takeoutStyles['category-nav-tabs']} mb-3`}>
-            <div className={takeoutStyles['nav-tabs-scroll']}>
+  return (
+    <div className={`${takeoutStyles['takeout-page']} ${styles['surplus-zone-page']}`}>
+      <section className={takeoutStyles['takeout-store-card']}>
+        <div className={takeoutStyles['takeout-store-image']}>
+          {storeImageUrl ? (
+            <img src={storeImageUrl} alt={store?.name} />
+          ) : (
+            <span>DV</span>
+          )}
+        </div>
+        <div className={takeoutStyles['takeout-store-copy']}>
+          <h1>{store?.name} - 惜福專區</h1>
+          <p><i className="bi bi-geo-alt" aria-hidden="true"></i>{store?.address}</p>
+          <div>
+            {store?.phone && <span><i className="bi bi-telephone" aria-hidden="true"></i>{store.phone}</span>}
+            {user && greenPoints !== null && (
+              <span className={takeoutStyles['green-points-badge']}>
+                <FaCoins />
+                綠色點數：{greenPoints} 點
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
 
-
-              {/* 類別標籤 */}
-              {categories.length > 0 && categories.map((category) => {
-                const categoryProducts = surplusItems.filter(item => item.category === category.id);
-                return (
-                  <button
-                    key={category.id}
-                    className={`${takeoutStyles['category-nav-btn']} ${selectedCategory === category.id ? takeoutStyles.active : ''}`}
-                    onClick={() => {
-                      setSelectedCategory(category.id);
-                      categoryRefs.current[category.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                  >
-                    {category.name}
-                    {categoryProducts.length > 0 && (
-                        <span className={takeoutStyles['category-count']}>{categoryProducts.length}</span>
-                    )}
-                  </button>
-                );
-              })}
-
-              {/* 購物車按鈕 */}
+      <section className={takeoutStyles['takeout-menu-shell']}>
+        <aside className={takeoutStyles['takeout-category-sidebar']}>
+          {displayCategories.map((category) => {
+            const categoryProducts = category.id === 'all-surplus'
+              ? filteredSurplusItems
+              : filteredSurplusItems.filter((item) => item.category === category.id);
+            return (
               <button
-                className={takeoutStyles['cart-nav-btn']}
-                onClick={handleGoToCart}
+                key={category.id}
+                type="button"
+                className={`${takeoutStyles['side-category-btn']} ${selectedCategory === category.id ? takeoutStyles.active : ''}`}
+                onClick={() => scrollToCategory(category.id)}
               >
-                <FaShoppingCart size={18} />
-                {cart.items.length > 0 && (
-                    <span className={takeoutStyles['cart-badge']}>{cart.items.length}</span>
-                )}
+                <i className="bi bi-grid" aria-hidden="true"></i>
+                <span>
+                  <strong>{category.name}</strong>
+                  <small>{category.description || `${categoryProducts.length} 項商品`}</small>
+                </span>
               </button>
+            );
+          })}
 
-              {/* 綠色點數按鈕 */}
-              {redemptionRules.length > 0 && (
+          {redemptionRules.length > 0 && (
+            <button
+              type="button"
+              className={`${takeoutStyles['side-category-btn']} ${showGreenPointSection ? takeoutStyles.active : ''}`}
+              onClick={() => {
+                setShowGreenPointSection((current) => {
+                  const next = !current;
+                  if (next) {
+                    setTimeout(() => greenPointRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+                  }
+                  return next;
+                });
+              }}
+            >
+              <i className="bi bi-star" aria-hidden="true"></i>
+              <span>
+                <strong>點數兌換</strong>
+                <small>使用綠色點數</small>
+              </span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={takeoutStyles['side-category-btn']}
+            onClick={handleBackToMenu}
+          >
+            <i className="bi bi-arrow-left" aria-hidden="true"></i>
+            <span>
+              <strong>{tableLabel ? '內用菜單' : '外帶菜單'}</strong>
+              <small>返回一般菜單</small>
+            </span>
+          </button>
+        </aside>
+
+        <div className={takeoutStyles['takeout-menu-main']}>
+          <div className={takeoutStyles['takeout-menu-toolbar']}>
+            <div className={takeoutStyles['takeout-filter-pills']}>
+              {displayCategories[0] && (
                 <button
-                    className={`${takeoutStyles['category-nav-btn']} ${takeoutStyles['green-points-nav-btn']} ${showGreenPointSection ? takeoutStyles.active : ''}`}
-                  onClick={() => {
-                    setShowGreenPointSection(!showGreenPointSection);
-                    setSelectedCategory(null);
-                    setTimeout(() => {
-                      greenPointRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
-                  }}
+                  type="button"
+                  className={takeoutStyles.active}
+                  onClick={() => scrollToCategory(displayCategories[0].id)}
                 >
-                  綠色點數
+                  <i className="bi bi-grid" aria-hidden="true"></i>全部
                 </button>
               )}
-
-              {/* 返回菜單按鈕 */}
-              <button
-                className={styles['back-to-menu-btn']}
-                onClick={handleBackToMenu}
-              >
-                {tableLabel ? '內用菜單' : '外帶菜單'}
-              </button>
+              {displayCategories.slice(0, 2).map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => scrollToCategory(category.id)}
+                >
+                  {category.name}
+                  <span>{category.id === 'all-surplus' ? filteredSurplusItems.length : filteredSurplusItems.filter((item) => item.category === category.id).length}</span>
+                </button>
+              ))}
             </div>
+            <label className={takeoutStyles['takeout-search-box']}>
+              <i className="bi bi-search" aria-hidden="true"></i>
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="搜尋惜福商品"
+                aria-label="搜尋惜福商品"
+              />
+            </label>
+            <button
+              type="button"
+              className={takeoutStyles['takeout-cart-button']}
+              onClick={handleGoToCart}
+              disabled={cart.items.length === 0}
+            >
+              <FaShoppingCart />
+              購物車
+              {totalQuantity > 0 && <span>{totalQuantity}</span>}
+              <strong>共 NT$ {formatPrice(total)}</strong>
+            </button>
           </div>
 
-          {/* 綠色點數兌換區 */}
-          {showGreenPointSection && redemptionRules.length > 0 && (
-            <div ref={greenPointRef} className={`card shadow-sm mb-4 ${takeoutStyles['takeout-card']} ${takeoutStyles['category-section']}`}>
-              <div className={`card-header ${takeoutStyles['takeout-card-header']}`} style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)' }}>
-                <strong>綠色點數兌換</strong>
-                <small className="d-block mt-1" style={{ opacity: 0.9 }}>
-                  您的點數：{greenPoints !== null ? greenPoints : '請登入查看'} 點
-                </small>
-              </div>
-              <div className="card-body">
-                {redemptionRules.map((rule) => {
-                  const canRedeem = greenPoints !== null && greenPoints >= rule.required_points;
-                  const cartItem = cart.items.find(item => item.id === `redemption_${rule.id}`);
-                  const quantity = cartItem ? cartItem.quantity : 0;
-                  const maxQty = rule.redemption_type === 'discount' ? 1 : (rule.max_quantity_per_order || 1);
-
-                  return (
-                    <div
-                      key={rule.id}
-                      className="d-flex justify-content-between align-items-center border-bottom py-3"
-                    >
-                      <div className="flex-grow-1">
-                        <h5 className="mb-1">
-                          {rule.name}
-                          <span className={`badge ms-2 ${rule.redemption_type === 'discount' ? 'bg-warning text-dark' : 'bg-info'}`}>
-                            {rule.redemption_type === 'discount' ? '折扣' : '商品'}
-                          </span>
-                        </h5>
-                        <p className="text-muted mb-1">
-                          需要點數：<strong className="text-success">{rule.required_points} 點</strong>
-                          {rule.redemption_type === 'product' && maxQty > 1 && (
-                            <span className="ms-2 text-muted">（單筆最多 {maxQty} 份）</span>
-                          )}
-                        </p>
-                        {rule.redemption_type === 'discount' && (
-                          <p className="text-success mb-0">折抵 NT$ {rule.discount_value}</p>
-                        )}
-                        {rule.redemption_type === 'product' && rule.product_name && (
-                          <p className="text-success mb-0">免費商品：{rule.product_name}</p>
-                        )}
-                      </div>
-                      <div className="d-flex align-items-center gap-2">
-                        {quantity > 0 ? (
-                          <div className={`${takeoutStyles['quantity-control']} d-flex align-items-center gap-2`}>
-                            <button
-                              className={`${takeoutStyles['quantity-btn']} rounded-circle`}
-                              onClick={() => dispatch({ type: 'DECREMENT_ITEM', payload: `redemption_${rule.id}` })}
-                            >
-                              <FaMinus size={12} />
-                            </button>
-                            <span className={takeoutStyles['quantity-display']}>{quantity}</span>
-                            <button
-                              className={`${takeoutStyles['quantity-btn']} rounded-circle`}
-                              onClick={() => handleSelectRedemption(rule)}
-                              disabled={quantity >= maxQty || !canRedeem}
-                              style={(quantity >= maxQty || !canRedeem) ? { opacity: 0.5 } : {}}
-                            >
-                              <FaPlus size={12} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className={`${takeoutStyles['add-btn']} rounded-circle`}
-                            onClick={() => handleSelectRedemption(rule)}
-                            disabled={!canRedeem}
-                            style={!canRedeem ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                            title={!canRedeem ? '點數不足' : '添加兌換'}
-                          >
-                            <FaPlus size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 按類別分組顯示惜福品 */}
-          {categories.length === 0 ? (
-            <div className={`card shadow-sm mb-4 ${takeoutStyles['takeout-card']}`}>
-              <div className={`card-header ${takeoutStyles['takeout-card-header']}`}>
-                <strong>惜福商品</strong>
-              </div>
-              <div className="card-body">
-                {surplusItems.length === 0 && (
-                  <p className="text-muted">目前尚無惜福商品。</p>
-                )}
-                {surplusItems.map((item) => {
-                  const cartItem = cart.items.find((ci) => ci.id === item.id);
-                  const quantity = cartItem ? cartItem.quantity : 0;
-                  // 修復：直接使用 surplus_price 和 original_price，不用 || 逻輯
-                  const surplusPrice = Number(item.surplus_price) || 0;
-                  const originalPrice = Number(item.original_price) || 0;
-                  const hasDiscount = originalPrice > 0 && surplusPrice > 0 && originalPrice > surplusPrice;
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={`${styles['menu-item']} d-flex justify-content-between align-items-center border-bottom py-3`}
-                    >
-                      {item.image && (
-                        <div className="me-3">
-                          <img
-                            src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
-                            alt={item.title}
-                            style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
-                          />
-                        </div>
-                      )}
-                      <div className="flex-grow-1">
-                        <div className="d-flex align-items-center gap-2">
-                          <h5 className="mb-1">{item.title}</h5>
-                          {item.condition && (
-                            <span className={`badge bg-warning text-dark ${styles['condition-badge']}`}>
-                              {item.condition === 'near_expiry' ? '即期品' : item.condition === 'surplus' ? '剩餘品' : '外包裝損傷'}
-                            </span>
-                          )}
-                          <span className="badge bg-info text-dark">剩餘 {item.remaining_quantity}</span>
-                        </div>
-                        <p className="text-muted mb-1 small">{item.description}</p>
-                        {item.condition === 'near_expiry' && item.expiry_date && (
-                          <p className="text-danger mb-1 small">
-                            <strong>到期日：{new Date(item.expiry_date).toLocaleDateString('zh-TW')}</strong>
-                          </p>
-                        )}
-                        <div className={styles['price-container']}>
-                          {hasDiscount && (
-                            <span className={styles['original-price']}>
-                              原價 NT$ {formatPrice(originalPrice)}
-                            </span>
-                          )}
-                          <strong className={styles['surplus-price']}>NT$ {formatPrice(surplusPrice)}</strong>
-                        </div>
-                      </div>
-                      <div className="d-flex align-items-center gap-2">
-                        {quantity > 0 ? (
-                          <div className={`${takeoutStyles['quantity-control']} d-flex align-items-center gap-2`}>
-                            <button
-                              className={`${takeoutStyles['quantity-btn']} rounded-circle`}
-                              onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
-                            >
-                              <FaMinus size={12} />
-                            </button>
-                            <span className={takeoutStyles['quantity-display']}>{quantity}</span>
-                            <button
-                              className={`${takeoutStyles['quantity-btn']} rounded-circle`}
-                              onClick={() =>
-                                dispatch({
-                                  type: "ADD_ITEM",
-                                  payload: {
-                                    ...item,
-                                    price: surplusPrice,
-                                    itemType: 'surplus', // 標記為惜福品
-                                    original_price: originalPrice // 保留原價資訊
-                                  },
-                                })
-                              }
-                              disabled={item.remaining_quantity <= quantity}
-                            >
-                              <FaPlus size={12} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className={`${takeoutStyles['add-btn']} rounded-circle`}
-                            onClick={() =>
-                              dispatch({
-                                type: "ADD_ITEM",
-                                payload: {
-                                  ...item,
-                                  price: surplusPrice,
-                                  itemType: 'surplus', // 標記為惜福品
-                                  original_price: originalPrice // 保留原價資訊
-                                },
-                              })
-                            }
-                            disabled={item.remaining_quantity <= 0}
-                          >
-                            <FaPlus size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            categories.map((category) => {
-              const categoryItems = surplusItems.filter(item => item.category === category.id);
-              if (categoryItems.length === 0) return null;
-
-              return (
-                <div
-                  key={category.id}
-                  ref={(el) => (categoryRefs.current[category.id] = el)}
-                  className={`${takeoutStyles['category-section']} card shadow-sm mb-4 ${takeoutStyles['takeout-card']}`}
-                >
-                  <div className={`card-header ${takeoutStyles['takeout-card-header']}`}>
-                    <strong>{category.name}</strong>
-                    {category.description && (
-                      <small className="ms-2 text-white-50">{category.description}</small>
-                    )}
+          <div className={takeoutStyles['takeout-scroll-area']} ref={menuScrollRef}>
+            {showGreenPointSection && redemptionRules.length > 0 && (
+              <section ref={greenPointRef} className={takeoutStyles['menu-category-section']}>
+                <header>
+                  <div>
+                    <i className="bi bi-star" aria-hidden="true"></i>
+                    <h2>點數兌換</h2>
+                    <p>您的點數：{greenPoints !== null ? greenPoints : '請登入查看'} 點</p>
                   </div>
-                  <div className="card-body">
-                    {categoryItems.map((item) => {
-                      const cartItem = cart.items.find((ci) => ci.id === item.id);
-                      const quantity = cartItem ? cartItem.quantity : 0;
-                      // 修復：直接使用 surplus_price 和 original_price，不用 || 逻輯
-                      const surplusPrice = Number(item.surplus_price) || 0;
-                      const originalPrice = Number(item.original_price) || 0;
-                      const hasDiscount = originalPrice > 0 && surplusPrice > 0 && originalPrice > surplusPrice;
-
-                      return (
-                        <div
-                          key={item.id}
-                          className={`${styles['menu-item']} d-flex justify-content-between align-items-center border-bottom py-3`}
-                        >
-                          {item.image && (
-                            <div className="me-3">
-                              <img
-                                src={item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`}
-                                alt={item.title}
-                                style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }}
-                              />
-                            </div>
-                          )}
-                          <div className="flex-grow-1">
-                            <div className="d-flex align-items-center gap-2">
-                              <h5 className="mb-1">{item.title}</h5>
-                              {item.condition && (
-                                <span className={`badge bg-warning text-dark ${styles['condition-badge']}`}>
-                                  {item.condition === 'near_expiry' ? '即期品' : item.condition === 'surplus' ? '剩餘品' : '外包裝損傷'}
-                                </span>
-                              )}
-                              <span className="badge bg-info text-dark">剩餘 {item.remaining_quantity}</span>
-                            </div>
-                            <p className="text-muted mb-1 small">{item.description}</p>
-                            {item.condition === 'near_expiry' && item.expiry_date && (
-                              <p className="text-danger mb-1 small">
-                                <strong>到期日：{new Date(item.expiry_date).toLocaleDateString('zh-TW')}</strong>
-                              </p>
-                            )}
-                            <div className={styles['price-container']}>
-                              {hasDiscount && (
-                                <span className={styles['original-price']}>
-                                  原價 NT$ {formatPrice(originalPrice)}
-                                </span>
-                              )}
-                              <strong className={styles['surplus-price']}>惜福價 NT$ {formatPrice(surplusPrice)}</strong>
-                            </div>
-                          </div>
-                          <div className="d-flex align-items-center gap-2">
-                            {quantity > 0 ? (
-                              <div className={`${takeoutStyles['quantity-control']} d-flex align-items-center gap-2`}>
-                                <button
-                                  className={`${takeoutStyles['quantity-btn']} rounded-circle`}
-                                  onClick={() => dispatch({ type: "DECREMENT_ITEM", payload: item.id })}
-                                >
-                                  <FaMinus size={12} />
-                                </button>
-                                <span className={takeoutStyles['quantity-display']}>{quantity}</span>
-                                <button
-                                  className={`${takeoutStyles['quantity-btn']} rounded-circle`}
-                                  onClick={() =>
-                                    dispatch({
-                                      type: "ADD_ITEM",
-                                      payload: {
-                                        ...item,
-                                        price: surplusPrice,
-                                        itemType: 'surplus', // 標記為惜福品
-                                        original_price: originalPrice // 保留原價資訊
-                                      },
-                                    })
-                                  }
-                                  disabled={item.remaining_quantity <= quantity}
-                                >
-                                  <FaPlus size={12} />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                className={`${takeoutStyles['add-btn']} rounded-circle`}
-                                onClick={() =>
-                                  dispatch({
-                                    type: "ADD_ITEM",
-                                    payload: {
-                                      ...item,
-                                      price: surplusPrice,
-                                      itemType: 'surplus', // 標記為惜福品
-                                      original_price: originalPrice // 保留原價資訊
-                                    },
-                                  })
-                                }
-                                disabled={item.remaining_quantity <= 0}
-                              >
-                                <FaPlus size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                </header>
+                <div className={takeoutStyles['redemption-list']}>
+                  {redemptionRules.map((rule) => {
+                    const canRedeem = greenPoints !== null && greenPoints >= rule.required_points;
+                    return (
+                      <button
+                        key={rule.id}
+                        type="button"
+                        className={takeoutStyles['redemption-card']}
+                        onClick={() => handleSelectRedemption(rule)}
+                        disabled={!canRedeem}
+                      >
+                        <strong>{rule.name}</strong>
+                        <span>{rule.required_points} 點</span>
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })
-          )}
+              </section>
+            )}
+
+            {displayCategories.length === 0 ? (
+              <div className={takeoutStyles['takeout-empty']}>目前尚無惜福商品。</div>
+            ) : (
+              displayCategories.map((category) => {
+                const categoryItems = category.id === 'all-surplus'
+                  ? filteredSurplusItems
+                  : filteredSurplusItems.filter(item => item.category === category.id);
+                if (categoryItems.length === 0) return null;
+
+                return (
+                  <section
+                    key={category.id}
+                    ref={(el) => { categoryRefs.current[category.id] = el; }}
+                    className={takeoutStyles['menu-category-section']}
+                  >
+                    <header>
+                      <div>
+                        <i className="bi bi-basket" aria-hidden="true"></i>
+                        <h2>{category.name}</h2>
+                        <p>{category.description || '惜福精選，限量優惠'}</p>
+                      </div>
+                      <button type="button" onClick={() => scrollToCategory(category.id)}>
+                        查看全部 <i className="bi bi-chevron-right" aria-hidden="true"></i>
+                      </button>
+                    </header>
+                    <div className={takeoutStyles['menu-product-grid']}>
+                      {categoryItems.map(renderSurplusItemCard)}
+                    </div>
+                  </section>
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

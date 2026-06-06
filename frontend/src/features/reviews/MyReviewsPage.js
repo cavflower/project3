@@ -14,6 +14,7 @@ import { useAuth } from '../../store/AuthContext';
 import { getUserOrders } from '../../api/orderApi';
 import api from '../../api/api';
 import { buildMediaUrl } from '../../api/apiConfig';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './MyReviewsPage.module.css';
 
 const QUICK_TAGS = ['餐點美味', '服務親切', '份量充足', '環境乾淨'];
@@ -534,7 +535,7 @@ const MyReviewsPage = () => {
         return (
             <div className={styles.myReviewsPage}>
                 <div className={styles.container}>
-                    <div className={styles.loading}>載入評論中...</div>
+                    <SkeletonLoader variant="list" rows={5} />
                 </div>
             </div>
         );

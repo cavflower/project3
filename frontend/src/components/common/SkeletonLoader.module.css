@@ -1,0 +1,189 @@
+.skeletonPage {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0;
+}
+
+.skeletonHeader {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.skeletonTitle,
+.skeletonSubtitle,
+.skeletonLineWide,
+.skeletonLine,
+.skeletonLineShort,
+.skeletonImage,
+.skeletonHero,
+.skeletonBlock,
+.skeletonAvatar {
+  display: block;
+  overflow: hidden;
+  position: relative;
+  background: #e5e7eb;
+}
+
+.skeletonTitle,
+.skeletonSubtitle,
+.skeletonLineWide,
+.skeletonLine,
+.skeletonLineShort,
+.skeletonImage,
+.skeletonHero,
+.skeletonBlock,
+.skeletonAvatar,
+.skeletonCard,
+.skeletonSidebar,
+.skeletonMain,
+.skeletonListItem {
+  border-radius: 8px;
+}
+
+.skeletonTitle::after,
+.skeletonSubtitle::after,
+.skeletonLineWide::after,
+.skeletonLine::after,
+.skeletonLineShort::after,
+.skeletonImage::after,
+.skeletonHero::after,
+.skeletonBlock::after,
+.skeletonAvatar::after {
+  animation: shimmer 1.3s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.68), transparent);
+  content: "";
+  inset: 0;
+  position: absolute;
+  transform: translateX(-100%);
+}
+
+.skeletonTitle {
+  height: 34px;
+  width: min(360px, 70%);
+}
+
+.skeletonSubtitle {
+  height: 18px;
+  width: min(520px, 86%);
+}
+
+.skeletonLayout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 300px 1fr;
+}
+
+.skeletonStack {
+  display: block;
+}
+
+.skeletonSidebar,
+.skeletonMain,
+.skeletonCard,
+.skeletonListItem {
+  background: #ffffff;
+  border: 1px solid #edf0f3;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.skeletonSidebar {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.skeletonMain {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.skeletonHero {
+  height: 220px;
+  width: 100%;
+}
+
+.skeletonBlock {
+  height: 160px;
+  width: 100%;
+}
+
+.skeletonGrid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.skeletonCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.skeletonImage {
+  aspect-ratio: 16 / 10;
+  width: 100%;
+}
+
+.skeletonLineWide {
+  height: 18px;
+  width: 88%;
+}
+
+.skeletonLine {
+  height: 14px;
+  width: 68%;
+}
+
+.skeletonLineShort {
+  height: 14px;
+  width: 42%;
+}
+
+.skeletonList {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.skeletonListItem {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+}
+
+.skeletonAvatar {
+  border-radius: 50%;
+  flex: 0 0 auto;
+  height: 48px;
+  width: 48px;
+}
+
+.skeletonListText {
+  display: grid;
+  flex: 1;
+  gap: 10px;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 760px) {
+  .skeletonPage {
+    width: min(100% - 20px, 1180px);
+    padding: 20px 0;
+  }
+
+  .skeletonLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .skeletonHero {
+    height: 170px;
+  }
+}

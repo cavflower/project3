@@ -7,6 +7,7 @@ import {
 } from '../../../api/inventoryApi';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import IngredientForm from './IngredientForm';
+import SkeletonLoader from '../../../components/common/SkeletonLoader';
 import styles from './InventoryManagementPage.module.css';
 
 function InventoryManagementPage() {
@@ -97,7 +98,7 @@ function InventoryManagementPage() {
   });
 
   if (loading) {
-    return <div className={styles.loading}>載入中...</div>;
+    return <SkeletonLoader variant="list" rows={6} />;
   }
 
   return (

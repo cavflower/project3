@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../../store/StoreContext';
 import { getMyStore, createStore, updateStore, uploadStoreImages, deleteStoreImage, publishStore, unpublishStore, uploadMenuImages, deleteMenuImage } from '../../../api/storeApi';
+import SkeletonLoader from '../../../components/common/SkeletonLoader';
 import styles from './StoreSettingsPage.module.css';
 
 const StoreSettingsPage = () => {
@@ -544,7 +545,7 @@ const StoreSettingsPage = () => {
     return (
       <div className={styles.storeSettingsPage}>
         <div className={styles.loadingWrap}>
-          <div className={styles.loading}>載入中...</div>
+          <SkeletonLoader rows={6} sidebar />
           {showRetryLoad && (
             <button type="button" className={styles.btnRetryLoad} onClick={handleRetryLoadStore}>
               重新載入餐廳設定

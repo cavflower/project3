@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { surplusFoodApi } from '../../api/surplusFoodApi';
+import SkeletonLoader from '../../components/common/SkeletonLoader';
 import styles from './SurplusFoodManagement.module.css';
 
 const SurplusStatistics = () => {
@@ -38,7 +39,7 @@ const SurplusStatistics = () => {
       </div>
 
       {loading ? (
-        <div className={styles.loading}>載入中...</div>
+        <SkeletonLoader variant="cards" cards={3} title={false} />
       ) : statistics ? (
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>

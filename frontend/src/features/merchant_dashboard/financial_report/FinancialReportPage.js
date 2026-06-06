@@ -33,6 +33,7 @@ import api from '../../../api/api';
 import { getMyStore } from '../../../api/storeApi';
 import { getProducts } from '../../../api/productApi';
 import { getAIReport } from '../../../api/financialApi';
+import SkeletonLoader from '../../../components/common/SkeletonLoader';
 import styles from './FinancialReportPage.module.css';
 
 const FinancialReportPage = () => {
@@ -513,10 +514,7 @@ const FinancialReportPage = () => {
       </div>
 
       {loading ? (
-        <div className={styles.loadingState}>
-          <div className={styles.spinner}></div>
-          <p>載入報表資料中...</p>
-        </div>
+        <SkeletonLoader variant="cards" cards={6} />
       ) : (
         <>
           {/* 摘要卡片 */}
