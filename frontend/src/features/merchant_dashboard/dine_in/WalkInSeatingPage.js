@@ -49,6 +49,8 @@ const getCalendarDays = (monthString) => {
   });
 };
 
+const isPastDateString = (dateString) => dateString < getTodayString();
+
 const splitTableLabels = (tableLabel) => (
   String(tableLabel || '')
     .split(',')
@@ -136,6 +138,7 @@ const WalkInSeatingPage = () => {
   }, [calendarMonth]);
 
   const changeSelectedDate = (dateString) => {
+    if (isPastDateString(dateString)) return;
     setSelectedDate(dateString);
     setCalendarMonth(getMonthString(parseDateString(dateString)));
     setSelectedWaitingId(null);
@@ -291,6 +294,33 @@ const WalkInSeatingPage = () => {
     }
   };
 
+  const handleCancelWaiting = async () => {
+    if (!selectedWaiting) return;
+    if (!window.confirm(`確定取消候位 ${selectedWaiting.waiting_number}？`)) return;
+
+    setIsSaving(true);
+    try {
+      await releaseWalkInSeating(selectedWaiting.id);
+      await loadOperationalData();
+      setMessage(`候位 ${selectedWaiting.waiting_number} 已取消。`);
+      setSelectedWaitingId(null);
+      setSelectedTableLabels([]);
+    } catch (error) {
+      console.error('Failed to cancel waiting party:', error);
+      setMessage('取消候位失敗，請稍後再試。');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePrintWaitingNumber = () => {
+    if (!selectedWaiting) return;
+
+    window.setTimeout(() => {
+      window.alert(`候位 ${selectedWaiting.waiting_number}，${selectedWaiting.party_size} 人。`);
+    }, 2000);
+  };
+
   const handleReleaseWalkIn = async () => {
     if (!selectedActiveSeating) return;
     if (!window.confirm(`確定釋放 ${selectedActiveSeating.table_label}？`)) return;
@@ -341,6 +371,7 @@ const WalkInSeatingPage = () => {
             {calendarDays.map((day) => {
               const isSelected = day.value === selectedDate;
               const isToday = day.value === getTodayString();
+              const isPastDate = isPastDateString(day.value);
 
               return (
                 <button
@@ -351,8 +382,10 @@ const WalkInSeatingPage = () => {
                     day.isCurrentMonth ? '' : styles.calendarDayMuted,
                     isSelected ? styles.calendarDaySelected : '',
                     isToday ? styles.calendarDayToday : '',
+                    isPastDate ? styles.calendarDayDisabled : '',
                   ].join(' ')}
                   onClick={() => changeSelectedDate(day.value)}
+                  disabled={isPastDate}
                 >
                   {day.day}
                 </button>
@@ -525,14 +558,32 @@ const WalkInSeatingPage = () => {
                 ))}
               </div>
             )}
-            <button
-              type="button"
-              className={styles.assignButton}
-              onClick={handleAssignSelectedWaiting}
-              disabled={isSaving || selectedTableLabels.length === 0}
-            >
-              安排入座
-            </button>
+            <div className={styles.actionRow}>
+              <button
+                type="button"
+                className={styles.assignButton}
+                onClick={handleAssignSelectedWaiting}
+                disabled={isSaving || selectedTableLabels.length === 0}
+              >
+                安排入座
+              </button>
+              <button
+                type="button"
+                className={styles.printButton}
+                onClick={handlePrintWaitingNumber}
+                disabled={isSaving}
+              >
+                印出號碼
+              </button>
+              <button
+                type="button"
+                className={styles.cancelButton}
+                onClick={handleCancelWaiting}
+                disabled={isSaving}
+              >
+                取消候位
+              </button>
+            </div>
           </section>
         )}
 

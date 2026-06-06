@@ -133,6 +133,14 @@
   color: #fff;
 }
 
+.calendarDayDisabled,
+.calendarDayDisabled:hover {
+  border-color: transparent;
+  background: #f2f4f7;
+  color: #c0c7d2;
+  cursor: not-allowed;
+}
+
 .calendarFooter {
   display: flex;
   align-items: center;
@@ -430,6 +438,8 @@
 
 .assignButton,
 .releaseButton,
+.printButton,
+.cancelButton,
 .toolbar button {
   border: none;
   border-radius: 8px;
@@ -453,8 +463,30 @@
   padding: 10px 14px;
 }
 
+.printButton {
+  background: #263547;
+  color: #fff;
+  padding: 12px 16px;
+}
+
+.cancelButton {
+  background: #fff1f1;
+  border: 1px solid #fecaca;
+  color: #b42318;
+  padding: 12px 16px;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
 .assignButton:disabled,
 .releaseButton:disabled,
+.printButton:disabled,
+.cancelButton:disabled,
 .toolbar button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
