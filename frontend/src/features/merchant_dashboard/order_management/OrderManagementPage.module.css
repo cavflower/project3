@@ -629,6 +629,34 @@
     resize: vertical;
 }
 
+.cashTimingControl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.cashTimingControl button {
+    min-height: 40px;
+    border: 1px solid #dae4e1;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #667f82;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.cashTimingControl button:hover {
+    border-color: #1abc9c;
+    color: #167d68;
+}
+
+.cashTimingControl .cashTimingActive {
+    border-color: #1abc9c;
+    background: #e9fbf6;
+    color: #167d68;
+    box-shadow: inset 0 0 0 1px rgba(26, 188, 156, 0.18);
+}
+
 .counterFooterActions {
     display: flex;
     justify-content: flex-end;

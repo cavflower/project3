@@ -210,6 +210,10 @@ class PublicStoreDetailSerializer(StoreSerializer):
         read_only_fields = [field for field in StoreSerializer.Meta.read_only_fields if field != 'menu_images']
 
     def get_images(self, obj):
+        images = list(obj.images.all())
+        if images:
+            return StoreImageSerializer(images, many=True, context=self.context).data
+
         first_image = getattr(obj, 'first_image_path', None)
         if not first_image:
             return []

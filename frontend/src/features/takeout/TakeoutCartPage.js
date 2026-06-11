@@ -926,6 +926,31 @@ function TakeoutCartPage() {
                     </div>
                   </div>
 
+                  <div className={styles['checkout-receipt-payment']}>
+                    <label>付款方式</label>
+                    <select
+                      className="form-select"
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      disabled={submitting}
+                    >
+                      {paymentOptionsList.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {paymentMethod === "cash" && (
+                      <small className="text-muted d-block mt-2">請於取餐時以現金付款</small>
+                    )}
+                    {paymentMethod === "credit_card" && (
+                      <small className="text-muted d-block mt-2">請於取餐時以信用卡付款</small>
+                    )}
+                    {paymentMethod === "line_pay" && (
+                      <small className="text-muted d-block mt-2">將前往 LINE Pay 付款頁面</small>
+                    )}
+                  </div>
+
                   {notes && (
                     <div className={styles['checkout-receipt-notes']}>
                       <label>備註</label>
@@ -948,7 +973,9 @@ function TakeoutCartPage() {
                     >
                       {submitting
                         ? '送出中...'
-                        : `確認送出（NT$ ${formatPrice(total)}）`}
+                        : paymentMethod === "cash"
+                          ? `確認送出（NT$ ${formatPrice(total)}）`
+                          : `前往付款（NT$ ${formatPrice(total)}）`}
                     </button>
                   </div>
                 </div>
@@ -960,9 +987,9 @@ function TakeoutCartPage() {
         {showCardSelector && (
           <CreditCardSelector
             show={showCardSelector}
-            onHide={() => setShowCardSelector(false)}
+            onClose={() => setShowCardSelector(false)}
             amount={total}
-            onCardSelected={handleCardSelected}
+            onSelectCard={handleCardSelected}
             onSkip={() => {
               setShowCardSelector(false);
               executeOrder(

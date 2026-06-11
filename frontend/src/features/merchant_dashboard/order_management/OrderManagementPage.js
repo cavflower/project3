@@ -77,6 +77,20 @@ const calculateOrderTotal = (order) => {
 };
 
 const formatCurrency = (value) => `NT$ ${Math.round(Number(value) || 0)}`;
+const CASH_PREPAID_NOTE_MARKER = '[DINEVERSE_CASH_PREPAID]';
+
+const stripCashTimingMarkers = (notes) => (
+  String(notes || '').replaceAll(CASH_PREPAID_NOTE_MARKER, '').trim()
+);
+
+const appendCashTimingMarker = (notes, timing) => {
+  const cleanNotes = stripCashTimingMarkers(notes);
+  return timing === 'prepaid'
+    ? [CASH_PREPAID_NOTE_MARKER, cleanNotes].filter(Boolean).join('\n')
+    : cleanNotes;
+};
+
+const isCashPrepaid = (order) => String(order?.notes || '').includes(CASH_PREPAID_NOTE_MARKER);
 
 const isCashPayment = (order) => {
   const rawValue = `${order?.payment_method || ''} ${order?.payment_method_display || ''}`.toLowerCase();
@@ -295,16 +309,11 @@ function OrderManagementPage() {
   };
 
   const handleAcceptOrder = (order) => {
-    if (order?.channel === 'dine_in') {
-      openCheckout(order, 'accepted');
-      return;
-    }
-
     handleUpdateStatus(order.pickup_number || order.id, 'accepted');
   };
 
   const handleCompleteOrder = (order) => {
-    if (order?.channel === 'takeout') {
+    if (isCashPayment(order) && !isCashPrepaid(order)) {
       openCheckout(order, 'completed');
       return;
     }
@@ -567,9 +576,12 @@ const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
   const [menuItems, setMenuItems] = useState([]);
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [cashPaymentTiming, setCashPaymentTiming] = useState('postpaid');
   const [notes, setNotes] = useState('');
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [prepaidCheckoutOrder, setPrepaidCheckoutOrder] = useState(null);
+  const [prepaidReceivedAmount, setPrepaidReceivedAmount] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productSpecGroups, setProductSpecGroups] = useState({});
 
@@ -689,6 +701,53 @@ const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
     setSelectedProduct(null);
   };
 
+  const buildCounterOrderPayload = () => ({
+    order_type: orderType,
+    payment_method: paymentMethod,
+    notes: paymentMethod === 'cash'
+      ? appendCashTimingMarker(notes, cashPaymentTiming)
+      : stripCashTimingMarkers(notes),
+    customer_name: '現場客人',
+    customer_phone: '0000000000',
+    table_labels: orderType === 'dine_in' ? selectedTables : undefined,
+    items: cart.map((item) => ({
+      product: item.id,
+      quantity: Number(item.quantity || 1),
+      unit_price: Number(item.orderPrice || item.price || 0),
+      specifications: item.selectedSpecs || [],
+    })),
+  });
+
+  const buildPrepaidCheckoutOrder = () => ({
+    id: 'counter-prepaid',
+    pickup_number: 'NEW',
+    order_number: 'NEW',
+    channel: orderType,
+    payment_method: paymentMethod,
+    payment_method_display: counterPaymentOptions.find((option) => option.value === paymentMethod)?.label,
+    total_amount: cartTotal,
+    notes: appendCashTimingMarker(notes, 'prepaid'),
+    table_label: orderType === 'dine_in' ? selectedTables.join(', ') : '',
+    items: cart.map((item) => {
+      const quantity = Number(item.quantity || 1);
+      const unitPrice = Number(item.orderPrice || item.price || 0);
+      return {
+        product_id: item.id,
+        product_name: item.name,
+        quantity,
+        unit_price: unitPrice,
+        subtotal: quantity * unitPrice,
+        specifications: item.selectedSpecs || [],
+      };
+    }),
+  });
+
+  const submitCounterOrder = async () => {
+    const response = await createMerchantCounterOrder(buildCounterOrderPayload());
+    window.alert(`已建立現場訂單：#${response.data?.order_number || response.data?.pickup_number || ''}`);
+    onCreated();
+  };
+
   const handleSubmit = async () => {
     if (!cart.length) {
       window.alert('請至少選擇一個餐點');
@@ -699,12 +758,20 @@ const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
       return;
     }
 
+    if (paymentMethod === 'cash' && cashPaymentTiming === 'prepaid') {
+      setPrepaidReceivedAmount('');
+      setPrepaidCheckoutOrder(buildPrepaidCheckoutOrder());
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         order_type: orderType,
         payment_method: paymentMethod,
-        notes,
+        notes: paymentMethod === 'cash'
+          ? appendCashTimingMarker(notes, cashPaymentTiming)
+          : stripCashTimingMarkers(notes),
         customer_name: '現場客人',
         customer_phone: '0000000000',
         table_labels: orderType === 'dine_in' ? selectedTables : undefined,
@@ -721,6 +788,21 @@ const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
       onCreated();
     } catch (error) {
       console.error('counter order create error', error);
+      const detail = error.response?.data?.detail || JSON.stringify(error.response?.data || {}) || '建立訂單失敗';
+      window.alert(detail);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePrepaidCheckout = async () => {
+    setSubmitting(true);
+    try {
+      await submitCounterOrder();
+      setPrepaidCheckoutOrder(null);
+      setPrepaidReceivedAmount('');
+    } catch (error) {
+      console.error('counter prepaid order create error', error);
       const detail = error.response?.data?.detail || JSON.stringify(error.response?.data || {}) || '建立訂單失敗';
       window.alert(detail);
     } finally {
@@ -874,6 +956,28 @@ const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
                 </select>
               </label>
 
+              {paymentMethod === 'cash' && (
+                <div className={styles.counterField}>
+                  <span>現金收款時機</span>
+                  <div className={styles.cashTimingControl}>
+                    <button
+                      type="button"
+                      className={cashPaymentTiming === 'prepaid' ? styles.cashTimingActive : ''}
+                      onClick={() => setCashPaymentTiming('prepaid')}
+                    >
+                      先付
+                    </button>
+                    <button
+                      type="button"
+                      className={cashPaymentTiming === 'postpaid' ? styles.cashTimingActive : ''}
+                      onClick={() => setCashPaymentTiming('postpaid')}
+                    >
+                      後付
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <label className={styles.counterField}>
                 <span>備註</span>
                 <textarea
@@ -913,6 +1017,25 @@ const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
           initialSpecGroups={productSpecGroups[selectedProduct.id]}
           onConfirm={handleSpecConfirm}
           onCancel={() => setSelectedProduct(null)}
+        />
+      )}
+
+      {prepaidCheckoutOrder && (
+        <CashCheckoutModal
+          order={prepaidCheckoutOrder}
+          receivedAmount={prepaidReceivedAmount}
+          onReceivedAmountChange={setPrepaidReceivedAmount}
+          onClose={() => {
+            if (!submitting) {
+              setPrepaidCheckoutOrder(null);
+              setPrepaidReceivedAmount('');
+            }
+          }}
+          onPrintDetails={() => window.alert('建立訂單前尚未產生單號，請建立後再列印明細。')}
+          onCheckout={handlePrepaidCheckout}
+          printing={false}
+          updating={submitting}
+          targetStatus="create"
         />
       )}
     </div>
@@ -997,7 +1120,7 @@ const OrderCard = ({ order, formatUtensils, statusLabels, updating, onUpdateStat
         </div>
         <div className={styles.infoGroup}>
           <div className={styles.infoLabel}>備註</div>
-          <div className={styles.infoValue}>{order.notes || '—'}</div>
+          <div className={styles.infoValue}>{stripCashTimingMarkers(order.notes) || '—'}</div>
         </div>
 
         {order.channel === 'takeout' && order.pickup_at && (
@@ -1123,13 +1246,18 @@ const CashCheckoutModal = ({
   const items = Array.isArray(order.items) ? order.items : [];
   const orderTypeText = order.channel === 'dine_in' ? '內用訂單' : '外帶訂單';
   const paymentText = normalizePaymentMethodLabel(order.payment_method, order.payment_method_display);
+  const modalTitle = targetStatus === 'create'
+    ? '建立訂單收費'
+    : targetStatus === 'accepted'
+      ? '接受訂單結帳'
+      : '完成訂單結帳';
 
   return (
     <div className={styles.modalOverlay} role="dialog" aria-modal="true">
       <div className={styles.checkoutModal}>
         <div className={styles.modalHeader}>
           <div>
-            <h2 className={styles.modalTitle}>{targetStatus === 'accepted' ? '接受訂單結帳' : '完成訂單結帳'}</h2>
+            <h2 className={styles.modalTitle}>{modalTitle}</h2>
             <p className={styles.modalSubtitle}>訂單 #{order.pickup_number || order.id}</p>
           </div>
           <button

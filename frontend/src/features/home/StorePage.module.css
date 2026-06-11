@@ -3863,6 +3863,121 @@
   font-size: 0.78rem;
 }
 
+.soft-review-preview-list {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.soft-review-preview-card {
+  min-width: 0;
+  min-height: 128px;
+  border: 1px solid rgba(215, 181, 145, 0.34);
+  border-radius: 9px;
+  background: rgba(255, 253, 249, 0.82);
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.soft-review-preview-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.soft-review-preview-head > span {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffefe4, #d2792b);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+}
+
+.soft-review-preview-head div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.soft-review-preview-head strong {
+  color: #4a352b;
+  font-size: 0.8rem;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.soft-review-preview-head small {
+  color: #8a7568;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.soft-review-preview-stars {
+  display: flex;
+  gap: 1px;
+  color: #d6c7bb;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.soft-review-preview-stars i {
+  font-style: normal;
+}
+
+.soft-review-preview-stars i.filled {
+  color: #c17a27;
+}
+
+.soft-review-preview-card em {
+  color: #a56f32;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.soft-review-preview-card p {
+  margin: 0;
+  color: #5e514b;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.soft-review-empty {
+  min-height: 112px;
+  grid-column: 1 / -1;
+  border: 1px dashed rgba(215, 181, 145, 0.52);
+  border-radius: 10px;
+  color: #8a7568;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  font-weight: 850;
+}
+
+.soft-review-empty i {
+  color: #b77a36;
+  font-size: 1.35rem;
+}
+
 .soft-map-preview {
   height: clamp(48px, 7vh, 66px);
   flex: 0 0 auto;

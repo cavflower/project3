@@ -1320,3 +1320,16 @@ input:checked+.slider:before {
 .floating-cart-btn strong {
   font-size: 0.72rem;
 }
+
+.takeout-page .card-action-btn,
+.takeout-page .product-qty-btn {
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+}
+
+.takeout-page .card-action-btn svg,
+.takeout-page .product-qty-btn svg {
+  width: 15px;
+  height: 15px;
+}

@@ -39,7 +39,12 @@ class StoreViewSet(viewsets.ModelViewSet):
             first_image = StoreImage.objects.filter(
                 store_id=OuterRef('pk')
             ).order_by('order', 'created_at').values('image')[:1]
-            base_queryset = base_queryset.annotate(
+            base_queryset = base_queryset.prefetch_related(
+                Prefetch(
+                    'images',
+                    queryset=StoreImage.objects.only('id', 'store_id', 'image', 'order').order_by('order', 'created_at')
+                )
+            ).annotate(
                 first_image_path=Subquery(first_image),
                 surplus_order_count=F('surplus_completed_order_count_total'),
                 surplus_completed_revenue=F('surplus_completed_revenue_total'),

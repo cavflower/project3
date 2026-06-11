@@ -46,6 +46,7 @@ const MyReviewsPage = () => {
     const [activeTab, setActiveTab] = useState('all');
     const [sortOrder, setSortOrder] = useState('newest');
     const [savingEdit, setSavingEdit] = useState(false);
+    const [showPendingOrders, setShowPendingOrders] = useState(false);
 
     const [editingStoreReview, setEditingStoreReview] = useState(null);
     const [storeEditForm, setStoreEditForm] = useState({
@@ -286,10 +287,67 @@ const MyReviewsPage = () => {
         return reviewItems.filter((item) => item.type === activeTab);
     }, [activeTab, reviewItems]);
 
-    const firstReviewableOrder = reviewableOrders[0];
-    const firstReviewableOrderLink = firstReviewableOrder
-        ? `/review/${firstReviewableOrder.id}?type=${firstReviewableOrder.review_order_type}`
-        : null;
+    const getReviewOrderLink = (order) => `/review/${order.id}?type=${order.review_order_type}`;
+
+    const handleDismissReviewOrder = (order) => {
+        const orderKey = buildReviewOrderKey(order.review_order_type, order.id);
+
+        try {
+            const dismissedOrderKeys = getDismissedReviewOrderKeys(user);
+            dismissedOrderKeys.add(orderKey);
+            window.localStorage.setItem(
+                getDismissStorageKey(user),
+                JSON.stringify(Array.from(dismissedOrderKeys))
+            );
+        } catch (error) {
+            console.error('儲存待評論訂單略過狀態失敗:', error);
+        }
+
+        setReviewableOrders((orders) => {
+            const nextOrders = orders.filter((item) => (
+                buildReviewOrderKey(item.review_order_type, item.id) !== orderKey
+            ));
+
+            if (nextOrders.length === 0) {
+                setShowPendingOrders(false);
+            }
+
+            return nextOrders;
+        });
+    };
+
+    const getOrderStoreName = (order) => (
+        order?.store_name ||
+        order?.store?.name ||
+        order?.store ||
+        '店家'
+    );
+
+    const getOrderDisplayNumber = (order) => (
+        order?.pickup_number ||
+        order?.order_number ||
+        order?.code ||
+        order?.id
+    );
+
+    const getOrderTotal = (order) => {
+        const raw = order?.total_price ?? order?.total ?? order?.amount ?? order?.final_total;
+        const value = Number(raw);
+        return Number.isFinite(value) ? Math.round(value) : null;
+    };
+
+    const formatOrderDate = (dateString) => {
+        if (!dateString) return '未提供時間';
+        const date = new Date(dateString);
+        if (Number.isNaN(date.getTime())) return '未提供時間';
+        return date.toLocaleString('zh-TW', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        });
+    };
 
     const openStoreEditModal = (review) => {
         setEditingStoreReview(review);
@@ -550,8 +608,12 @@ const MyReviewsPage = () => {
                         <p className={styles.pageSubtitle}>查看、管理與編輯你的店家與菜品評論</p>
                     </div>
 
-                    {firstReviewableOrderLink ? (
-                        <Link to={firstReviewableOrderLink} className={styles.pendingSection}>
+                    {reviewableOrders.length > 0 ? (
+                        <button
+                            type="button"
+                            className={styles.pendingSection}
+                            onClick={() => setShowPendingOrders(true)}
+                        >
                             <div className={styles.pendingIcon}><FaClipboardList /></div>
                             <div className={styles.pendingContent}>
                                 <h2>待評論訂單</h2>
@@ -559,7 +621,7 @@ const MyReviewsPage = () => {
                             </div>
                             <span className={styles.pendingCount}>{reviewableOrders.length} 筆可評論</span>
                             <FaChevronRight className={styles.pendingChevron} />
-                        </Link>
+                        </button>
                     ) : (
                         <div className={styles.pendingSection}>
                             <div className={styles.pendingIcon}><FaClipboardList /></div>
@@ -572,6 +634,65 @@ const MyReviewsPage = () => {
                         </div>
                     )}
                 </section>
+
+                {showPendingOrders && (
+                    <div className={styles.pendingModalOverlay} onClick={() => setShowPendingOrders(false)}>
+                        <div className={styles.pendingModal} onClick={(e) => e.stopPropagation()}>
+                            <div className={styles.pendingModalHeader}>
+                                <div>
+                                    <h3>待評論訂單</h3>
+                                    <p>{reviewableOrders.length} 筆完成訂單可留下評論</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    className={styles.pendingModalClose}
+                                    onClick={() => setShowPendingOrders(false)}
+                                    aria-label="關閉待評論訂單清單"
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <div className={styles.pendingOrderList}>
+                                {reviewableOrders.map((order) => {
+                                    const total = getOrderTotal(order);
+                                    return (
+                                        <article key={buildReviewOrderKey(order.review_order_type, order.id)} className={styles.pendingOrderCard}>
+                                            <div className={styles.pendingOrderIcon}>
+                                                {order.review_order_type === 'dinein' ? <FaUtensils /> : <FaClipboardList />}
+                                            </div>
+                                            <div className={styles.pendingOrderInfo}>
+                                                <strong>{getOrderStoreName(order)}</strong>
+                                                <span>
+                                                    {order.review_order_type === 'dinein' ? '內用' : '外帶'}
+                                                    {getOrderDisplayNumber(order) ? ` #${getOrderDisplayNumber(order)}` : ''}
+                                                </span>
+                                                <small>
+                                                    完成時間：{formatOrderDate(order.completed_at || order.updated_at || order.created_at)}
+                                                    {total !== null ? ` · NT$ ${total}` : ''}
+                                                </small>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className={styles.btnDismissOrder}
+                                                onClick={() => handleDismissReviewOrder(order)}
+                                            >
+                                                下次再說
+                                            </button>
+                                            <Link
+                                                to={getReviewOrderLink(order)}
+                                                className={styles.btnReviewOrder}
+                                            >
+                                                前往評論
+                                                <FaChevronRight />
+                                            </Link>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className={styles.statsSection}>
                     <div className={styles.statCard}>

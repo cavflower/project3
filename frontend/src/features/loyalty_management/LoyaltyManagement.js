@@ -199,6 +199,21 @@ const formatMemberDate = (value) => {
   });
 };
 
+const maskMemberPhone = (value) => {
+  if (!value) return '-';
+  const digits = String(value).replace(/\D/g, '');
+
+  if (digits.length >= 5 && digits.startsWith('09')) {
+    return `09${'*'.repeat(Math.max(digits.length - 5, 1))}${digits.slice(-3)}`;
+  }
+
+  if (digits.length > 3) {
+    return `${'*'.repeat(digits.length - 3)}${digits.slice(-3)}`;
+  }
+
+  return digits || '-';
+};
+
 const MembersSection = ({ members, loading, loadMembers }) => {
   return (
     <section className={styles['loyalty-section']}>
@@ -226,7 +241,6 @@ const MembersSection = ({ members, loading, loadMembers }) => {
             <thead>
               <tr>
                 <th>會員名稱</th>
-                <th>Email</th>
                 <th>電話</th>
                 <th>會員等級</th>
                 <th>可用點數</th>
@@ -250,8 +264,7 @@ const MembersSection = ({ members, loading, loadMembers }) => {
                       <span>{member.username || '-'}</span>
                     </div>
                   </td>
-                  <td>{member.email || '-'}</td>
-                  <td>{member.phone_number || '-'}</td>
+                  <td>{maskMemberPhone(member.phone_number)}</td>
                   <td>{member.current_level_name || '一般會員'}</td>
                   <td>{Number(member.available_points || 0).toLocaleString()}</td>
                   <td>{Number(member.total_points || 0).toLocaleString()}</td>
