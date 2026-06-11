@@ -8,7 +8,7 @@ import surplusFoodApi from '../../api/surplusFoodApi';
 import { useAuth } from "../../store/AuthContext";
 import ProductSpecificationModal from '../../components/common/ProductSpecificationModal';
 import SkeletonLoader from '../../components/common/SkeletonLoader';
-import '../takeout/TakeoutOrderPage.module.css';
+import './DineInOrderPage.css';
 
 const cartReducer = (state, action) => {
   switch (action.type) {
@@ -74,12 +74,14 @@ function DineInOrderPage() {
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(paymentOptions[0].value);
   const [useEcoTableware, setUseEcoTableware] = useState('no');
   const [pickupNumber, setPickupNumber] = useState('');
   const categoryRefs = useRef({});
+  const menuScrollRef = useRef(null);
   const [greenPoints, setGreenPoints] = useState(null);
   const [redemptionRules, setRedemptionRules] = useState([]);
   const [showGreenPointSection, setShowGreenPointSection] = useState(false);
@@ -226,6 +228,65 @@ function DineInOrderPage() {
     [cart.items]
   );
 
+  const totalQuantity = useMemo(
+    () => cart.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    [cart.items]
+  );
+
+  const filteredMenuItems = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return menuItems;
+
+    return menuItems.filter((item) => {
+      const category = categories.find((cat) => cat.id === item.category);
+      const searchableText = [
+        item.name,
+        item.description,
+        item.category_name,
+        item.category?.name,
+        category?.name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return searchableText.includes(keyword);
+    });
+  }, [categories, menuItems, searchTerm]);
+
+  const displayCategories = useMemo(() => {
+    if (!categories.length) {
+      return filteredMenuItems.length
+        ? [{ id: 'all-products', name: '全部', description: '所有內用餐點' }]
+        : [];
+    }
+    return categories.filter((category) =>
+      filteredMenuItems.some((item) => item.category === category.id)
+    );
+  }, [categories, filteredMenuItems]);
+
+  useEffect(() => {
+    if (!displayCategories.length) return;
+    setSelectedCategory((current) =>
+      displayCategories.some((category) => category.id === current)
+        ? current
+        : displayCategories[0].id
+    );
+  }, [displayCategories]);
+
+  const scrollToCategory = (categoryId) => {
+    const scrollContainer = menuScrollRef.current;
+    const target = categoryRefs.current[categoryId];
+    setSelectedCategory(categoryId);
+    if (scrollContainer && target) {
+      scrollContainer.scrollTo({
+        top: target.offsetTop - 14,
+        behavior: 'smooth',
+      });
+    } else {
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const handleGoToCart = () => {
     // 導向內用專用購物車頁面
     navigate(`/dinein/${storeId}/cart`, {
@@ -300,31 +361,55 @@ function DineInOrderPage() {
     );
   }
 
+  const storeImageSource =
+    store?.first_image ||
+    store?.image ||
+    store?.images?.[0]?.image ||
+    store?.images?.[0]?.image_url ||
+    '';
+  const storeImageUrl = storeImageSource
+    ? (storeImageSource.startsWith('http') ? storeImageSource : `http://127.0.0.1:8000${storeImageSource}`)
+    : '';
+
   return (
     <div className="takeout-page container" style={{ marginTop: '8px' }}>
       <div className="row mb-4">
         <div className="col-12">
           <div className="card shadow-sm">
             <div className="card-body">
-              <h2 className="mb-1">{store?.name}</h2>
-              <p className="text-muted mb-2">{store?.address}</p>
-              <div className="d-flex flex-wrap gap-3 align-items-center">
-                <span>
-                  <i className="bi bi-telephone me-1" />
-                  {store?.phone}
-                </span>
-                {tableLabel && (
-                  <span>
+              <div className="dinein-store-summary">
+                <div className="dinein-store-image">
+                  {storeImageUrl ? (
+                    <img src={storeImageUrl} alt={store?.name || 'store'} />
+                  ) : (
+                    <span>DV</span>
+                  )}
+                </div>
+                <div className="dinein-store-copy">
+                  <h2 className="mb-1">{store?.name}</h2>
+                  <p className="text-muted mb-2">
                     <i className="bi bi-geo-alt me-1" />
-                    桌號：{tableLabel}
-                  </span>
-                )}
-                {user && user.user_type !== 'merchant' && greenPoints !== null && (
-                  <span className="green-points-badge">
-                    <FaCoins style={{ color: '#4CAF50', marginRight: '4px' }} />
-                    線色點數：{greenPoints} 點
-                  </span>
-                )}
+                    {store?.address}
+                  </p>
+                  <div className="d-flex flex-wrap gap-3 align-items-center">
+                    <span>
+                      <i className="bi bi-telephone me-1" />
+                      {store?.phone}
+                    </span>
+                    {tableLabel && (
+                      <span>
+                        <i className="bi bi-pin-map me-1" />
+                        {"\u684c\u865f\uff1a"}{tableLabel}
+                      </span>
+                    )}
+                    {user && user.user_type !== 'merchant' && greenPoints !== null && (
+                      <span className="green-points-badge">
+                        <FaCoins style={{ color: '#4CAF50', marginRight: '4px' }} />
+                        {"\u7da0\u8272\u9ede\u6578\uff1a"}{greenPoints}{" \u9ede"}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -334,38 +419,27 @@ function DineInOrderPage() {
       <div className="row g-4">
         <div className="col-12">
           {/* 類別導航標籤 + 購物車按鈕 */}
-          {categories.length > 0 && (
+          {displayCategories.length > 0 && (
             <div className="category-nav-tabs mb-3">
               <div className="nav-tabs-scroll">
-                {categories.map((category) => {
-                  const categoryProducts = menuItems.filter(item => item.category === category.id);
+                {displayCategories.map((category) => {
+                  const categoryProducts = category.id === 'all-products'
+                    ? filteredMenuItems
+                    : filteredMenuItems.filter(item => item.category === category.id);
                   return (
                     <button
                       key={category.id}
                       className={`category-nav-btn ${selectedCategory === category.id ? 'active' : ''}`}
-                      onClick={() => {
-                        setSelectedCategory(category.id);
-                        categoryRefs.current[category.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }}
+                      onClick={() => scrollToCategory(category.id)}
                     >
-                      {category.name}
-                      {categoryProducts.length > 0 && (
-                        <span className="category-count">{categoryProducts.length}</span>
-                      )}
+                      <i className="bi bi-grid" aria-hidden="true"></i>
+                      <span>
+                        <strong>{category.name}</strong>
+                        <small>{categoryProducts.length}{" \u9805\u5546\u54c1"}</small>
+                      </span>
                     </button>
                   );
                 })}
-
-                {/* 購物車按鈕 */}
-                <button
-                  className="cart-nav-btn"
-                  onClick={handleGoToCart}
-                >
-                  <FaShoppingCart size={18} />
-                  {cart.items.length > 0 && (
-                    <span className="cart-badge">{cart.items.length}</span>
-                  )}
-                </button>
 
                 {/* 綠色點數按鈕 */}
                 {redemptionRules.length > 0 && (
@@ -379,7 +453,11 @@ function DineInOrderPage() {
                       }, 100);
                     }}
                   >
-                    綠色點數
+                    <i className="bi bi-star" aria-hidden="true"></i>
+                    <span>
+                      <strong>{"\u9ede\u6578\u514c\u63db"}</strong>
+                      <small>{"\u9ede\u6578\u514c\u63db\u512a\u60e0"}</small>
+                    </span>
                   </button>
                 )}
 
@@ -395,13 +473,68 @@ function DineInOrderPage() {
                   disabled={!store?.enable_surplus_food}
                   style={!store?.enable_surplus_food ? { cursor: 'not-allowed', opacity: 0.5, backgroundColor: '#ccc' } : {}}
                 >
-                  惜福專區
+                  <i className="bi bi-basket" aria-hidden="true"></i>
+                  <span>
+                    <strong>{"\u60dc\u798f\u5c08\u5340"}</strong>
+                    <small>{"\u5373\u671f\u9910\u9ede\u512a\u60e0"}</small>
+                  </span>
                 </button>
               </div>
             </div>
           )}
 
           {/* 綠色點數兌換區 */}
+          <div className="dinein-menu-content" ref={menuScrollRef}>
+            <div className="dinein-menu-toolbar">
+              <div className="dinein-filter-pills">
+                {displayCategories.length > 0 && (
+                  <button
+                    type="button"
+                    className="active"
+                    onClick={() => scrollToCategory(displayCategories[0].id)}
+                  >
+                    <i className="bi bi-grid" aria-hidden="true"></i>
+                    {"\u5168\u90e8"}
+                  </button>
+                )}
+                {displayCategories.map((category) => {
+                  const count = category.id === 'all-products'
+                    ? filteredMenuItems.length
+                    : filteredMenuItems.filter((item) => item.category === category.id).length;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => scrollToCategory(category.id)}
+                    >
+                      {category.name}
+                      <span>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="dinein-search-box">
+                <i className="bi bi-search" aria-hidden="true"></i>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={"\u641c\u5c0b\u9910\u9ede\u540d\u7a31"}
+                  aria-label={"\u641c\u5c0b\u9910\u9ede\u540d\u7a31"}
+                />
+              </label>
+              <button
+                type="button"
+                className="dinein-cart-button"
+                onClick={handleGoToCart}
+                disabled={cart.items.length === 0}
+              >
+                <FaShoppingCart />
+                <span>{"\u8cfc\u7269\u8eca"}</span>
+                {totalQuantity > 0 && <span className="cart-badge">{totalQuantity}</span>}
+                <strong>{"\u5171 NT$ "}{formatPrice(total)}</strong>
+              </button>
+            </div>
           {showGreenPointSection && redemptionRules.length > 0 && (
             <div ref={greenPointRef} className="card shadow-sm mb-4 takeout-card category-section">
               <div className="card-header takeout-card-header" style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)' }}>
@@ -481,16 +614,16 @@ function DineInOrderPage() {
           )}
 
           {/* 按類別分組顯示商品 */}
-          {categories.length === 0 ? (
+          {displayCategories.length === 0 ? (
             <div className="card shadow-sm mb-4 takeout-card">
               <div className="card-header takeout-card-header">
                 <strong>餐點列表</strong>
               </div>
               <div className="card-body">
-                {menuItems.length === 0 && (
+                {filteredMenuItems.length === 0 && (
                   <p className="text-muted">目前尚無餐點，請洽服務人員。</p>
                 )}
-                {menuItems.map((item) => {
+                {filteredMenuItems.map((item) => {
                   // 計算該商品的總數量（所有規格組合加總）
                   const cartItemsForProduct = cart.items.filter(ci => ci.id === item.id);
                   const quantity = cartItemsForProduct.reduce((sum, ci) => sum + ci.quantity, 0);
@@ -557,8 +690,10 @@ function DineInOrderPage() {
               </div>
             </div>
           ) : (
-            categories.map((category) => {
-              const categoryProducts = menuItems.filter(item => item.category === category.id);
+            displayCategories.map((category) => {
+              const categoryProducts = category.id === 'all-products'
+                ? filteredMenuItems
+                : filteredMenuItems.filter(item => item.category === category.id);
               if (categoryProducts.length === 0) return null;
 
               return (
@@ -652,8 +787,20 @@ function DineInOrderPage() {
               );
             })
           )}
+          </div>
         </div>
       </div >
+
+      <button
+        type="button"
+        className="dinein-floating-cart-button"
+        onClick={handleGoToCart}
+        disabled={cart.items.length === 0}
+        aria-label="cart"
+      >
+        <FaShoppingCart />
+        <span>NT$ {formatPrice(total)}</span>
+      </button>
 
       {/* 規格選擇 Modal */}
       {

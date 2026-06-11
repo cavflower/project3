@@ -408,7 +408,7 @@ function DineInCartPage() {
   };
 
   return (
-    <div className="takeout-cart-page container" style={{ marginTop: "8px", marginBottom: "40px" }}>
+    <div className={`${styles['takeout-cart-page']} container`} style={{ marginTop: "8px", marginBottom: "40px" }}>
       <div className="row mb-4">
         <div className="col-12">
           <button
@@ -452,7 +452,7 @@ function DineInCartPage() {
         <div className="col-lg-8">
           {/* 購物車商品列表 */}
           <div className="card shadow-sm mb-4">
-            <div className="card-header cart-header">
+            <div className={`card-header ${styles['cart-header']}`}>
               <strong>購物車</strong>
             </div>
             <div className="card-body">
@@ -471,7 +471,7 @@ function DineInCartPage() {
                         return (
                           <div
                             key={item.cartKey || item.id}
-                            className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
+                            className={`${styles['cart-item']} d-flex justify-content-between align-items-center border-bottom py-3`}
                           >
                             <div className="flex-grow-1">
                               <h5 className="mb-1">{item.name}</h5>
@@ -495,16 +495,16 @@ function DineInCartPage() {
                             <div className="d-flex align-items-center gap-3">
                               <div className="quantity-controls d-flex align-items-center gap-2">
                                 <button
-                                  className="btn rounded-circle quantity-btn"
+                                  className={`btn rounded-circle ${styles['quantity-btn']}`}
                                   onClick={() => handleQuantityChange(item.cartKey, -1)}
                                 >
                                   <FaMinus />
                                 </button>
-                                <span className="quantity-display">
+                                <span className={styles['quantity-display']}>
                                   {item.quantity}
                                 </span>
                                 <button
-                                  className="btn rounded-circle quantity-btn"
+                                  className={`btn rounded-circle ${styles['quantity-btn']}`}
                                   onClick={() => handleQuantityChange(item.cartKey, 1)}
                                 >
                                   <FaPlus />
@@ -533,7 +533,7 @@ function DineInCartPage() {
                       {surplusItems.map((item) => (
                         <div
                           key={item.cartKey || item.id}
-                          className="cart-item d-flex justify-content-between align-items-center border-bottom py-3"
+                          className={`${styles['cart-item']} d-flex justify-content-between align-items-center border-bottom py-3`}
                           style={{ backgroundColor: '#f0fff4' }}
                         >
                           <div className="flex-grow-1">
@@ -558,16 +558,16 @@ function DineInCartPage() {
                           <div className="d-flex align-items-center gap-3">
                             <div className="quantity-controls d-flex align-items-center gap-2">
                               <button
-                                className="btn rounded-circle quantity-btn"
+                                className={`btn rounded-circle ${styles['quantity-btn']}`}
                                 onClick={() => handleQuantityChange(item.cartKey || item.id.toString(), -1)}
                               >
                                 <FaMinus />
                               </button>
-                              <span className="quantity-display">
+                              <span className={styles['quantity-display']}>
                                 {item.quantity}
                               </span>
                               <button
-                                className="btn rounded-circle quantity-btn"
+                                className={`btn rounded-circle ${styles['quantity-btn']}`}
                                 onClick={() => handleQuantityChange(item.cartKey || item.id.toString(), 1)}
                                 disabled={item.remaining_quantity && item.quantity >= item.remaining_quantity}
                               >
@@ -608,7 +608,7 @@ function DineInCartPage() {
 
         <div className="col-lg-4">
           <div className="card shadow-sm mb-3">
-            <div className="card-header cart-header">
+            <div className={`card-header ${styles['cart-header']}`}>
               <strong>訂單資訊</strong>
             </div>
           </div>

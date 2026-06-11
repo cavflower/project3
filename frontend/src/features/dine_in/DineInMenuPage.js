@@ -1,5 +1,5 @@
-﻿import React, { useEffect, useState } from 'react';
-import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { getStore } from '../../api/storeApi';
 import { getDineInProducts } from '../../api/orderApi';
 import { useAuth } from '../../store/AuthContext';
@@ -78,42 +78,18 @@ const DineInMenuPage = () => {
           <h1>{store?.name || '餐廳菜單'}</h1>
           <p>桌號：{tableLabel}</p>
           <p className={styles.menuNote}>本頁面提供內用與共用餐點，點餐後請告知服務人員。</p>
-          <div className="menu-actions" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+          <div className={styles.menuActions}>
             {!user ? (
               <a
                 href={loginUrl}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  backgroundColor: '#ff6b6b',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                  textDecoration: 'none',
-                  display: 'inline-block'
-                }}
+                className={styles.loginButton}
               >
                 登入會員
               </a>
             ) : (
               <button
                 onClick={handleOrderClick}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  backgroundColor: '#4CAF50',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#45a049'}
-                onMouseOut={(e) => e.target.style.backgroundColor = '#4CAF50'}
+                className={styles.orderButton}
               >
                 開始點餐
               </button>

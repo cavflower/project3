@@ -27,6 +27,7 @@ function StorePage() {
   const navigate = useNavigate();
   const [store, setStore] = useState(null);
   const [reviewStats, setReviewStats] = useState({ avg: 0, count: 0 });
+  const [reviewPreview, setReviewPreview] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -36,9 +37,10 @@ function StorePage() {
     try {
       setLoading(true);
       setError('');
-      const [storeResult, reviewsResult] = await Promise.allSettled([
+      const [storeResult, reviewsResult, reviewListResult] = await Promise.allSettled([
         getStore(storeId),
-        api.get(`/reviews/store-reviews/?store_id=${storeId}&summary=1`)
+        api.get(`/reviews/store-reviews/?store_id=${storeId}&summary=1`),
+        api.get(`/reviews/store-reviews/?store_id=${storeId}`)
       ]);
 
       if (storeResult.status !== 'fulfilled') {
@@ -59,6 +61,19 @@ function StorePage() {
         console.warn('頛摨振閰?蝯梯?憭望?', e);
         setReviewStats({ avg: 0, count: 0 });
       }
+
+      if (reviewListResult.status === 'fulfilled') {
+        const rawReviews = Array.isArray(reviewListResult.value.data)
+          ? reviewListResult.value.data
+          : reviewListResult.value.data?.results || [];
+        const latestReviews = rawReviews
+          .slice()
+          .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+          .slice(0, 4);
+        setReviewPreview(latestReviews);
+      } else {
+        setReviewPreview([]);
+      }
       // 蝘駁?ㄐ????亙???
       // await loadMenuItems(storeId);
 
@@ -77,6 +92,26 @@ function StorePage() {
   const handleJumpToReviews = useCallback(() => {
     navigate(`/store/${storeId}/reviews`);
   }, [navigate, storeId]);
+
+  const getReviewUserName = (review) => (
+    review?.user_name ||
+    review?.customer_name ||
+    review?.user?.username ||
+    review?.user?.name ||
+    '顧客'
+  );
+
+  const getReviewInitial = (review) => getReviewUserName(review).slice(0, 1).toUpperCase();
+
+  const formatReviewDate = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('zh-TW', {
+      month: '2-digit',
+      day: '2-digit',
+    });
+  };
 
   const formatOpeningHours = (hours) => {
     if (!hours || typeof hours !== 'object') return null;
@@ -176,32 +211,6 @@ function StorePage() {
   const benefitPointsText = benefitPoints.toLocaleString('zh-TW', {
     maximumFractionDigits: Number.isInteger(benefitPoints) ? 0 : 2,
   });
-  const signatureItems = [
-    {
-      title: `${cuisineTypeName || '主廚'}精選`,
-      tag: '人氣推薦',
-      price: avgBudget ? `$${avgBudget.toLocaleString()}` : '依現場為準',
-      image: storeImages[1]?.image || null,
-    },
-    {
-      title: '招牌套餐',
-      tag: '必點',
-      price: avgBudget ? `$${Math.max(0, Math.round(avgBudget * 0.8)).toLocaleString()}` : '依現場為準',
-      image: storeImages[2]?.image || null,
-    },
-    {
-      title: '人氣小點',
-      tag: '人氣推薦',
-      price: avgBudget ? `$${Math.max(0, Math.round(avgBudget * 0.45)).toLocaleString()}` : '依現場為準',
-      image: storeImages[3]?.image || null,
-    },
-    {
-      title: '季節時蔬',
-      tag: '清爽搭配',
-      price: avgBudget ? `$${Math.max(0, Math.round(avgBudget * 0.35)).toLocaleString()}` : '依現場為準',
-      image: storeImages[4]?.image || storeImages[0]?.image || null,
-    },
-  ];
   const galleryImages = storeImages.slice(0, 4);
   const heroStyle = primaryImageUrl
     ? { '--store-hero-image': `url("${primaryImageUrl}")` }
@@ -339,18 +348,37 @@ function StorePage() {
 
           <section className={styles['soft-card']}>
             <div className={styles['soft-card-title-row']}>
-              <h2><i className="bi bi-award"></i>招牌推薦</h2>
-              <Link to={orderPath}>查看全部<i className="bi bi-chevron-right"></i></Link>
+              <h2><i className="bi bi-chat-square-heart"></i>顧客評論</h2>
+              <Link to={`/store/${storeId}/reviews`}>查看全部<i className="bi bi-chevron-right"></i></Link>
             </div>
-            <div className={styles['soft-menu-list']}>
-              {signatureItems.map((item, index) => (
-                <article key={`${item.title}-${index}`}>
-                  <div>{item.image ? <img src={item.image} alt={item.title} /> : <i className="bi bi-image"></i>}</div>
-                  <strong>{item.title}</strong>
-                  <span><i className="bi bi-star-fill"></i>{item.tag}</span>
-                  <em>{item.price}</em>
-                </article>
-              ))}
+            <div className={styles['soft-review-preview-list']}>
+              {reviewPreview.length > 0 ? reviewPreview.map((review) => {
+                const rating = Math.round(Number(review.rating) || 0);
+                const tags = Array.isArray(review.tags) ? review.tags.filter(Boolean) : [];
+                return (
+                  <article key={review.id} className={styles['soft-review-preview-card']}>
+                    <div className={styles['soft-review-preview-head']}>
+                      <span>{getReviewInitial(review)}</span>
+                      <div>
+                        <strong>{getReviewUserName(review)}</strong>
+                        <small>{formatReviewDate(review.created_at)}</small>
+                      </div>
+                    </div>
+                    <div className={styles['soft-review-preview-stars']} aria-label={`${rating} 星`}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <i key={star} className={star <= rating ? styles.filled : ''}>★</i>
+                      ))}
+                    </div>
+                    {tags[0] && <em>{tags[0]}</em>}
+                    <p>{review.comment || '這位顧客留下了星等評價。'}</p>
+                  </article>
+                );
+              }) : (
+                <div className={styles['soft-review-empty']}>
+                  <i className="bi bi-chat-square-dots"></i>
+                  <span>目前尚無評論</span>
+                </div>
+              )}
             </div>
           </section>
 

@@ -1,0 +1,546 @@
+.takeout-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 18px clamp(18px, 2vw, 34px) 96px;
+  background: linear-gradient(180deg, #fff8f4 0%, #fffdfb 45%, #fff7f1 100%);
+  color: #202631;
+}
+
+.takeout-page > .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.takeout-page > .row:first-child .card {
+  border: 1px solid rgba(238, 128, 74, 0.32);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 30px rgba(234, 107, 45, 0.1);
+}
+
+.takeout-page > .row:first-child .card-body {
+  padding: 14px 18px;
+}
+
+.dinein-store-summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 116px;
+}
+
+.dinein-store-image {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  background: #f2dfcf;
+  color: #b46c2b;
+  font-weight: 900;
+}
+
+.dinein-store-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dinein-store-copy {
+  min-width: 0;
+}
+
+.takeout-page h2 {
+  color: #202631;
+  font-size: 2.1rem;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.takeout-page .text-muted {
+  color: #675b55 !important;
+  font-weight: 700;
+}
+
+.takeout-page .green-points-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #effaf0;
+  color: #247a45;
+  font-weight: 850;
+}
+
+.takeout-page > .row.g-4 > .col-12 {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.category-nav-tabs {
+  position: sticky;
+  top: 72px;
+  min-height: calc(100vh - 220px);
+  z-index: 12;
+  margin-bottom: 0 !important;
+  border: 1px solid rgba(238, 128, 74, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 28px rgba(43, 33, 28, 0.08);
+  overflow: hidden;
+}
+
+.nav-tabs-scroll {
+  display: grid;
+  gap: 0;
+  overflow: visible;
+  scrollbar-width: thin;
+}
+
+.category-nav-btn,
+.surplus-zone-nav-btn {
+  width: 100%;
+  min-height: 72px;
+  border: 0;
+  border-left: 4px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #3b3f47;
+  padding: 14px 20px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  font-weight: 850;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.category-nav-btn:hover,
+.surplus-zone-nav-btn:hover {
+  background: #fff6ef;
+  color: #e95b1e;
+}
+
+.category-nav-btn.active,
+.green-points-nav-btn.active {
+  border-left-color: #ff7842;
+  background: linear-gradient(90deg, #fff1e9 0%, rgba(255, 255, 255, 0.8) 100%);
+  color: #e95b1e;
+}
+
+.category-nav-btn i,
+.surplus-zone-nav-btn i {
+  font-size: 1rem;
+  color: #a77454;
+}
+
+.category-nav-btn span,
+.surplus-zone-nav-btn span {
+  display: grid;
+  gap: 3px;
+}
+
+.category-nav-btn strong,
+.surplus-zone-nav-btn strong {
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.category-nav-btn small,
+.surplus-zone-nav-btn small {
+  color: #78665d;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.dinein-menu-content {
+  min-width: 0;
+  max-height: calc(100vh - 182px);
+  overflow: auto;
+  padding-right: 2px;
+  scroll-behavior: smooth;
+}
+
+.dinein-menu-toolbar {
+  position: sticky;
+  top: 72px;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: auto minmax(240px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  border: 1px solid rgba(238, 128, 74, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 28px rgba(43, 33, 28, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.dinein-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dinein-filter-pills button {
+  min-height: 40px;
+  border: 1px solid rgba(238, 128, 74, 0.32);
+  border-radius: 999px;
+  background: #fff;
+  color: #3b3f47;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+}
+
+.dinein-filter-pills button.active {
+  border-color: transparent;
+  background: linear-gradient(135deg, #ff8b4b, #e95b1e);
+  color: #fff;
+}
+
+.dinein-filter-pills button span {
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: #ffe5d7;
+  color: #e95b1e;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.dinein-search-box {
+  min-height: 42px;
+  border: 1px solid rgba(77, 67, 61, 0.16);
+  border-radius: 999px;
+  background: #fff;
+  color: #9a8a82;
+  padding: 0 16px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dinein-search-box input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #202631;
+  font-weight: 800;
+}
+
+.dinein-cart-button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffad83, #ff7d43);
+  color: #fff;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 950;
+  box-shadow: 0 14px 26px rgba(234, 107, 45, 0.18);
+}
+
+.dinein-cart-button:disabled {
+  opacity: 0.8;
+}
+
+.dinein-cart-button strong {
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.42);
+  font-weight: 950;
+}
+
+.cart-badge {
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+  color: inherit;
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.dinein-floating-cart-button {
+  position: fixed;
+  right: 26px;
+  bottom: 24px;
+  z-index: 30;
+  width: 82px;
+  height: 82px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffbd9a, #ff8b4b);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  font-weight: 950;
+  box-shadow: 0 20px 38px rgba(234, 107, 45, 0.26);
+}
+
+.dinein-floating-cart-button svg {
+  font-size: 1.35rem;
+}
+
+.dinein-floating-cart-button span {
+  font-size: 0.82rem;
+}
+
+.dinein-floating-cart-button:disabled {
+  opacity: 0.85;
+}
+
+.takeout-card {
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dinein-menu-content > .takeout-card {
+  margin-bottom: 24px;
+}
+
+.takeout-card-header {
+  border: 0;
+  background: transparent;
+  color: #6b351d;
+  padding: 0 2px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 950;
+}
+
+.takeout-card-header::before {
+  content: "\F5FF";
+  font-family: "bootstrap-icons";
+  color: #ff7842;
+  font-size: 1rem;
+}
+
+.takeout-card-header strong {
+  color: #5d2c17;
+  font-size: 1.25rem;
+  font-weight: 950;
+}
+
+.takeout-card-header small {
+  display: inline !important;
+  margin-top: 0 !important;
+  color: #806b60;
+  opacity: 1 !important;
+  font-size: 0.92rem;
+  font-weight: 850;
+}
+
+.takeout-card .card-body {
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 240px));
+  gap: 16px;
+}
+
+.takeout-card .card-body > p,
+.takeout-card .card-body > .pt-2,
+.takeout-card .card-body > .pt-3,
+.takeout-card .card-body > h6 {
+  grid-column: 1 / -1;
+}
+
+.takeout-card .card-body > .d-flex,
+.takeout-card .card-body > div.border-bottom {
+  min-height: 240px;
+  border: 1px solid rgba(238, 128, 74, 0.24) !important;
+  border-radius: 14px;
+  margin-bottom: 0;
+  padding: 10px 10px 12px !important;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 22px rgba(43, 33, 28, 0.08);
+  display: grid !important;
+  grid-template-columns: 1fr;
+  align-items: stretch !important;
+  gap: 8px;
+  position: relative;
+}
+
+.takeout-card .card-body > .d-flex > .me-3,
+.takeout-card .card-body > div.border-bottom > .me-3 {
+  margin-right: 0 !important;
+}
+
+.takeout-card img {
+  width: 100% !important;
+  height: 128px !important;
+  border-radius: 10px !important;
+  object-fit: cover;
+}
+
+.takeout-card .flex-grow-1 {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+
+.takeout-card h5 {
+  margin: 0;
+  color: #202631;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.takeout-card p {
+  margin: 0;
+  min-height: 20px;
+  color: #7a665d;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.takeout-card strong.text-dark,
+.takeout-card strong.text-success {
+  color: #202631 !important;
+  font-size: 1.02rem;
+  font-weight: 950;
+  align-self: end;
+}
+
+.add-btn,
+.quantity-btn {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: linear-gradient(135deg, #ff9b63, #ea6b2d);
+  color: #fff;
+  display: inline-grid;
+  place-items: center;
+  box-shadow: 0 10px 18px rgba(234, 107, 45, 0.24);
+}
+
+.add-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 12px;
+}
+
+.add-btn:hover,
+.quantity-btn:hover {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.quantity-control {
+  justify-self: end;
+  align-self: end;
+  border-radius: 999px;
+  background: #fff2e9;
+  padding: 4px;
+}
+
+.quantity-display {
+  min-width: 28px;
+  text-align: center;
+  color: #202631;
+  font-weight: 950;
+}
+
+@media (max-width: 992px) {
+  .takeout-page > .row.g-4 > .col-12 {
+    grid-template-columns: 1fr;
+  }
+
+  .category-nav-tabs,
+  .dinein-menu-toolbar {
+    position: static;
+  }
+
+  .category-nav-tabs {
+    min-height: 0;
+  }
+
+  .nav-tabs-scroll {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .category-nav-btn,
+  .surplus-zone-nav-btn {
+    width: auto;
+    min-width: 156px;
+    border-left: 0;
+    border-bottom: 4px solid transparent;
+    border-radius: 0;
+    flex: 0 0 auto;
+  }
+
+  .category-nav-btn.active,
+  .green-points-nav-btn.active {
+    border-left-color: transparent;
+    border-bottom-color: #ff7842;
+  }
+
+  .dinein-menu-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .dinein-menu-content {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .takeout-page {
+    padding: 12px 10px 88px;
+  }
+
+  .dinein-store-summary {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .dinein-store-image {
+    width: 78px;
+    height: 78px;
+  }
+
+  .takeout-page h2 {
+    font-size: 1.6rem;
+  }
+
+  .takeout-card .card-body {
+    grid-template-columns: 1fr;
+  }
+
+  .takeout-card .card-body > .d-flex,
+  .takeout-card .card-body > div.border-bottom {
+    min-height: 224px;
+  }
+}
