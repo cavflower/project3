@@ -423,6 +423,78 @@
   color: #92400e;
 }
 
+.reservationDetailList {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.reservationDetailCard {
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: #fffbeb;
+  padding: 12px;
+}
+
+.reservationDetailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.reservationDetailHeader strong {
+  color: #92400e;
+  font-size: 1.2rem;
+}
+
+.reservationDetailHeader span {
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #b45309;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.reservationDetailGrid {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: start;
+}
+
+.reservationDetailGrid span,
+.reservationNotes span {
+  color: #667085;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.reservationDetailGrid strong {
+  min-width: 0;
+  color: #263547;
+  overflow-wrap: anywhere;
+}
+
+.reservationNotes {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  border-top: 1px solid #fde68a;
+  padding-top: 10px;
+}
+
+.reservationNotes p {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: #475467;
+  line-height: 1.5;
+}
+
 .assignForm {
   display: grid;
   gap: 12px;
@@ -587,8 +659,12 @@
 }
 
 .tableBase small {
+  max-width: calc(100% - 16px);
   color: #667085;
   margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tableReserved {

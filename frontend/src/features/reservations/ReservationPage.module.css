@@ -123,20 +123,21 @@
   min-width: 0;
   height: 100%;
   max-height: 100%;
-  overflow: hidden;
+  overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .stepStage {
   min-height: 0;
-  height: 100%;
+  height: auto;
   max-height: 100%;
   display: grid;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .stepStage > * {
   min-height: 0;
-  height: 100%;
+  height: auto;
 }
 
 .stepper {
@@ -194,11 +195,11 @@
 
 .selectionStep {
   display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto auto auto;
+  align-content: start;
   gap: 12px;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 100%;
+  overflow: visible;
 }
 
 .formCard,
@@ -210,9 +211,13 @@
   overflow: hidden;
 }
 
-.formCard,
+.formCard {
+  height: auto;
+  overflow: visible;
+}
+
 .summaryCard {
-  height: 100%;
+  height: auto;
 }
 
 .sectionTitle {
@@ -271,9 +276,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
   gap: 12px;
-  max-height: 142px;
-  overflow: auto;
-  padding-right: 4px;
+  overflow: visible;
 }
 
 .timeSlotCard {

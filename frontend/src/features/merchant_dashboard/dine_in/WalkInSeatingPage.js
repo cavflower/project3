@@ -56,6 +56,28 @@ const splitTableLabels = (tableLabel) => (
     .filter(Boolean)
 );
 
+const getReservationPeopleCount = (reservation) => (
+  Number(reservation?.party_size || 0) + Number(reservation?.children_count || 0)
+);
+
+const getReservationStatusLabel = (status) => {
+  const labels = {
+    pending: '待確認',
+    confirmed: '已確認',
+    completed: '已完成',
+    cancelled: '已取消',
+  };
+  return labels[status] || status || '未提供';
+};
+
+const getReservationTableSummary = (reservationsForTable) => {
+  const firstReservation = reservationsForTable?.[0];
+  if (!firstReservation) return '';
+  const customerName = firstReservation.customer_name || '訂位';
+  const moreCount = reservationsForTable.length > 1 ? ` +${reservationsForTable.length - 1}` : '';
+  return `${firstReservation.time_slot} ${customerName}${moreCount}`;
+};
+
 const getTableClass = (shape) => {
   if (shape === 'square') return styles.tableSquare;
   if (shape === 'circle') return styles.tableCircle;
@@ -111,6 +133,9 @@ const WalkInSeatingPage = () => {
           map.get(label).push(reservation);
         });
       });
+    map.forEach((tableReservations) => {
+      tableReservations.sort((a, b) => String(a.time_slot || '').localeCompare(String(b.time_slot || '')));
+    });
     return map;
   }, [reservations]);
 
@@ -125,7 +150,14 @@ const WalkInSeatingPage = () => {
   }, [activeSeatings]);
 
   const selectedReservations = useMemo(() => {
-    return selectedTableLabels.flatMap((label) => reservationMap.get(label) || []);
+    const seenIds = new Set();
+    return selectedTableLabels
+      .flatMap((label) => reservationMap.get(label) || [])
+      .filter((reservation) => {
+        if (seenIds.has(reservation.id)) return false;
+        seenIds.add(reservation.id);
+        return true;
+      });
   }, [reservationMap, selectedTableLabels]);
 
   const calendarDays = useMemo(() => getCalendarDays(calendarMonth), [calendarMonth]);
@@ -225,6 +257,7 @@ const WalkInSeatingPage = () => {
     const label = String(table.label || '').trim();
     if (!label) return;
 
+    const tableReservations = reservationMap.get(label) || [];
     const occupiedSeating = walkInMap.get(label);
     if (occupiedSeating && occupiedSeating.id !== selectedWaitingId) {
       setSelectedActiveSeating(occupiedSeating);
@@ -235,6 +268,13 @@ const WalkInSeatingPage = () => {
     }
 
     if (!selectedWaiting) {
+      if (tableReservations.length > 0) {
+        setSelectedActiveSeating(null);
+        setSelectedWaitingId(null);
+        setSelectedTableLabels([label]);
+        setMessage('');
+        return;
+      }
       setMessage('請先選擇等候區的候位號碼，再點選要安排的桌位。');
       return;
     }
@@ -441,7 +481,8 @@ const WalkInSeatingPage = () => {
         <div className={styles.canvas}>
           {(activeFloor?.tables || []).map((table) => {
             const label = String(table.label || '').trim();
-            const hasReservation = reservationMap.has(label);
+            const tableReservations = reservationMap.get(label) || [];
+            const hasReservation = tableReservations.length > 0;
             const occupiedSeating = walkInMap.get(label);
             const hasWalkIn = Boolean(occupiedSeating);
             const selected = selectedTableLabels.includes(label);
@@ -458,6 +499,7 @@ const WalkInSeatingPage = () => {
                 ].join(' ')}
                 style={{ left: table.x, top: table.y }}
                 onClick={() => handleTableClick(table)}
+                title={hasReservation ? getReservationTableSummary(tableReservations) : label}
               >
                 <span>{label}</span>
                 <small>
@@ -524,7 +566,7 @@ const WalkInSeatingPage = () => {
                   <div key={reservation.id} className={styles.reservationItem}>
                     <span>{reservation.time_slot}</span>
                     <span>{reservation.customer_name}</span>
-                    <small>{Number(reservation.party_size || 0) + Number(reservation.children_count || 0)} 人</small>
+                    <small>{getReservationPeopleCount(reservation)} 人</small>
                   </div>
                 ))}
               </div>
@@ -554,6 +596,46 @@ const WalkInSeatingPage = () => {
               >
                 取消候位
               </button>
+            </div>
+          </section>
+        )}
+
+        {!selectedWaiting && !selectedActiveSeating && selectedReservations.length > 0 && (
+          <section className={styles.selectedCard}>
+            <div className={styles.selectedHeader}>
+              <div>
+                <h2>訂位資料</h2>
+                <p>{selectedTableLabels.join(', ')}</p>
+              </div>
+              <button type="button" className={styles.iconButton} onClick={() => setSelectedTableLabels([])}>
+                <FiXCircle />
+              </button>
+            </div>
+            <div className={styles.reservationDetailList}>
+              {selectedReservations.map((reservation) => (
+                <article key={reservation.id} className={styles.reservationDetailCard}>
+                  <div className={styles.reservationDetailHeader}>
+                    <strong>{reservation.time_slot}</strong>
+                    <span>{getReservationStatusLabel(reservation.status)}</span>
+                  </div>
+                  <div className={styles.reservationDetailGrid}>
+                    <span>訂位編號</span>
+                    <strong>{reservation.reservation_number || '-'}</strong>
+                    <span>顧客姓名</span>
+                    <strong>{reservation.customer_name || '-'}</strong>
+                    <span>聯絡電話</span>
+                    <strong>{reservation.customer_phone || '-'}</strong>
+                    <span>用餐人數</span>
+                    <strong>{getReservationPeopleCount(reservation)} 人</strong>
+                  </div>
+                  {(reservation.special_requests || reservation.merchant_note) && (
+                    <div className={styles.reservationNotes}>
+                      {reservation.special_requests && <p><span>顧客備註</span>{reservation.special_requests}</p>}
+                      {reservation.merchant_note && <p><span>店家備註</span>{reservation.merchant_note}</p>}
+                    </div>
+                  )}
+                </article>
+              ))}
             </div>
           </section>
         )}
