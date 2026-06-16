@@ -582,6 +582,7 @@ const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
   const [submitting, setSubmitting] = useState(false);
   const [prepaidCheckoutOrder, setPrepaidCheckoutOrder] = useState(null);
   const [prepaidReceivedAmount, setPrepaidReceivedAmount] = useState('');
+  const [prepaidPrintingDetails, setPrepaidPrintingDetails] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productSpecGroups, setProductSpecGroups] = useState({});
 
@@ -810,6 +811,16 @@ const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
     }
   };
 
+  const handlePrepaidPrintDetails = () => {
+    if (prepaidPrintingDetails) return;
+
+    setPrepaidPrintingDetails(true);
+    setTimeout(() => {
+      setPrepaidPrintingDetails(false);
+      window.alert('列印完成');
+    }, 2000);
+  };
+
   return (
     <div className={styles.modalOverlay} role="dialog" aria-modal="true">
       <div className={styles.counterModal}>
@@ -1031,9 +1042,9 @@ const CounterOrderModal = ({ storeId, store, onClose, onCreated }) => {
               setPrepaidReceivedAmount('');
             }
           }}
-          onPrintDetails={() => window.alert('建立訂單前尚未產生單號，請建立後再列印明細。')}
+          onPrintDetails={handlePrepaidPrintDetails}
           onCheckout={handlePrepaidCheckout}
-          printing={false}
+          printing={prepaidPrintingDetails}
           updating={submitting}
           targetStatus="create"
         />
@@ -1337,7 +1348,7 @@ const CashCheckoutModal = ({
             type="button"
             className={`${styles.actionBtn} ${styles.btnReady}`}
             onClick={onPrintDetails}
-            disabled={printing || updating}
+            disabled={printing}
           >
             {printing ? '列印中...' : '列印明細'}
           </button>

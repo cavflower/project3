@@ -18,6 +18,16 @@ def env_bool(name, default=False):
     return value.strip().lower() in ('1', 'true', 'yes', 'on')
 
 
+def env_int(name, default=0):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def env_list(name, default=''):
     raw = os.getenv(name, default)
     return [item.strip() for item in raw.split(',') if item.strip()]
@@ -104,6 +114,7 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
+        'CONN_MAX_AGE': env_int('DB_CONN_MAX_AGE', 60),
     }
 }
 

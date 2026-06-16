@@ -2,6 +2,8 @@ import logging
 import os
 import threading
 
+from django.db import close_old_connections
+
 from apps.intelligence.models import PlatformSettings
 from apps.intelligence.services.line_recommendation_push_service import LineRecommendationPushService
 from apps.line_bot.services.store_recommendation_push_service import StoreRecommendationPushService
@@ -28,6 +30,8 @@ def _run_scheduler_loop():
 
     while not _stop_event.is_set():
         try:
+            close_old_connections()
+
             settings = PlatformSettings.get_settings()
             if (
                 settings.is_line_bot_enabled
@@ -57,6 +61,8 @@ def _run_scheduler_loop():
                 )
         except Exception as exc:
             logger.warning('[RecommendationScheduler] cycle failed: %s', exc)
+        finally:
+            close_old_connections()
 
         if _stop_event.wait(interval_seconds):
             break
