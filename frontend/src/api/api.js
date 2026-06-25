@@ -139,6 +139,8 @@ const blockRefreshTemporarily = (role) => {
   }
 };
 
+const isAuthFailureStatus = (status) => status === 401 || status === 403;
+
 const dispatchAuthErrorEvent = (role, reason) => {
   try {
     window.dispatchEvent(new CustomEvent('dineverse:auth-error', {
@@ -275,14 +277,17 @@ api.interceptors.response.use(
 
       return api(originalRequest);
     } catch (refreshError) {
-      clearTokens(role);
-      blockRefreshTemporarily(role);
-      dispatchAuthErrorEvent(role, 'refresh_failed');
       processQueue(refreshError, null);
       isRefreshing = false;
 
-      if (shouldRedirectOnAuthFail) {
-        window.location.href = role === AUTH_ROLES.MERCHANT ? '/login/merchant' : '/login/customer';
+      if (isAuthFailureStatus(refreshError.response?.status)) {
+        clearTokens(role);
+        blockRefreshTemporarily(role);
+        dispatchAuthErrorEvent(role, 'refresh_failed');
+
+        if (shouldRedirectOnAuthFail) {
+          window.location.href = role === AUTH_ROLES.MERCHANT ? '/login/merchant' : '/login/customer';
+        }
       }
       return Promise.reject(refreshError);
     }

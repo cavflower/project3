@@ -31,6 +31,10 @@ const setCachedUser = (userData) => {
     localStorage.removeItem(USER_CACHE_KEY);
   }
 };
+const isAuthFailure = (error) => {
+  const status = error?.response?.status;
+  return status === 401 || status === 403 || error?.isAuthCooldown || error?.code === 'AUTH_COOLDOWN';
+};
 
 // 2. 建立 Provider (提供者) 元件
 export const AuthProvider = ({ children }) => {
@@ -51,26 +55,44 @@ export const AuthProvider = ({ children }) => {
       isVerifyingRef.current = true;
 
       let userData = null;
+      let transientSessionError = false;
+      const cachedUser = getCachedUser();
       // 嘗試 customer token
       const customerToken = localStorage.getItem('customer_accessToken');
       if (customerToken) {
         try {
           userData = await authApi.getMe('customer');
         } catch (error) {
-          console.log("Customer token 驗證失敗，嘗試 merchant token");
-          clearTokens('customer');
+          if (isAuthFailure(error)) {
+            console.log("Customer token validation failed; trying merchant token");
+            clearTokens('customer');
+          } else {
+            console.warn('Customer session check failed temporarily:', error.response || error);
+            transientSessionError = true;
+            if (cachedUser?.user_type === 'customer') {
+              userData = cachedUser;
+            }
+          }
         }
       }
 
       // 嘗試 merchant token（如果 customer token 失敗或不存在）
-      if (!userData) {
+      if (!userData && !transientSessionError) {
         const merchantToken = localStorage.getItem('merchant_accessToken');
         if (merchantToken) {
           try {
             userData = await authApi.getMe('merchant');
           } catch (error) {
-            console.log("Merchant token 驗證失敗");
-            clearTokens('merchant');
+            if (isAuthFailure(error)) {
+              console.log("Merchant token validation failed");
+              clearTokens('merchant');
+            } else {
+              console.warn('Merchant session check failed temporarily:', error.response || error);
+              transientSessionError = true;
+              if (cachedUser?.user_type === 'merchant') {
+                userData = cachedUser;
+              }
+            }
           }
         }
       }
@@ -79,6 +101,8 @@ export const AuthProvider = ({ children }) => {
       if (userData) {
         setUser(userData);
         setCachedUser(userData);
+      } else if (transientSessionError && cachedUser) {
+        setUser(cachedUser);
       } else {
         // Token 驗證失敗，清除快取
         setUser(null);
@@ -91,6 +115,16 @@ export const AuthProvider = ({ children }) => {
 
     verifyUserSession();
   }, []); // 空依賴陣列表示只在掛載時執行一次
+  useEffect(() => {
+    const handleAuthError = (event) => {
+      clearTokens(event.detail?.userType);
+      setUser(null);
+      setCachedUser(null);
+    };
+
+    window.addEventListener('dineverse:auth-error', handleAuthError);
+    return () => window.removeEventListener('dineverse:auth-error', handleAuthError);
+  }, []);
 
   // 登入功能
   const login = (userData, redirectPath = null) => {
